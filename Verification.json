@@ -1,0 +1,26 @@
+{
+  "passed": [
+    "Pinch zoom changes orbit distance without entering a room",
+    "Two-finger pan translates the model",
+    "Pointer cancellation never triggers room entry",
+    "Every labelled room is reachable at the correct floor height in both configurations",
+    "Indoor pinch changes field of view",
+    "Indoor two-finger movement changes position",
+    "Tap-to-move reaches a projected indoor floor point",
+    "Touch movement works outside the old studio-only clamp",
+    "Floor jumps reach garage, studio and main house",
+    "Tap a room from dollhouse enters that room",
+    "Source drawings and their image payloads are excluded",
+    "Both configurations have finite geometry and no vehicle objects",
+    "820 mm side-wall door openings and swing zones are free of cabinets",
+    "Rear garage opening order is W06, W05, W04 from north to south",
+    "Property address is absent from the viewer heading",
+    "No-script preview and native opening instructions are embedded",
+    "Available dialogs still work without WebGL",
+    "Startup errors restore the visible fallback and explain the failure"
+  ],
+  "limitations": [
+    "DOM/pointer and geometry regression tests used a mocked WebGL context. Actual GPU rendering and iPhone Safari were not exercised because browser installation was unavailable.",
+    "This is an inspection model with no collision/structural certification."
+  ]
+}
