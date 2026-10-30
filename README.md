@@ -48,3 +48,11 @@ Scheduled Functions check due reminders every 15 minutes. Roles and selected rec
 ## Artwork
 
 `dist/artwork/ingredients-v1.webp` and `dist/artwork/dishes-v1.webp` are original generated illustration sprite sheets (16 cells each), integrated by `dist/artwork.js`. Remaining ingredient types use local SVG illustrations; unsupported dish types retain the existing vector artwork. All artwork is bundled for offline use. These are representative illustrations, not exact recipe photos or retailer product images. Generation prompts are recorded in `ARTWORK.md`.
+
+## Family-authored menu
+
+The family planner uses categorised family-authored recipes. The reference catalog remains available separately. Mon–Thu breakfast/dinner, Friday night, Saturday breakfast/lunch and the five-meal weekend batch have explicit rules; the batch includes next Monday breakfast. Recipe quantities support a custom original yield, unknown-quantity lines are preserved, and new ingredients can be entered with their own units. New ingredient prices remain unknown rather than guessed.
+
+Batch cooking deducts pantry once; subsequent meals record portions served. Undoing batch cooking is blocked until served meals are undone. Recorded batch cooks and served meals are counted separately. Existing menus, recipes and historical records are retained; regeneration previews changes and respects cooked/locked meals.
+
+See `AGENTS.md`: each release requires explicit owner DEPLOY approval before updating main or production. The owner approved deploying this reviewed family-menu release on 31 October 2026.

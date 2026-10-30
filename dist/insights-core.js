@@ -3,10 +3,11 @@ function cookedHistory(s,asOf=sydneyDate()){
  const events=[];
  for(const week of Object.values(s.weeks||{}))for(const[date,day]of Object.entries(week.days||{})){
   if(date>asOf)continue;
-  for(const type of ['lunch','dinner']){const m=day[type];if(!m?.cooked||!m.recipes?.length||mealServings(m,s)<=0)continue;
-   for(const r of new Map(m.recipes.map(r=>[r.id,r])).values())events.push({date,type,recipe:r});
+  for(const type of (typeof MEAL_TYPES!=='undefined'?MEAL_TYPES:['lunch','dinner'])){const m=day[type];if(!m?.cooked||!m.recipes?.length||mealServings(m,s)<=0)continue;
+   for(const r of new Map(m.recipes.filter(r=>!r.batchId).map(r=>[r.id,r])).values())events.push({date,type,recipe:r});
   }
  }
+ for(const b of Object.values(s.familyBatches||{}))if(b.cooked&&(b.cookedAt||b.ownerDate)<=asOf)events.push({date:b.cookedAt||b.ownerDate,type:'batch',recipe:b.recipe});
  return events.sort((a,b)=>b.date.localeCompare(a.date));
 }
 function recipeHistory(s,id,asOf=sydneyDate()){
@@ -19,7 +20,7 @@ function historyRecipeAdjustment(s,r,date=sydneyDate()){
  return(h.daysAgo!==null&&h.daysAgo<gap?-12:0)-h.count30*2+(feedback?.rating==='like'?3:0)+(h.count===0?3:0);
 }
 function recipeSuggestions(s,{date=sydneyDate(),category=null,exclude=[],limit=4}={}){
- const ranked=s.recipes.filter(r=>(!category||r.category===category)&&!exclude.includes(r.id)&&r.ingredients.length&&r.time<=s.preferences.maxTime&&allowedRecipe(r,s)&&s.recipeFeedback?.[r.id]?.rating!=='skip').map(r=>{
+ const ranked=s.recipes.filter(r=>(!s.preferences.familyPlanner||r.custom||r.origin==='family')&&(!category||r.category===category)&&!exclude.includes(r.id)&&r.ingredients.length&&r.time<=s.preferences.maxTime&&allowedRecipe(r,s)&&s.recipeFeedback?.[r.id]?.rating!=='skip').map(r=>{
   const h=recipeHistory(s,r.id,date),owned=r.ingredients.filter(i=>s.pantry.some(p=>p.ingredient===i.id&&p.qty>0&&(!p.expiry||p.expiry>=date))).length;
   const expiring=r.ingredients.filter(i=>s.pantry.some(p=>p.ingredient===i.id&&p.qty>0&&p.expiry>=date&&p.expiry<=addDays(date,2))).length;
   return{recipe:r,history:h,owned,expiring,score:historyRecipeAdjustment(s,r,date)+owned*2+expiring*3+(r.favorite?2:0)-recipeCost(r)*.04};
