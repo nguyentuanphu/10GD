@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import webPush from 'web-push';
+import {allowedEndpoint,validDevice,sydneyClock,isQuiet,automaticMessages,sendPushBatch,scheduledReminders} from '../netlify/lib/push.mjs';
+assert(allowedEndpoint('https://fcm.googleapis.com/fcm/send/test'));assert(allowedEndpoint('https://web.push.apple.com/test'));assert(!allowedEndpoint('https://127.0.0.1/push'));assert(!allowedEndpoint('https://fcm.googleapis.com.evil.example/'));assert(!allowedEndpoint('http://fcm.googleapis.com/push'));
+assert.equal(sydneyClock(new Date('2026-10-29T23:30:00Z')).minute,630);assert.equal(sydneyClock(new Date('2026-07-01T00:30:00Z')).minute,630);
+assert(isQuiet({minute:23*60},{quietStart:'21:00',quietEnd:'07:00'}));assert(!isQuiet({minute:10*60},{quietStart:'21:00',quietEnd:'07:00'}));
+const state={preferences:{budget:100,attendanceTime:'10:30'},weeks:{'2026-10-26':{days:{'2026-10-30':{dinner:{attendance:{a:'pending'},recipes:[{name:'Món thử'}],cooked:false}}},boughtAt:{a:'2026-10-30T01:00:00Z'}}},pantry:[],receipts:[]};
+const jobs=automaticMessages(state,new Date('2026-10-29T23:30:00Z'));assert(jobs.some(x=>x.type==='attendance'));assert(!automaticMessages(state,new Date('2026-10-30T00:00:00Z')).some(x=>x.type==='attendance'));
+const data=new Map([['state',state],['push/vapid-keys',webPush.generateVAPIDKeys()]]);const store={get:async k=>data.get(k)||null,setJSON:async(k,v,o={})=>{if(o.onlyIfNew&&data.has(k))return{modified:false};data.set(k,v);return{modified:true}},delete:async k=>data.delete(k),list:async function*(){yield{blobs:[...data.keys()].filter(k=>k.startsWith('push/subscriptions/')).map(key=>({key}))}}};
+const sub={endpoint:'https://fcm.googleapis.com/fcm/send/synthetic-test',keys:{auth:'a'.repeat(22),p256dh:'a'.repeat(87)}};
+const device={deviceId:'synthetic-device-01',memberId:'dad',label:'Synthetic device',subscription:sub,types:{urgent:true,attendance:true},quietStart:'21:00',quietEnd:'07:00'};assert(validDevice(device));data.set('push/subscriptions/'+device.deviceId,device);
+let sends=0;const send=async()=>{sends++;return{statusCode:201}};
+let result=await sendPushBatch(store,{type:'urgent',title:'Mua thêm','body':'2 bó rau, cửa hàng thử',url:'/#shopping'},{targets:['mum'],send});assert.equal(result.accepted,0);assert.equal(sends,0);
+result=await sendPushBatch(store,{type:'urgent',title:'Mua thêm','body':'2 bó rau',url:'/#shopping'},{targets:['dad'],send});assert.equal(result.accepted,1);
+await scheduledReminders(store,new Date('2026-10-29T23:30:00Z'),{send});const sent=sends;await scheduledReminders(store,new Date('2026-10-29T23:35:00Z'),{send});assert.equal(sends,sent);
+result=await sendPushBatch(store,{type:'attendance',title:'Báo cơm','body':'Thử',url:'/#today'},{automatic:true,now:new Date('2026-10-30T12:00:00Z'),send});assert.equal(result.accepted,0);
+console.log('PASS push endpoint safety, Sydney daylight saving, quiet hours, due windows, recipient routing and scheduled deduplication (mock transport only)');
