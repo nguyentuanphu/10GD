@@ -1,8 +1,13 @@
-# Bếp Gia Đình · v1.3
+# Bếp Gia Đình · v1.4
 
 Family meal planning, shopping and receipts, built with HTML/CSS/Vanilla JavaScript and a Netlify backend.
 
 ## What is included
+
+- Saved retailer products with manually confirmed/receipt/CSV prices, branch, pack size, barcode and checked date. Search links to Coles, Woolworths and Chemist Warehouse; adding a product updates the family list, not a retailer account/cart. Live retailer catalog APIs are not connected.
+- Cooking insights count only meals marked Cooked, exclude future dates, and update on undo. Repeat intervals, likes and paused suggestions affect recommendations and weekly generation.
+- Vietnamese/English core interface, product and insights workflows, and push settings. Device-local language does not translate or replace user content or original Vietnamese recipe instructions.
+- Mobile navigation keeps Today / Weekly Menu / Shopping and moves secondary tools into More.
 
 - **Simple screens by default** for Today, Weekly Planner and Shopping, with a remembered Full view per device. Shopping uses 20–21px item names, 44–48px checkbox touch targets, collapsible tools and an optional remaining-items filter.
 - **540 dishes and recipe variants:** 172 mains, 110 soups, 88 vegetable dishes and 170 noodle/soup/porridge meals. Every entry has ingredients, preparation and cooking steps. The catalog displays 24 cards per page, with search/category/time filters.
@@ -38,4 +43,8 @@ Browser-local operation remains available when disconnected. Cloud synchronizati
 
 Suggested portions, recipe times and sample prices are editable. Quick noodle/porridge times assume the prepared broth or cooked ingredients stated in the recipe. A weight estimate per bunch/piece is explicitly approximate. A receipt may record actual cost per sale unit without knowing its gram weight.
 
-Scheduled Functions check due reminders every 15 minutes. Notification display, timing and sound depend on browser/OS permission, connectivity and Focus settings. No background push is claimed before a device has successfully registered.
+Scheduled Functions check due reminders every 15 minutes. Roles and selected recipients filter delivery; each device chooses notification language, quiet hours and whether urgent requests can bypass quiet hours. Two automatic sends per device/day are enforced with conditional slot claims. Direct requests are normal by default; urgent requires an explicit choice. Ignored or capped notifications are not queued. Notification display, timing and sound depend on browser/OS permission, connectivity and Focus settings. No background push is claimed before a device has successfully registered.
+
+## Artwork
+
+`dist/artwork/ingredients-v1.webp` and `dist/artwork/dishes-v1.webp` are original generated illustration sprite sheets (16 cells each), integrated by `dist/artwork.js`. Remaining ingredient types use local SVG illustrations; unsupported dish types retain the existing vector artwork. All artwork is bundled for offline use. These are representative illustrations, not exact recipe photos or retailer product images. Generation prompts are recorded in `ARTWORK.md`.

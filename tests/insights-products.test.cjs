@@ -1,0 +1,21 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const ctx=vm.createContext({console,Intl,Date,Math,URL,structuredClone,crypto:require('node:crypto').webcrypto});
+for(const f of ['seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),ctx);
+vm.runInContext(`
+const s=defaults(),date='2026-10-30';const w=ensureWeek(s,monday(date));const r=s.recipes[0],m=w.days[date].dinner;m.recipes=[clone(r)];
+if(recipeHistory(s,r.id,date).count!==0)throw Error('Planned is not eaten');
+m.cooked=true;if(recipeHistory(s,r.id,date).count!==1)throw Error('Cooked counted');
+if(recipeHistory(s,r.id,'2026-10-29').count!==0)throw Error('Future excluded');
+m.recipes.push(clone(r));if(recipeHistory(s,r.id,date).count!==1)throw Error('Deduplicate within meal');
+m.cooked=false;if(recipeHistory(s,r.id,date).count!==0)throw Error('Undo excluded');
+s.recipeFeedback={[r.id]:{rating:'skip',repeatDays:14}};if(recipeSuggestions(s,{date,limit:540}).some(x=>x.recipe.id===r.id))throw Error('Paused recipe suggested');
+if(!validImport(s))throw Error('Feedback backup');s.recipeFeedback[r.id].repeatDays=-1;if(validImport(s))throw Error('Invalid interval accepted');delete s.recipeFeedback;
+const p={id:'test-product',retailer:'coles',name:'Milk',price:0,size:'1 litre',branch:'Test branch',barcode:'123',checkedAt:date,url:'https://www.coles.com.au/product/test',source:'manual'};
+if(!validProduct(p)||productTotal(p,2)!==0)throw Error('Zero is valid price');p.price=null;if(productTotal(p,2)!==null)throw Error('Unknown price');p.price=3.5;if(productTotal(p,3)!==10.5)throw Error('Cart math');
+if(safeProductURL('https://www.coles.com.au.evil.example/product','coles'))throw Error('Unsafe host');if(safeProductURL('javascript:alert(1)','coles'))throw Error('Unsafe protocol');if(safeProductURL('https://user:pass@www.coles.com.au/product','coles'))throw Error('Credentials in URL');
+const csv='retailer,name,price,size,checkedAt,branch\\ncoles,"Milk, full cream",3.50,1 litre,2026-10-30,Test';const parsed=parseProductCSV(csv);if(parsed.length!==1||parsed[0].name!=='Milk, full cream')throw Error('CSV quoted');
+s.products=[p];if(!validImport(s))throw Error('Products backup');s.products.push(clone(p));if(validImport(s))throw Error('Duplicate IDs');
+const u=defaults(),um=createMeal(u,r.id);u.pantry=[];um.consumed=[{lotId:'restore',ingredient:'chicken',qty:100,place:'fridge',expiry:''}];um.cooked=true;undoCook(u,um);if(u.pantry[0].qty!==100)throw Error('Restore depleted lot');
+`,ctx);
+assert.throws(()=>vm.runInContext(`parseProductCSV('retailer,name,price,size,checkedAt\\ncoles,A,-1,1 pack,2026-10-30')`,ctx));
+console.log('PASS recorded-only cooking history, future/undo handling, preferences, suggestions, product URLs, prices, CSV, backup validation and depleted-lot undo');
