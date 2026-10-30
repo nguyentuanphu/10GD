@@ -1,0 +1,24 @@
+const fs=require('node:fs'),vm=require('node:vm');const ctx=vm.createContext({console,Intl,Date,Math,crypto:require('node:crypto').webcrypto});
+vm.runInContext(['seed','core','spending-core'].map(name=>fs.readFileSync('dist/'+name+'.js','utf8')).join('\n'),ctx);
+vm.runInContext(`
+const check=(x,n)=>{if(!x)throw Error(n);console.log('PASS',n)};
+const s=defaults();
+check(inferIngredient('Chicken breast 500g',s).match==='chicken','English receipt item maps to Vietnamese ingredient');
+check(inferIngredient('Spring onion',s).match==='scallion','specific multiword match beats generic onion');
+check(inferIngredient('Unidentified item XYZ',s).match==='','unknown item remains unmatched');
+s.aliases[normalizeText('CKN BRS PK')]='chicken';check(inferIngredient('CKN BRS PK',s).confidence==='learned','confirmed abbreviated receipt match is learned');
+let q=quantityFromText('Trứng 6 quả');check(q.qty===6&&q.unit==='quả','Vietnamese accented unit parses correctly');
+q=quantityFromText('Thịt gà 0,75 kg');check(q.qty===.75&&canonicalQuantity(q.qty,q.unit,'chicken')===750,'Vietnamese decimal weight converts to grams');
+check(canonicalQuantity(1,'pack','chicken')===null,'unknown package weight does not produce a fake unit price');
+const receipt=parseReceiptText('WOOLWORTHS\\n30/10/2026\\nChicken breast 0.5 kg 8.50\\nTomato 1 kg 4.00\\nUNKNOWN GOODS 3.00\\nSUBTOTAL 15.50\\nGST 0.50\\nTOTAL 15.50\\nVISA 15.50',s);
+check(receipt.items.length===3&&receipt.total===15.5,'receipt parser excludes payment, subtotal and tax duplication');
+check(receipt.items[0].match==='chicken'&&!receipt.items[2].match,'receipt parser leaves uncertain item for review');
+check(receipt.date==='2026-10-30','receipt date parsed day/month/year');
+const start=monday('2026-10-30');s.receipts=[{id:'one',store:'Coles',date:'2026-10-27',total:8,createdAt:'2026-10-27T12:00:00Z',items:[{id:'a',label:'Chicken breast',total:8,ingredient:'chicken',quantity:500}]},{id:'two',store:'Coles',date:'2026-10-30',total:10,createdAt:'2026-10-30T12:00:00Z',items:[{id:'b',label:'Chicken breast',total:10,ingredient:'chicken',quantity:500}]},{id:'three',store:'Other shop',date:'2026-11-03',total:20,createdAt:'2026-11-03T12:00:00Z',items:[{id:'c',label:'Chicken breast',total:20,ingredient:'chicken',quantity:1000}]}];
+check(receiptsInWeek(s,start).reduce((n,r)=>n+r.total,0)===18,'weekly actual spend uses receipt date and total');
+const history=priceHistory(s),coles=history.find(h=>h.store==='Coles');check(coles.value===20&&coles.previous===16&&coles.change===25,'price change compares normalized unit price within same retailer');
+check(history.length===2,'different retailers get separate price histories');
+check(validSpending(s)&&validImport(s),'receipts round-trip through backup validation');
+const invalid=JSON.parse(JSON.stringify(s));invalid.receipts[0].items[0].quantity=-10;check(!validImport(invalid),'invalid receipt quantities rejected on restore');
+const notes=parseShoppingNotes('☐ Thịt gà 500g\\n- Trứng 6 quả\\nGiấy ăn 2 hộp',s);check(notes.length===3&&notes[0].match==='chicken'&&notes[1].qty===6&&!notes[2].match,'phone note checklist parses known and unknown items');
+`,ctx);

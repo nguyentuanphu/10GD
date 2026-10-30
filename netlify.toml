@@ -1,0 +1,17 @@
+[build]
+  command = "npm run check"
+  publish = "dist"
+  functions = "netlify/functions"
+[build.environment]
+  NODE_VERSION = "22"
+[functions]
+  node_bundler = "esbuild"
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "same-origin"
