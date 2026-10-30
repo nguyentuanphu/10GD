@@ -44,3 +44,7 @@ Browser-local operation remains available when disconnected. Cloud synchronizati
 Suggested portions, recipe times and sample prices are editable. Quick noodle/porridge times assume the prepared broth or cooked ingredients stated in the recipe. A weight estimate per bunch/piece is explicitly approximate. A receipt may record actual cost per sale unit without knowing its gram weight.
 
 Scheduled Functions check due reminders every 15 minutes. Roles and selected recipients filter delivery; each device chooses notification language, quiet hours and whether urgent requests can bypass quiet hours. Two automatic sends per device/day are enforced with conditional slot claims. Direct requests are normal by default; urgent requires an explicit choice. Ignored or capped notifications are not queued. Notification display, timing and sound depend on browser/OS permission, connectivity and Focus settings. No background push is claimed before a device has successfully registered.
+
+## Artwork
+
+`dist/artwork/ingredients-v1.webp` and `dist/artwork/dishes-v1.webp` are original generated illustration sprite sheets (16 cells each), integrated by `dist/artwork.js`. Remaining ingredient types use local SVG illustrations; unsupported dish types retain the existing vector artwork. All artwork is bundled for offline use. These are representative illustrations, not exact recipe photos or retailer product images. Generation prompts are recorded in `ARTWORK.md`.
