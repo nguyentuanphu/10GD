@@ -99,3 +99,14 @@ Backend push/schedule đã có kiểm tra bằng transport giả lập, chưa x�
 Hôm Nay, Thực Đơn Tuần và Đi Chợ mở ở chế độ Đơn giản. Nút Đầy đủ hiện mọi chi tiết; lựa chọn nhớ riêng trên từng thiết bị, không đổi giao diện của người khác. Các mục mở rộng vẫn giữ nguyên chức năng.
 
 Đi Chợ có tên món cỡ lớn, ô tick với vùng chạm 44–48 px, lượng mua và cửa hàng/địa chỉ ngay tại dòng. Chỉ hiện đồ chưa mua là tùy chọn; bỏ chọn để xem và bỏ tick lại. Tiến độ luôn tính trên toàn danh sách kể cả khi lọc theo cửa hàng.
+
+## v1.4 — sản phẩm, lịch sử món, tiếng Anh và thông báo gọn hơn
+
+- Sản phẩm & giá: nhập tay, lưu từ hóa đơn đã kiểm tra hoặc dán CSV. Giá kèm ngày kiểm tra, quy cách và chi nhánh; quá 7 ngày sẽ nhắc kiểm tra lại. Không có giá trực tiếp/API của Coles, Woolworths hoặc Chemist Warehouse trong bản này. Link tìm kiếm mở website chính thức để bạn xem và xác nhận. Thêm giỏ chỉ thêm vào danh sách của app, không mua hàng và không thay giỏ tài khoản retailer. Giá dự tính không được cộng vào chi thực tế cho đến khi lưu receipt.
+- CSV có header `retailer,name,price,size,checkedAt` và tùy chọn `branch,barcode,url`. retailer là `coles`, `woolworths`, `chemist`; ngày `YYYY-MM-DD`; price trống là chưa rõ, số 0 là giá bằng 0. Có kiểm tra/xem trước rồi mới xác nhận thêm; tối đa 2000 sản phẩm. URL phải thuộc đúng website chính thức đã chọn. Dữ liệu CSV do người dùng cung cấp.
+- Thống kê chỉ tính bữa đã bấm Đã nấu tới hôm nay. Mỗi món tối đa một lượt/bữa; một bữa nhiều món có nhiều lượt. Hoàn tác sẽ bỏ lượt đó. Bữa chưa nấu, bữa tương lai và bữa 0 suất không được tính. Chỉ là nhật ký nấu, không xác nhận từng người đã ăn.
+- Gợi ý dùng lịch sử, số lần 30 ngày, lần gần nhất, sở thích, khoảng gợi ý lại 7/14/21/30 ngày, cài đặt thời gian/nguyên liệu tránh và tủ đã ghi. Có ưu tiên đa dạng nhóm món/đạm. Không dùng dịch vụ AI ngoài, không phải tư vấn dinh dưỡng.
+- Tiếng Việt/English ở góc trên, nhớ riêng từng thiết bị. Màn hình chính, sản phẩm, thống kê và cài push có tiếng Anh. Tên món, hướng dẫn công thức và nội dung người dùng giữ ngôn ngữ gốc; một số trợ giúp/cài đặt cũ vẫn còn tiếng Việt.
+- Thông báo: từng máy chọn vai trò nấu/đi chợ/cả hai và ngôn ngữ riêng; thiết bị cũ cần mở Push & người nhận và lưu lại lựa chọn. Nhắc báo cơm chỉ tới người còn pending. Nhắc tự động tối đa 2/thiết bị/ngày, có conditional writes để tránh vượt do chạy đồng thời.
+- Nhờ mua thêm mặc định thường (`shopping`); gửi khẩn (`urgent`) cần chọn riêng. Yên lặng chặn cả hai trừ khi người nhận cho phép khẩn đi qua. Không gửi bù các nhắc bị yên lặng, tắt hoặc vượt giới hạn; yêu cầu vẫn trong app. Nút thử chỉ gửi tới ID thiết bị hiện tại, không gửi cả gia đình.
+- Test kiểm tra bằng transport giả lập; chưa kiểm tra giao nhận thực trên iPhone/Android. Không có email hay tin nhắn Messenger nào được gửi tự động trong kiểm tra.

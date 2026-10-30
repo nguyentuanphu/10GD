@@ -15,3 +15,17 @@ result=await sendPushBatch(store,{type:'urgent',title:'Mua thêm','body':'2 bó 
 await scheduledReminders(store,new Date('2026-10-29T23:30:00Z'),{send});const sent=sends;await scheduledReminders(store,new Date('2026-10-29T23:35:00Z'),{send});assert.equal(sends,sent);
 result=await sendPushBatch(store,{type:'attendance',title:'Báo cơm','body':'Thử',url:'/#today'},{automatic:true,now:new Date('2026-10-30T12:00:00Z'),send});assert.equal(result.accepted,0);
 console.log('PASS push endpoint safety, Sydney daylight saving, quiet hours, due windows, recipient routing and scheduled deduplication (mock transport only)');
+// v1.4 notification controls, without sending any network traffic.
+device.language='en';device.role='shopper';data.set('push/subscriptions/'+device.deviceId,device);
+let lastPayload=null;const capture=async(_sub,payload)=>{lastPayload=JSON.parse(payload);return{statusCode:201}};
+result=await sendPushBatch(store,{type:'prep',title:'Sơ chế',body:'Thử',enTitle:'Prep',enBody:'Test prep'},{automatic:true,now:new Date('2026-10-30T06:00:00Z'),send:capture});assert.equal(result.accepted,0,'shopper does not get automatic prep');
+result=await sendPushBatch(store,{type:'urgent',title:'Thử',body:'Thử',enTitle:'Urgent item',enBody:'Two bunches'},{targets:['dad'],now:new Date('2026-10-30T12:00:00Z'),send:capture});assert.equal(result.accepted,0,'quiet hours respected by default');
+device.urgentBypass=true;
+result=await sendPushBatch(store,{type:'urgent',title:'Thử',body:'Thử',enTitle:'Urgent item',enBody:'Two bunches'},{targets:['dad'],now:new Date('2026-10-30T12:00:00Z'),send:capture});assert.equal(result.accepted,1);assert.equal(lastPayload.title,'Urgent item');assert.equal(lastPayload.body,'Two bunches');
+device.role='both';device.urgentBypass=false;data.delete('push/daily/2026-10-30/'+device.deviceId);
+for(let i=0;i<3;i++){result=await sendPushBatch(store,{type:'shopping',title:'Nhắc mua',body:'Thử',enTitle:'Shopping',enBody:'Test'},{automatic:true,now:new Date('2026-10-30T06:00:00Z'),send:capture});assert.equal(result.accepted,i<2?1:0)}
+result=await sendPushBatch(store,{type:'test',title:'Thử',body:'Thử',enTitle:'Test',enBody:'This device'},{deviceIds:['another-device'],send:capture});assert.equal(result.accepted,0,'test only selected device');
+const targeted=automaticMessages(state,new Date('2026-10-29T23:30:00Z')).find(j=>j.type==='attendance');assert.deepEqual(targeted.targets,['a']);
+console.log('PASS language-specific payloads, role filters, quiet hours, explicit urgent override, two-per-day cap and device-only tests');
+const simultaneous=await Promise.all(Array.from({length:5},()=>sendPushBatch(store,{type:'shopping',title:'Mua đồ',body:'Test'},{automatic:true,now:new Date('2026-11-01T01:00:00Z'),send:capture})));assert.equal(simultaneous.reduce((n,r)=>n+r.accepted,0),2,'conditional daily slots also enforce the cap under concurrency');
+console.log('PASS concurrent automatic sends cannot exceed two daily slots');
