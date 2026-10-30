@@ -27,7 +27,7 @@ Không cần Netlify personal access token trong trình duyệt. Functions dùng
 - Kiểm tra tên cửa hàng, ngày mua, từng dòng, đơn vị, khối lượng và tổng tiền trước khi lưu. Không tự ghi chi tiêu chỉ vì đã chụp ảnh.
 - App đề xuất ghép tên tiếng Anh/Việt và ghi nhớ đối ứng bạn xác nhận. Dòng không rõ ở trạng thái chưa đối ứng; danh sách gợi ý ưu tiên nguyên liệu đang cần mua, sau đó nguyên liệu khác và món trong thực đơn.
 - Tổng hóa đơn là chi thực tế. Không cộng lại chi phí dự kiến đi chợ. Nếu lệch tổng các dòng, phải xác nhận để giữ phần chênh chưa phân bổ.
-- Đơn giá chỉ được tính khi biết lượng và đơn vị thật. So sánh cùng nguyên liệu tại cùng cửa hàng, không suy ra đơn giá từ một “gói” chưa rõ lượng. Khác nhãn hàng, quy cách, khuyến mãi có thể tạo chênh lệch.
+- Đơn giá chỉ được tính khi biết lượng và đơn vị thật. So sánh cùng nguyên liệu tại cùng cửa hàng, có thể so giá theo cái/bó/gói nếu biết số lượng thật; không tự quy đổi ra /kg khi chưa rõ khối lượng. Khác nhãn hàng, quy cách, khuyến mãi có thể tạo chênh lệch.
 - Đánh dấu đã mua từ receipt là tùy chọn; chỉ nguyên liệu đã đối ứng, có lượng hợp lệ trong danh sách đang xem. Cất đồ vào tủ là thao tác riêng.
 - Metadata hóa đơn và lịch sử chi tiêu nằm trong dữ liệu chung. Ảnh giữ trong IndexedDB và tải lên Blobs khi kết nối. JSON sao lưu không chứa ảnh. Giữ ảnh gốc trong Photos nếu cần bản sao độc lập.
 
@@ -38,7 +38,7 @@ Không cần Netlify personal access token trong trình duyệt. Functions dùng
 
 ## Giới hạn được công bố
 
-Bản review tại ChatGPT Sites chỉ chạy giao diện và dữ liệu cục bộ; backend chỉ hoạt động trên Netlify sau khi triển khai và cấu hình. Backend đã kiểm tra với store giả lập, chưa được kiểm chứng trên tài khoản Netlify của bạn. OCR đã đọc một ảnh receipt thử nghiệm với dữ liệu giả; cần kiểm tra ảnh thực tế. Chưa kiểm thử iPhone/Android thật, thông báo push theo lịch nền chưa có dịch vụ gửi. Giá mẫu dự toán khác với giá thực mua từ receipt.
+Bản review tại ChatGPT Sites chỉ chạy giao diện và dữ liệu cục bộ; backend chỉ hoạt động trên Netlify sau khi triển khai và cấu hình. Backend đã kiểm tra với store giả lập, chưa được kiểm chứng trên tài khoản Netlify của bạn. OCR đã đọc một ảnh receipt thử nghiệm với dữ liệu giả; cần kiểm tra ảnh thực tế. Chưa kiểm thử iPhone/Android thật; backend push và lịch nền đã có, cần xác nhận giao nhận trên Netlify sau deploy. Giá mẫu dự toán khác với giá thực mua từ receipt.
 
 Giới hạn bản này: một gia đình / site, mọi người dùng cùng mật khẩu có quyền sửa, không có phân quyền tài khoản. Metadata tối đa 4 MB / lần lưu, ảnh JPEG tối đa 3,5 MB sau nén. Sử dụng Netlify có thể phát sinh chi phí theo gói của bạn. Không có tự động xóa hóa đơn cũ, vì vậy nên xuất JSON định kỳ và giữ ảnh gốc.
 
@@ -51,3 +51,51 @@ Giới hạn bản này: một gia đình / site, mọi người dùng cùng m�
 Mỗi bữa thêm được tối đa 12 món, gồm nhiều món cùng nhóm. Trong bữa ăn, chọn “Thêm / đổi từng món”: thêm giữ các món cũ; “Đổi món này” chỉ thay đúng món được chọn. Cỡ món mặc định tự chia trong nhóm (2 món mặn thì mỗi món dùng 50% công thức cho số suất của bữa); có thể chỉnh 25%, 50%, 75%, 100%, 150% hoặc 200%. Đây là quy tắc chia lượng, không phải khuyến nghị dinh dưỡng. Cơm trắng có lựa chọn tự động / có cơm / không thêm cơm.
 
 Cài đặt gia đình có số món khi tự tạo: 1–3 món mặn, 0–2 canh, 0–3 rau; bữa món nước cuối tuần vẫn bắt đầu bằng một món chính, có thể thêm các món khác sau. Thực đơn tuần có dạng thẻ và dạng danh sách, hiển thị đầy đủ tên mọi món. Nguyên liệu, công việc chuẩn bị, trừ tồn khi nấu và chi phí đều dùng cỡ từng món.
+
+## Cập nhật v1.3 — đơn vị mua, 540 công thức, cửa hàng và push
+
+### Đơn vị ngoài gram
+
+Bấm lượng mua rồi chọn cái / miếng / bó / gói / hộp / khay / túi / chai / con, hoặc tự đặt đơn vị. Ví dụ: nguyên liệu “Thịt gà”, số lượng “2 cái”, ghi chú “đùi gà”. Tick “Nhớ…” để lưu cách mua cho nguyên liệu đó. Có thể nhập số gram/ml/quả ước tính mỗi đơn vị và giá AUD mỗi đơn vị; cả hai đều không bắt buộc.
+
+Nếu chưa biết gram, app không trừ một số gram đoán vào nhu cầu thực đơn và không tạo giá/kg giả. Vẫn tick mua và cất 2 cái / 1 bó vào tủ được. Lô chưa có quy đổi được giữ theo số cái/bó; bạn bổ sung tổng lượng cân được sau, hoặc xóa khi đã dùng hết. Khi có quy đổi ước tính, lượng còn lại sau nấu cũng là ước tính. Hóa đơn có thể ghi đơn giá thật theo bó/cái; so sánh giá chỉ cùng đơn vị tại cùng cửa hàng.
+
+### Kho 540 món & biến thể
+
+172 món mặn, 110 canh, 88 rau, 170 món nước/cháo. Các biến thể có nguyên liệu và cách nấu cụ thể. Kho được chia trang 24 thẻ, có tìm kiếm, nhóm món và thời gian. Nâng cấp dữ liệu cũ chỉ thêm các công thức mở rộng, không tạo lại những món cũ gia đình đã xóa.
+
+### Gợi ý theo ngày
+
+Mặc định: thứ Hai nhanh gọn; thứ Ba món cá; thứ Tư đậu hũ/trứng đổi vị; thứ Năm món yêu thích; thứ Sáu tận dụng tủ; thứ Bảy món nước; Chủ Nhật nấu thong thả/chuẩn bị tuần mới. Trong “Gợi ý theo ngày” có thể đổi ưu tiên từng ngày. App đề xuất riêng từng bữa để bạn xem trước rồi áp dụng, không tự sửa bữa đã nấu/khóa. Quy tắc này giúp đổi món và sắp xếp thời gian, không thay thế nhu cầu ăn uống riêng của từng người.
+
+### Cửa hàng và địa chỉ
+
+Tab Đi chợ → Cửa hàng: tự nhập tên và địa chỉ/chi nhánh. Nút bản đồ mở tìm kiếm địa chỉ đã nhập, không phải địa điểm app đã xác minh. Từng nguyên liệu có nút “Chọn nơi mua”, ghi chú và tùy chọn nhớ cho lần sau. Danh sách có thể gom theo quầy hoặc cửa hàng, lọc cửa hàng; tiến độ và ngân sách vẫn tính toàn bộ danh sách. Đồ mua thêm và yêu cầu mua gấp cũng có cửa hàng.
+
+### Push: ai gửi, ai nhận?
+
+- **Server Netlify gửi** tới Web Push service của trình duyệt. Điện thoại hiển thị theo quyền và cài đặt của người nhận.
+- **Người trong gia đình tạo yêu cầu tức thời** bằng “Nhờ mua thêm”; chọn người nhận, món, lượng, cửa hàng và ghi chú. Yêu cầu được thêm vào danh sách cả khi chưa gửi được push. Trạng thái “dịch vụ push đã nhận” không đồng nghĩa người mua đã đọc.
+- Mỗi điện thoại phải mở website, kết nối bằng mật khẩu gia đình, vào “Push & người nhận”, chọn thành viên và bật push. Trên iPhone cần cài ra Màn hình chính và mở từ biểu tượng. Các loại thông báo chọn riêng được.
+- Không cần đặt VAPID keys trong HTML hay biến môi trường: lần bấm bật push sẽ tạo keys riêng trong Netlify Blobs. Private key chỉ ở server. Không xóa/đổi khóa khi đang có thiết bị đăng ký nếu không muốn đăng ký lại.
+- Lịch tại `netlify/functions/reminders.mjs`, cấu hình `*/15 * * * *` trong `netlify.toml`. Netlify chỉ chạy lịch ở deploy production; lịch dùng UTC, code đổi sang Australia/Sydney và tính giờ mùa hè. Lần gửi có thể trễ trong cửa sổ 15 phút.
+- Lịch mặc định: báo cơm theo giờ cài khi còn người pending; chuẩn bị tối khoảng 17:00; yêu cầu đi chợ chưa xong khoảng 09:00; kiểm tra hạn dùng 08:30; nhắc receipt 19:30 nếu tick mua hôm đó mà chưa ghi hóa đơn; vượt ngân sách thông báo một lần/tuần; Chủ Nhật 18:00 gợi ý lên tuần mới. Lịch chỉ gửi các mục người nhận đã bật, và tôn trọng giờ yên lặng của thiết bị. Yêu cầu mua gấp do thành viên chủ động gửi không bị lịch yên lặng của app giữ lại; OS vẫn có thể làm im thông báo.
+- Người gửi trong app là tên thành viên được chọn trong gia đình dùng chung mật khẩu, không phải xác thực danh tính cá nhân.
+
+### Kiểm tra sau deploy
+
+1. Redeploy từ commit v1.3 để có dependency `web-push`, backend và scheduled function mới.
+2. Trên hai điện thoại, kết nối cùng website; từng máy chọn thành viên và bật push.
+3. Máy A chọn “Nhờ mua thêm”: “1 bó” + “rau mùi”, chọn cửa hàng, ghi “cần cho bữa tối”, chọn người ở máy B.
+4. Kiểm tra thông báo máy B khi app mở, đóng và màn hình khóa; bấm thông báo phải mở danh sách có nguyên yêu cầu và địa chỉ.
+5. Nếu không có thiết bị phù hợp, app phải báo chưa gửi được, giữ yêu cầu và cho chia sẻ nội dung. Không coi thao tác lưu yêu cầu là gửi push thành công.
+
+Backend push/schedule đã có kiểm tra bằng transport giả lập, chưa xác nhận gửi tới điện thoại thật hoặc lịch chạy trên tài khoản Netlify của bạn. App không cam kết chuông/báo đúng giây vì phụ thuộc hệ điều hành và mạng.
+
+
+
+## Chế độ đơn giản mặc định
+
+Hôm Nay, Thực Đơn Tuần và Đi Chợ mở ở chế độ Đơn giản. Nút Đầy đủ hiện mọi chi tiết; lựa chọn nhớ riêng trên từng thiết bị, không đổi giao diện của người khác. Các mục mở rộng vẫn giữ nguyên chức năng.
+
+Đi Chợ có tên món cỡ lớn, ô tick với vùng chạm 44–48 px, lượng mua và cửa hàng/địa chỉ ngay tại dòng. Chỉ hiện đồ chưa mua là tùy chọn; bỏ chọn để xem và bỏ tick lại. Tiến độ luôn tính trên toàn danh sách kể cả khi lọc theo cửa hàng.
