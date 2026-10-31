@@ -16,12 +16,12 @@ function invitationCode(value:string):string {
  return '';
 }
 invitationField.oninput=()=>{try{if(invitationField.value.trim())sessionStorage.setItem('bep-invite-draft',invitationField.value.trim());else sessionStorage.removeItem('bep-invite-draft')}catch{}};
-let invitationMessage='';
+let invitationMessage='',joinedFamily=false;
 async function connectInvitation():Promise<void>{
- invitationMessage='';if(!invitationField.value.trim())return;
+ invitationMessage='';joinedFamily=false;if(!invitationField.value.trim())return;
  const code=invitationCode(invitationField.value);
  if(!code){invitationMessage='Mã mời chưa hợp lệ. Bạn vẫn đã có tài khoản; có thể nhập lại mã trong Gia đình.';return}
- try{await request('join',{code});invitationMessage='Đã tham gia gia đình. ';invitationField.value='';try{sessionStorage.removeItem('bep-invite-draft')}catch{}}
+ try{const res=await request('join',{code});joinedFamily=true;const fname=typeof res.familyName==='string'&&res.familyName?res.familyName:'nhà mình';invitationMessage=`Đã tham gia gia đình (${fname}) và tự động đồng bộ! `;invitationField.value='';try{sessionStorage.removeItem('bep-invite-draft');sessionStorage.setItem('bep-joined-family-notice',`Đã tham gia gia đình (${fname}) thành công`)}catch{}}
  catch(error){invitationMessage='Đã tạo/đăng nhập tài khoản, nhưng chưa tham gia được: '+(error instanceof Error?error.message:'Hãy kiểm tra mã mời.');}
 }
 function changeMode(next:AuthMode):void {
@@ -34,8 +34,8 @@ function changeMode(next:AuthMode):void {
  node('password-field').style.visibility=requesting?'hidden':'visible';
  field('trust').disabled=!['login','register'].includes(mode);field('trust').parentElement!.style.visibility=['login','register'].includes(mode)?'visible':'hidden';field('password').disabled=requesting;field('password').required=!requesting;
  node('username-field').style.visibility=mode==='reset'?'hidden':'visible';field('username').disabled=mode==='reset';
- node('password-label').textContent=['register','reset','recover'].includes(mode)?'Mật khẩu (12–128 ký tự)':'Mật khẩu / Password';
- field('password').minLength=['register','reset','recover'].includes(mode)?12:1;
+ node('password-label').textContent=['register','reset','recover'].includes(mode)?'Mật khẩu (8–128 ký tự)':'Mật khẩu / Password';
+ field('password').minLength=['register','reset','recover'].includes(mode)?8:1;
  field('password').autocomplete=mode==='login'?'current-password':'new-password';
  node('mode-note').hidden=['register','recover'].includes(mode);
  node('mode-note').textContent=requesting?'Nhập tên đăng nhập. Nếu tài khoản có email khôi phục, hướng dẫn đặt lại mật khẩu sẽ được gửi.':mode==='reset'?'Đặt mật khẩu mới. Các phiên đăng nhập cũ sẽ hết hiệu lực khi bạn hoàn tất.':'Mỗi người dùng một tài khoản riêng. Bạn có thể tạo hoặc tham gia gia đình sau khi đăng nhập.';
@@ -43,7 +43,7 @@ function changeMode(next:AuthMode):void {
  node('error').textContent='';
  tabs.forEach(tab=>tab.setAttribute('aria-selected',String(tab.dataset.mode===mode)));
 }
-interface AuthResponse {error?:unknown;recoveryCode?:string;message?:string}
+interface AuthResponse {error?:unknown;recoveryCode?:string;message?:string;familyName?:string;memberName?:string}
 async function request(op:string,body:Record<string,unknown>):Promise<AuthResponse> {
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
  try {
@@ -58,7 +58,7 @@ tabs.forEach(tab=>{
  tab.onkeydown=event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();const other=tabs.find(t=>t!==tab);other?.focus();other?.click()}};
 });
 node('forgot').onclick=()=>changeMode('request-reset');node('backup').onclick=()=>changeMode('recover');
-node('continue').onclick=()=>location.replace(mode==='recover'||mode==='reset'?'/login?locked=1':'/?connect=1'+(invitationField.value.trim()?'&join=1':''));
+node('continue').onclick=()=>location.replace(mode==='recover'||mode==='reset'?'/login?locked=1':'/?connect=1'+(joinedFamily?'&joined=1':invitationField.value.trim()?'&join=1':''));
 form.addEventListener('submit',async event=>{
  event.preventDefault();if(busy)return;const submittedMode=mode;
  busy=true;const button=node<HTMLButtonElement>('submit');button.disabled=true;tabs.forEach(t=>t.disabled=true);node('error').textContent='';
