@@ -5,7 +5,7 @@ import { legacyBootstrap } from './fixtures/legacy-bootstrap.cjs';
 import { chromium, webkit } from 'playwright';
 
 const origin = 'https://kitchen.test';
-const screenshots = 'docs/reviews/public-device' + (process.env.QA_BROWSER === 'webkit' ? '/webkit' : '');
+const screenshots = 'docs/reviews/family-hub' + (process.env.QA_BROWSER === 'webkit' ? '/webkit' : '');
 const mime = { '.js': 'application/javascript', '.css': 'text/css', '.html': 'text/html', '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp' };
 async function main() {
   mkdirSync(screenshots, { recursive: true });

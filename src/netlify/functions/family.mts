@@ -9,7 +9,7 @@ export function createFamilyHandler({getStoreFn=getStore}={}){
 const familyStore=()=>getStoreFn({name:'bep-family-data',consistency:'strong',region:'ap-southeast-2'});
 return async(request)=>{
  const url=new URL(request.url),op=url.searchParams.get('op'),accountContext=await resolveAccount(request,getStoreFn),connected=!!accountContext;
- if(op==='status'){const status={release:'20261031-public-device',configured:true,mode:'account',...publicContext(accountContext)};if(connected){const payload=accountContext.session;status.offlineGrant=await issueOfflineGrant(getStoreFn,status,{expires:payload.expires,trusted:payload.trusted===true,session:accountContext.sessionKey})}return json(status)}
+ if(op==='status'){const status={release:'20261031-family-hub',configured:true,mode:'account',...publicContext(accountContext)};if(connected){const payload=accountContext.session;status.offlineGrant=await issueOfflineGrant(getStoreFn,status,{expires:payload.expires,trusted:payload.trusted===true,session:accountContext.sessionKey})}return json(status)}
  if(op==='login')return json({error:'Đăng nhập bằng tài khoản cá nhân tại /login.'},410);
  if(!['GET','HEAD'].includes(request.method)&&request.headers.get('origin')!==url.origin)return json({error:'Same-origin request required.'},403);
  if(op==='logout'&&request.method==='POST'){if(accountContext)await accountContext.store.delete(accountContext.sessionKey);return json({connected:false},200,{'Set-Cookie':`${ACCOUNT_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`})}

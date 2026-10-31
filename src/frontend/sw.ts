@@ -1,8 +1,8 @@
 'use strict';
 if(typeof importScripts==='function')importScripts('./offline-access.js');
 const ACCESS_CACHE='bep-family-access-v1';
-const CACHE='bep-family-v15-public-device';
-const ASSETS=['./','./index.html','./bootstrap.js','./offline-access.js','./startup-scripts.json','./styles.css','./artwork/ingredients-v1.webp','./artwork/dishes-v1.webp','./icon.svg','./notification-icon.png','./notification-icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
+const CACHE='bep-family-v16-family-hub';
+const ASSETS=['./','./index.html','./bootstrap.js','./offline-access.js','./startup-scripts.json','./styles.css','./family-logo.png','./artwork/ingredients-v1.webp','./artwork/dishes-v1.webp','./icon.svg','./notification-icon.png','./notification-icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
 async function fetchWithDeadline(input,options={}){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
  try{const response=await fetch(input,{...options,signal:controller.signal});await response.clone().arrayBuffer();return response}finally{clearTimeout(timer)}
@@ -39,5 +39,5 @@ self.addEventListener('message',event=>{
  // Logout revokes cached private identity, not the public shell or guest's device data.
  if(event.data?.type==='CLEAR_PRIVATE_CACHE')event.waitUntil(caches.delete(ACCESS_CACHE));
 });
-self.addEventListener('push',event=>{let data={};try{data=event.data?.json()||{}}catch(e){}event.waitUntil(self.registration.showNotification(data.title||'Bếp Gia Đình',{body:data.body||'Nhà mình có việc bếp cần xem.',icon:'./notification-icon.png',tag:data.tag||'bep-reminder',data:{url:['/#today','/#shopping','/#planner','/#expenses','/#pantry'].includes(data.url)?data.url:'/#today'}}))});
+self.addEventListener('push',event=>{let data={};try{data=event.data?.json()||{}}catch(e){}event.waitUntil(self.registration.showNotification(data.title||'Bếp Gia Đình',{body:data.body||'Nhà mình có việc bếp cần xem.',icon:'./family-logo.png',tag:data.tag||'bep-reminder',data:{url:['/#today','/#shopping','/#planner','/#expenses','/#pantry'].includes(data.url)?data.url:'/#today'}}))});
 self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{const target=new URL(event.notification.data?.url||'./#today',self.location.href).href;const client=list.find(c=>new URL(c.url).origin===self.location.origin);if(client){client.navigate(target);return client.focus()}return clients.openWindow(target)}))});

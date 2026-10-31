@@ -117,3 +117,9 @@ For the latest expanded release and verification limits, see [the startup/accoun
 No account is needed for local planning, recipes, shopping/pantry, portions, manual receipts/spending/photos, insights, voice/Notes input, weather, timers, exports/imports or native sharing. Server-based family data, multi-device sync and family notifications require an account and selected family workspace. Sign-up/email are optional for the public website; there is no verification email at account creation.
 
 Public offline assets are separate from private account/family state. Guest data uses `guest/`; selected family data uses `account/<household-id>/`. Logging in without a family keeps the same guest work. Cloud workspaces are separate and are not silently populated from guest data. The latest review above supersedes historical mandatory-login and email-verification descriptions.
+
+## Family invitations and device connection
+
+The latest local revision is described in [the family hub review](docs/reviews/family-hub/review.md). Owners can use **Mời người nhà** directly beside the kitchen controls or inside **Bếp của tôi → Tài khoản & gia đình**. Create an invitation and open Email, SMS or Messenger to choose the recipient and send its code/link. Invitations are single-use and expire after seven days. Recipients can register from the link and join immediately, without email verification.
+
+New sessions restore a remembered family only while membership is valid; accounts with exactly one family select it automatically. Multiple-family accounts without a remembered selection choose explicitly. Device-only data remains separate.

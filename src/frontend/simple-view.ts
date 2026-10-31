@@ -34,7 +34,7 @@ render=function(){
   }
   if(view==='shopping'){
     const tools=main.querySelector('.week-tools .toolbar');
-    if(tools){const advanced=document.createElement('div');advanced.className='toolbar';tools.append(advanced);tools.querySelectorAll('[data-feature], [data-planning="stores"]').forEach(n=>advanced.append(n));simpleDisclosure(advanced,'Nhập Notes, hóa đơn & cửa hàng','shopping-tools')}
+    if(tools){const advanced=document.createElement('div');advanced.className='toolbar';tools.append(advanced);tools.querySelectorAll('[data-feature]:not([data-feature="notes-import"]), [data-planning="stores"]').forEach(n=>advanced.append(n));simpleDisclosure(advanced,'Nhập Notes, hóa đơn & cửa hàng','shopping-tools')}
     simpleDisclosure(main.querySelector('.budget-card'),'Ngân sách, chia sẻ & cất đồ vào tủ','budget');
     main.querySelectorAll('.shop-row').forEach((row,index)=>{
       const checkbox=row.querySelector('input[type="checkbox"]');if(!checkbox)return;

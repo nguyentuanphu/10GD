@@ -52,7 +52,7 @@ async function main() {
  await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
  origin='http://kitchen.localhost:'+server.address().port;
  const browser=await chromium.launch({args:['--host-resolver-rules=MAP kitchen.localhost 127.0.0.1']});
- const evidence='docs/reviews/public-device';mkdirSync(evidence,{recursive:true});let number=0;
+ const evidence='docs/reviews/family-hub';mkdirSync(evidence,{recursive:true});let number=0;
  async function newContext(baseline=false){
   const response=await accounts(new Request(origin+'/.netlify/functions/accounts?op=register',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json','x-nf-client-connection-ip':'fixture-'+number},body:JSON.stringify({username:'startupqa'+(++number),name:'Synthetic QA',password:'synthetic-startup-passphrase-only',trust:true})}));
   assert.equal(response.status,201);const cookie=response.headers.get('set-cookie').split(';')[0],equal=cookie.indexOf('=');
@@ -74,7 +74,7 @@ async function main() {
     await page.goto(origin+'/login?locked=1');await page.getByRole('tab',{name:'Đăng ký',exact:true}).click();await page.locator('#username').fill('guestregistered');await page.locator('#password').fill('GuestSignupPassphrase42');await page.locator('#name').fill('Guest user');await page.locator('#submit').click();await page.locator('#recovery:not([hidden])').waitFor();assert.equal(mail.length,0);await page.locator('#continue').click();await page.locator('[data-device-mode]').waitFor();assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),321,'sign-up without email must retain device work');
    }
    await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
-   await page.waitForFunction(async()=>!!await(await caches.open('bep-family-v15-public-device')).match('/startup-scripts.json'));
+   await page.waitForFunction(async()=>!!await(await caches.open('bep-family-v16-family-hub')).match('/startup-scripts.json'));
    await page.screenshot({path:evidence+'/'+name+'-guest.png',fullPage:true});
    await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),321);
    assert.equal(counters.privateReads,reads);assert.equal(counters.privateWrites,writes);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
@@ -107,7 +107,7 @@ async function main() {
   const emailContext=await browser.newContext(),emailPage=await emailContext.newPage();
   await emailPage.goto(origin+'/login?locked=1');await emailPage.getByRole('tab',{name:'Đăng ký',exact:true}).click();
   await emailPage.locator('#username').fill('browsermail');await emailPage.locator('#password').fill('SyntheticUiPassword42');await emailPage.locator('#name').fill('Synthetic UI');await emailPage.locator('#email').fill('ui@example.test');await emailPage.locator('#submit').click();
-  await emailPage.locator('#recovery:not([hidden])').waitFor();assert.match(await emailPage.locator('#result-message').innerText(),/Không cần xác minh email/);assert.equal(mail.length,0);
+  await emailPage.locator('#recovery:not([hidden])').waitFor();assert.match(await emailPage.locator('#result-message').innerText(),/Tài khoản đã được tạo/);assert.equal(mail.length,0);
   await emailPage.locator('#forgot').click();await emailPage.locator('#username').fill('browsermail');await emailPage.locator('#submit').click();await emailPage.getByText(/Nếu tài khoản có email khôi phục, yêu cầu khôi phục/).waitFor();
   const resetMail=mail.at(-1);assert.equal(resetMail.kind,'reset');
   await emailPage.goto(origin+'/login?reset='+resetMail.token+'&locked=1');await emailPage.locator('#password').fill('SyntheticUiChangedPassword42');await emailPage.locator('#submit').click();await emailPage.locator('#recovery:not([hidden])').waitFor();assert.match(await emailPage.locator('#result-message').innerText(),/Mật khẩu đã được đổi/);
@@ -131,13 +131,13 @@ async function main() {
   await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
   await page.waitForFunction(async()=>{
    const access=await caches.open('bep-family-access-v1');if(!await access.match('/offline-access'))return false;
-   const cache=await caches.open('bep-family-v15-public-device');return !!await cache.match('/startup-scripts.json');
+   const cache=await caches.open('bep-family-v16-family-hub');return !!await cache.match('/startup-scripts.json');
   });
   assert.equal(counters.seed,seedsBefore,'startup and worker must not fetch seed.js separately');
   assert.ok(counters.pack>packsBefore);
   await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();
   await page.screenshot({path:evidence+'/authenticated-worker.png',fullPage:true});
-  await page.getByRole('button',{name:'Kết nối gia đình',exact:true}).click();await page.locator('#account-email-address').fill('existing-browser@example.test');await page.locator('#account-email-password').fill('synthetic-startup-passphrase-only');await page.locator('#account-email button').click();await page.getByText('Đã lưu email khôi phục. Không cần xác minh khi đăng ký.',{exact:true}).waitFor();await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'Kết nối gia đình',exact:true}).click();await page.locator('.account-security > summary').click();await page.locator('#account-email-address').fill('existing-browser@example.test');await page.locator('#account-email-password').fill('synthetic-startup-passphrase-only');await page.locator('#account-email button').click();await page.getByText('Đã lưu email khôi phục. Không cần xác minh khi đăng ký.',{exact:true}).waitFor();await page.keyboard.press('Escape');
   await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();
   assert.equal(await page.evaluate(()=>localStorage.getItem('qa-preserved')),'keep-family-data');
   assert.deepEqual(errors,[]);
@@ -146,6 +146,29 @@ async function main() {
   await page.getByRole('button',{name:'Kết nối gia đình',exact:true}).click();await page.locator('[data-personal=new-family]').click();await page.locator('#house-name').fill('Synthetic shared family');await page.locator('#account-create button').click();
   await page.waitForFunction(()=>globalThis.BEP_SESSION?.household?.id&&localStorage.getItem('account/'+globalThis.BEP_SESSION.household.id+'/bep-gia-dinh-v1'));
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),guestBudget);
+  await page.waitForFunction(()=>!cloudConnection.checking&&!cloudConnection.syncing);await page.keyboard.press('Escape');
+  await page.locator('.top-avatar').click();await page.locator('#settings-form input[name=budget]').fill('777');await page.locator('[data-action=submit-form][data-id=settings-form]').click();await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
+  const familyId=await page.evaluate(()=>globalThis.BEP_SESSION.household.id),ownerUsername=await page.evaluate(()=>accountSession.account.username);
+  for(const [size,viewport] of Object.entries({narrow:{width:320,height:740},mobile:{width:375,height:812},tablet:{width:820,height:1100},desktop:{width:1280,height:800}})){
+   await page.setViewportSize(viewport);await page.evaluate(()=>{location.hash='today'});await page.waitForTimeout(100);
+   await page.locator('.kitchen-action-dock [data-personal=invite]').waitFor();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,size+' header overflow');
+   assert.equal(await page.locator('.kitchen-glow').first().evaluate(el=>getComputedStyle(el,'::before').animationName),'none');
+   await page.screenshot({path:evidence+'/'+size+'-family-actions.png',fullPage:true});
+   await page.locator('.kitchen-action-dock [data-personal=invite]').click();await page.locator('#account-invite button').click();await page.locator('#invite-result textarea').waitFor();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,size+' invitation overflow');assert.equal(await page.locator('.invite-share-grid .btn').count(),4);await page.screenshot({path:evidence+'/'+size+'-invitation.png',fullPage:true});await page.keyboard.press('Escape');
+   await page.evaluate(()=>{void accountsModal()});await page.locator('.family-hub-summary [data-personal=invite]').waitFor();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,size+' family dialog overflow');await page.screenshot({path:evidence+'/'+size+'-family-dialog.png',fullPage:true});await page.keyboard.press('Escape');
+   await page.evaluate(()=>{location.hash='shopping'});await page.waitForTimeout(100);const notes=await page.locator('.shopping-entry-actions [data-feature=notes-import]').boundingBox(),products=await page.locator('.shopping-entry-actions [href="#products"]').boundingBox();assert(Math.abs(notes.y-products.y)<1);assert(Math.abs(notes.height-products.height)<1);
+   await page.screenshot({path:evidence+'/'+size+'-shopping-actions.png',fullPage:true});
+   await page.evaluate(()=>{void pushSettings()});await page.locator('#push-label').waitFor();const person=await page.locator('#push-member').boundingBox(),device=await page.locator('#push-label').boundingBox();if(Math.abs(person.x-device.x)>10)assert(Math.abs(person.y-device.y)<1,size+' device fields misaligned');assert(Math.abs(person.height-device.height)<1);assert(!/netlify/i.test(await page.locator('body').innerText()));await page.screenshot({path:evidence+'/'+size+'-notifications.png',fullPage:true});await page.keyboard.press('Escape');
+   await page.locator('#app-language').click();assert(!/netlify/i.test(await page.locator('body').innerText()));await page.locator('#app-language').click();
+  }
+  await page.emulateMedia({reducedMotion:'no-preference'});assert.equal(await page.locator('.kitchen-glow').first().evaluate(el=>getComputedStyle(el,'::before').animationName),'kitchen-orbit');await page.emulateMedia({reducedMotion:'reduce'});
+  await page.evaluate(()=>{location.hash='today'});await page.waitForTimeout(100);await page.locator('.kitchen-action-dock [data-personal=invite]').click();await page.locator('#account-invite button').click();await page.locator('#invite-result textarea').waitFor();const invitation=await page.locator('#invite-result textarea').inputValue();
+  assert((await page.getByRole('link',{name:'Email',exact:true}).getAttribute('href')).startsWith('mailto:'));assert((await page.getByRole('link',{name:'SMS',exact:true}).getAttribute('href')).startsWith('sms:'));
+  await page.evaluate(()=>Object.defineProperty(navigator,'share',{configurable:true,value:async payload=>{globalThis.__sharedInvitation=payload}}));await page.getByRole('button',{name:'Messenger',exact:true}).click();const shared=await page.evaluate(()=>globalThis.__sharedInvitation);assert(new URL(shared.url).searchParams.get('invite')===invitation);
+  await page.screenshot({path:evidence+'/owner-invitation.png',fullPage:true});await page.keyboard.press('Escape');
+  const recipient=await browser.newContext({viewport:{width:375,height:812}}),recipientPage=await recipient.newPage();await recipientPage.goto(shared.url);assert.equal(await recipientPage.getByRole('tab',{name:'Đăng ký',exact:true}).getAttribute('aria-selected'),'true');assert.equal(await recipientPage.locator('#invitation-code').inputValue(),invitation);await recipientPage.locator('#username').fill('invitednewuser');await recipientPage.locator('#password').fill('InvitedUserPassphrase42');await recipientPage.locator('#name').fill('New family member');await recipientPage.locator('#submit').click();await recipientPage.locator('#recovery:not([hidden])').waitFor();assert.match(await recipientPage.locator('#result-message').innerText(),/Đã tham gia gia đình/);await recipientPage.locator('#continue').click();await recipientPage.waitForFunction(id=>globalThis.BEP_SESSION?.household?.id===id,familyId);assert.equal(await recipientPage.evaluate(()=>globalThis.BEP_SESSION.household.role),'editor');await recipient.close();
+  const desktop=await browser.newContext({viewport:{width:1280,height:800}}),desktopPage=await desktop.newPage();await desktopPage.goto(origin+'/login');await desktopPage.locator('#username').fill(ownerUsername);await desktopPage.locator('#password').fill('synthetic-startup-passphrase-only');await desktopPage.locator('#submit').click();await desktopPage.waitForFunction(id=>globalThis.BEP_SESSION?.household?.id===id,familyId);await desktopPage.waitForFunction(id=>JSON.parse(localStorage.getItem('account/'+id+'/bep-gia-dinh-v1')||'{}').preferences?.budget===777,familyId);await desktop.close();
+  console.log('PASS visible invitations, share composers, invitation-link signup/join and fresh desktop family sync');
   await page.goto(origin+'/?mode=guest',{waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();assert.equal(await page.evaluate(()=>globalThis.BEP_SESSION.mode),'guest');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),guestBudget);
   await context.close();
   console.log('PASS optional family creation and return to retained guest workspace');
