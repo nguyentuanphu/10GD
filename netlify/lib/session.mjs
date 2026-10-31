@@ -1,0 +1,5 @@
+export const SESSION_COOKIE='bep_family_session';
+export function tokenFromRequest(request){return(request.headers.get('cookie')||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(SESSION_COOKIE+'='))?.slice(SESSION_COOKIE.length+1)||''}
+export async function verifySessionToken(token,password,now=Date.now()){
+ try{const parts=token.split('.');if(parts.length!==2||!password)return false;const [payload,signature]=parts;if(!/^[A-Za-z0-9_-]+$/.test(payload)||!/^[A-Za-z0-9_-]+$/.test(signature))return false;const bytes=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),{name:'HMAC',hash:'SHA-256'},false,['verify']);if(!await crypto.subtle.verify('HMAC',key,bytes(signature),new TextEncoder().encode(payload)))return false;const data=JSON.parse(new TextDecoder().decode(bytes(payload)));return Number.isFinite(data.exp)&&data.exp>now&&data.exp<=now+31*86400000&&typeof data.nonce==='string'}catch{return false}
+}

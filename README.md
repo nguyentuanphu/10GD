@@ -9,7 +9,7 @@ Family meal planning, shopping and receipts, built with HTML/CSS/Vanilla JavaScr
 - Vietnamese/English core interface, product and insights workflows, and push settings. Device-local language does not translate or replace user content or original Vietnamese recipe instructions.
 - Mobile navigation keeps Today / Weekly Menu / Shopping and moves secondary tools into More.
 
-- **Simple screens by default** for Today, Weekly Planner and Shopping, with a remembered Full view per device. Shopping uses 20–21px item names, 44–48px checkbox touch targets, collapsible tools and an optional remaining-items filter.
+- **Simple screens by default** for Today, Weekly Planner and Shopping, with a remembered Full view per device. Shopping uses 18px item names on phones, 44–48px checkbox touch targets, collapsible tools and an optional remaining-items filter.
 - **540 dishes and recipe variants:** 172 mains, 110 soups, 88 vegetable dishes and 170 noodle/soup/porridge meals. Every entry has ingredients, preparation and cooking steps. The catalog displays 24 cards per page, with search/category/time filters.
 - Multi-dish family meals, individual dish replacement, portion scales, per-person attendance and optional rice. Weekend soup selector and weekday meal suggestions respect configured constraints and meal locks.
 - Purchase quantity wheel with g/kg, ml/litres, pieces, slices, bunches, packs, boxes, trays, bags, bottles and custom unit names. Remember a preferred buying unit, size estimate, price and note per ingredient.
@@ -23,7 +23,7 @@ Family meal planning, shopping and receipts, built with HTML/CSS/Vanilla JavaScr
 
 Use Git deployment or a CLI deployment that builds Functions. Build command: `npm run check`; publish directory: `dist`; Functions: `netlify/functions`.
 
-Set `FAMILY_PASSWORD` (at least 12 characters) in the Netlify environment with Functions scope, then deploy. Open the app and connect family storage. Each recipient phone must independently enable push and choose its family member and reminder types. Server-only VAPID keys are created in Blobs when the first device activates push; private keys are not sent to browsers.
+Set `FAMILY_PASSWORD` (at least 5 characters) in the Netlify environment with Functions scope, then deploy. The Edge gate requires login before serving app pages or private assets. Each recipient phone must independently enable push and choose its family member and reminder types. Server-only VAPID keys are created in Blobs when the first device activates push; private keys are not sent to browsers.
 
 Full instructions are in [NETLIFY-SETUP.md](NETLIFY-SETUP.md). A drag-and-drop upload of `dist` alone does not install the backend.
 
@@ -39,7 +39,7 @@ Tests cover meal quantities, inventory and undo, recipe variants, remembered sal
 
 ## Data and behavior
 
-Browser-local operation remains available when disconnected. Cloud synchronization uses a shared family password and detects overlapping edits rather than silently overwriting them. Metadata backups are JSON; receipt photos are separate.
+After one successful online sign-in and complete app download, cached pages and device data work offline with a signed, unexpired offline grant. The app reports offline readiness in My kitchen. A normal session lasts up to 8 hours and requires the same browser session for offline reopening; explicitly trusted devices can reopen for up to 30 days. Known online sign-out or membership changes override cached access. Changes made by an administrator cannot be discovered while the device has no network. Localhost and the internal terminal.local review server allow local development. Cloud synchronization uses a shared family password and detects overlapping edits rather than silently overwriting them. Metadata backups are JSON; receipt photos are separate.
 
 Suggested portions, recipe times and sample prices are editable. Quick noodle/porridge times assume the prepared broth or cooked ingredients stated in the recipe. A weight estimate per bunch/piece is explicitly approximate. A receipt may record actual cost per sale unit without knowing its gram weight.
 
@@ -55,4 +55,39 @@ The family planner uses categorised family-authored recipes. The reference catal
 
 Batch cooking deducts pantry once; subsequent meals record portions served. Undoing batch cooking is blocked until served meals are undone. Recorded batch cooks and served meals are counted separately. Existing menus, recipes and historical records are retained; regeneration previews changes and respects cooked/locked meals.
 
-See `AGENTS.md`: each release requires explicit owner DEPLOY approval before updating main or production. The owner approved deploying this reviewed family-menu release on 31 October 2026.
+See `AGENTS.md`: each release requires explicit owner DEPLOY approval before updating main or production. The owner approved the previous family-menu release on 31 October 2026. The mobile/access/calendar/alerts changes are a new review-only release and have no deploy approval.
+
+
+## Mobile access, availability and urgent messages (review release)
+
+- Short mobile actions (Chia sẻ / Tạo tuần / Thực đơn), system font for Vietnamese and SVG bell/cart icons. Touch targets remain generous.
+- Netlify Edge protects pages and private assets. The shared password is read only from FAMILY_PASSWORD; it is never embedded in browser code. Legacy family login uses an 8-hour server session and a session cookie. Explicit trusted-browser login uses a 30-day HttpOnly/Secure/SameSite cookie. Logout clears the cookie and private service-worker caches. Failed logins are limited to eight attempts per 15-minute IP window (best-effort shared counter).
+- Monthly availability supports member, multiple dates, breakfast/lunch/dinner, away/busy, note, optional deduction and optional reminder. Automatic portions deduct only affected meals. Manually fixed/cooked portions remain fixed and show a reason; undo restores automatic behavior. Existing cooked portions are frozen before availability changes. A meal attendance override clears that occurrence's calendar deduction.
+- Availability reminders run at 19:00 Australia/Sydney the day before, subject to each device's calendar subscription, quiet hours and the existing two automatic reminders/day cap.
+- Homepage urgent messages persist separately in Blobs with conflict-safe updates and per-name read acknowledgements. Push acceptance is not a read receipt. Names are selected within the shared-password family, not separately authenticated accounts. SMS opens the device composer; the user chooses recipients and sends. No SMS gateway is connected.
+- Tests use synthetic passwords and mock push transport. Production Edge behavior, existing Netlify environment configuration, physical phone delivery and airplane-mode installation still require verification after an approved deployment. No real family messages were sent during QA.
+
+
+## Combined accounts / setup / currency / voice / offline release
+
+Status: local review only. This includes the previous mobile/calendar/urgent-message commit and does not have owner Deploy approval.
+
+- Accounts use a username, display name, scrypt password hash (random salt, N=131072/r=8/p=1) and a one-time recovery code. Email, email verification and email reset are not connected. Recovery rotates the code and invalidates existing account sessions. Opaque random session tokens are stored only as hashes, in HttpOnly/Secure/SameSite cookies with server expiry (8 hours or explicitly trusted 30 days). Signup can be disabled with ALLOW_ACCOUNT_SIGNUP=false.
+- Each account creates or joins a household. Targeted invitations are single-use, seven-day codes; owners can revoke invitations and manage editor/viewer access. Every API read/write resolves live membership before choosing a household storage prefix. Photos, state, push keys, announcements and device browser caches are scoped by household. Viewers cannot write family state. Push ignores removed/unlinked account recipients; a browser uses one active household push subscription at a time and must enable it again after switching.
+- New families use a saveable five-step walkthrough: people/portions; meals/days; exclusions/allergy notes; currency/time zone/budget/time; cooking routine/favourites and first-week preview. Only explicitly selected reference recipes become family recipes. New kitchens start without sample pantry stock. Existing kitchens retain their recipes, records and planned meals when preferences change.
+- Migration requires both a signed-in account that owns an empty destination family and legacy family authentication. Preview one source, download its JSON backup, then confirm. Server migration copies a reviewed snapshot and available receipt photos, retains the source and a server backup, checks the source revision, and refuses overwrites. Local migration can include legacy IndexedDB photos by explicit choice. Push registrations are not copied; enable them again. Conflicting sources are not silently merged.
+- Each receipt/product/purchase-price record retains its currency. AUD and VND have separate budgets and explicit price profiles; actual receipt prices can inform estimates only in the same currency and with known quantities. No exchange rates are guessed. VND unknown prices remain unknown. Price history compares matching units/store/currency. Vietnam and Sydney household time zones are supported.
+- Voice input uses the browser SpeechRecognition API only after Start mic. It may send audio to the browser/OS recognition service; app audio is not stored. Browser recognition needs internet in this implementation. Typed text and OS keyboard dictation are alternatives. VI/EN amount parsing, known recipe matching, unclear quantities and duplicates lead to an editable preview. Only confirmation adds items/dishes, with a guarded undo. Unknown recipes never receive invented ingredients.
+- Personal greetings use account/member name, local household time and planned meals. Optional city weather uses Open-Meteo (Sydney/Hanoi/Ho Chi Minh City), without GPS; only fresh weather is used. A manual hot/cool marker is clearly identified as user input. Busy-today suggestions use saved quick recipes and pantry stock. Assignments and portion feedback are recorded without silently changing portions.
+
+### Offline behavior
+
+Meal plans, family recipes, portions, monthly availability, pantry, shopping ticks/quantities, Notes text import, manual receipts/photos and statistics work on already-downloaded device data. Device edits are persisted and retain a pending-sync marker across closing/reopening. When the server revision is unchanged, reconnect uploads normally with a conditional write; concurrent changes stop for review. Export/restore remains local.
+
+Registration, fresh login/recovery, invitations, live sync, new push subscriptions/test/sending/receipt acknowledgement, urgent delivery, browser speech recognition, fetching weather and retailer/Messenger websites need internet and report that at use. Previously fetched weather expires instead of pretending to be current. Offline receipt photos can be saved and entered manually; OCR model loading needs internet. Push cannot be delivered to a disconnected phone, and the app does not promise background scheduled local notifications.
+
+Offline grants are signed with an ECDSA server key held in private Blobs storage, contain no password/private key, and expire with the authenticated session. Offline cache access rejects expired/tampered grants. Logout clears device grants/private caches even offline and requires explicit sign-in on that browser before reopening. Browser storage is device storage, not encrypted account vault storage: use trusted personal devices and keep backups.
+
+Tests include household isolation, recovery/revocation, concurrent invite acceptance, migration/photo copying without overwrite, currency separation, voice parsing, actual service-worker offline fetch logic, offline edit persistence and reconnect conflict handling. All network transport in tests is mocked; no family notifications/SMS were sent. Browser evidence covers the walkthrough, VI/EN UI, voice preview/confirm/undo and offline-mode shopping/manual VND spending. Physical iPhone mic/push/airplane-mode verification is pending an approved Netlify release.
+
+The header now shows an animated, labelled Online/Offline icon and a direct VI↔EN language button. Motion respects prefers-reduced-motion. AGENTS.md requires mobile/tablet/PC review and saved evidence for every UI release. This review checked 375×828, 820×1100 and 1363×936 browser viewports and corrected overlapping English day labels. Simulated tablet pointer automation had a coordinate limitation; keyboard activation and DOM hit-target checks were used there. Physical device testing is not claimed.
