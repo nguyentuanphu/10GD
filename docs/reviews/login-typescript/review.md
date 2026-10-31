@@ -33,3 +33,7 @@ WebKit testing was attempted, but the browser cannot launch because this worker 
 ## Follow-up: personal login before entering the app
 
 Owner clarified that login uses an individual account; desktop behavior is unknown. Added regression coverage for an authenticated account with no household: backend status remains connected in account mode with a signed offline grant, and browser startup renders create/join forms with no runtime errors. Screenshot: `new-account.png`. This case passes locally and does not establish the exact exception in the affected live Safari session. Production remains unchanged.
+
+## Deployment authorization
+
+The owner explicitly instructed “Deploy đi” in this session for the reviewed startup recovery/TypeScript release through `22163f1`. Predeployment frozen installation, build, strict bootstrap check, all 11 existing suites and startup browser regressions passed. Production release identifier: `20261031-startup-typescript`. Publishing to `main` is authorized for this release. No production family state, membership, recipe, notification or credential edits are included. Physical Safari login and full legacy TypeScript checking remain unverified.
