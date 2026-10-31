@@ -331,3 +331,136 @@ const WESTERN_INGREDIENTS={
   ]
 };
 Object.assign(INGREDIENTS,WESTERN_INGREDIENTS);
+
+// Additional seed, grain and dressing ingredients: prices/pack sizes are unknown.
+const PLANT_INGREDIENTS={
+  "sesame": [
+    "Hạt mè rang không muối",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "tahini": [
+    "Tahini mè nguyên chất",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "peanut": [
+    "Đậu phộng rang không muối",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "almond": [
+    "Hạnh nhân không muối",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "walnut": [
+    "Óc chó không muối",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "pumpkinSeed": [
+    "Hạt bí bóc vỏ không muối",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "sunflowerSeed": [
+    "Hạt hướng dương bóc vỏ không muối",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "chia": [
+    "Hạt chia",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "flax": [
+    "Hạt lanh xay",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "bulgur": [
+    "Lúa mì bulgur khô",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "couscous": [
+    "Couscous khô",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "apple": [
+    "Táo, phần ăn được",
+    "g",
+    "veg",
+    0,
+    "🌿",
+    null
+  ],
+  "orange": [
+    "Cam, phần ăn được",
+    "g",
+    "veg",
+    0,
+    "🌿",
+    null
+  ],
+  "raisin": [
+    "Nho khô không thêm đường",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "mustard": [
+    "Mù tạt Dijon không mật ong",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "vinegar": [
+    "Giấm táo",
+    "ml",
+    "dry",
+    0,
+    "🌿",
+    null
+  ]
+};
+Object.assign(INGREDIENTS,PLANT_INGREDIENTS);

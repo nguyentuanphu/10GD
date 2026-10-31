@@ -8,7 +8,9 @@ function dishCompositionModel(r){
  const visible=ids.filter(id=>['pork','ribs','chicken','cookedChicken','beef','salmon','fish','shrimp','tofu','egg','spinach','waterSpinach','cabbage','bokchoy','broccoli','carrot','potato','pumpkin','gourd','tomato','cucumber','mushroom','onion','pineapple','okra','bean','corn','peas','wonton','fishBall','seaweed'].includes(id));
  return {ids,name,porridge,pasta,dryPasta,liquid,visible,omelette:ids.includes('egg')&&/chien|omelette/.test(name),noodle:ids.find(id=>['noodle','riceNoodle','eggNoodle','vermicelli','udon','huTieu','banhCanh'].includes(id))};
 }
+function composedDressingArtwork(r){const ids=(r.ingredients||[]).map(i=>i.id),color=ids.includes('avocado')?'#a8b87a':ids.includes('tomato')?'#c77e55':ids.includes('yogurt')?'#eee5cf':ids.includes('orange')?'#dcba79':'#c9b48c';const en=typeof appLanguage!=='undefined'&&appLanguage==='en';return `<svg class="food-illustration composed-dish" viewBox="0 0 300 280" role="img" aria-label="${esc((en?'Dressing ingredient illustration: ':'Minh họa thành phần sốt: ')+(r.name||''))}" xmlns="http://www.w3.org/2000/svg"><rect width="300" height="280" fill="#fffefa"/><ellipse cx="150" cy="200" rx="78" ry="9" fill="#eee9dc"/><path d="M64 125q8 81 86 81t86-81" fill="#e8e1cd"/><ellipse cx="150" cy="125" rx="86" ry="54" fill="#faf5e8"/><ellipse cx="150" cy="125" rx="72" ry="42" fill="${color}"/><path d="M103 116q36-22 83-1" fill="none" stroke="#fff8e7" stroke-width="4" opacity=".55"/></svg>`}
 function composedDishArtwork(r){
+ if(r?.recipeKind==='dressing')return composedDressingArtwork(r);
  const m=dishCompositionModel(r);let shapes='';
  const ellipse=(x,y,rx,ry,fill)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${fill}"/>`;
  const piece=(id,x,y,j)=>{

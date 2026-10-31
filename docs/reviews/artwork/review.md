@@ -1,3 +1,9 @@
+# Catalog hiện tại: 106 nguyên liệu, 740 công thức
+
+Đã hoàn tất thêm riêng 100 công thức vegetarian, salad hạt và dressing; xem [hồ sơ mới nhất](plant-extension.md), [gallery hiện tại](gallery.html) và [catalog hiện tại](catalog.json). Phần dưới giữ lại hồ sơ các đợt trước.
+
+---
+
 # Catalog hiện tại: 90 nguyên liệu, 640 món
 
 Đã bổ sung 100 món Ý/Âu/Healthy và 32 nguyên liệu sau bộ artwork đầu tiên. Xem [hồ sơ cập nhật và kiểm tra](western-extension.md), [gallery hiện tại](gallery.html) và [catalog hiện tại](catalog.json). Phần bên dưới ghi lại phạm vi 58/540 của bộ đầu tiên.

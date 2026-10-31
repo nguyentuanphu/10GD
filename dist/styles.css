@@ -53,3 +53,5 @@ html[data-theme="dark"]{--green:#3ca37c;--green2:#63c39d;--mint:#1d352c;--paper:
 html[data-festival="tet"]:not([data-theme="dark"]){--green:#9e2a2b;--green2:#b83b2b;--mint:#fdf0d5;--paper:#fffcf5;--orange:#d97706}html[data-festival="midautumn"]:not([data-theme="dark"]){--green:#8c3f19;--green2:#b45309;--mint:#fef3c7;--paper:#fffdf7;--orange:#d97706}html[data-festival="christmas"]:not([data-theme="dark"]){--green:#165b33;--green2:#bb2528;--mint:#eaf4ec;--paper:#fcfbf7;--orange:#bb2528}
 
 .ingredient-sheet-4,.dish-sheet-2{background-repeat:no-repeat;background-size:400% 400%;background-position:var(--art-x) var(--art-y)}.ingredient-sheet-4{background-image:url(artwork/ingredients-v4.webp)}.dish-sheet-2{background-image:url(artwork/dishes-v2.webp)}
+/* Keep recipe summaries and meal actions readable in both themes. */
+.recipe-detail-hero{background:var(--cream);color:var(--text)}.recipe-detail-hero small{color:var(--muted)}html[data-theme="dark"] .recipe-card .btn.soft{background:var(--mint);color:var(--text);border-color:var(--line)}

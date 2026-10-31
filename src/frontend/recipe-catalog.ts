@@ -6986,3 +6986,6744 @@ const WESTERN_HEALTHY_RECIPES=[
   }
 ];
 RECIPES.push(...WESTERN_HEALTHY_RECIPES);
+
+// 40 vegetarian dishes, 35 seed/grain salads and 25 dressings.
+const PLANT_RECIPES=[
+  {
+    "id": "plant-v5-001",
+    "name": "Đậu hũ sốt mè tahini chanh vàng",
+    "category": "main",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "tofu",
+        "qty": 650
+      },
+      {
+        "id": "tahini",
+        "qty": 60
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "garlic",
+        "qty": 15
+      },
+      {
+        "id": "broccoli",
+        "qty": 400
+      },
+      {
+        "id": "soy",
+        "qty": 15
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa và cắt rau củ, tách phần lâu chín; đậu dùng loại chín để ráo, đậu hũ thấm khô.",
+      "Áp chảo đậu hũ; hấp bông cải. Pha tahini, chanh, tỏi, nước tương với ít nước thành sốt sánh, rưới khi chia phần.",
+      "Dùng lượng dầu và gia vị đã cân, nấu phần lâu chín trước, thêm rau nhanh chín sau; thêm ít nước lọc nếu cần để món không cháy.",
+      "Nấu đến khi rau và đậu nóng chín đều, chia bốn phần. Chỉ dùng gia vị trong danh sách, không dùng nước mắm/nước dùng thịt để nêm."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Áp chảo đậu hũ; hấp bông cải. Pha tahini, chanh, tỏi, nước tương với ít nước thành sốt sánh, rưới khi chia phần.",
+    "method": "saute",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè",
+      "gluten",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-002",
+    "name": "Đậu hũ nướng mù tạt rau củ",
+    "category": "main",
+    "protein": "plant",
+    "time": 45,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "tofu",
+        "qty": 650
+      },
+      {
+        "id": "mustard",
+        "qty": 35
+      },
+      {
+        "id": "potato",
+        "qty": 400
+      },
+      {
+        "id": "carrot",
+        "qty": 250
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Làm nóng lò 200°C; cắt rau củ thành miếng đều, thấm khô đậu hũ/đậu chín trước khi trộn gia vị.",
+      "Luộc sơ khoai và cà rốt 6 phút, trộn đậu hũ cùng mù tạt và chanh rồi nướng với củ.",
+      "Trải một lớp trên khay, nướng 25–35 phút, trở rau giữa chừng. Rau nhanh chín được thêm vào cuối; phần ngũ cốc nấu riêng theo bao bì nếu có.",
+      "Chia bốn phần, thêm sốt hoặc hạt trong danh sách sau khi nấu. Không tự thêm phô mai, trứng hoặc thịt."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Luộc sơ khoai và cà rốt 6 phút, trộn đậu hũ cùng mù tạt và chanh rồi nướng với củ.",
+    "method": "roast",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "đậu nành",
+      "mù tạt"
+    ]
+  },
+  {
+    "id": "plant-v5-003",
+    "name": "Đậu hũ xào bắp cải đậu phộng",
+    "category": "main",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "tofu",
+        "qty": 600
+      },
+      {
+        "id": "cabbage",
+        "qty": 450
+      },
+      {
+        "id": "carrot",
+        "qty": 150
+      },
+      {
+        "id": "peanut",
+        "qty": 60
+      },
+      {
+        "id": "soy",
+        "qty": 20
+      },
+      {
+        "id": "garlic",
+        "qty": 15
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa và cắt rau củ, tách phần lâu chín; đậu dùng loại chín để ráo, đậu hũ thấm khô.",
+      "Áp chảo đậu hũ; xào bắp cải cà rốt với tỏi và nước tương, cho đậu trở lại, rắc đậu phộng giã sau cùng.",
+      "Dùng lượng dầu và gia vị đã cân, nấu phần lâu chín trước, thêm rau nhanh chín sau; thêm ít nước lọc nếu cần để món không cháy.",
+      "Nấu đến khi rau và đậu nóng chín đều, chia bốn phần. Chỉ dùng gia vị trong danh sách, không dùng nước mắm/nước dùng thịt để nêm."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Áp chảo đậu hũ; xào bắp cải cà rốt với tỏi và nước tương, cho đậu trở lại, rắc đậu phộng giã sau cùng.",
+    "method": "saute",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "đậu phộng",
+      "gluten",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-004",
+    "name": "Đậu hũ kho nấm tiêu nhẹ",
+    "category": "main",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "tofu",
+        "qty": 650
+      },
+      {
+        "id": "mushroom",
+        "qty": 400
+      },
+      {
+        "id": "soy",
+        "qty": 25
+      },
+      {
+        "id": "pepper",
+        "qty": 2
+      },
+      {
+        "id": "ginger",
+        "qty": 20
+      },
+      {
+        "id": "scallion",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Rửa và cắt rau củ, tách phần lâu chín; đậu dùng loại chín để ráo, đậu hũ thấm khô.",
+      "Áp chảo đậu hũ, nấu cùng nấm, gừng, nước tương và tiêu đen đã cân; thêm nước rồi rim nhỏ lửa 12 phút.",
+      "Dùng lượng dầu và gia vị đã cân, nấu phần lâu chín trước, thêm rau nhanh chín sau; thêm ít nước lọc nếu cần để món không cháy.",
+      "Nấu đến khi rau và đậu nóng chín đều, chia bốn phần. Chỉ dùng gia vị trong danh sách, không dùng nước mắm/nước dùng thịt để nêm."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Áp chảo đậu hũ, nấu cùng nấm, gừng, nước tương và tiêu đen đã cân; thêm nước rồi rim nhỏ lửa 12 phút.",
+    "method": "saute",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "gluten",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-005",
+    "name": "Đậu gà hầm cà chua gừng",
+    "category": "main",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "chickpea",
+        "qty": 600
+      },
+      {
+        "id": "tomato",
+        "qty": 600
+      },
+      {
+        "id": "onion",
+        "qty": 150
+      },
+      {
+        "id": "ginger",
+        "qty": 25
+      },
+      {
+        "id": "garlic",
+        "qty": 15
+      },
+      {
+        "id": "vegBroth",
+        "qty": 700
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Rửa và cắt rau củ nhỏ đều, tách phần lâu chín và phần nhanh chín. Đậu chín để ráo; đậu lăng khô rửa kỹ.",
+      "Xào hành tỏi gừng, nấu cà chua mềm rồi thêm đậu gà chín và nước dùng rau củ; hầm nhẹ 20 phút.",
+      "Nấu nhỏ lửa đến khi rau và đậu chín mềm; đậu lăng cần khoảng 25–30 phút. Chỉ dùng nước dùng rau củ hoặc nước lọc, thêm nước nóng nếu súp đặc.",
+      "Nêm từ lượng gia vị đã ghi và chia bốn phần; bảo quản phần dư trong ngăn mát ≤4°C sau khi làm nguội nhanh."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Xào hành tỏi gừng, nấu cà chua mềm rồi thêm đậu gà chín và nước dùng rau củ; hầm nhẹ 20 phút.",
+    "method": "soup",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-006",
+    "name": "Đậu trắng sốt rau cải tahini",
+    "category": "main",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "whiteBean",
+        "qty": 600
+      },
+      {
+        "id": "spinach",
+        "qty": 450
+      },
+      {
+        "id": "tahini",
+        "qty": 50
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "garlic",
+        "qty": 20
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa và cắt rau củ, tách phần lâu chín; đậu dùng loại chín để ráo, đậu hũ thấm khô.",
+      "Xào tỏi và rau cải đến chín, cho đậu trắng chín vào làm nóng; pha tahini chanh với nước rồi đảo nhẹ lúc tắt bếp.",
+      "Dùng lượng dầu và gia vị đã cân, nấu phần lâu chín trước, thêm rau nhanh chín sau; thêm ít nước lọc nếu cần để món không cháy.",
+      "Nấu đến khi rau và đậu nóng chín đều, chia bốn phần. Chỉ dùng gia vị trong danh sách, không dùng nước mắm/nước dùng thịt để nêm."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Xào tỏi và rau cải đến chín, cho đậu trắng chín vào làm nóng; pha tahini chanh với nước rồi đảo nhẹ lúc tắt bếp.",
+    "method": "saute",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè"
+    ]
+  },
+  {
+    "id": "plant-v5-007",
+    "name": "Đậu đỏ hầm bí đỏ cà chua",
+    "category": "main",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "kidneyBean",
+        "qty": 600
+      },
+      {
+        "id": "pumpkin",
+        "qty": 450
+      },
+      {
+        "id": "tomato",
+        "qty": 400
+      },
+      {
+        "id": "onion",
+        "qty": 150
+      },
+      {
+        "id": "vegBroth",
+        "qty": 900
+      },
+      {
+        "id": "oregano",
+        "qty": 2
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Rửa và cắt rau củ nhỏ đều, tách phần lâu chín và phần nhanh chín. Đậu chín để ráo; đậu lăng khô rửa kỹ.",
+      "Xào hành và bí đỏ, nấu với cà chua, oregano và nước dùng rau củ; cho đậu đỏ chín vào sau khi bí mềm.",
+      "Nấu nhỏ lửa đến khi rau và đậu chín mềm; đậu lăng cần khoảng 25–30 phút. Chỉ dùng nước dùng rau củ hoặc nước lọc, thêm nước nóng nếu súp đặc.",
+      "Nêm từ lượng gia vị đã ghi và chia bốn phần; bảo quản phần dư trong ngăn mát ≤4°C sau khi làm nguội nhanh."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Xào hành và bí đỏ, nấu với cà chua, oregano và nước dùng rau củ; cho đậu đỏ chín vào sau khi bí mềm.",
+    "method": "soup",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-008",
+    "name": "Đậu lăng hầm nấm óc chó",
+    "category": "main",
+    "protein": "plant",
+    "time": 40,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "lentil",
+        "qty": 240
+      },
+      {
+        "id": "mushroom",
+        "qty": 400
+      },
+      {
+        "id": "walnut",
+        "qty": 60
+      },
+      {
+        "id": "tomato",
+        "qty": 450
+      },
+      {
+        "id": "onion",
+        "qty": 150
+      },
+      {
+        "id": "vegBroth",
+        "qty": 1200
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa và cắt rau củ nhỏ đều, tách phần lâu chín và phần nhanh chín. Đậu chín để ráo; đậu lăng khô rửa kỹ.",
+      "Xào hành, nấm và cà chua; thêm đậu lăng khô cùng nước dùng, nấu mềm rồi rắc óc chó băm.",
+      "Nấu nhỏ lửa đến khi rau và đậu chín mềm; đậu lăng cần khoảng 25–30 phút. Chỉ dùng nước dùng rau củ hoặc nước lọc, thêm nước nóng nếu súp đặc.",
+      "Nêm từ lượng gia vị đã ghi và chia bốn phần; bảo quản phần dư trong ngăn mát ≤4°C sau khi làm nguội nhanh."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Xào hành, nấm và cà chua; thêm đậu lăng khô cùng nước dùng, nấu mềm rồi rắc óc chó băm.",
+    "method": "soup",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây"
+    ]
+  },
+  {
+    "id": "plant-v5-009",
+    "name": "Cà tím nhồi đậu gà quinoa",
+    "category": "main",
+    "protein": "plant",
+    "time": 60,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "eggplant",
+        "qty": 700
+      },
+      {
+        "id": "chickpea",
+        "qty": 400
+      },
+      {
+        "id": "quinoa",
+        "qty": 180
+      },
+      {
+        "id": "tomato",
+        "qty": 350
+      },
+      {
+        "id": "onion",
+        "qty": 120
+      },
+      {
+        "id": "oregano",
+        "qty": 2
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Làm nóng lò 190°C. Cắt rau dùng để nhồi và chuẩn bị phần nhân; đậu phải chín trước khi nhồi.",
+      "Nấu quinoa riêng; bổ đôi cà tím, lấy bớt ruột băm và xào với hành, cà chua, oregano; trộn cùng quinoa chín và đậu gà để nhồi.",
+      "Nhồi nhân vào phần rau đã chuẩn bị, thêm nước lọc mỏng đáy khay rồi đậy giấy bạc nướng 25 phút; mở giấy nướng thêm 10 phút đến khi rau mềm.",
+      "Chia bốn suất; làm nguội nhanh và giữ lạnh phần dư ở ≤4°C. Không tự thêm thịt hoặc phô mai vào nhân."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu quinoa riêng; bổ đôi cà tím, lấy bớt ruột băm và xào với hành, cà chua, oregano; trộn cùng quinoa chín và đậu gà để nhồi.",
+    "method": "stuffed",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-010",
+    "name": "Ớt chuông nhồi gạo lứt đậu đỏ",
+    "category": "main",
+    "protein": "plant",
+    "time": 70,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "bellPepper",
+        "qty": 700
+      },
+      {
+        "id": "brownRice",
+        "qty": 220
+      },
+      {
+        "id": "kidneyBean",
+        "qty": 400
+      },
+      {
+        "id": "corn",
+        "qty": 200
+      },
+      {
+        "id": "tomato",
+        "qty": 350
+      },
+      {
+        "id": "onion",
+        "qty": 100
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Làm nóng lò 190°C. Cắt rau dùng để nhồi và chuẩn bị phần nhân; đậu phải chín trước khi nhồi.",
+      "Nấu gạo lứt trước; cắt đôi bỏ hạt ớt chuông, xào hành và cà chua rồi trộn với cơm, đậu đỏ và bắp làm nhân.",
+      "Nhồi nhân vào phần rau đã chuẩn bị, thêm nước lọc mỏng đáy khay rồi đậy giấy bạc nướng 25 phút; mở giấy nướng thêm 10 phút đến khi rau mềm.",
+      "Chia bốn suất; làm nguội nhanh và giữ lạnh phần dư ở ≤4°C. Không tự thêm thịt hoặc phô mai vào nhân."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu gạo lứt trước; cắt đôi bỏ hạt ớt chuông, xào hành và cà chua rồi trộn với cơm, đậu đỏ và bắp làm nhân.",
+    "method": "stuffed",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-011",
+    "name": "Bí ngòi nhồi đậu trắng nấm",
+    "category": "main",
+    "protein": "plant",
+    "time": 50,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "zucchini",
+        "qty": 800
+      },
+      {
+        "id": "whiteBean",
+        "qty": 450
+      },
+      {
+        "id": "mushroom",
+        "qty": 300
+      },
+      {
+        "id": "tomato",
+        "qty": 350
+      },
+      {
+        "id": "garlic",
+        "qty": 15
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Làm nóng lò 190°C. Cắt rau dùng để nhồi và chuẩn bị phần nhân; đậu phải chín trước khi nhồi.",
+      "Bổ đôi bí ngòi, lấy ruột băm; xào với nấm tỏi và cà chua, trộn đậu trắng nghiền thô làm nhân.",
+      "Nhồi nhân vào phần rau đã chuẩn bị, thêm nước lọc mỏng đáy khay rồi đậy giấy bạc nướng 25 phút; mở giấy nướng thêm 10 phút đến khi rau mềm.",
+      "Chia bốn suất; làm nguội nhanh và giữ lạnh phần dư ở ≤4°C. Không tự thêm thịt hoặc phô mai vào nhân."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Bổ đôi bí ngòi, lấy ruột băm; xào với nấm tỏi và cà chua, trộn đậu trắng nghiền thô làm nhân.",
+    "method": "stuffed",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-012",
+    "name": "Nấm xào óc chó rau cải",
+    "category": "main",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "mushroom",
+        "qty": 500
+      },
+      {
+        "id": "spinach",
+        "qty": 450
+      },
+      {
+        "id": "walnut",
+        "qty": 70
+      },
+      {
+        "id": "soy",
+        "qty": 20
+      },
+      {
+        "id": "garlic",
+        "qty": 20
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa và cắt rau củ, tách phần lâu chín; đậu dùng loại chín để ráo, đậu hũ thấm khô.",
+      "Xào nấm và tỏi đến bay nước, cho rau cải vào nấu chín; thêm nước tương rồi rắc óc chó bẻ nhỏ sau cùng.",
+      "Dùng lượng dầu và gia vị đã cân, nấu phần lâu chín trước, thêm rau nhanh chín sau; thêm ít nước lọc nếu cần để món không cháy.",
+      "Nấu đến khi rau và đậu nóng chín đều, chia bốn phần. Chỉ dùng gia vị trong danh sách, không dùng nước mắm/nước dùng thịt để nêm."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Xào nấm và tỏi đến bay nước, cho rau cải vào nấu chín; thêm nước tương rồi rắc óc chó bẻ nhỏ sau cùng.",
+    "method": "saute",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây",
+      "gluten",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-013",
+    "name": "Bông cải nướng tahini hạt bí",
+    "category": "veg",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "broccoli",
+        "qty": 800
+      },
+      {
+        "id": "tahini",
+        "qty": 70
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 50
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "garlic",
+        "qty": 15
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Làm nóng lò 200°C; cắt rau củ thành miếng đều, thấm khô đậu hũ/đậu chín trước khi trộn gia vị.",
+      "Cắt bông cải thành nhánh, trộn tỏi dầu rồi nướng; pha tahini chanh với nước làm sốt, rắc hạt bí sau khi nướng.",
+      "Trải một lớp trên khay, nướng 25–35 phút, trở rau giữa chừng. Rau nhanh chín được thêm vào cuối; phần ngũ cốc nấu riêng theo bao bì nếu có.",
+      "Chia bốn phần, thêm sốt hoặc hạt trong danh sách sau khi nấu. Không tự thêm phô mai, trứng hoặc thịt."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Cắt bông cải thành nhánh, trộn tỏi dầu rồi nướng; pha tahini chanh với nước làm sốt, rắc hạt bí sau khi nướng.",
+    "method": "roast",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè"
+    ]
+  },
+  {
+    "id": "plant-v5-014",
+    "name": "Bí đỏ nướng hạnh nhân oregano",
+    "category": "veg",
+    "protein": "plant",
+    "time": 40,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "pumpkin",
+        "qty": 900
+      },
+      {
+        "id": "almond",
+        "qty": 70
+      },
+      {
+        "id": "oregano",
+        "qty": 2
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Làm nóng lò 200°C; cắt rau củ thành miếng đều, thấm khô đậu hũ/đậu chín trước khi trộn gia vị.",
+      "Nướng bí đỏ cắt khối với oregano và dầu; hạnh nhân thái hoặc giã thô, thêm ở 5 phút cuối rồi vắt chanh.",
+      "Trải một lớp trên khay, nướng 25–35 phút, trở rau giữa chừng. Rau nhanh chín được thêm vào cuối; phần ngũ cốc nấu riêng theo bao bì nếu có.",
+      "Chia bốn phần, thêm sốt hoặc hạt trong danh sách sau khi nấu. Không tự thêm phô mai, trứng hoặc thịt."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Nướng bí đỏ cắt khối với oregano và dầu; hạnh nhân thái hoặc giã thô, thêm ở 5 phút cuối rồi vắt chanh.",
+    "method": "roast",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây"
+    ]
+  },
+  {
+    "id": "plant-v5-015",
+    "name": "Cà tím sốt miso mè",
+    "category": "veg",
+    "protein": "plant",
+    "time": 40,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "eggplant",
+        "qty": 800
+      },
+      {
+        "id": "miso",
+        "qty": 40
+      },
+      {
+        "id": "sesame",
+        "qty": 30
+      },
+      {
+        "id": "ginger",
+        "qty": 20
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Chọn miso nguyên chất không có dashi/cá. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Làm nóng lò 200°C; cắt rau củ thành miếng đều, thấm khô đậu hũ/đậu chín trước khi trộn gia vị.",
+      "Nướng cà tím bổ đôi 20 phút. Pha miso gừng với nước và chút chanh, phết lên nướng thêm 8 phút, rắc mè.",
+      "Trải một lớp trên khay, nướng 25–35 phút, trở rau giữa chừng. Rau nhanh chín được thêm vào cuối; phần ngũ cốc nấu riêng theo bao bì nếu có.",
+      "Chia bốn phần, thêm sốt hoặc hạt trong danh sách sau khi nấu. Không tự thêm phô mai, trứng hoặc thịt."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Nướng cà tím bổ đôi 20 phút. Pha miso gừng với nước và chút chanh, phết lên nướng thêm 8 phút, rắc mè.",
+    "method": "roast",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-016",
+    "name": "Bắp cải áp chảo sốt đậu phộng",
+    "category": "veg",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "cabbage",
+        "qty": 800
+      },
+      {
+        "id": "peanut",
+        "qty": 80
+      },
+      {
+        "id": "soy",
+        "qty": 20
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "garlic",
+        "qty": 15
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa và cắt rau củ, tách phần lâu chín; đậu dùng loại chín để ráo, đậu hũ thấm khô.",
+      "Cắt bắp cải miếng dày, áp chảo hai mặt và đậy nắp với ít nước đến mềm; xay đậu phộng với chanh, tỏi và nước tương làm sốt.",
+      "Dùng lượng dầu và gia vị đã cân, nấu phần lâu chín trước, thêm rau nhanh chín sau; thêm ít nước lọc nếu cần để món không cháy.",
+      "Nấu đến khi rau và đậu nóng chín đều, chia bốn phần. Chỉ dùng gia vị trong danh sách, không dùng nước mắm/nước dùng thịt để nêm."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Cắt bắp cải miếng dày, áp chảo hai mặt và đậy nắp với ít nước đến mềm; xay đậu phộng với chanh, tỏi và nước tương làm sốt.",
+    "method": "saute",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "đậu phộng",
+      "gluten",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-017",
+    "name": "Chả đậu lăng hạt hướng dương",
+    "category": "main",
+    "protein": "plant",
+    "time": 50,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "lentil",
+        "qty": 240
+      },
+      {
+        "id": "sunflowerSeed",
+        "qty": 70
+      },
+      {
+        "id": "oats",
+        "qty": 100
+      },
+      {
+        "id": "onion",
+        "qty": 150
+      },
+      {
+        "id": "carrot",
+        "qty": 200
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Đậu phải được nấu chín và để ráo trước khi nghiền; băm rau nhỏ, vắt bớt nước ở rau bào.",
+      "Luộc đậu lăng mềm rồi để ráo; nghiền với yến mạch, cà rốt bào, hành băm và hạt hướng dương giã thô. Không dùng trứng.",
+      "Nghỉ hỗn hợp 10 phút cho yến mạch/bột hút ẩm; chia tám miếng dẹt, áp chảo chống dính với lượng dầu đã cân 4–5 phút mỗi mặt đến khi nóng chín ở giữa.",
+      "Chia bốn suất, chỉ dùng phần sốt và rau ăn kèm được ghi trong danh sách. Không dùng trứng làm chất kết dính nếu công thức không có trứng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Luộc đậu lăng mềm rồi để ráo; nghiền với yến mạch, cà rốt bào, hành băm và hạt hướng dương giã thô. Không dùng trứng.",
+    "method": "patties",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-018",
+    "name": "Chả đậu đỏ hạt bí",
+    "category": "main",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "kidneyBean",
+        "qty": 600
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 70
+      },
+      {
+        "id": "oats",
+        "qty": 100
+      },
+      {
+        "id": "onion",
+        "qty": 150
+      },
+      {
+        "id": "garlic",
+        "qty": 15
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Đậu phải được nấu chín và để ráo trước khi nghiền; băm rau nhỏ, vắt bớt nước ở rau bào.",
+      "Nghiền đậu đỏ chín với yến mạch, hành, tỏi và hạt bí giã; hỗn hợp phải đủ dẻo trước khi tạo miếng.",
+      "Nghỉ hỗn hợp 10 phút cho yến mạch/bột hút ẩm; chia tám miếng dẹt, áp chảo chống dính với lượng dầu đã cân 4–5 phút mỗi mặt đến khi nóng chín ở giữa.",
+      "Chia bốn suất, chỉ dùng phần sốt và rau ăn kèm được ghi trong danh sách. Không dùng trứng làm chất kết dính nếu công thức không có trứng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Nghiền đậu đỏ chín với yến mạch, hành, tỏi và hạt bí giã; hỗn hợp phải đủ dẻo trước khi tạo miếng.",
+    "method": "patties",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-019",
+    "name": "Chả đậu hũ mè cà rốt",
+    "category": "main",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "tofu",
+        "qty": 650
+      },
+      {
+        "id": "sesame",
+        "qty": 40
+      },
+      {
+        "id": "carrot",
+        "qty": 250
+      },
+      {
+        "id": "oats",
+        "qty": 100
+      },
+      {
+        "id": "scallion",
+        "qty": 30
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Đậu phải được nấu chín và để ráo trước khi nghiền; băm rau nhỏ, vắt bớt nước ở rau bào.",
+      "Vắt đậu hũ bớt nước rồi bóp nhuyễn; trộn cà rốt bào, yến mạch, mè và hành lá thành hỗn hợp dẻo.",
+      "Nghỉ hỗn hợp 10 phút cho yến mạch/bột hút ẩm; chia tám miếng dẹt, áp chảo chống dính với lượng dầu đã cân 4–5 phút mỗi mặt đến khi nóng chín ở giữa.",
+      "Chia bốn suất, chỉ dùng phần sốt và rau ăn kèm được ghi trong danh sách. Không dùng trứng làm chất kết dính nếu công thức không có trứng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Vắt đậu hũ bớt nước rồi bóp nhuyễn; trộn cà rốt bào, yến mạch, mè và hành lá thành hỗn hợp dẻo.",
+    "method": "patties",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-020",
+    "name": "Chả đậu trắng óc chó nấm",
+    "category": "main",
+    "protein": "plant",
+    "time": 40,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "whiteBean",
+        "qty": 600
+      },
+      {
+        "id": "walnut",
+        "qty": 60
+      },
+      {
+        "id": "mushroom",
+        "qty": 300
+      },
+      {
+        "id": "oats",
+        "qty": 100
+      },
+      {
+        "id": "garlic",
+        "qty": 15
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Đậu phải được nấu chín và để ráo trước khi nghiền; băm rau nhỏ, vắt bớt nước ở rau bào.",
+      "Xào nấm băm đến ráo, để nguội rồi trộn đậu trắng nghiền, yến mạch, tỏi và óc chó giã; không thêm trứng.",
+      "Nghỉ hỗn hợp 10 phút cho yến mạch/bột hút ẩm; chia tám miếng dẹt, áp chảo chống dính với lượng dầu đã cân 4–5 phút mỗi mặt đến khi nóng chín ở giữa.",
+      "Chia bốn suất, chỉ dùng phần sốt và rau ăn kèm được ghi trong danh sách. Không dùng trứng làm chất kết dính nếu công thức không có trứng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Xào nấm băm đến ráo, để nguội rồi trộn đậu trắng nghiền, yến mạch, tỏi và óc chó giã; không thêm trứng.",
+    "method": "patties",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây"
+    ]
+  },
+  {
+    "id": "plant-v5-021",
+    "name": "Couscous đậu gà hạt bí rau củ",
+    "category": "main",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "couscous",
+        "qty": 260
+      },
+      {
+        "id": "chickpea",
+        "qty": 450
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 50
+      },
+      {
+        "id": "zucchini",
+        "qty": 350
+      },
+      {
+        "id": "bellPepper",
+        "qty": 250
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa hạt theo hướng dẫn; gạo lứt/quinoa/bulgur/couscous trong công thức tính khối lượng khô và nấu/ngâm bằng nước theo bao bì.",
+      "Ngâm couscous bằng nước nóng theo bao bì rồi xới tơi; áp chảo bí ngòi và ớt chuông, làm nóng đậu gà, rắc hạt bí và chanh.",
+      "Chia ngũ cốc chín thành bốn phần, thêm rau, đậu và sốt đã nấu. Không tự cộng thêm cơm trắng.",
+      "Rắc phần hạt/rau thơm có trong danh sách khi dùng; nếu chuẩn bị trước, làm nguội nhanh và giữ lạnh ở ≤4°C."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Ngâm couscous bằng nước nóng theo bao bì rồi xới tơi; áp chảo bí ngòi và ớt chuông, làm nóng đậu gà, rắc hạt bí và chanh.",
+    "method": "grain",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-022",
+    "name": "Bulgur đậu trắng nấm húng quế",
+    "category": "main",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "bulgur",
+        "qty": 260
+      },
+      {
+        "id": "whiteBean",
+        "qty": 450
+      },
+      {
+        "id": "mushroom",
+        "qty": 400
+      },
+      {
+        "id": "basil",
+        "qty": 20
+      },
+      {
+        "id": "garlic",
+        "qty": 15
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Rửa hạt theo hướng dẫn; gạo lứt/quinoa/bulgur/couscous trong công thức tính khối lượng khô và nấu/ngâm bằng nước theo bao bì.",
+      "Nấu bulgur bằng nước; xào nấm tỏi đến chín, thêm đậu trắng làm nóng rồi trộn húng quế với hạt đã chín.",
+      "Chia ngũ cốc chín thành bốn phần, thêm rau, đậu và sốt đã nấu. Không tự cộng thêm cơm trắng.",
+      "Rắc phần hạt/rau thơm có trong danh sách khi dùng; nếu chuẩn bị trước, làm nguội nhanh và giữ lạnh ở ≤4°C."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu bulgur bằng nước; xào nấm tỏi đến chín, thêm đậu trắng làm nóng rồi trộn húng quế với hạt đã chín.",
+    "method": "grain",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-023",
+    "name": "Quinoa đậu lăng rau củ nướng",
+    "category": "main",
+    "protein": "plant",
+    "time": 50,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "quinoa",
+        "qty": 240
+      },
+      {
+        "id": "lentil",
+        "qty": 180
+      },
+      {
+        "id": "pumpkin",
+        "qty": 350
+      },
+      {
+        "id": "carrot",
+        "qty": 250
+      },
+      {
+        "id": "zucchini",
+        "qty": 250
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Rửa hạt theo hướng dẫn; gạo lứt/quinoa/bulgur/couscous trong công thức tính khối lượng khô và nấu/ngâm bằng nước theo bao bì.",
+      "Luộc đậu lăng riêng đến mềm, nướng bí đỏ và cà rốt trước rồi thêm bí ngòi; xếp cùng quinoa chín, rưới chanh.",
+      "Chia ngũ cốc chín thành bốn phần, thêm rau, đậu và sốt đã nấu. Không tự cộng thêm cơm trắng.",
+      "Rắc phần hạt/rau thơm có trong danh sách khi dùng; nếu chuẩn bị trước, làm nguội nhanh và giữ lạnh ở ≤4°C."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Luộc đậu lăng riêng đến mềm, nướng bí đỏ và cà rốt trước rồi thêm bí ngòi; xếp cùng quinoa chín, rưới chanh.",
+    "method": "grain",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-024",
+    "name": "Gạo lứt đậu gà sốt mè chanh",
+    "category": "main",
+    "protein": "plant",
+    "time": 50,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "brownRice",
+        "qty": 260
+      },
+      {
+        "id": "chickpea",
+        "qty": 500
+      },
+      {
+        "id": "tahini",
+        "qty": 60
+      },
+      {
+        "id": "broccoli",
+        "qty": 400
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa hạt theo hướng dẫn; gạo lứt/quinoa/bulgur/couscous trong công thức tính khối lượng khô và nấu/ngâm bằng nước theo bao bì.",
+      "Nấu gạo lứt, hấp bông cải và làm nóng đậu gà; pha tahini chanh với nước rồi rưới lên phần cơm và rau đã chia.",
+      "Chia ngũ cốc chín thành bốn phần, thêm rau, đậu và sốt đã nấu. Không tự cộng thêm cơm trắng.",
+      "Rắc phần hạt/rau thơm có trong danh sách khi dùng; nếu chuẩn bị trước, làm nguội nhanh và giữ lạnh ở ≤4°C."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu gạo lứt, hấp bông cải và làm nóng đậu gà; pha tahini chanh với nước rồi rưới lên phần cơm và rau đã chia.",
+    "method": "grain",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè"
+    ]
+  },
+  {
+    "id": "plant-v5-025",
+    "name": "Penne sốt óc chó nấm thuần chay",
+    "category": "main",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "penne",
+        "qty": 360
+      },
+      {
+        "id": "mushroom",
+        "qty": 450
+      },
+      {
+        "id": "walnut",
+        "qty": 80
+      },
+      {
+        "id": "garlic",
+        "qty": 20
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa hạt theo hướng dẫn; gạo lứt/quinoa/bulgur/couscous trong công thức tính khối lượng khô và nấu/ngâm bằng nước theo bao bì.",
+      "Luộc penne theo bao bì; xay óc chó, tỏi, chanh và ít nước mì thành sốt, trộn cùng nấm đã xào chín. Không dùng kem hoặc phô mai.",
+      "Chia ngũ cốc chín thành bốn phần, thêm rau, đậu và sốt đã nấu. Không tự cộng thêm cơm trắng.",
+      "Rắc phần hạt/rau thơm có trong danh sách khi dùng; nếu chuẩn bị trước, làm nguội nhanh và giữ lạnh ở ≤4°C."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Luộc penne theo bao bì; xay óc chó, tỏi, chanh và ít nước mì thành sốt, trộn cùng nấm đã xào chín. Không dùng kem hoặc phô mai.",
+    "method": "grain",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây",
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-026",
+    "name": "Spaghetti bí ngòi hạnh nhân húng quế",
+    "category": "main",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "spaghetti",
+        "qty": 360
+      },
+      {
+        "id": "zucchini",
+        "qty": 500
+      },
+      {
+        "id": "almond",
+        "qty": 70
+      },
+      {
+        "id": "basil",
+        "qty": 30
+      },
+      {
+        "id": "garlic",
+        "qty": 15
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa hạt theo hướng dẫn; gạo lứt/quinoa/bulgur/couscous trong công thức tính khối lượng khô và nấu/ngâm bằng nước theo bao bì.",
+      "Luộc spaghetti; xào bí ngòi với tỏi, giã hạnh nhân và húng quế với dầu cùng nước mì làm sốt rồi trộn đều.",
+      "Chia ngũ cốc chín thành bốn phần, thêm rau, đậu và sốt đã nấu. Không tự cộng thêm cơm trắng.",
+      "Rắc phần hạt/rau thơm có trong danh sách khi dùng; nếu chuẩn bị trước, làm nguội nhanh và giữ lạnh ở ≤4°C."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Luộc spaghetti; xào bí ngòi với tỏi, giã hạnh nhân và húng quế với dầu cùng nước mì làm sốt rồi trộn đều.",
+    "method": "grain",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây",
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-027",
+    "name": "Mì udon đậu hũ mè nấm",
+    "category": "main",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "udon",
+        "qty": 700
+      },
+      {
+        "id": "tofu",
+        "qty": 550
+      },
+      {
+        "id": "mushroom",
+        "qty": 350
+      },
+      {
+        "id": "sesame",
+        "qty": 35
+      },
+      {
+        "id": "soy",
+        "qty": 25
+      },
+      {
+        "id": "scallion",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa hạt theo hướng dẫn; gạo lứt/quinoa/bulgur/couscous trong công thức tính khối lượng khô và nấu/ngâm bằng nước theo bao bì.",
+      "Nấu udon theo bao bì rồi để ráo; xào nấm và đậu hũ áp chảo, trộn mì với nước tương, mè và hành lá, không chan nước dùng thịt.",
+      "Chia ngũ cốc chín thành bốn phần, thêm rau, đậu và sốt đã nấu. Không tự cộng thêm cơm trắng.",
+      "Rắc phần hạt/rau thơm có trong danh sách khi dùng; nếu chuẩn bị trước, làm nguội nhanh và giữ lạnh ở ≤4°C."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu udon theo bao bì rồi để ráo; xào nấm và đậu hũ áp chảo, trộn mì với nước tương, mè và hành lá, không chan nước dùng thịt.",
+    "method": "grain",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè",
+      "gluten",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-028",
+    "name": "Cuốn xà lách bún đậu hũ đậu phộng",
+    "category": "main",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "noodle",
+        "qty": 500
+      },
+      {
+        "id": "tofu",
+        "qty": 550
+      },
+      {
+        "id": "lettuce",
+        "qty": 350
+      },
+      {
+        "id": "cucumber",
+        "qty": 300
+      },
+      {
+        "id": "peanut",
+        "qty": 70
+      },
+      {
+        "id": "soy",
+        "qty": 20
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa hạt theo hướng dẫn; gạo lứt/quinoa/bulgur/couscous trong công thức tính khối lượng khô và nấu/ngâm bằng nước theo bao bì.",
+      "Trụng bún, áp chảo đậu hũ; đặt bún, đậu và dưa leo vào lá xà lách để cuốn. Giã đậu phộng với chanh, nước tương và nước làm sốt.",
+      "Chia ngũ cốc chín thành bốn phần, thêm rau, đậu và sốt đã nấu. Không tự cộng thêm cơm trắng.",
+      "Rắc phần hạt/rau thơm có trong danh sách khi dùng; nếu chuẩn bị trước, làm nguội nhanh và giữ lạnh ở ≤4°C."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Trụng bún, áp chảo đậu hũ; đặt bún, đậu và dưa leo vào lá xà lách để cuốn. Giã đậu phộng với chanh, nước tương và nước làm sốt.",
+    "method": "grain",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "đậu phộng",
+      "gluten",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-029",
+    "name": "Canh bí đỏ đậu lăng mè",
+    "category": "soup",
+    "protein": "plant",
+    "time": 40,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "pumpkin",
+        "qty": 600
+      },
+      {
+        "id": "lentil",
+        "qty": 200
+      },
+      {
+        "id": "sesame",
+        "qty": 25
+      },
+      {
+        "id": "onion",
+        "qty": 150
+      },
+      {
+        "id": "vegBroth",
+        "qty": 1500
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa và cắt rau củ nhỏ đều, tách phần lâu chín và phần nhanh chín. Đậu chín để ráo; đậu lăng khô rửa kỹ.",
+      "Xào hành rồi thêm bí đỏ, đậu lăng khô và nước dùng rau củ; nấu mềm, rắc mè khi chia bát.",
+      "Nấu nhỏ lửa đến khi rau và đậu chín mềm; đậu lăng cần khoảng 25–30 phút. Chỉ dùng nước dùng rau củ hoặc nước lọc, thêm nước nóng nếu súp đặc.",
+      "Nêm từ lượng gia vị đã ghi và chia bốn phần; bảo quản phần dư trong ngăn mát ≤4°C sau khi làm nguội nhanh."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Xào hành rồi thêm bí đỏ, đậu lăng khô và nước dùng rau củ; nấu mềm, rắc mè khi chia bát.",
+    "method": "soup",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè"
+    ]
+  },
+  {
+    "id": "plant-v5-030",
+    "name": "Súp bông cải đậu trắng hạt bí",
+    "category": "soup",
+    "protein": "plant",
+    "time": 30,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "broccoli",
+        "qty": 650
+      },
+      {
+        "id": "whiteBean",
+        "qty": 500
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 50
+      },
+      {
+        "id": "onion",
+        "qty": 120
+      },
+      {
+        "id": "vegBroth",
+        "qty": 1200
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa và cắt rau củ nhỏ đều, tách phần lâu chín và phần nhanh chín. Đậu chín để ráo; đậu lăng khô rửa kỹ.",
+      "Xào hành, nấu bông cải với nước dùng đến mềm; thêm đậu trắng chín, xay mịn một phần, rắc hạt bí lúc ăn.",
+      "Nấu nhỏ lửa đến khi rau và đậu chín mềm; đậu lăng cần khoảng 25–30 phút. Chỉ dùng nước dùng rau củ hoặc nước lọc, thêm nước nóng nếu súp đặc.",
+      "Nêm từ lượng gia vị đã ghi và chia bốn phần; bảo quản phần dư trong ngăn mát ≤4°C sau khi làm nguội nhanh."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegan",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Xào hành, nấu bông cải với nước dùng đến mềm; thêm đậu trắng chín, xay mịn một phần, rắc hạt bí lúc ăn.",
+    "method": "soup",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-031",
+    "name": "Trứng hấp đậu hũ nấm mè",
+    "category": "main",
+    "protein": "egg",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "egg",
+        "qty": 6
+      },
+      {
+        "id": "tofu",
+        "qty": 400
+      },
+      {
+        "id": "mushroom",
+        "qty": 300
+      },
+      {
+        "id": "sesame",
+        "qty": 25
+      },
+      {
+        "id": "scallion",
+        "qty": 25
+      },
+      {
+        "id": "soy",
+        "qty": 15
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Đập trứng vào bát riêng để kiểm tra; cắt rau và thấm khô đậu hũ trước khi nấu.",
+      "Đánh trứng với 150 ml nước lọc và nước tương; trộn đậu hũ, nấm đã xào ráo, hấp trong bát chịu nhiệt; rắc mè và hành khi chín.",
+      "Nấu lửa vừa nhỏ và đậy nắp hoặc hấp đến khi phần giữa trứng chín hẳn, không còn lỏng; kiểm tra món nóng chín đều.",
+      "Chia bốn phần; đây là món chay có trứng, không gắn nhãn thuần chay. Dùng nóng, không giữ trứng ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegetarian",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Đánh trứng với 150 ml nước lọc và nước tương; trộn đậu hũ, nấm đã xào ráo, hấp trong bát chịu nhiệt; rắc mè và hành khi chín.",
+    "method": "eggs",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè",
+      "gluten",
+      "trứng",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-032",
+    "name": "Trứng cuộn rau cải hạt hướng dương",
+    "category": "main",
+    "protein": "egg",
+    "time": 30,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "egg",
+        "qty": 8
+      },
+      {
+        "id": "spinach",
+        "qty": 400
+      },
+      {
+        "id": "sunflowerSeed",
+        "qty": 45
+      },
+      {
+        "id": "onion",
+        "qty": 100
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Đập trứng vào bát riêng để kiểm tra; cắt rau và thấm khô đậu hũ trước khi nấu.",
+      "Xào rau cải và hành thật ráo; đổ trứng đánh vào chảo thành lớp mỏng, cuộn cùng rau đã nấu và hạt hướng dương, nấu chín giữa.",
+      "Nấu lửa vừa nhỏ và đậy nắp hoặc hấp đến khi phần giữa trứng chín hẳn, không còn lỏng; kiểm tra món nóng chín đều.",
+      "Chia bốn phần; đây là món chay có trứng, không gắn nhãn thuần chay. Dùng nóng, không giữ trứng ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegetarian",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Xào rau cải và hành thật ráo; đổ trứng đánh vào chảo thành lớp mỏng, cuộn cùng rau đã nấu và hạt hướng dương, nấu chín giữa.",
+    "method": "eggs",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "trứng"
+    ]
+  },
+  {
+    "id": "plant-v5-033",
+    "name": "Omelette ớt chuông mè rang",
+    "category": "main",
+    "protein": "egg",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "egg",
+        "qty": 8
+      },
+      {
+        "id": "bellPepper",
+        "qty": 400
+      },
+      {
+        "id": "sesame",
+        "qty": 30
+      },
+      {
+        "id": "scallion",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Đập trứng vào bát riêng để kiểm tra; cắt rau và thấm khô đậu hũ trước khi nấu.",
+      "Xào ớt chuông mềm, trộn trứng với mè rang và hành lá, đổ vào chảo, gập trứng và nấu chín hoàn toàn.",
+      "Nấu lửa vừa nhỏ và đậy nắp hoặc hấp đến khi phần giữa trứng chín hẳn, không còn lỏng; kiểm tra món nóng chín đều.",
+      "Chia bốn phần; đây là món chay có trứng, không gắn nhãn thuần chay. Dùng nóng, không giữ trứng ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegetarian",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Xào ớt chuông mềm, trộn trứng với mè rang và hành lá, đổ vào chảo, gập trứng và nấu chín hoàn toàn.",
+    "method": "eggs",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè",
+      "trứng"
+    ]
+  },
+  {
+    "id": "plant-v5-034",
+    "name": "Đậu gà rau củ sốt sữa chua chanh",
+    "category": "main",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "chickpea",
+        "qty": 550
+      },
+      {
+        "id": "carrot",
+        "qty": 250
+      },
+      {
+        "id": "zucchini",
+        "qty": 350
+      },
+      {
+        "id": "yogurt",
+        "qty": 220
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "garlic",
+        "qty": 15
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Rửa và cắt rau củ, tách phần lâu chín; đậu dùng loại chín để ráo, đậu hũ thấm khô.",
+      "Xào cà rốt, bí ngòi và tỏi đến chín, thêm đậu gà làm nóng; để bớt nóng rồi thêm sốt sữa chua chanh, không đun sôi sữa chua.",
+      "Dùng lượng dầu và gia vị đã cân, nấu phần lâu chín trước, thêm rau nhanh chín sau; thêm ít nước lọc nếu cần để món không cháy.",
+      "Nấu đến khi rau và đậu nóng chín đều, chia bốn phần. Chỉ dùng gia vị trong danh sách, không dùng nước mắm/nước dùng thịt để nêm."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegetarian",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Xào cà rốt, bí ngòi và tỏi đến chín, thêm đậu gà làm nóng; để bớt nóng rồi thêm sốt sữa chua chanh, không đun sôi sữa chua.",
+    "method": "saute",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "sữa"
+    ]
+  },
+  {
+    "id": "plant-v5-035",
+    "name": "Cà tím nướng sữa chua hạt bí",
+    "category": "main",
+    "protein": "plant",
+    "time": 40,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "eggplant",
+        "qty": 850
+      },
+      {
+        "id": "yogurt",
+        "qty": 250
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 60
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "garlic",
+        "qty": 15
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Làm nóng lò 200°C; cắt rau củ thành miếng đều, thấm khô đậu hũ/đậu chín trước khi trộn gia vị.",
+      "Nướng cà tím đến mềm; pha sữa chua, chanh và tỏi làm sốt nguội, rưới lên cà rồi rắc hạt bí.",
+      "Trải một lớp trên khay, nướng 25–35 phút, trở rau giữa chừng. Rau nhanh chín được thêm vào cuối; phần ngũ cốc nấu riêng theo bao bì nếu có.",
+      "Chia bốn phần, thêm sốt hoặc hạt trong danh sách sau khi nấu. Không tự thêm phô mai, trứng hoặc thịt."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegetarian",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Nướng cà tím đến mềm; pha sữa chua, chanh và tỏi làm sốt nguội, rưới lên cà rồi rắc hạt bí.",
+    "method": "roast",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "sữa"
+    ]
+  },
+  {
+    "id": "plant-v5-036",
+    "name": "Bí đỏ đậu trắng nướng sữa chua mè",
+    "category": "main",
+    "protein": "plant",
+    "time": 40,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "pumpkin",
+        "qty": 650
+      },
+      {
+        "id": "whiteBean",
+        "qty": 450
+      },
+      {
+        "id": "yogurt",
+        "qty": 200
+      },
+      {
+        "id": "sesame",
+        "qty": 30
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Làm nóng lò 200°C; cắt rau củ thành miếng đều, thấm khô đậu hũ/đậu chín trước khi trộn gia vị.",
+      "Nướng bí đỏ 25 phút, cho đậu trắng chín vào khay 5 phút cuối; thêm sốt sữa chua chanh và mè sau khi lấy ra.",
+      "Trải một lớp trên khay, nướng 25–35 phút, trở rau giữa chừng. Rau nhanh chín được thêm vào cuối; phần ngũ cốc nấu riêng theo bao bì nếu có.",
+      "Chia bốn phần, thêm sốt hoặc hạt trong danh sách sau khi nấu. Không tự thêm phô mai, trứng hoặc thịt."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegetarian",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Nướng bí đỏ 25 phút, cho đậu trắng chín vào khay 5 phút cuối; thêm sốt sữa chua chanh và mè sau khi lấy ra.",
+    "method": "roast",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè",
+      "sữa"
+    ]
+  },
+  {
+    "id": "plant-v5-037",
+    "name": "Trứng đậu đỏ sốt cà chua hạt bí",
+    "category": "main",
+    "protein": "egg",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "egg",
+        "qty": 8
+      },
+      {
+        "id": "kidneyBean",
+        "qty": 450
+      },
+      {
+        "id": "tomato",
+        "qty": 650
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 40
+      },
+      {
+        "id": "onion",
+        "qty": 150
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Đập trứng vào bát riêng để kiểm tra; cắt rau và thấm khô đậu hũ trước khi nấu.",
+      "Xào hành, nấu cà chua thành sốt rồi thêm đậu đỏ; tạo hõm, cho trứng vào đậy nắp nấu chín, rắc hạt bí sau cùng.",
+      "Nấu lửa vừa nhỏ và đậy nắp hoặc hấp đến khi phần giữa trứng chín hẳn, không còn lỏng; kiểm tra món nóng chín đều.",
+      "Chia bốn phần; đây là món chay có trứng, không gắn nhãn thuần chay. Dùng nóng, không giữ trứng ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegetarian",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Xào hành, nấu cà chua thành sốt rồi thêm đậu đỏ; tạo hõm, cho trứng vào đậy nắp nấu chín, rắc hạt bí sau cùng.",
+    "method": "eggs",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "trứng"
+    ]
+  },
+  {
+    "id": "plant-v5-038",
+    "name": "Đậu lăng rau cải sốt sữa chua",
+    "category": "soup",
+    "protein": "plant",
+    "time": 40,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "lentil",
+        "qty": 240
+      },
+      {
+        "id": "spinach",
+        "qty": 450
+      },
+      {
+        "id": "tomato",
+        "qty": 400
+      },
+      {
+        "id": "yogurt",
+        "qty": 200
+      },
+      {
+        "id": "vegBroth",
+        "qty": 1200
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Rửa và cắt rau củ nhỏ đều, tách phần lâu chín và phần nhanh chín. Đậu chín để ráo; đậu lăng khô rửa kỹ.",
+      "Nấu đậu lăng và cà chua trong nước dùng đến mềm, thêm rau cải nấu chín; chia bát rồi thêm sữa chua, không đun sôi sau khi thêm.",
+      "Nấu nhỏ lửa đến khi rau và đậu chín mềm; đậu lăng cần khoảng 25–30 phút. Chỉ dùng nước dùng rau củ hoặc nước lọc, thêm nước nóng nếu súp đặc.",
+      "Nêm từ lượng gia vị đã ghi và chia bốn phần; bảo quản phần dư trong ngăn mát ≤4°C sau khi làm nguội nhanh."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegetarian",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Nấu đậu lăng và cà chua trong nước dùng đến mềm, thêm rau cải nấu chín; chia bát rồi thêm sữa chua, không đun sôi sau khi thêm.",
+    "method": "soup",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "sữa"
+    ]
+  },
+  {
+    "id": "plant-v5-039",
+    "name": "Bulgur nấm trứng hạt lanh",
+    "category": "main",
+    "protein": "egg",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "bulgur",
+        "qty": 260
+      },
+      {
+        "id": "mushroom",
+        "qty": 400
+      },
+      {
+        "id": "egg",
+        "qty": 4
+      },
+      {
+        "id": "flax",
+        "qty": 30
+      },
+      {
+        "id": "scallion",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Rửa hạt theo hướng dẫn; gạo lứt/quinoa/bulgur/couscous trong công thức tính khối lượng khô và nấu/ngâm bằng nước theo bao bì.",
+      "Nấu bulgur, xào nấm, luộc trứng chín; xếp trứng cắt đôi trên bulgur, thêm hành và hạt lanh xay.",
+      "Chia ngũ cốc chín thành bốn phần, thêm rau, đậu và sốt đã nấu. Không tự cộng thêm cơm trắng.",
+      "Rắc phần hạt/rau thơm có trong danh sách khi dùng; nếu chuẩn bị trước, làm nguội nhanh và giữ lạnh ở ≤4°C."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegetarian",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu bulgur, xào nấm, luộc trứng chín; xếp trứng cắt đôi trên bulgur, thêm hành và hạt lanh xay.",
+    "method": "grain",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "gluten",
+      "trứng"
+    ]
+  },
+  {
+    "id": "plant-v5-040",
+    "name": "Quinoa đậu gà sữa chua óc chó",
+    "category": "main",
+    "protein": "plant",
+    "time": 30,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "quinoa",
+        "qty": 240
+      },
+      {
+        "id": "chickpea",
+        "qty": 450
+      },
+      {
+        "id": "yogurt",
+        "qty": 220
+      },
+      {
+        "id": "walnut",
+        "qty": 60
+      },
+      {
+        "id": "cucumber",
+        "qty": 300
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa hạt theo hướng dẫn; gạo lứt/quinoa/bulgur/couscous trong công thức tính khối lượng khô và nấu/ngâm bằng nước theo bao bì.",
+      "Nấu quinoa và để nguội an toàn; làm nóng đậu gà rồi để bớt nóng, thêm dưa leo, óc chó và sốt sữa chua chanh.",
+      "Chia ngũ cốc chín thành bốn phần, thêm rau, đậu và sốt đã nấu. Không tự cộng thêm cơm trắng.",
+      "Rắc phần hạt/rau thơm có trong danh sách khi dùng; nếu chuẩn bị trước, làm nguội nhanh và giữ lạnh ở ≤4°C."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "vegetarian",
+    "diet": "vegetarian",
+    "recipeKind": "vegetarian",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa"
+    ],
+    "purposes": [
+      "main",
+      "friday",
+      "feast"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu quinoa và để nguội an toàn; làm nóng đậu gà rồi để bớt nóng, thêm dưa leo, óc chó và sốt sữa chua chanh.",
+    "method": "grain",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây",
+      "sữa"
+    ]
+  },
+  {
+    "id": "plant-v5-041",
+    "name": "Salad quinoa táo óc chó chanh",
+    "category": "veg",
+    "protein": "plant",
+    "time": 30,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "quinoa",
+        "qty": 220
+      },
+      {
+        "id": "apple",
+        "qty": 400
+      },
+      {
+        "id": "walnut",
+        "qty": 70
+      },
+      {
+        "id": "lettuce",
+        "qty": 250
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu quinoa rồi làm nguội nhanh; cắt táo trộn chút chanh để đỡ thâm, thêm xà lách và óc chó.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu quinoa rồi làm nguội nhanh; cắt táo trộn chút chanh để đỡ thâm, thêm xà lách và óc chó.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây"
+    ]
+  },
+  {
+    "id": "plant-v5-042",
+    "name": "Salad quinoa cam hạt bí",
+    "category": "veg",
+    "protein": "plant",
+    "time": 30,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "quinoa",
+        "qty": 220
+      },
+      {
+        "id": "orange",
+        "qty": 450
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 70
+      },
+      {
+        "id": "cucumber",
+        "qty": 300
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu quinoa và để nguội; tách múi cam bỏ hạt, cắt dưa leo, trộn với hạt bí và sốt chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu quinoa và để nguội; tách múi cam bỏ hạt, cắt dưa leo, trộn với hạt bí và sốt chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-043",
+    "name": "Salad quinoa đậu đỏ mè rang",
+    "category": "veg",
+    "protein": "plant",
+    "time": 30,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "quinoa",
+        "qty": 220
+      },
+      {
+        "id": "kidneyBean",
+        "qty": 450
+      },
+      {
+        "id": "sesame",
+        "qty": 35
+      },
+      {
+        "id": "tomato",
+        "qty": 400
+      },
+      {
+        "id": "cucumber",
+        "qty": 300
+      },
+      {
+        "id": "vinegar",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu quinoa, làm nguội rồi trộn đậu đỏ chín, cà chua, dưa leo và mè; pha giấm táo với dầu làm sốt.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu quinoa, làm nguội rồi trộn đậu đỏ chín, cà chua, dưa leo và mè; pha giấm táo với dầu làm sốt.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè"
+    ]
+  },
+  {
+    "id": "plant-v5-044",
+    "name": "Salad quinoa bí ngòi hạt hướng dương",
+    "category": "veg",
+    "protein": "plant",
+    "time": 30,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "quinoa",
+        "qty": 220
+      },
+      {
+        "id": "zucchini",
+        "qty": 450
+      },
+      {
+        "id": "sunflowerSeed",
+        "qty": 70
+      },
+      {
+        "id": "basil",
+        "qty": 20
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Áp chảo bí ngòi rồi làm nguội; trộn với quinoa đã nấu, húng quế và hạt hướng dương, rưới chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Áp chảo bí ngòi rồi làm nguội; trộn với quinoa đã nấu, húng quế và hạt hướng dương, rưới chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-045",
+    "name": "Salad quinoa đậu gà hạnh nhân cam",
+    "category": "veg",
+    "protein": "plant",
+    "time": 30,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "quinoa",
+        "qty": 200
+      },
+      {
+        "id": "chickpea",
+        "qty": 400
+      },
+      {
+        "id": "almond",
+        "qty": 70
+      },
+      {
+        "id": "orange",
+        "qty": 400
+      },
+      {
+        "id": "lettuce",
+        "qty": 200
+      },
+      {
+        "id": "vinegar",
+        "qty": 20
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu quinoa, làm nguội; trộn đậu gà chín, múi cam, xà lách và hạnh nhân giã thô, dùng giấm dầu làm sốt.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu quinoa, làm nguội; trộn đậu gà chín, múi cam, xà lách và hạnh nhân giã thô, dùng giấm dầu làm sốt.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây"
+    ]
+  },
+  {
+    "id": "plant-v5-046",
+    "name": "Salad bulgur cà chua húng quế mè",
+    "category": "veg",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "bulgur",
+        "qty": 240
+      },
+      {
+        "id": "tomato",
+        "qty": 550
+      },
+      {
+        "id": "basil",
+        "qty": 30
+      },
+      {
+        "id": "sesame",
+        "qty": 35
+      },
+      {
+        "id": "cucumber",
+        "qty": 300
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu bulgur theo bao bì rồi làm nguội; cắt nhỏ cà chua dưa leo, trộn với húng quế, mè và chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu bulgur theo bao bì rồi làm nguội; cắt nhỏ cà chua dưa leo, trộn với húng quế, mè và chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè",
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-047",
+    "name": "Salad bulgur cà tím hạt bí",
+    "category": "veg",
+    "protein": "plant",
+    "time": 40,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "bulgur",
+        "qty": 240
+      },
+      {
+        "id": "eggplant",
+        "qty": 500
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 70
+      },
+      {
+        "id": "tomato",
+        "qty": 350
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nướng cà tím đến mềm rồi làm nguội; trộn với bulgur chín, cà chua và hạt bí, rưới chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nướng cà tím đến mềm rồi làm nguội; trộn với bulgur chín, cà chua và hạt bí, rưới chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-048",
+    "name": "Salad bulgur đậu trắng óc chó",
+    "category": "veg",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "bulgur",
+        "qty": 220
+      },
+      {
+        "id": "whiteBean",
+        "qty": 450
+      },
+      {
+        "id": "walnut",
+        "qty": 70
+      },
+      {
+        "id": "cucumber",
+        "qty": 350
+      },
+      {
+        "id": "basil",
+        "qty": 20
+      },
+      {
+        "id": "vinegar",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu bulgur và làm nguội; trộn đậu trắng chín, dưa leo, húng quế và óc chó với giấm dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu bulgur và làm nguội; trộn đậu trắng chín, dưa leo, húng quế và óc chó với giấm dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây",
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-049",
+    "name": "Salad bulgur táo nho khô hạnh nhân",
+    "category": "veg",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "bulgur",
+        "qty": 240
+      },
+      {
+        "id": "apple",
+        "qty": 350
+      },
+      {
+        "id": "raisin",
+        "qty": 70
+      },
+      {
+        "id": "almond",
+        "qty": 70
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu bulgur rồi để nguội; ngâm nho khô 5 phút trong nước sạch rồi để ráo, thêm táo và hạnh nhân với chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu bulgur rồi để nguội; ngâm nho khô 5 phút trong nước sạch rồi để ráo, thêm táo và hạnh nhân với chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây",
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-050",
+    "name": "Salad bulgur bí đỏ hạt hướng dương",
+    "category": "veg",
+    "protein": "plant",
+    "time": 40,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "bulgur",
+        "qty": 220
+      },
+      {
+        "id": "pumpkin",
+        "qty": 500
+      },
+      {
+        "id": "sunflowerSeed",
+        "qty": 70
+      },
+      {
+        "id": "spinach",
+        "qty": 300
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nướng bí đỏ, chần rau cải và làm nguội; trộn cùng bulgur chín và hạt hướng dương, dùng chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nướng bí đỏ, chần rau cải và làm nguội; trộn cùng bulgur chín và hạt hướng dương, dùng chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-051",
+    "name": "Salad couscous cam hạnh nhân",
+    "category": "veg",
+    "protein": "plant",
+    "time": 20,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "couscous",
+        "qty": 240
+      },
+      {
+        "id": "orange",
+        "qty": 450
+      },
+      {
+        "id": "almond",
+        "qty": 70
+      },
+      {
+        "id": "cucumber",
+        "qty": 300
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Ngâm couscous theo bao bì rồi xới tơi, làm nguội; trộn múi cam, dưa leo và hạnh nhân, thêm chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Ngâm couscous theo bao bì rồi xới tơi, làm nguội; trộn múi cam, dưa leo và hạnh nhân, thêm chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây",
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-052",
+    "name": "Salad couscous đậu đỏ hạt bí",
+    "category": "veg",
+    "protein": "plant",
+    "time": 20,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "couscous",
+        "qty": 220
+      },
+      {
+        "id": "kidneyBean",
+        "qty": 450
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 70
+      },
+      {
+        "id": "bellPepper",
+        "qty": 350
+      },
+      {
+        "id": "vinegar",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Ngâm couscous, làm nguội rồi trộn đậu đỏ chín, ớt chuông hạt lựu và hạt bí, rưới giấm dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Ngâm couscous, làm nguội rồi trộn đậu đỏ chín, ớt chuông hạt lựu và hạt bí, rưới giấm dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-053",
+    "name": "Salad couscous đậu gà mè chanh",
+    "category": "veg",
+    "protein": "plant",
+    "time": 20,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "couscous",
+        "qty": 220
+      },
+      {
+        "id": "chickpea",
+        "qty": 450
+      },
+      {
+        "id": "sesame",
+        "qty": 35
+      },
+      {
+        "id": "tomato",
+        "qty": 400
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Ngâm couscous rồi xới tơi, làm nguội; thêm đậu gà chín, cà chua và mè với chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Ngâm couscous rồi xới tơi, làm nguội; thêm đậu gà chín, cà chua và mè với chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè",
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-054",
+    "name": "Salad couscous bí ngòi óc chó",
+    "category": "veg",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "couscous",
+        "qty": 240
+      },
+      {
+        "id": "zucchini",
+        "qty": 450
+      },
+      {
+        "id": "walnut",
+        "qty": 70
+      },
+      {
+        "id": "basil",
+        "qty": 20
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Áp chảo bí ngòi rồi làm nguội, trộn cùng couscous đã ngâm, húng quế và óc chó, rưới chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Áp chảo bí ngòi rồi làm nguội, trộn cùng couscous đã ngâm, húng quế và óc chó, rưới chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây",
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-055",
+    "name": "Salad couscous táo nho khô hạt chia",
+    "category": "veg",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "couscous",
+        "qty": 220
+      },
+      {
+        "id": "apple",
+        "qty": 400
+      },
+      {
+        "id": "raisin",
+        "qty": 60
+      },
+      {
+        "id": "chia",
+        "qty": 25
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Ngâm couscous theo bao bì; ngâm chia với 100 ml nước 10 phút đến nở, trộn cùng táo, nho khô và chanh khi hạt đã nguội.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Ngâm couscous theo bao bì; ngâm chia với 100 ml nước 10 phút đến nở, trộn cùng táo, nho khô và chanh khi hạt đã nguội.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "gluten"
+    ]
+  },
+  {
+    "id": "plant-v5-056",
+    "name": "Salad gạo lứt đậu trắng hạt bí",
+    "category": "veg",
+    "protein": "plant",
+    "time": 50,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "brownRice",
+        "qty": 240
+      },
+      {
+        "id": "whiteBean",
+        "qty": 450
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 70
+      },
+      {
+        "id": "cucumber",
+        "qty": 350
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu gạo lứt rồi làm nguội nhanh; trộn đậu trắng chín, dưa leo và hạt bí với chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu gạo lứt rồi làm nguội nhanh; trộn đậu trắng chín, dưa leo và hạt bí với chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-057",
+    "name": "Salad gạo lứt bắp hạnh nhân",
+    "category": "veg",
+    "protein": "plant",
+    "time": 50,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "brownRice",
+        "qty": 240
+      },
+      {
+        "id": "corn",
+        "qty": 300
+      },
+      {
+        "id": "almond",
+        "qty": 70
+      },
+      {
+        "id": "bellPepper",
+        "qty": 350
+      },
+      {
+        "id": "vinegar",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu gạo lứt và bắp riêng, làm nguội nhanh; thêm ớt chuông và hạnh nhân, trộn giấm dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu gạo lứt và bắp riêng, làm nguội nhanh; thêm ớt chuông và hạnh nhân, trộn giấm dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây"
+    ]
+  },
+  {
+    "id": "plant-v5-058",
+    "name": "Salad gạo lứt đậu gà mè cam",
+    "category": "veg",
+    "protein": "plant",
+    "time": 50,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "brownRice",
+        "qty": 220
+      },
+      {
+        "id": "chickpea",
+        "qty": 450
+      },
+      {
+        "id": "sesame",
+        "qty": 35
+      },
+      {
+        "id": "orange",
+        "qty": 400
+      },
+      {
+        "id": "cucumber",
+        "qty": 250
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu gạo lứt và làm nguội, trộn đậu gà chín, dưa leo, mè và múi cam; dùng ít nước cam cùng dầu làm sốt.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu gạo lứt và làm nguội, trộn đậu gà chín, dưa leo, mè và múi cam; dùng ít nước cam cùng dầu làm sốt.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè"
+    ]
+  },
+  {
+    "id": "plant-v5-059",
+    "name": "Salad gạo lứt nấm óc chó",
+    "category": "veg",
+    "protein": "plant",
+    "time": 50,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "brownRice",
+        "qty": 240
+      },
+      {
+        "id": "mushroom",
+        "qty": 450
+      },
+      {
+        "id": "walnut",
+        "qty": 70
+      },
+      {
+        "id": "spinach",
+        "qty": 300
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Xào nấm và chần rau cải đến chín; làm nguội cùng cơm gạo lứt, thêm óc chó và chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Xào nấm và chần rau cải đến chín; làm nguội cùng cơm gạo lứt, thêm óc chó và chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây"
+    ]
+  },
+  {
+    "id": "plant-v5-060",
+    "name": "Salad gạo lứt bí đỏ hạt lanh",
+    "category": "veg",
+    "protein": "plant",
+    "time": 50,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "brownRice",
+        "qty": 240
+      },
+      {
+        "id": "pumpkin",
+        "qty": 500
+      },
+      {
+        "id": "flax",
+        "qty": 30
+      },
+      {
+        "id": "lettuce",
+        "qty": 250
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu gạo lứt, nướng bí đỏ; làm nguội nhanh rồi xếp lên xà lách, rắc hạt lanh xay và thêm chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu gạo lứt, nướng bí đỏ; làm nguội nhanh rồi xếp lên xà lách, rắc hạt lanh xay và thêm chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-061",
+    "name": "Salad đậu lăng táo óc chó",
+    "category": "veg",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "lentil",
+        "qty": 240
+      },
+      {
+        "id": "apple",
+        "qty": 400
+      },
+      {
+        "id": "walnut",
+        "qty": 70
+      },
+      {
+        "id": "cucumber",
+        "qty": 300
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Luộc đậu lăng 25–30 phút, để ráo làm nguội; trộn táo, dưa leo và óc chó với chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Luộc đậu lăng 25–30 phút, để ráo làm nguội; trộn táo, dưa leo và óc chó với chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây"
+    ]
+  },
+  {
+    "id": "plant-v5-062",
+    "name": "Salad đậu lăng cà rốt hạt bí",
+    "category": "veg",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "lentil",
+        "qty": 240
+      },
+      {
+        "id": "carrot",
+        "qty": 350
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 70
+      },
+      {
+        "id": "tomato",
+        "qty": 350
+      },
+      {
+        "id": "vinegar",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Luộc đậu lăng và hấp cà rốt đến chín, làm nguội; trộn cà chua và hạt bí với giấm dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Luộc đậu lăng và hấp cà rốt đến chín, làm nguội; trộn cà chua và hạt bí với giấm dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-063",
+    "name": "Salad đậu lăng cam hạnh nhân",
+    "category": "veg",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "lentil",
+        "qty": 240
+      },
+      {
+        "id": "orange",
+        "qty": 450
+      },
+      {
+        "id": "almond",
+        "qty": 70
+      },
+      {
+        "id": "lettuce",
+        "qty": 250
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Luộc đậu lăng mềm rồi làm nguội, trộn với múi cam, xà lách và hạnh nhân, dùng chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Luộc đậu lăng mềm rồi làm nguội, trộn với múi cam, xà lách và hạnh nhân, dùng chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây"
+    ]
+  },
+  {
+    "id": "plant-v5-064",
+    "name": "Salad đậu gà tahini hạt hướng dương",
+    "category": "veg",
+    "protein": "plant",
+    "time": 20,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "chickpea",
+        "qty": 600
+      },
+      {
+        "id": "tahini",
+        "qty": 50
+      },
+      {
+        "id": "sunflowerSeed",
+        "qty": 60
+      },
+      {
+        "id": "cucumber",
+        "qty": 400
+      },
+      {
+        "id": "tomato",
+        "qty": 400
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Pha tahini với chanh và nước làm sốt; trộn đậu gà chín, rau cắt nhỏ và hạt hướng dương ngay trước khi ăn.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Pha tahini với chanh và nước làm sốt; trộn đậu gà chín, rau cắt nhỏ và hạt hướng dương ngay trước khi ăn.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè"
+    ]
+  },
+  {
+    "id": "plant-v5-065",
+    "name": "Salad đậu trắng mè cà tím nướng",
+    "category": "veg",
+    "protein": "plant",
+    "time": 40,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "whiteBean",
+        "qty": 600
+      },
+      {
+        "id": "eggplant",
+        "qty": 500
+      },
+      {
+        "id": "sesame",
+        "qty": 35
+      },
+      {
+        "id": "tomato",
+        "qty": 350
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nướng cà tím và làm nguội; trộn với đậu trắng chín, cà chua và mè, rưới chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Nướng cà tím và làm nguội; trộn với đậu trắng chín, cà chua và mè, rưới chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè"
+    ]
+  },
+  {
+    "id": "plant-v5-066",
+    "name": "Salad đậu đỏ quinoa hạt chia",
+    "category": "veg",
+    "protein": "plant",
+    "time": 30,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "kidneyBean",
+        "qty": 500
+      },
+      {
+        "id": "quinoa",
+        "qty": 180
+      },
+      {
+        "id": "chia",
+        "qty": 25
+      },
+      {
+        "id": "cucumber",
+        "qty": 350
+      },
+      {
+        "id": "tomato",
+        "qty": 350
+      },
+      {
+        "id": "vinegar",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu quinoa và làm nguội; ngâm chia trong 100 ml nước 10 phút rồi trộn với đậu đỏ chín, rau và giấm dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu quinoa và làm nguội; ngâm chia trong 100 ml nước 10 phút rồi trộn với đậu đỏ chín, rau và giấm dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-067",
+    "name": "Salad ba loại đậu hạt bí",
+    "category": "veg",
+    "protein": "plant",
+    "time": 20,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "chickpea",
+        "qty": 250
+      },
+      {
+        "id": "whiteBean",
+        "qty": 250
+      },
+      {
+        "id": "kidneyBean",
+        "qty": 250
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 70
+      },
+      {
+        "id": "bellPepper",
+        "qty": 300
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Tráng và để ráo ba loại đậu chín, trộn với ớt chuông, hạt bí và chanh dầu; không dùng đậu sống.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Tráng và để ráo ba loại đậu chín, trộn với ớt chuông, hạt bí và chanh dầu; không dùng đậu sống.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-068",
+    "name": "Salad bông cải mè đậu phộng",
+    "category": "veg",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "broccoli",
+        "qty": 700
+      },
+      {
+        "id": "sesame",
+        "qty": 25
+      },
+      {
+        "id": "peanut",
+        "qty": 80
+      },
+      {
+        "id": "carrot",
+        "qty": 250
+      },
+      {
+        "id": "soy",
+        "qty": 15
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Hấp bông cải cà rốt rồi làm nguội; giã thô đậu phộng, pha nước tương chanh và dầu làm sốt, rắc mè.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Hấp bông cải cà rốt rồi làm nguội; giã thô đậu phộng, pha nước tương chanh và dầu làm sốt, rắc mè.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè",
+      "đậu phộng",
+      "gluten",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-069",
+    "name": "Salad bắp cải táo hạt hướng dương",
+    "category": "veg",
+    "protein": "plant",
+    "time": 20,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "cabbage",
+        "qty": 600
+      },
+      {
+        "id": "apple",
+        "qty": 400
+      },
+      {
+        "id": "sunflowerSeed",
+        "qty": 80
+      },
+      {
+        "id": "carrot",
+        "qty": 200
+      },
+      {
+        "id": "vinegar",
+        "qty": 30
+      },
+      {
+        "id": "mustard",
+        "qty": 20
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Bào bắp cải và cà rốt, thái táo; pha mù tạt, giấm và dầu làm sốt, trộn rồi rắc hạt hướng dương.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Bào bắp cải và cà rốt, thái táo; pha mù tạt, giấm và dầu làm sốt, trộn rồi rắc hạt hướng dương.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mù tạt"
+    ]
+  },
+  {
+    "id": "plant-v5-070",
+    "name": "Salad bí đỏ rau cải hạnh nhân",
+    "category": "veg",
+    "protein": "plant",
+    "time": 40,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "pumpkin",
+        "qty": 650
+      },
+      {
+        "id": "spinach",
+        "qty": 400
+      },
+      {
+        "id": "almond",
+        "qty": 80
+      },
+      {
+        "id": "raisin",
+        "qty": 60
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nướng bí đỏ và chần rau cải; làm nguội rồi trộn hạnh nhân, nho khô với chanh dầu.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Nướng bí đỏ và chần rau cải; làm nguội rồi trộn hạnh nhân, nho khô với chanh dầu.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "hạt cây"
+    ]
+  },
+  {
+    "id": "plant-v5-071",
+    "name": "Salad dưa leo cam hạt lanh",
+    "category": "veg",
+    "protein": "plant",
+    "time": 15,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "cucumber",
+        "qty": 650
+      },
+      {
+        "id": "orange",
+        "qty": 500
+      },
+      {
+        "id": "flax",
+        "qty": 35
+      },
+      {
+        "id": "lettuce",
+        "qty": 250
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Thái dưa leo, tách múi cam, xé xà lách; rắc hạt lanh xay và trộn chanh dầu ngay trước khi ăn.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": false,
+    "artBrief": "Thái dưa leo, tách múi cam, xé xà lách; rắc hạt lanh xay và trộn chanh dầu ngay trước khi ăn.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-072",
+    "name": "Salad quinoa trứng hạt bí sữa chua",
+    "category": "veg",
+    "protein": "egg",
+    "time": 30,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "quinoa",
+        "qty": 220
+      },
+      {
+        "id": "egg",
+        "qty": 4
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 60
+      },
+      {
+        "id": "cucumber",
+        "qty": 350
+      },
+      {
+        "id": "yogurt",
+        "qty": 200
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu quinoa và luộc trứng chín; làm nguội an toàn, cắt trứng rồi trộn rau với sốt sữa chua chanh, rắc hạt bí.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegetarian",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu quinoa và luộc trứng chín; làm nguội an toàn, cắt trứng rồi trộn rau với sốt sữa chua chanh, rắc hạt bí.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "sữa",
+      "trứng"
+    ]
+  },
+  {
+    "id": "plant-v5-073",
+    "name": "Salad bulgur đậu trắng sữa chua mè",
+    "category": "veg",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "bulgur",
+        "qty": 220
+      },
+      {
+        "id": "whiteBean",
+        "qty": 450
+      },
+      {
+        "id": "yogurt",
+        "qty": 220
+      },
+      {
+        "id": "sesame",
+        "qty": 30
+      },
+      {
+        "id": "tomato",
+        "qty": 400
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Nấu bulgur và làm nguội; trộn cùng đậu trắng chín, cà chua và sốt sữa chua chanh, rắc mè.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegetarian",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Nấu bulgur và làm nguội; trộn cùng đậu trắng chín, cà chua và sốt sữa chua chanh, rắc mè.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "mè",
+      "gluten",
+      "sữa"
+    ]
+  },
+  {
+    "id": "plant-v5-074",
+    "name": "Salad khoai tây hạt bí mù tạt",
+    "category": "veg",
+    "protein": "plant",
+    "time": 35,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "potato",
+        "qty": 750
+      },
+      {
+        "id": "pumpkinSeed",
+        "qty": 70
+      },
+      {
+        "id": "yogurt",
+        "qty": 200
+      },
+      {
+        "id": "mustard",
+        "qty": 25
+      },
+      {
+        "id": "cucumber",
+        "qty": 300
+      },
+      {
+        "id": "vinegar",
+        "qty": 20
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Luộc khoai chín, làm nguội nhanh; pha sữa chua mù tạt giấm thành sốt, trộn với dưa leo và hạt bí.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegetarian",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Luộc khoai chín, làm nguội nhanh; pha sữa chua mù tạt giấm thành sốt, trộn với dưa leo và hạt bí.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "sữa",
+      "mù tạt"
+    ]
+  },
+  {
+    "id": "plant-v5-075",
+    "name": "Salad penne rau củ đậu phộng",
+    "category": "veg",
+    "protein": "plant",
+    "time": 25,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "penne",
+        "qty": 280
+      },
+      {
+        "id": "peanut",
+        "qty": 80
+      },
+      {
+        "id": "bellPepper",
+        "qty": 300
+      },
+      {
+        "id": "cucumber",
+        "qty": 300
+      },
+      {
+        "id": "carrot",
+        "qty": 200
+      },
+      {
+        "id": "soy",
+        "qty": 20
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 2
+      },
+      {
+        "id": "oil",
+        "qty": 10
+      }
+    ],
+    "prep": "Công thức tham khảo cho 4 suất. Cân phần ăn được; đậu dùng loại đã chín, để ráo. Rửa rau và dụng cụ; không tự thay bằng nước mắm hoặc nước dùng thịt. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Rửa rau ăn sống bằng nước sạch, để ráo; đậu dùng loại đã chín và để ráo trước khi cân. Dùng dao thớt sạch.",
+      "Luộc penne và hấp cà rốt rồi làm nguội; trộn rau còn lại với sốt đậu phộng giã, nước tương, chanh và nước.",
+      "Trộn các thành phần sốt có trong danh sách bằng bát riêng; trộn nhẹ vào rau hoặc hạt đã nguội ngay trước khi dùng. Không tự thêm phô mai hoặc protein ngoài công thức.",
+      "Chia bốn phần. Nếu chuẩn bị trước, để phần sốt và hạt giòn riêng, giữ lạnh phần chín/rau ở ≤4°C và dùng trong ngày."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "seed-salad",
+    "diet": "vegan",
+    "recipeKind": "seed-salad",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad hạt & ngũ cốc"
+    ],
+    "purposes": [
+      "side"
+    ],
+    "stapleIncluded": true,
+    "artBrief": "Luộc penne và hấp cà rốt rồi làm nguội; trộn rau còn lại với sốt đậu phộng giã, nước tương, chanh và nước.",
+    "method": "salad",
+    "pairingNotes": "",
+    "allergenNotes": [
+      "đậu phộng",
+      "gluten",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-076",
+    "name": "Dressing chanh vàng mù tạt",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "mustard",
+        "qty": 25
+      },
+      {
+        "id": "oil",
+        "qty": 40
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Đánh mù tạt với nước chanh và muối, rót dầu thành tia nhỏ trong khi khuấy để tạo nhũ tương.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Đánh mù tạt với nước chanh và muối, rót dầu thành tia nhỏ trong khi khuấy để tạo nhũ tương.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad rau lá và quinoa.",
+    "allergenNotes": [
+      "mù tạt"
+    ]
+  },
+  {
+    "id": "plant-v5-077",
+    "name": "Dressing giấm táo oregano",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "vinegar",
+        "qty": 35
+      },
+      {
+        "id": "oil",
+        "qty": 40
+      },
+      {
+        "id": "oregano",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Đánh giấm táo với oregano và muối rồi thêm dầu từ từ; để 5 phút cho oregano mềm.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Đánh giấm táo với oregano và muối rồi thêm dầu từ từ; để 5 phút cho oregano mềm.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad đậu và rau nướng.",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-078",
+    "name": "Dressing cam mù tạt",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "orange",
+        "qty": 180
+      },
+      {
+        "id": "mustard",
+        "qty": 25
+      },
+      {
+        "id": "oil",
+        "qty": 30
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Vắt phần cam đã cân, lọc bỏ hạt; đánh với mù tạt và muối rồi rót dầu chậm để hòa quyện.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Vắt phần cam đã cân, lọc bỏ hạt; đánh với mù tạt và muối rồi rót dầu chậm để hòa quyện.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad bulgur, couscous và bắp cải.",
+    "allergenNotes": [
+      "mù tạt"
+    ]
+  },
+  {
+    "id": "plant-v5-079",
+    "name": "Dressing chanh húng quế",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "basil",
+        "qty": 25
+      },
+      {
+        "id": "oil",
+        "qty": 40
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Xay húng quế với chanh, dầu và muối; chỉ xay ngắn để sốt xanh, không thêm phô mai.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Xay húng quế với chanh, dầu và muối; chỉ xay ngắn để sốt xanh, không thêm phô mai.",
+    "method": "dressing",
+    "pairingNotes": "Hợp cà chua, penne và rau củ.",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-080",
+    "name": "Dressing tahini chanh tỏi",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "tahini",
+        "qty": 80
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "garlic",
+        "qty": 8
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Khuấy tahini với chanh, tỏi nghiền và muối; thêm nước từng thìa đến khi sốt mịn, không dùng sữa.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Khuấy tahini với chanh, tỏi nghiền và muối; thêm nước từng thìa đến khi sốt mịn, không dùng sữa.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad đậu gà, bông cải và bí đỏ.",
+    "allergenNotes": [
+      "mè"
+    ]
+  },
+  {
+    "id": "plant-v5-081",
+    "name": "Dressing tahini cam",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "tahini",
+        "qty": 80
+      },
+      {
+        "id": "orange",
+        "qty": 200
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Lấy nước cam, bỏ hạt rồi khuấy với tahini và muối; thêm ít nước cho vừa độ rưới.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Lấy nước cam, bỏ hạt rồi khuấy với tahini và muối; thêm ít nước cho vừa độ rưới.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad quinoa và rau củ nướng.",
+    "allergenNotes": [
+      "mè"
+    ]
+  },
+  {
+    "id": "plant-v5-082",
+    "name": "Dressing đậu phộng chanh nước tương",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "peanut",
+        "qty": 80
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "soy",
+        "qty": 20
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Giã hoặc xay đậu phộng rang, trộn với nước chanh và nước tương; thêm nước lọc đến khi thành sốt.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Giã hoặc xay đậu phộng rang, trộn với nước chanh và nước tương; thêm nước lọc đến khi thành sốt.",
+    "method": "dressing",
+    "pairingNotes": "Hợp bắp cải, bún và salad penne.",
+    "allergenNotes": [
+      "đậu phộng",
+      "gluten",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-083",
+    "name": "Dressing đậu phộng gừng giấm táo",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "peanut",
+        "qty": 80
+      },
+      {
+        "id": "ginger",
+        "qty": 15
+      },
+      {
+        "id": "vinegar",
+        "qty": 30
+      },
+      {
+        "id": "soy",
+        "qty": 15
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Xay đậu phộng, gừng, giấm và nước tương với nước lọc vừa đủ; sốt có màu be nâu, không thêm sữa.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Xay đậu phộng, gừng, giấm và nước tương với nước lọc vừa đủ; sốt có màu be nâu, không thêm sữa.",
+    "method": "dressing",
+    "pairingNotes": "Hợp rau luộc nguội và salad gạo lứt.",
+    "allergenNotes": [
+      "đậu phộng",
+      "gluten",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-084",
+    "name": "Dressing mè gừng chanh",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "sesame",
+        "qty": 45
+      },
+      {
+        "id": "ginger",
+        "qty": 15
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "soy",
+        "qty": 20
+      },
+      {
+        "id": "oil",
+        "qty": 20
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Giã mè rang cho vỡ thơm, trộn gừng băm, nước chanh và nước tương rồi đánh với dầu.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Giã mè rang cho vỡ thơm, trộn gừng băm, nước chanh và nước tương rồi đánh với dầu.",
+    "method": "dressing",
+    "pairingNotes": "Hợp dưa leo, bông cải và đậu hũ.",
+    "allergenNotes": [
+      "mè",
+      "gluten",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-085",
+    "name": "Dressing mè miso",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "sesame",
+        "qty": 35
+      },
+      {
+        "id": "miso",
+        "qty": 35
+      },
+      {
+        "id": "vinegar",
+        "qty": 25
+      },
+      {
+        "id": "oil",
+        "qty": 20
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày. Chọn miso nguyên chất không có dashi/cá. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Giã mè; khuấy miso nguyên chất không dashi với giấm và ít nước, thêm mè và dầu, không dùng nước mắm.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Giã mè; khuấy miso nguyên chất không dashi với giấm và ít nước, thêm mè và dầu, không dùng nước mắm.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad đậu trắng và rau củ.",
+    "allergenNotes": [
+      "mè",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-086",
+    "name": "Dressing quả bơ chanh",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "avocado",
+        "qty": 180
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "oil",
+        "qty": 15
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Xay phần thịt quả bơ với chanh, dầu, muối và nước lọc vừa đủ; giữ sốt xanh, không dùng sữa.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Xay phần thịt quả bơ với chanh, dầu, muối và nước lọc vừa đủ; giữ sốt xanh, không dùng sữa.",
+    "method": "dressing",
+    "pairingNotes": "Hợp xà lách, quinoa và bánh mì salad.",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-087",
+    "name": "Dressing quả bơ húng quế",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "avocado",
+        "qty": 180
+      },
+      {
+        "id": "basil",
+        "qty": 25
+      },
+      {
+        "id": "vinegar",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Xay quả bơ, húng quế và giấm với ít nước đến mịn; không tự thêm phô mai, sữa chua hoặc hạt.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Xay quả bơ, húng quế và giấm với ít nước đến mịn; không tự thêm phô mai, sữa chua hoặc hạt.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad cà chua và penne.",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-088",
+    "name": "Dressing hạt hướng dương chanh",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "sunflowerSeed",
+        "qty": 80
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "garlic",
+        "qty": 8
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Ngâm hạt trong nước nóng 20 phút rồi để ráo, xay cùng chanh, tỏi và nước sạch thành sốt mịn. Thời gian món chưa gồm 20 phút ngâm.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Ngâm hạt trong nước nóng 20 phút rồi để ráo, xay cùng chanh, tỏi và nước sạch thành sốt mịn. Thời gian món chưa gồm 20 phút ngâm.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad rau lá và đậu gà.",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-089",
+    "name": "Dressing hạt bí mù tạt",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "pumpkinSeed",
+        "qty": 80
+      },
+      {
+        "id": "mustard",
+        "qty": 25
+      },
+      {
+        "id": "vinegar",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Ngâm hạt bí trong nước nóng 20 phút rồi để ráo; xay với mù tạt, giấm và nước. Thời gian món chưa gồm ngâm.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Ngâm hạt bí trong nước nóng 20 phút rồi để ráo; xay với mù tạt, giấm và nước. Thời gian món chưa gồm ngâm.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad bí đỏ và gạo lứt.",
+    "allergenNotes": [
+      "mù tạt"
+    ]
+  },
+  {
+    "id": "plant-v5-090",
+    "name": "Dressing óc chó giấm táo",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "walnut",
+        "qty": 70
+      },
+      {
+        "id": "vinegar",
+        "qty": 30
+      },
+      {
+        "id": "oil",
+        "qty": 20
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Xay óc chó với giấm, dầu và ít nước cho sánh, không thêm phô mai hoặc sữa.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Xay óc chó với giấm, dầu và ít nước cho sánh, không thêm phô mai hoặc sữa.",
+    "method": "dressing",
+    "pairingNotes": "Hợp táo, bắp cải và salad đậu lăng.",
+    "allergenNotes": [
+      "hạt cây"
+    ]
+  },
+  {
+    "id": "plant-v5-091",
+    "name": "Dressing hạnh nhân chanh",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "almond",
+        "qty": 80
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "garlic",
+        "qty": 8
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Ngâm hạnh nhân trong nước nóng 30 phút rồi để ráo, xay với chanh, tỏi và nước sạch. Thời gian món chưa gồm ngâm.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Ngâm hạnh nhân trong nước nóng 30 phút rồi để ráo, xay với chanh, tỏi và nước sạch. Thời gian món chưa gồm ngâm.",
+    "method": "dressing",
+    "pairingNotes": "Hợp bông cải và salad quinoa.",
+    "allergenNotes": [
+      "hạt cây"
+    ]
+  },
+  {
+    "id": "plant-v5-092",
+    "name": "Dressing táo mù tạt",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "apple",
+        "qty": 180
+      },
+      {
+        "id": "mustard",
+        "qty": 25
+      },
+      {
+        "id": "vinegar",
+        "qty": 25
+      },
+      {
+        "id": "oil",
+        "qty": 20
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Bỏ lõi táo, xay phần táo đã cân với mù tạt, giấm, dầu và muối; không thêm đường.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Bỏ lõi táo, xay phần táo đã cân với mù tạt, giấm, dầu và muối; không thêm đường.",
+    "method": "dressing",
+    "pairingNotes": "Hợp bắp cải và salad đậu.",
+    "allergenNotes": [
+      "mù tạt"
+    ]
+  },
+  {
+    "id": "plant-v5-093",
+    "name": "Dressing cam hạt chia",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "orange",
+        "qty": 220
+      },
+      {
+        "id": "chia",
+        "qty": 20
+      },
+      {
+        "id": "vinegar",
+        "qty": 15
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Vắt cam bỏ hạt; trộn nước cam với chia, giấm và muối, để 15 phút cho chia nở rồi khuấy lại. Thời gian món chưa gồm chờ nở.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Vắt cam bỏ hạt; trộn nước cam với chia, giấm và muối, để 15 phút cho chia nở rồi khuấy lại. Thời gian món chưa gồm chờ nở.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad trái cây, couscous và rau lá.",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-094",
+    "name": "Dressing cà chua húng quế",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "tomato",
+        "qty": 220
+      },
+      {
+        "id": "basil",
+        "qty": 20
+      },
+      {
+        "id": "vinegar",
+        "qty": 25
+      },
+      {
+        "id": "oil",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Xay cà chua đã rửa cùng húng quế, giấm, dầu và muối; chỉ dùng cà chua tươi, không tự thêm tương cà.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Xay cà chua đã rửa cùng húng quế, giấm, dầu và muối; chỉ dùng cà chua tươi, không tự thêm tương cà.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad đậu trắng và penne.",
+    "allergenNotes": []
+  },
+  {
+    "id": "plant-v5-095",
+    "name": "Dressing miso chanh gừng",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "miso",
+        "qty": 40
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "ginger",
+        "qty": 15
+      },
+      {
+        "id": "oil",
+        "qty": 20
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày. Chọn miso nguyên chất không có dashi/cá.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Khuấy miso không dashi với chanh, gừng băm, dầu và nước cho hòa quyện; không thêm nước mắm hoặc dashi.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegan",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Thuần chay",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Khuấy miso không dashi với chanh, gừng băm, dầu và nước cho hòa quyện; không thêm nước mắm hoặc dashi.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad hạt và đậu hũ.",
+    "allergenNotes": [
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-096",
+    "name": "Dressing sữa chua chanh mù tạt",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "yogurt",
+        "qty": 220
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "mustard",
+        "qty": 25
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Khuấy sữa chua tự nhiên với chanh, mù tạt và muối; không đun nóng và không thêm mayonnaise.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegetarian",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Khuấy sữa chua tự nhiên với chanh, mù tạt và muối; không đun nóng và không thêm mayonnaise.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad khoai tây và trứng.",
+    "allergenNotes": [
+      "sữa",
+      "mù tạt"
+    ]
+  },
+  {
+    "id": "plant-v5-097",
+    "name": "Dressing sữa chua mè rang",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "yogurt",
+        "qty": 220
+      },
+      {
+        "id": "sesame",
+        "qty": 35
+      },
+      {
+        "id": "vinegar",
+        "qty": 20
+      },
+      {
+        "id": "soy",
+        "qty": 10
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Giã mè rang rồi khuấy với sữa chua, giấm và nước tương, dùng ít nước nếu cần chỉnh độ loãng.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegetarian",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Giã mè rang rồi khuấy với sữa chua, giấm và nước tương, dùng ít nước nếu cần chỉnh độ loãng.",
+    "method": "dressing",
+    "pairingNotes": "Hợp bông cải, bắp cải và salad đậu.",
+    "allergenNotes": [
+      "mè",
+      "gluten",
+      "sữa",
+      "đậu nành"
+    ]
+  },
+  {
+    "id": "plant-v5-098",
+    "name": "Dressing sữa chua quả bơ",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "yogurt",
+        "qty": 200
+      },
+      {
+        "id": "avocado",
+        "qty": 140
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Xay quả bơ với sữa chua, chanh và muối cho mịn; dùng ngay để giữ màu, không thêm phô mai.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegetarian",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Xay quả bơ với sữa chua, chanh và muối cho mịn; dùng ngay để giữ màu, không thêm phô mai.",
+    "method": "dressing",
+    "pairingNotes": "Hợp rau lá và salad quinoa.",
+    "allergenNotes": [
+      "sữa"
+    ]
+  },
+  {
+    "id": "plant-v5-099",
+    "name": "Dressing sữa chua húng quế",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "yogurt",
+        "qty": 220
+      },
+      {
+        "id": "basil",
+        "qty": 25
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "garlic",
+        "qty": 8
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Xay ngắn húng quế, tỏi và chanh với sữa chua, nêm muối; không tự thêm hạt hoặc phô mai.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegetarian",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Xay ngắn húng quế, tỏi và chanh với sữa chua, nêm muối; không tự thêm hạt hoặc phô mai.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad cà chua và couscous.",
+    "allergenNotes": [
+      "sữa"
+    ]
+  },
+  {
+    "id": "plant-v5-100",
+    "name": "Dressing sữa chua tahini",
+    "category": "veg",
+    "protein": "plant",
+    "time": 10,
+    "servings": 4,
+    "yield": 4,
+    "ingredients": [
+      {
+        "id": "yogurt",
+        "qty": 200
+      },
+      {
+        "id": "tahini",
+        "qty": 60
+      },
+      {
+        "id": "lemon",
+        "qty": 1
+      },
+      {
+        "id": "salt",
+        "qty": 1
+      }
+    ],
+    "prep": "Mẻ sốt cho 4 phần salad; không phải bốn bữa chính. Cân nguyên liệu, dùng dụng cụ sạch; làm lượng dùng trong ngày. Hạt phải bóc vỏ, không muối; kiểm tra dị ứng theo nhãn nguyên liệu.",
+    "steps": [
+      "Cân nguyên liệu đúng lượng; rửa chanh/cam trước khi lấy nước, bỏ hạt. Không tự thêm nước mắm, mật ong hoặc mayonnaise.",
+      "Khuấy tahini với chanh cho mịn rồi trộn sữa chua, muối và ít nước; sốt trắng ngà, không thêm đậu phộng.",
+      "Đánh hoặc xay cho hòa quyện; dùng nước lọc từng thìa nhỏ nếu cần chỉnh độ loãng, nếm rồi chia thành bốn phần sốt.",
+      "Trộn vào rau ngay trước khi ăn. Phần dư đậy kín, giữ lạnh ở ≤4°C, dùng trong 24 giờ; không để sốt tỏi dầu ở nhiệt độ phòng."
+    ],
+    "favorite": false,
+    "custom": false,
+    "expanded": true,
+    "catalogEdition": 5,
+    "collection": "dressing",
+    "diet": "vegetarian",
+    "recipeKind": "dressing",
+    "tags": [
+      "Vegetarian",
+      "Ăn chay",
+      "Chay có trứng/sữa",
+      "Salad dressing",
+      "Sốt trộn salad"
+    ],
+    "purposes": [],
+    "stapleIncluded": false,
+    "artBrief": "Khuấy tahini với chanh cho mịn rồi trộn sữa chua, muối và ít nước; sốt trắng ngà, không thêm đậu phộng.",
+    "method": "dressing",
+    "pairingNotes": "Hợp salad đậu gà và cà tím nướng.",
+    "allergenNotes": [
+      "mè",
+      "sữa"
+    ]
+  }
+];
+RECIPES.push(...PLANT_RECIPES);
+
+const PLANT_VERIFIED_INGREDIENT_IDS=new Set(Object.keys(INGREDIENTS));
+const NON_VEGETARIAN_INGREDIENT_IDS=new Set(['pork','ribs','chicken','beef','salmon','fish','shrimp','fishSauce','broth','wonton','fishBall','cookedChicken','tuna']);
+const DAIRY_EGG_INGREDIENT_IDS=new Set(['egg','milk','yogurt','cream','butter','parmesan','mozzarella','feta']);
+function isDressingRecipe(r){return r?.recipeKind==='dressing'}
+function isVegetarianRecipe(r){return ['vegetarian','vegan'].includes(r?.diet)&&r.ingredients?.length>0&&r.ingredients.every(i=>PLANT_VERIFIED_INGREDIENT_IDS.has(i.id)&&!NON_VEGETARIAN_INGREDIENT_IDS.has(i.id))}
+function isVeganRecipe(r){return r?.diet==='vegan'&&isVegetarianRecipe(r)&&r.ingredients.every(i=>!DAIRY_EGG_INGREDIENT_IDS.has(i.id))}
+function isSeedSaladRecipe(r){return r?.recipeKind==='seed-salad'&&isVegetarianRecipe(r)}
+function recipeCategoryLabel(r){const en=typeof appLanguage!=='undefined'&&appLanguage==='en';return isDressingRecipe(r)?(en?'Salad dressing':'Sốt dressing'):isSeedSaladRecipe(r)?(en?'Seed & grain salad':'Salad hạt & ngũ cốc'):CATEGORY[r.category]}
+
+function recipePortionLabel(r,n){const en=typeof appLanguage!=='undefined'&&appLanguage==='en';return n+' '+(isDressingRecipe(r)?(en?'salad dressing portions':'phần sốt salad'):(en?'standard portions':'suất chuẩn'))}
