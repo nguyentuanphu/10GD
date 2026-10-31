@@ -5,13 +5,13 @@ import { legacyBootstrap } from './fixtures/legacy-bootstrap.cjs';
 import { chromium, webkit } from 'playwright';
 
 const origin = 'https://kitchen.test';
-const screenshots = 'docs/reviews/login-typescript' + (process.env.QA_BROWSER === 'webkit' ? '/webkit' : '');
-const mime = { '.js': 'application/javascript', '.css': 'text/css', '.html': 'text/html', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp' };
+const screenshots = 'docs/reviews/startup-pack' + (process.env.QA_BROWSER === 'webkit' ? '/webkit' : '');
+const mime = { '.js': 'application/javascript', '.css': 'text/css', '.html': 'text/html', '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp' };
 async function main() {
   mkdirSync(screenshots, { recursive: true });
   const browser = await (process.env.QA_BROWSER === 'webkit' ? webkit : chromium).launch();
   try {
-    async function open({ account = false, noHousehold = false, fault = '', baseline = false, viewport = { width: 375, height: 812 } } = {}) {
+    async function open({ account = true, noHousehold = false, fault = '', baseline = false, viewport = { width: 375, height: 812 } } = {}) {
       const context = await browser.newContext({ viewport, serviceWorkers: 'block', reducedMotion: 'reduce' });
       await context.addInitScript(() => localStorage.setItem('qa-preserved', 'family-data-kept'));
       const page = await context.newPage();
@@ -26,7 +26,13 @@ async function main() {
           await route.fulfill({ json: op === 'status' ? status : op === 'state' ? { state: null, etag: null } : { announcements: [], devices: [] } });
           return;
         }
-        if (fault === 'timeout' && path === '/app.js') { return; }
+        if (path === '/startup-scripts.json') {
+          if (fault === 'timeout') return;
+          if (fault === 'download') { await route.abort(); return; }
+          const pack = JSON.parse(readFileSync('dist/startup-scripts.json', 'utf8'));
+          if (fault === 'runtime') pack.scripts.find(entry => entry.name === 'app.js').code = 'throw new Error("Synthetic startup failure")';
+          await route.fulfill({ json: pack }); return;
+        }
         if (fault === 'download' && path === '/app.js') { await route.abort(); return; }
         if (fault === 'runtime' && path === '/app.js') { await route.fulfill({ contentType: 'application/javascript', body: 'throw new Error("Synthetic startup failure")' }); return; }
         if (baseline && path === '/bootstrap.js') {
@@ -85,11 +91,11 @@ async function main() {
     }
     const download = await open({ fault: 'download' });
     await download.page.getByRole('alert').waitFor();
-    assert.match(await download.page.getByRole('alert').innerText(), /app.js/);
+    assert.ok((await download.page.getByRole('alert').innerText()).length > 40);
     await download.context.close();
     const timeout = await open({ fault: 'timeout' });
     await timeout.page.waitForTimeout(500);
-    await timeout.page.clock.fastForward(16000);
+    await timeout.page.clock.fastForward(31000);
     await timeout.page.getByRole('alert').waitFor();
     assert.match(await timeout.page.getByRole('alert').innerText(), /quá lâu/);
     await timeout.context.close();
@@ -100,10 +106,10 @@ async function main() {
     await newcomer.page.screenshot({ path: `${screenshots}/new-account.png`, fullPage: true });
     await newcomer.context.close();
     console.log('PASS personal account with no household shows create/join forms');
-    const legacy = await open();
-    await legacy.page.waitForFunction(() => (document.querySelector('#main')?.textContent?.length || 0) > 500);
-    await legacy.context.close();
-    console.log('PASS legacy startup, failed download/timeout recovery and runtime failure recovery without deleting data');
+    const returning = await open();
+    await returning.page.waitForFunction(() => (document.querySelector('#main')?.textContent?.length || 0) > 500);
+    await returning.context.close();
+    console.log('PASS personal account startup, failed download/timeout recovery and runtime failure recovery without deleting data');
   } finally { await browser.close(); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

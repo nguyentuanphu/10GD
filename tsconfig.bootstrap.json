@@ -14,6 +14,7 @@
     "rootDir": "src/frontend"
   },
   "files": [
-    "src/frontend/bootstrap.ts"
+    "src/frontend/bootstrap.ts",
+    "src/frontend/login.ts"
   ]
 }

@@ -1,3 +1,9 @@
+# Cấu hình hiện tại
+
+Bản tiếp theo dùng tài khoản cá nhân; luồng mật khẩu gia đình cũ đã được bỏ. Build `npm run check`, publish `dist`, Functions `netlify/functions`. Email khôi phục cần khóa Resend và địa chỉ gửi đã xác minh, xem [hướng dẫn Resend](docs/RESEND-SETUP.md). Những nội dung FAMILY_PASSWORD bên dưới là ghi chú lịch sử, không còn là cấu hình hiện tại. Chỉ deploy sau khi chủ nhà duyệt bản cụ thể.
+
+---
+
 # Triển khai Bếp Gia Đình lên Netlify
 
 Gói này gồm giao diện PWA trong `dist/`, backend trong `netlify/functions/`, cấu hình `netlify.toml` và dependency đã khóa trong `package-lock.json`.

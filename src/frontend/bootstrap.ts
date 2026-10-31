@@ -19,11 +19,38 @@ interface Window {
   let failed = false;
   let booting = true;
   let activeScript = '';
-  let rejectActive: ((reason: Error) => void) | undefined;
+  const main = document.querySelector('main');
+  if (main) {
+    main.setAttribute('aria-busy', 'true');
+    const progress = document.createElement('p');
+    progress.id = 'startup-progress';
+    progress.setAttribute('role', 'status');
+    progress.textContent = 'Đang mở bếp… / Opening your kitchen…';
+    main.append(progress);
+  }
+  const recover = async (target: string): Promise<void> => {
+      // Retire this app's worker, not its caches or device data. A fresh navigation
+      // can then escape an older worker stuck waiting for its own status request.
+      const retireWorker = async (): Promise<void> => {
+        if (!navigator.serviceWorker) return;
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.filter(reg => reg.scope === new URL('/', location.href).href).map(reg => reg.unregister()));
+      };
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([retireWorker(), new Promise<void>(resolve => { timer = setTimeout(resolve, 2000); })]);
+      } catch { /* Navigation still offers recovery if the worker API is unavailable. */ }
+      finally { clearTimeout(timer); location.replace(target); }
+  };
   const showFailure = (message: string): void => {
     failed = true;
     document.documentElement.style.visibility = 'visible';
+    // Recovery must remain clickable even if a partially initialized module opened a modal.
+    document.querySelector('#modal-root')?.replaceChildren();
+    document.querySelectorAll('.modal-backdrop').forEach(node => node.remove());
+    document.body.style.overflow = '';
     const main = document.querySelector('main') ?? document.body.appendChild(document.createElement('main'));
+    main.removeAttribute('aria-busy');
     const heading = document.createElement('h1');
     heading.textContent = 'Chưa mở được Bếp Gia Đình / Unable to open the app';
     const description = document.createElement('p');
@@ -33,11 +60,18 @@ interface Window {
     const retry = document.createElement('button');
     retry.textContent = 'Thử lại / Retry';
     retry.className = 'btn primary';
-    retry.onclick = () => location.reload();
+    retry.style.minHeight = '48px';
+    retry.onclick = async () => {
+      retry.disabled = true;
+      retry.textContent = 'Đang thử lại… / Retrying…';
+      await recover('/?startup-retry=' + Date.now());
+    };
     const login = document.createElement('a');
     login.textContent = 'Đăng nhập / Sign in';
-    login.href = '/login';
+    login.href = '/login?locked=1';
     login.className = 'btn';
+    login.style.minHeight = '48px';
+    login.onclick = event => { event.preventDefault(); void recover('/login?locked=1'); };
     main.replaceChildren(heading, description, note, retry, document.createTextNode(' '), login);
     main.setAttribute('role', 'alert');
   };
@@ -46,7 +80,7 @@ interface Window {
     const error = new Error(`Lỗi khởi động tại ${activeScript || 'bootstrap'}. Hãy thử tải lại. / Startup failed; please retry.`);
     console.error('Application startup error', activeScript, event.message);
     showFailure(error.message);
-    rejectActive?.(error);
+
   };
   window.addEventListener('error', onError);
   const statusRequest = async (): Promise<Response> => {
@@ -85,27 +119,40 @@ interface Window {
         window.BEP_OFFLINE = true;
       }
     }
-    for (const src of scripts) {
-      if (failed) return;
-      activeScript = src;
-      await new Promise<void>((resolve, reject) => {
-        const script = document.createElement('script');
-        let timer: ReturnType<typeof setTimeout>;
-        const finish = (error?: Error): void => {
-          clearTimeout(timer);
-          rejectActive = undefined;
-          script.onload = script.onerror = null;
-          if (error) { script.remove(); reject(error); } else resolve();
-        };
-        rejectActive = error => finish(error);
-        timer = setTimeout(() => finish(new Error(`Tải ${src} quá lâu. Kiểm tra mạng rồi thử lại. / Loading timed out.`)), 15000);
-        script.src = src;
-        script.async = false;
-        script.onload = () => finish();
-        script.onerror = () => finish(new Error(`Chưa tải được ${src}. Kiểm tra mạng rồi thử lại. / Unable to load the app.`));
-        document.body.append(script);
+    // Fetch a single authenticated source pack. Each classic script is still
+    // inserted separately so lexical globals and override order stay unchanged.
+    // Removing a pending external <script> does not guarantee it stops executing;
+    // fetching first also makes timeout cancellation reliable.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    let pack: unknown;
+    try {
+      const response = await fetch('/startup-scripts.json', {
+        credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
       });
+      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
+        throw new Error('Chưa tải được ứng dụng. Thử lại hoặc đăng nhập lại. / Unable to download the app.');
+      }
+      pack = await response.json();
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error('Tải ứng dụng quá lâu. Thử lại hoặc đăng nhập lại. / Loading timed out.');
+      throw error;
+    } finally { clearTimeout(timer); }
+    const entries = (pack as { version?: unknown; scripts?: unknown } | null)?.scripts;
+    if ((pack as { version?: unknown } | null)?.version !== 1 || !Array.isArray(entries) || entries.length !== scripts.length ||
+      !entries.every((entry: { name?: unknown; code?: unknown }, index: number) => entry?.name === scripts[index] && typeof entry.code === 'string')) {
+      throw new Error('Bản tải chưa đầy đủ. Hãy thử tải lại. / Incomplete application download.');
     }
+    for (const entry of entries as { name: string; code: string }[]) {
+      if (failed) return;
+      activeScript = entry.name;
+      const script = document.createElement('script');
+      script.textContent = entry.code + '\n//# sourceURL=' + new URL(entry.name, location.href).href;
+      document.body.append(script);
+      if (failed) return;
+    }
+    document.querySelector('#startup-progress')?.remove();
+    document.querySelector('main')?.removeAttribute('aria-busy');
     if (!document.querySelector('#main')?.textContent?.trim()) throw new Error('Ứng dụng chưa hiển thị nội dung. Hãy thử lại. / The app did not render; please retry.');
     if (!local) {
       let checking = false;

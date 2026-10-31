@@ -21,11 +21,11 @@ Family meal planning, shopping and receipts, built with HTML/CSS, TypeScript sou
 
 ## Deploy to Netlify
 
-Use Git deployment or a CLI deployment that builds Functions. Build command: `npm run check`; publish directory: `dist`; Functions: `netlify/functions`.
+Build command: `npm run check`; publish directory: `dist`; Functions: `netlify/functions`. The build generates application JavaScript and the authenticated startup source pack from TypeScript. Deploy the full site with Functions and Edge, not `dist` alone.
 
-Set `FAMILY_PASSWORD` (at least 5 characters) in the Netlify environment with Functions scope, then deploy. The Edge gate requires login before serving app pages or private assets. Each recipient phone must independently enable push and choose its family member and reminder types. Server-only VAPID keys are created in Blobs when the first device activates push; private keys are not sent to browsers.
+Use individual accounts to create or join a household. Shared family-password login and legacy migration have been retired; `FAMILY_PASSWORD` is ignored. Existing stored records are retained.
 
-Full instructions are in [NETLIFY-SETUP.md](NETLIFY-SETUP.md). A drag-and-drop upload of `dist` alone does not install the backend.
+For verified-email password recovery, follow [Resend setup](docs/RESEND-SETUP.md): configure `RESEND_API_KEY`, `AUTH_EMAIL_FROM` and production `AUTH_PUBLIC_URL` in Netlify. A verified sender is required for real delivery. No second factor is added to login.
 
 ## Run checks
 
@@ -101,3 +101,13 @@ Edit only `src/frontend/*.ts`, `src/netlify/**/*.mts` (and Edge `.ts`), `src/tes
 `npm run typecheck` strictly checks the new startup entry point. **The migration is not a claim of full-project type safety:** legacy dynamic globals, backend, tests and tooling are currently transpiled with `noCheck` in the other configurations. They need explicit domain types and module boundaries before full type checking can be enabled. No `any` annotations or disabled test assertions were added to hide type errors.
 
 For local development after `npm run build`, serve `dist` with `python3 -m http.server 8000 --bind 127.0.0.1 --directory dist`. Backend integration tests use synthetic storage and mock transports. The browser startup regression test uses an intercepted synthetic origin and never signs into the live site or sends real family notifications.
+
+### Authenticated startup transport
+
+The build generates `dist/startup-scripts.json` from the startup allowlist. Bootstrap downloads that pack once through the existing authentication gate, validates its structure, then inserts its classic scripts individually and in order. This preserves shared lexical globals and existing function overrides while removing the waterfall of 25 separately authenticated script downloads. It does not use `eval` or `new Function`. The current deployment has no CSP restriction on inline scripts; a future CSP must explicitly support this execution mode before enabling it.
+
+The service worker caches the pack for authenticated offline startup rather than prefetching all 25 individual files. Retry unregisters only the app's root service worker before a fresh navigation and retains localStorage, IndexedDB and caches. The recovery sign-in link uses `/login?locked=1` so a valid existing session cannot immediately redirect it back into the failed app.
+
+For the latest expanded release and verification limits, see [the startup/account/email review](docs/reviews/startup-pack/review.md). Historical release notes in this document may describe the retired legacy flow.
+
+`npm test` includes the existing suites and the mocked email-security suite. After installing Chromium with `npx playwright install chromium`, run `npm run test:all` for build/type checks, unit tests and both browser suites. No real email or family notifications are sent by these tests.

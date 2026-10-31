@@ -12,6 +12,7 @@
     "src/frontend/*.ts"
   ],
   "exclude": [
-    "src/frontend/bootstrap.ts"
+    "src/frontend/bootstrap.ts",
+    "src/frontend/login.ts"
   ]
 }

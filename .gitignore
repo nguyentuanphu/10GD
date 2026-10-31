@@ -19,3 +19,5 @@ scripts/*.map
 tests/**/*.cjs
 tests/**/*.mjs
 tests/**/*.map
+
+dist/startup-scripts.json
