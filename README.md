@@ -49,7 +49,7 @@ Scheduled Functions check due reminders every 15 minutes. Roles and selected rec
 
 ## Artwork
 
-The built-in catalog contains 58 ingredients and 540 recipes. The artwork draft adds companion gouache sheets and an ingredient-led SVG design for recipes without a reviewed painted reference. See [ARTWORK.md](ARTWORK.md) and [the full audit](docs/reviews/artwork/review.md); 513 SVG compositions still require finished artwork and individual visual approval. These are illustrations, not exact recipe photographs. Family-authored data is preserved.
+The built-in catalog has 58 ingredient illustrations and 540 recipe-specific dish illustrations, explicitly mapped to the matching ingredient IDs and recipe signatures. The existing gouache artwork is extended with companion sheets; all built-in recipes have painted artwork. Family-authored or edited recipes retain an ingredient-led fallback. See [ARTWORK.md](ARTWORK.md) and [the audit and review](docs/reviews/artwork/review.md). Illustrations are not exact recipe photographs, and family data is preserved.
 
 ## Family-authored menu
 

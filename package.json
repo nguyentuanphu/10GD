@@ -14,8 +14,9 @@
     "test:browser": "node tests/startup.test.cjs",
     "test:authenticated-startup": "node tests/authenticated-startup.test.cjs",
     "test:email": "node tests/email-recovery.test.mjs",
-    "test:all": "npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup",
-    "artwork:audit": "npm run build && node scripts/artwork-audit.cjs"
+    "test:all": "npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup && npm run test:artwork:browser",
+    "artwork:audit": "npm run build && node scripts/artwork-audit.cjs",
+    "test:artwork:browser": "node tests/artwork-browser.test.cjs"
   },
   "dependencies": {
     "@netlify/blobs": "10.5.0",

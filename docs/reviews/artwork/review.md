@@ -1,39 +1,45 @@
-# Kiểm kê và bản nháp thiết kế artwork — 10GD
+# Artwork hoàn thiện — 58 nguyên liệu, 540 món
 
-Phạm vi: mã nguồn `nguyentuanphu/10GD`, baseline `0bcef706f1b01260b4c0a5980aa67ad09fc63c95`. Không truy cập dữ liệu gia đình trực tuyến, vì vậy số lượng dưới đây **chỉ là catalog có sẵn trong repo**, chưa gồm nguyên liệu/công thức gia đình đã tự nhập.
+Phạm vi là catalog có sẵn trong `nguyentuanphu/10GD`, đối chiếu với baseline `0bcef706f1b01260b4c0a5980aa67ad09fc63c95`. Không truy cập hoặc thay đổi dữ liệu gia đình trực tuyến.
 
-## Kết quả ban đầu
+| Hạng mục | Trước | Sau |
+|---|---|---|
+| 58 nguyên liệu | 48 ô artwork dùng chung | 58 vị trí hình riêng, gồm 16 hình bổ sung để phân biệt nguyên liệu/dạng sử dụng |
+| 540 món | 16 hình chung theo nhóm đạm/loại món | 540 minh họa được gán riêng theo mã và nội dung công thức |
+| SVG sơ bộ trong catalog | 513 trong bản nháp trước | **0** |
 
-| Hạng mục | Số mục | Có hình hiển thị | Artwork thực tế |
-|---|---:|---:|---|
-| Nguyên liệu | 58 | 58 | 48 ô trong 3 sheet; có dùng chung ô |
-| Món ăn | 540 | 540 | 16 ô dùng chung theo nhóm, không có 540 tranh riêng |
+172 món mặn, 110 canh, 88 rau, 170 món nước/súp/cháo. 27 tranh phù hợp được tái sử dụng; tạo thêm artwork cho 513 món còn lại theo màu sắc, nền ngà, bát đĩa và phong cách gouache gốc. Bộ cuối dùng 35 sheet và hai ảnh sửa riêng: 538 món lấy từ ô sprite, hai món lấy từ ảnh riêng. Những ô sprite đã bị thay bằng ảnh sửa không được hiển thị.
 
-Phân loại món: 172 món mặn, 110 canh, 88 rau, 170 món nước/súp/cháo.
+## Độ phù hợp của hình
 
-Đã xem trực tiếp cả bốn sheet gốc và đọc logic gán ảnh. Các lỗi rõ: sườn → cốt lết; rau muống/rau cải → cải thìa; miến → bún; udon/bánh canh/bánh phở chung một hình; nui/cơm chín chung ô chứa cả hai; trứng chiên → canh cà chua trứng; mì Ý bò → phở bò; rau luộc có thể thành cải thìa hoặc đậu que xào nấm. Có hình không đồng nghĩa hình đúng công thức.
+Đã xem toàn bộ các sheet, đối chiếu thứ tự ô với tên món, nguyên liệu chính và cách chế biến. Các lỗi rõ trước đây như mì Ý dùng phở bò, trứng chiên dùng canh trứng, sườn dùng cốt lết, rau muống dùng cải thìa đã được xử lý. Món luộc/hấp, xào/kho, cháo và các loại sợi được chỉ định trong từng brief.
 
-16 nguyên liệu được thay representation để phân biệt hoặc làm rõ dạng nguyên liệu. Không khẳng định 42 mục còn lại đã được chứng nhận chính xác về giống, cách cắt hoặc bao bì. Cũng không coi 513 món chưa có tranh được duyệt là 513 ảnh đã xác nhận sai: một số ảnh cũ chỉ gần đúng nhóm món.
+Review ảnh đã dẫn đến sửa bổ sung: bỏ thịt bằm không có trong canh bí xanh đậu hũ; đổi cải thìa bị vẽ nhầm thành rau cải; bỏ dứa ở các canh chỉ có cà chua; bỏ thịt bằm thừa ở một số món cá viên/đậu hũ/gà; tạo ảnh riêng bún thịt bằm rau củ để tránh nhầm sang gà xé. Các lần sửa và checksum asset được ghi trong [generation.json](generation.json).
 
-## Bản nháp đã làm
+Đây là **minh họa**, không phải ảnh chụp hay bằng chứng định lượng/thành phần thực tế khi nấu. Hình có thể đơn giản hóa miếng cắt, tỷ lệ và trang trí nhỏ. Văn bản công thức vẫn là nguồn thông tin chính; không dùng hình để quyết định dị ứng hoặc độ chín.
 
-- Thêm 16 ô nguyên liệu và 16 ô món theo artwork gốc, giữ toàn bộ sheet cũ.
-- Gán 27 công thức tham khảo vào tranh có thành phần chính phù hợp. Chi tiết trang trí vẫn có thể khác công thức.
-- 513 món còn lại có SVG sơ bộ dựa trên thành phần và dạng món; mỗi món có brief riêng chứa nguyên liệu, prep và bước nấu. **Chưa hoàn tất tranh gouache riêng và duyệt mắt từng món.** SVG có hạn chế về hình dáng thịt bằm, cách cắt, kỹ thuật nấu và độ đồng nhất với tranh gốc; không coi là artwork thành phẩm.
-- Không gán tranh tham khảo theo protein một cách rộng rãi nữa. Công thức tự nhập/đã sửa dùng minh họa thành phần; nguyên liệu lạ có biểu tượng trung tính.
-- Không thay đổi công thức, số lượng, giá hay dữ liệu gia đình.
+[Gallery đủ 58 nguyên liệu và 540 món](gallery.html) · [Kiểm kê và brief từng mục](catalog.json). Tạo lại gallery bằng `npm run artwork:audit`.
 
-[Gallery đủ 58 nguyên liệu và 540 món](gallery.html) · [Kiểm kê và brief từng mục](catalog.json). Tạo lại bằng `npm run artwork:audit`.
+## Tích hợp và bảo toàn dữ liệu
 
-## Cấu trúc dự án liên quan
+- Mỗi mã công thức có một artwork xác định. Chữ ký tên, nhóm món, đạm, nguyên liệu, chuẩn bị và bước nấu phải khớp trước khi dùng lại tranh.
+- Món gia đình tự nhập/đã sửa vẫn dùng minh họa thành phần, tránh gán nhầm tranh catalog. Nguyên liệu lạ có biểu tượng trung tính. Không suy diễn nguyên liệu mới từ nhóm thịt/rau.
+- Không thay đổi seed/catalog công thức, định lượng, giá, schema, lịch ăn hoặc dữ liệu gia đình.
+- Sheet mới và hai ảnh sửa được cache offline; cache version được đổi để cập nhật. Tổng WebP 11.7 MB; nén từ ảnh nguồn, không đổi bố cục.
+- Test thông báo được đặt giờ giả lập cố định để không phụ thuộc quiet hours tại thời điểm chạy. Không thay đổi hành vi gửi thông báo của sản phẩm.
 
-Ứng dụng TypeScript build ra thư mục `dist`; seed/catalog cấp công thức tham khảo, core tính khẩu phần/tồn kho/đi chợ, các module family-menu quản lý món gia đình và lịch ăn. Artwork được gọi chung từ kho món, chi tiết, lịch, shopping và pantry. Bootstrap tải theo thứ tự qua startup pack; service worker giữ shell và sheet offline. Backend xử lý tài khoản, gia đình, đồng bộ, ảnh hóa đơn và thông báo. Thay đổi chỉ tác động phần artwork, thứ tự tải phụ thuộc và cache, không đụng schema lưu trữ.
+## Kiểm tra
 
-## Kiểm tra và giới hạn
+`npm run test:all` gồm build/check, typecheck, toàn bộ unit/integration suites, browser startup, authenticated startup/service worker và kiểm tra artwork trên trình duyệt. Đã đạt; xem [test-results.txt](test-results.txt).
 
-- `npm run check`, `npm run typecheck`, test artwork và `npm run test:browser`: đạt.
-- Các test core, spending, backend, units/catalog, insights/products, family-menu, access/calendar, accounts, personal, offline, email recovery và invitations: đạt khi chạy đến/riêng từng suite.
-- `npm test` chưa xanh: `push.test.mjs` kỳ vọng accepted=1 nhưng nhận 0 ở lần gửi urgent mặc định. Test dùng giờ thực mặc định; thời điểm kiểm tra ở Sydney nằm trong quiet hours. Không sửa module push/test ngoài phạm vi. Không có thay đổi vào hai file này.
-- Review Chromium bằng viewport giả lập: mobile 375×812, tablet 820×1100, PC 1280×800; reduced motion. Đã thử chuyển sang kho tham khảo, tìm món, mở/đóng chi tiết, chuyển shopping và tìm trong gallery; không phát hiện horizontal overflow hoặc page runtime error. Bằng chứng: `*-catalog.png`, `*-detail.png`, `*-shopping.png`, `*-composition.png`.
-- Chưa kiểm tra thiết bị thật, luồng tài khoản/dữ liệu live, offline end-to-end, chuyển ngôn ngữ qua UI trong lượt review này. Kiểm tra cache là kiểm tra tĩnh và test offline hiện có. Chưa chứng nhận responsive QA đầy đủ theo checklist phát hành.
-- Đây là **bản nháp để review, chưa sẵn sàng phát hành**. Nhánh `artwork/catalog-audit`; chưa merge, push main hoặc deploy.
+Kiểm tra bổ sung bao gồm:
+
+- 58 ánh xạ nguyên liệu khác nhau; 540 ánh xạ món khác nhau; mọi asset cuối tồn tại; không còn SVG sơ bộ trong catalog.
+- Công thức đổi nguyên liệu hoặc cách nấu không được dùng lại tranh cũ; nhãn ingredient tiếng Việt khớp mã; tên lạ không đoán ảnh thịt/rau.
+- Mobile **375×812**, tablet **820×1100**, PC **1280×800**, reduced motion: mở kho tham khảo, tìm món, mở/đóng chi tiết, shopping, chuyển VI/EN, tìm gallery; không lỗi runtime, yêu cầu artwork thiếu hoặc horizontal overflow trong các luồng này.
+- Service worker thực: chờ cache đủ mọi sheet và hai ảnh sửa, chuyển offline, reload, mở kho món và tải artwork khi không có mạng, giữ nguyên dữ liệu thiết bị. Có ảnh `*-offline.png`; ảnh catalog, detail, shopping, English và gallery cũng nằm trong thư mục này.
+- Bộ startup còn kiểm tra màn hình hẹp **320×740**, các biểu mẫu, lời mời và khôi phục phiên. Đây là giả lập viewport Chromium, không phải kiểm tra thiết bị vật lý.
+
+## GitHub
+
+Nhánh `artwork/catalog-audit`, dành để review. Chưa merge vào `main`, không bật auto-merge và không triển khai production. Quy định phê duyệt deploy riêng trong `AGENTS.md` vẫn giữ nguyên.
