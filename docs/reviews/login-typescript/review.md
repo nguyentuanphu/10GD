@@ -37,3 +37,7 @@ Owner clarified that login uses an individual account; desktop behavior is unkno
 ## Deployment authorization
 
 The owner explicitly instructed “Deploy đi” in this session for the reviewed startup recovery/TypeScript release through `22163f1`. Predeployment frozen installation, build, strict bootstrap check, all 11 existing suites and startup browser regressions passed. Production release identifier: `20261031-startup-typescript`. Publishing to `main` is authorized for this release. No production family state, membership, recipe, notification or credential edits are included. Physical Safari login and full legacy TypeScript checking remain unverified.
+
+## Deployment build correction
+
+First production attempt (`e4f0488`, Netlify deploy `6ae5575771abe2215ed196dd`) failed before publication: Edge bundling reported `ReferenceError: exports is not defined` in generated `family-gate.js`. NodeNext had inferred CommonJS for the `.ts` Edge entry because the repository root has no module package type. Added an ESM package scope for the Edge source directory, preserving the required generated `.js` deployment filename. The application checker now executes generated Edge entries in ES module mode with their real imports, which rejects the previous CommonJS output. This is a build compatibility correction for the same authorized release. Production retained the previous working deployment during the failed build.
