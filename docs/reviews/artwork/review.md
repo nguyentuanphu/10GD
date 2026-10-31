@@ -1,3 +1,9 @@
+# Catalog hiện tại: 90 nguyên liệu, 640 món
+
+Đã bổ sung 100 món Ý/Âu/Healthy và 32 nguyên liệu sau bộ artwork đầu tiên. Xem [hồ sơ cập nhật và kiểm tra](western-extension.md), [gallery hiện tại](gallery.html) và [catalog hiện tại](catalog.json). Phần bên dưới ghi lại phạm vi 58/540 của bộ đầu tiên.
+
+---
+
 # Artwork hoàn thiện — 58 nguyên liệu, 540 món
 
 Phạm vi là catalog có sẵn trong `nguyentuanphu/10GD`, đối chiếu với baseline `0bcef706f1b01260b4c0a5980aa67ad09fc63c95`. Không truy cập hoặc thay đổi dữ liệu gia đình trực tuyến.

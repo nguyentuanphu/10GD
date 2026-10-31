@@ -10,7 +10,7 @@ Family meal planning, shopping and receipts, built with HTML/CSS, TypeScript sou
 - Mobile navigation keeps Today / Weekly Menu / Shopping and moves secondary tools into More.
 
 - **Simple screens by default** for Today, Weekly Planner and Shopping, with a remembered Full view per device. Shopping uses 18px item names on phones, 44–48px checkbox touch targets, collapsible tools and an optional remaining-items filter.
-- **540 dishes and recipe variants:** 172 mains, 110 soups, 88 vegetable dishes and 170 noodle/soup/porridge meals. Every entry has ingredients, preparation and cooking steps. The catalog displays 24 cards per page, with search/category/time filters.
+- **640 dishes and recipe variants:** 259 mains, 122 soups, 89 vegetable dishes and 170 noodle/soup/porridge meals. Every entry has ingredients, preparation and cooking steps. The catalog displays 24 cards per page, with search/category/time filters.
 - Multi-dish family meals, individual dish replacement, portion scales, per-person attendance and optional rice. Weekend soup selector and weekday meal suggestions respect configured constraints and meal locks.
 - Purchase quantity wheel with g/kg, ml/litres, pieces, slices, bunches, packs, boxes, trays, bags, bottles and custom unit names. Remember a preferred buying unit, size estimate, price and note per ingredient.
 - Pantry tracks measured quantities and unweighed counts separately. Unknown weights never silently become grams. Budget estimates identify unknown prices.
@@ -49,7 +49,7 @@ Scheduled Functions check due reminders every 15 minutes. Roles and selected rec
 
 ## Artwork
 
-The built-in catalog has 58 ingredient illustrations and 540 recipe-specific dish illustrations, explicitly mapped to the matching ingredient IDs and recipe signatures. The existing gouache artwork is extended with companion sheets; all built-in recipes have painted artwork. Family-authored or edited recipes retain an ingredient-led fallback. See [ARTWORK.md](ARTWORK.md) and [the audit and review](docs/reviews/artwork/review.md). Illustrations are not exact recipe photographs, and family data is preserved.
+The built-in catalog has 90 ingredient illustrations and 640 recipe-specific dish illustrations, explicitly mapped to the matching ingredient IDs and recipe signatures. The existing gouache artwork is extended with companion sheets; all built-in recipes have painted artwork. Family-authored or edited recipes retain an ingredient-led fallback. See [ARTWORK.md](ARTWORK.md) and [the audit and review](docs/reviews/artwork/review.md). Illustrations are not exact recipe photographs, and family data is preserved.
 
 ## Family-authored menu
 

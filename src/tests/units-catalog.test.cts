@@ -3,7 +3,7 @@ vm.runInContext(['seed','recipe-catalog','core','spending-core','purchase-units'
 vm.runInContext(`
 const check=(x,n)=>{if(!x)throw Error(n);console.log('PASS',n)};
 const s=defaults(),start=monday(sydneyDate()),end=addDays(start,6),w=ensureWeek(s,start);
-check(s.recipes.length===540&&new Set(s.recipes.map(r=>r.name)).size===540,'540 distinct named recipes and variants');
+check(s.recipes.length===640&&new Set(s.recipes.map(r=>r.name)).size===640,'640 distinct named recipes and variants');
 check(s.recipes.every(r=>r.ingredients.length&&r.steps.length>=3&&r.prep&&r.time>0),'all catalog entries include ingredients, preparation, steps and time');
 check(validImport(s),'expanded catalog is backup compatible');
 const original=shopping(s,w,start,end).find(r=>r.id==='chicken');const needs=original.needed;

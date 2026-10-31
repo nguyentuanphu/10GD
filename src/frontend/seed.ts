@@ -70,3 +70,264 @@ quickSoup('n24','Mì trứng cà chua','egg',15,{eggNoodle:500,egg:4,tomato:350,
 );
 
 for(const r of RECIPES){if(r.category==='noodle'&&r.protein==='plant')for(const i of r.ingredients)if(i.id==='broth')i.id='vegBroth';}
+
+// Reference ingredients introduced with the Western/Italian/Healthy collection. Price 0 means unknown.
+const WESTERN_INGREDIENTS={
+  "spaghetti": [
+    "Mì spaghetti khô",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "penne": [
+    "Mì penne khô",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "lasagne": [
+    "Lá lasagna khô",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "arborio": [
+    "Gạo arborio",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "flour": [
+    "Bột mì đa dụng",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "bread": [
+    "Bánh mì ổ",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "wholeBread": [
+    "Bánh mì nguyên cám",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "oats": [
+    "Yến mạch cán dẹt",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "quinoa": [
+    "Hạt quinoa khô",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "brownRice": [
+    "Gạo lứt khô",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "chickpea": [
+    "Đậu gà chín, để ráo",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "lentil": [
+    "Đậu lăng khô",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "kidneyBean": [
+    "Đậu đỏ chín, để ráo",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "tuna": [
+    "Cá ngừ hộp, để ráo",
+    "g",
+    "meat",
+    0,
+    "🌿",
+    null
+  ],
+  "whiteBean": [
+    "Đậu trắng chín, để ráo",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "milk": [
+    "Sữa tươi không đường",
+    "ml",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "yogurt": [
+    "Sữa chua tự nhiên không đường",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "cream": [
+    "Kem tươi dùng nấu ăn",
+    "ml",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "butter": [
+    "Bơ lạt",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "parmesan": [
+    "Phô mai Parmesan",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "mozzarella": [
+    "Phô mai mozzarella",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "feta": [
+    "Phô mai feta",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "basil": [
+    "Húng quế Ý tươi",
+    "g",
+    "veg",
+    0,
+    "🌿",
+    null
+  ],
+  "oregano": [
+    "Lá oregano khô",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ],
+  "lemon": [
+    "Chanh vàng",
+    "quả",
+    "veg",
+    0,
+    "🌿",
+    null
+  ],
+  "lettuce": [
+    "Xà lách",
+    "g",
+    "veg",
+    0,
+    "🌿",
+    null
+  ],
+  "zucchini": [
+    "Bí ngòi",
+    "g",
+    "veg",
+    0,
+    "🌿",
+    null
+  ],
+  "eggplant": [
+    "Cà tím",
+    "g",
+    "veg",
+    0,
+    "🌿",
+    null
+  ],
+  "bellPepper": [
+    "Ớt chuông",
+    "g",
+    "veg",
+    0,
+    "🌿",
+    null
+  ],
+  "asparagus": [
+    "Măng tây",
+    "g",
+    "veg",
+    0,
+    "🌿",
+    null
+  ],
+  "avocado": [
+    "Quả bơ, phần ăn được",
+    "g",
+    "veg",
+    0,
+    "🌿",
+    null
+  ],
+  "olive": [
+    "Quả ô liu ngâm, để ráo",
+    "g",
+    "dry",
+    0,
+    "🌿",
+    null
+  ]
+};
+Object.assign(INGREDIENTS,WESTERN_INGREDIENTS);
