@@ -1,17 +1,27 @@
 # Family Kitchen artwork
 
-Created with the built-in image generation tool; no external retailer product photos were copied. The generated images were encoded as WebP for the app, without changing their composition.
+The built-in catalog has **106 ingredient illustrations and 740 individually mapped recipe illustrations**. Artwork is generated with the built-in image generation tool, referencing the existing original artwork. No retailer photographs were copied. These are illustrations of the recipe, not photographs of a cooked result.
 
-- `dist/artwork/ingredients-v1.webp`: 4×4 sheet, 16 ingredient illustrations. Row order: pork chop/chicken drumsticks/beef/salmon; whole fish/prawns/tofu/eggs; bok choy/broccoli/carrots/tomatoes; potatoes/pumpkin/mushrooms/spring onions.
-- `dist/artwork/dishes-v1.webp`: 4×4 sheet, 16 representative dish types. Row order: pork and egg claypot/ginger chicken/beef broccoli/pan-fried fish; garlic prawns/tofu tomato sauce/winter melon soup/pumpkin soup; bok choy/green beans mushrooms/chicken pho/beef noodle soup; wonton noodles/porridge/egg tomato soup/steamed fish.
-- `dist/artwork.js` supplies local SVG illustrations for remaining ingredients, preserves the pre-existing vector fallback for unsupported dish groups, and maps recipe categories/proteins to representative artwork. Recipe ingredients remain the source of truth. There are not 540 individually generated recipe photographs.
+## Assets and mapping
 
-## Prompt briefs
+- `dist/artwork/ingredients-v1.webp` through `ingredients-v7.webp`: 4×4 ingredient sheets. `INGREDIENT_ART` in `src/frontend/artwork.ts` explicitly maps all 106 IDs. The fourth sheet distinguishes ribs, mustard greens, water spinach, glass noodles, hu tieu, udon, banh canh, macaroni, cooked rice, salt, sugar, vegetable stock, pho noodles, boneless pork, shredded cooked chicken and corn kernels.
+- `dist/artwork/dishes-v1.webp` through `dishes-v49.webp`: 4×4 dish sheets. The first two reuse 27 appropriate paintings. Sheets 3–35 add the other **513 recipes**, one distinct initial cell per recipe. Two recipes use corrected standalone paintings in `dist/artwork/corrections/` instead of their initial cells; those superseded cells are not displayed. The final set renders 738 sprite cells and two standalone paintings.
+- `REVIEWED_DISH_ART` is an explicit recipe-ID-to-cell map; there is no broad protein/category assignment. A frozen signature checks the recipe name, category, protein, ingredients, preparation and steps before reusing a painting. Edited or family-authored recipes use the ingredient-led vector fallback rather than an unrelated catalog painting.
+- Exact Vietnamese/English ingredient labels can resolve to the same mapped artwork; unknown family ingredients use a neutral shopping-bag illustration.
+- All sheets are bundled for offline caching. WebP encoding preserves composition. The source generated images remain in the generation workspace; the repository contains the application assets.
 
-Ingredient sheet: perfectly square 4-column × 4-row grid, centered equal cells, 18% padding, identical warm ivory #fffefa background, no text/grid lines/frames; editorial hand-painted gouache miniatures, softly shaded realistic ingredient colors, sage accents and consistent three-quarter view. Exact ingredients in the order listed above. Recognisable at 48px; no plates, logos or watermark.
+## Design direction and evidence
 
-Dish sheet: perfectly square 4-column × 4-row equal-cell grid, each finished dish centered with 15% padding and no overlap. Uniform #fffefa background, no text/labels/grid lines/watermark, simple off-white dishes, warm Vietnamese home-cooking gouache style with sage details. Exact dish categories in the order listed above. Representative illustrations rather than photos.
+Warm ivory `#fffefa` backgrounds, sage accents, softly shaded natural food colors, gouache/watercolor texture, consistent three-quarter overhead view and ivory bowls/plates follow the original sheets. Each recipe brief includes its actual ingredients, preparation and cooking steps. The prompts explicitly distinguish steamed, boiled, stir-fried and braised dishes; noodle types; minced meat, ribs and fillets; and plate versus soup bowl. They forbid adding unrelated rice, meat or other foods.
 
-## Use
+See [generation provenance](docs/reviews/artwork/generation.json), [the complete catalog and briefs](docs/reviews/artwork/catalog.json), [visual gallery](docs/reviews/artwork/gallery.html), and [review record](docs/reviews/artwork/review.md). Illustrations simplify quantities, cuts and small garnishes; they are not ingredient identification or food-safety evidence. Recipe text remains authoritative.
 
-Dish artwork appears in the recipe library, meal details, daily/weekly menu and suggestion cards. Shopping ingredient thumbnails remain small enough to preserve large text and tick targets. Pantry cards also show ingredient artwork. The PWA caches both image sheets and rendering code.
+Run `npm run artwork:audit` after `npm ci` to rebuild the catalog/gallery. The original audit baseline is pinned to `0bcef706f1b01260b4c0a5980aa67ad09fc63c95`. No recipe amounts, family data, instructions, prices or meal schedules are changed by artwork work.
+
+## 100-recipe Western / Italian / Healthy extension
+
+40 Italian, 30 Western and 30 Healthy reference recipes add 100 paintings in dishes-v36–v42, and 32 ingredients add ingredients-v5–v6. See [the extension review](docs/reviews/artwork/western-extension.md) and [generation provenance](docs/reviews/artwork/western-generation.json). New ingredient prices and pack sizes remain unknown until entered; the recipes explicitly state four-portion quantities. Existing recipe IDs, family edits, pantry and menu data are preserved.
+
+## Vegetarian / seed salad / dressing extension
+
+An additional, separate 100-recipe collection adds 40 vegetarian dishes, 35 seed/grain/legume salads and 25 dressings; 82 recipes use verified vegan ingredient lists. Sixteen new ingredient illustrations are in ingredients-v7 and 100 new recipe illustrations in dishes-v43–v49. Dressings depict sauce bowls, not complete meals. See [the plant collection review](docs/reviews/artwork/plant-extension.md) and [provenance](docs/reviews/artwork/plant-generation.json).
