@@ -22,7 +22,7 @@ render=function(){
   main.classList.add('simple-screen');
   if(view==='today'){
     main.querySelector('.hero')?.remove();main.querySelector('.mini-stats')?.remove();main.querySelector('.pantry-peek')?.remove();
-    simpleDisclosure(main.querySelector('.day-advice'),'Gợi ý ăn hôm nay','advice');
+    simpleDisclosure(main.querySelector('.day-advice'),'Gợi ý ăn hôm nay','advice');simpleDisclosure(main.querySelector('.home-coordination'),'Phân công nấu & đi chợ','coordination');
     const prep=main.querySelector('.prep-list');if(prep){const title=prep.previousElementSibling;const section=document.createElement('section');prep.before(section);if(title?.classList.contains('section-heading'))section.append(title);section.append(prep);simpleDisclosure(section,'Sơ chế & việc cần làm','prep')}
   }
   if(view==='planner'){

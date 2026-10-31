@@ -43,7 +43,7 @@ async function main() {
     if(url.pathname==='/bootstrap.js'&&(req.headers.cookie||'').includes('qa-baseline=1'))return new Response(deployedBootstrap,{headers:{'Content-Type':'application/javascript'}});
     if(url.pathname==='/stale-worker.js')return new Response(`self.addEventListener('install',e=>e.waitUntil(self.skipWaiting()));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>{if(new URL(e.request.url).pathname==='/startup-scripts.json'){e.respondWith(new Promise(()=>{}));e.waitUntil(self.clients.matchAll({includeUncontrolled:true}).then(list=>list.forEach(client=>client.postMessage({qa:'pack-pending'}))))}});`,{headers:{'Content-Type':'application/javascript'}});
     const file=resolve(dist,url.pathname==='/'?'index.html':'.'+url.pathname);
-    if(!file.startsWith(dist+'/'))return new Response('',{status:404});
+    if(!file.startsWith(dist+'/')&&!file.startsWith(dist+'\\'))return new Response('',{status:404});
     try{return new Response(readFileSync(file),{headers:{'Content-Type':mime[extname(file)]||'application/octet-stream'}})}catch{return new Response('',{status:404})}
    }});
    res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));
@@ -169,6 +169,20 @@ async function main() {
   const recipient=await browser.newContext({viewport:{width:375,height:812}}),recipientPage=await recipient.newPage();await recipientPage.goto(shared.url);assert.equal(await recipientPage.getByRole('tab',{name:'Đăng ký',exact:true}).getAttribute('aria-selected'),'true');assert.equal(await recipientPage.locator('#invitation-code').inputValue(),invitation);await recipientPage.locator('#username').fill('invitednewuser');await recipientPage.locator('#password').fill('InvitedUserPassphrase42');await recipientPage.locator('#name').fill('New family member');await recipientPage.locator('#submit').click();await recipientPage.locator('#recovery:not([hidden])').waitFor();assert.match(await recipientPage.locator('#result-message').innerText(),/Đã tham gia gia đình/);await recipientPage.locator('#continue').click();await recipientPage.waitForFunction(id=>globalThis.BEP_SESSION?.household?.id===id,familyId);assert.equal(await recipientPage.evaluate(()=>globalThis.BEP_SESSION.household.role),'editor');await recipient.close();
   const desktop=await browser.newContext({viewport:{width:1280,height:800}}),desktopPage=await desktop.newPage();await desktopPage.goto(origin+'/login');await desktopPage.locator('#username').fill(ownerUsername);await desktopPage.locator('#password').fill('synthetic-startup-passphrase-only');await desktopPage.locator('#submit').click();await desktopPage.waitForFunction(id=>globalThis.BEP_SESSION?.household?.id===id,familyId);await desktopPage.waitForFunction(id=>JSON.parse(localStorage.getItem('account/'+id+'/bep-gia-dinh-v1')||'{}').preferences?.budget===777,familyId);await desktop.close();
   console.log('PASS visible invitations, share composers, invitation-link signup/join and fresh desktop family sync');
+  assert.match(invitation,/^[A-Z2-9]{4}-[A-Z2-9]{4}$/,'short 8-char invite code');
+  assert.equal(await page.locator('[data-personal=voice]').count(),1,'only one Voice Input button on Today');
+  await page.locator('[data-personal=settings]').click();assert.equal(await page.locator('#modal-root [data-personal=voice]').count(),0,'no duplicate voice button in My Kitchen modal');await page.keyboard.press('Escape');
+  await page.evaluate(()=>{location.hash='planner'});await page.waitForTimeout(100);
+  assert.match(await page.locator('[data-fm=generate]').innerText(),/Lên thực đơn cả tuần|Auto-plan week/);
+  await page.locator('[data-fm=generate]').click();await page.locator('[data-fm=apply]').waitFor();await page.locator('[data-fm=apply]').click();await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
+  assert.ok(await page.locator('.family-meal-card .family-dish').count()>5,'auto-plan week populated meals using library fallback');
+  await page.locator('[data-fm=edit-meal]').first().click();await page.locator('#quick-dish-name').fill('Cá thu sốt cà nhà làm');await page.locator('[data-fm=quick-add-dish]').click();await page.locator('[data-action=submit-form][data-id=family-meal-form]').click();await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
+  assert.match(await page.locator('.family-meal-card').first().innerText(),/Cá thu sốt cà nhà làm/);
+  await page.evaluate(()=>{location.hash='today'});await page.waitForTimeout(100);
+  await page.locator('[data-house=urgent-new]').click();await page.locator('#family-urgent-form textarea[name=message]').fill('Mua thêm rau thơm trước 5h chiều');await page.locator('[data-action=submit-form][data-id=family-urgent-form]').click();
+  await page.locator('[data-house=alert-archive]').first().waitFor();await page.locator('[data-house=alert-archive]').first().click();
+  await page.locator('.archived-alerts').waitFor();assert.match(await page.locator('.archived-alerts').innerText(),/Tin đã lưu trữ|Archived messages/);
+  console.log('PASS streamlined weekly auto-planner fallback, quick-add own/library dish flow, deduplicated voice button, short invite code and urgent message archiving');
   await page.goto(origin+'/?mode=guest',{waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();assert.equal(await page.evaluate(()=>globalThis.BEP_SESSION.mode),'guest');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),guestBudget);
   await context.close();
   console.log('PASS optional family creation and return to retained guest workspace');

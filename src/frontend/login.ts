@@ -7,7 +7,14 @@ const form=node<HTMLFormElement>('login');
 const tabs=[...document.querySelectorAll<HTMLButtonElement>('[data-mode]')];
 const field=(id:string):HTMLInputElement=>node<HTMLInputElement>(id);
 const invitationField=node<HTMLInputElement>('invitation-code');
-function invitationCode(value:string):string {return value.trim().match(/[a-f0-9-]{36}\.[A-Za-z0-9_-]{32}/)?.[0]||''}
+function invitationCode(value:string):string {
+ const raw=value.trim();if(!raw)return '';
+ try{if(/^https?:\/\//i.test(raw)){const u=new URL(raw),p=u.searchParams.get('invite');if(p)return invitationCode(p)}}catch{}
+ const legacy=raw.match(/[a-f0-9-]{36}\.[A-Za-z0-9_-]{32}/);if(legacy)return legacy[0];
+ const clean=raw.toUpperCase().replace(/[^A-Z0-9]/g,'');
+ if(/^[A-Z0-9]{6,12}$/.test(clean))return clean.slice(0,4)+'-'+clean.slice(4);
+ return '';
+}
 invitationField.oninput=()=>{try{if(invitationField.value.trim())sessionStorage.setItem('bep-invite-draft',invitationField.value.trim());else sessionStorage.removeItem('bep-invite-draft')}catch{}};
 let invitationMessage='';
 async function connectInvitation():Promise<void>{

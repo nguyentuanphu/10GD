@@ -20,10 +20,10 @@ const revoked=await call('login',{username:'fixtureowner',password:f.password}),
 const revokedSession=await authStore.get(revokedKey);revokedSession.householdId='00000000-0000-0000-0000-000000000000';await authStore.setJSON(revokedKey,revokedSession);assert.equal((await resolveAccount(get('status',revokedCookie),getStoreFn)).household,null);
 console.log('PASS old-session repair, fresh-device restore, remembered selection and safe ambiguous/revoked contexts');
 // A recipient may receive a bearer code before creating their account.
-const invitation=await call('invite',{role:'editor'});assert.equal(invitation.status,201);const code=(await invitation.json()).code;
+const invitation=await call('invite',{role:'editor'});assert.equal(invitation.status,201);const code=(await invitation.json()).code;assert.match(code,/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
 const registered=await call('register',{username:'newrecipient',name:'New recipient',password:'synthetic-recipient-passphrase-42'},'');assert.equal(registered.status,201);const recipientCookie=registered.headers.get('set-cookie').split(';')[0];
 assert.equal((await call('join',{code},recipientCookie)).status,200);const context=await resolveAccount(get('status',recipientCookie),getStoreFn);assert.equal(context.household.id,household.id);assert.equal(context.member.role,'editor');
 assert.equal((await call('join',{code},recipientCookie)).status,403);assert.equal((await call('invite',{role:'editor'},recipientCookie)).status,403);
 const invite2=await call('invite',{role:'viewer'}),code2=(await invite2.json()).code;
-const expiry=await authStore.get('families/'+household.id),hash=code2.split('.')[1];expiry.invites[createHash('sha256').update(hash).digest('hex')].expires=Date.now()-1;await authStore.setJSON('families/'+household.id,expiry);assert.equal((await call('join',{code:code2},recipientCookie)).status,403);
+const expiry=await authStore.get('families/'+household.id),hash=code2.includes('.')?code2.split('.')[1]:code2.replace(/-/g,'');expiry.invites[createHash('sha256').update(hash).digest('hex')].expires=Date.now()-1;await authStore.setJSON('families/'+household.id,expiry);assert.equal((await call('join',{code:code2},recipientCookie)).status,403);
 console.log('PASS invitation before signup, one-use consumption, expiry and owner-only invitation permissions');
