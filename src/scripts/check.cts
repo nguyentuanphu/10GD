@@ -5,7 +5,7 @@ JSON.parse(fs.readFileSync('dist/manifest.webmanifest'));console.log('All applic
 const sw=fs.readFileSync('dist/sw.js','utf8'),assetBlock=sw.match(/const ASSETS\s*=\s*(\[[^;]+\]);/);
 if(!assetBlock)throw Error('Missing service worker precache');
 for(const match of assetBlock[1].matchAll(/['"]\.\/([^'"]*)['"]/g)){const path='dist/'+(match[1]||'index.html');if(!fs.existsSync(path))throw Error('Missing offline asset: '+path)}
-for(const name of ['ingredients-v1.webp','dishes-v1.webp']){const bytes=fs.readFileSync('dist/artwork/'+name);if(bytes.toString('ascii',0,4)!=='RIFF'||bytes.toString('ascii',8,12)!=='WEBP')throw Error('Invalid artwork encoding: '+name)}
+for(const name of ['ingredients-v1.webp','ingredients-v2.webp','ingredients-v3.webp','dishes-v1.webp']){const bytes=fs.readFileSync('dist/artwork/'+name);if(bytes.toString('ascii',0,4)!=='RIFF'||bytes.toString('ascii',8,12)!=='WEBP')throw Error('Invalid artwork encoding: '+name)}
 console.log('All offline assets and artwork files verified.');
 
 // Netlify Edge runs JavaScript as ES modules. Syntax checks alone accept CommonJS

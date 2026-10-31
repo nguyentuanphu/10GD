@@ -15,6 +15,8 @@ const newAccountStatus=await family(request('family','status',{cookie:alice.cook
 assert.equal(newAccountStatus.status,200);const newcomerStatus=await newAccountStatus.json();assert.equal(newcomerStatus.mode,'account');assert.equal(newcomerStatus.connected,true);assert.equal(newcomerStatus.household,null);assert.ok(newcomerStatus.offlineGrant);
 assert.equal((await call('register',{method:'POST',body:{username:'alice',name:'copy',password}})).status,409);
 assert.equal((await call('register',{method:'POST',body:{username:'constructor',name:'bad',password}})).status,400);
+assert.equal((await call('register',{method:'POST',ip:'test-ip-pw',body:{username:'shortpw7',name:'Short',password:'1234567'}})).status,400);
+assert.equal((await call('register',{method:'POST',ip:'test-ip-pw',body:{username:'exactpw8',name:'Exact8',password:'12345678'}})).status,201);
 assert.equal((await call('login',{method:'POST',body:{username:'alice',password:'wrong'}})).status,401);
 assert.equal((await call('login',{method:'POST',origin:'https://evil.example',body:{username:'alice',password}})).status,403);
 const ca=await call('create-family',{method:'POST',cookie:alice.cookie,body:{name:'Family A'}}),a=(await ca.json()).household;

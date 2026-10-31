@@ -1,8 +1,8 @@
 'use strict';
 if(typeof importScripts==='function')importScripts('./offline-access.js');
 const ACCESS_CACHE='bep-family-access-v1';
-const CACHE='bep-family-v16-family-hub';
-const ASSETS=['./','./index.html','./bootstrap.js','./offline-access.js','./startup-scripts.json','./styles.css','./family-logo.png','./artwork/ingredients-v1.webp','./artwork/dishes-v1.webp','./icon.svg','./notification-icon.png','./notification-icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
+const CACHE='bep-family-v17-artwork-voice';
+const ASSETS=['./','./index.html','./bootstrap.js','./offline-access.js','./startup-scripts.json','./styles.css','./family-logo.png','./artwork/ingredients-v1.webp','./artwork/ingredients-v2.webp','./artwork/ingredients-v3.webp','./artwork/dishes-v1.webp','./icon.svg','./notification-icon.png','./notification-icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
 async function fetchWithDeadline(input,options={}){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
  try{const response=await fetch(input,{...options,signal:controller.signal});await response.clone().arrayBuffer();return response}finally{clearTimeout(timer)}
