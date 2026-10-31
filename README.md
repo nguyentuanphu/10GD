@@ -49,7 +49,7 @@ Scheduled Functions check due reminders every 15 minutes. Roles and selected rec
 
 ## Artwork
 
-`dist/artwork/ingredients-v1.webp` and `dist/artwork/dishes-v1.webp` are original generated illustration sprite sheets (16 cells each), integrated by `dist/artwork.js`. Remaining ingredient types use local SVG illustrations; unsupported dish types retain the existing vector artwork. All artwork is bundled for offline use. These are representative illustrations, not exact recipe photos or retailer product images. Generation prompts are recorded in `ARTWORK.md`.
+The built-in catalog contains 58 ingredients and 540 recipes. The artwork draft adds companion gouache sheets and an ingredient-led SVG design for recipes without a reviewed painted reference. See [ARTWORK.md](ARTWORK.md) and [the full audit](docs/reviews/artwork/review.md); 513 SVG compositions still require finished artwork and individual visual approval. These are illustrations, not exact recipe photographs. Family-authored data is preserved.
 
 ## Family-authored menu
 

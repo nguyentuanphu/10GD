@@ -10,11 +10,12 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.frontend.json && tsc -p tsconfig.bootstrap.json && node .compiled/scripts/build.cjs",
     "typecheck": "tsc -p tsconfig.bootstrap.json --noEmit && tsc -p tsconfig.auth-email.json --noEmit",
     "check": "npm run build && node scripts/check.cjs",
-    "test": "node tests/core.test.cjs && node tests/spending.test.cjs && node tests/backend.test.mjs && node tests/units-catalog.test.cjs && node tests/push.test.mjs && node tests/insights-products.test.cjs && node tests/family-menu.test.cjs && node tests/access-calendar.test.mjs && node tests/accounts.test.mjs && node tests/personal.test.cjs && node tests/offline.test.mjs && node tests/email-recovery.test.mjs && node tests/family-invitations.test.mjs",
+    "test": "node tests/core.test.cjs && node tests/spending.test.cjs && node tests/backend.test.mjs && node tests/units-catalog.test.cjs && node tests/push.test.mjs && node tests/insights-products.test.cjs && node tests/family-menu.test.cjs && node tests/access-calendar.test.mjs && node tests/accounts.test.mjs && node tests/personal.test.cjs && node tests/offline.test.mjs && node tests/email-recovery.test.mjs && node tests/family-invitations.test.mjs && node tests/artwork.test.cjs",
     "test:browser": "node tests/startup.test.cjs",
     "test:authenticated-startup": "node tests/authenticated-startup.test.cjs",
     "test:email": "node tests/email-recovery.test.mjs",
-    "test:all": "npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup"
+    "test:all": "npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup",
+    "artwork:audit": "npm run build && node scripts/artwork-audit.cjs"
   },
   "dependencies": {
     "@netlify/blobs": "10.5.0",

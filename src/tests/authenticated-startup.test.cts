@@ -74,7 +74,7 @@ async function main() {
     await page.goto(origin+'/login?locked=1');await page.getByRole('tab',{name:'Đăng ký',exact:true}).click();await page.locator('#username').fill('guestregistered');await page.locator('#password').fill('GuestSignupPassphrase42');await page.locator('#name').fill('Guest user');await page.locator('#submit').click();await page.locator('#recovery:not([hidden])').waitFor();assert.equal(mail.length,0);await page.locator('#continue').click();await page.locator('[data-device-mode]').waitFor();assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),321,'sign-up without email must retain device work');
    }
    await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
-   await page.waitForFunction(async()=>!!await(await caches.open('bep-family-v17-artwork-voice')).match('/startup-scripts.json'));
+   await page.waitForFunction(async()=>!!await(await caches.open('bep-family-v18-artwork-catalog')).match('/startup-scripts.json'));
    await page.screenshot({path:evidence+'/'+name+'-guest.png',fullPage:true});
    await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),321);
    assert.equal(counters.privateReads,reads);assert.equal(counters.privateWrites,writes);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
@@ -131,7 +131,7 @@ async function main() {
   await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
   await page.waitForFunction(async()=>{
    const access=await caches.open('bep-family-access-v1');if(!await access.match('/offline-access'))return false;
-   const cache=await caches.open('bep-family-v17-artwork-voice');return !!await cache.match('/startup-scripts.json');
+   const cache=await caches.open('bep-family-v18-artwork-catalog');return !!await cache.match('/startup-scripts.json');
   });
   assert.equal(counters.seed,seedsBefore,'startup and worker must not fetch seed.js separately');
   assert.ok(counters.pack>packsBefore);
