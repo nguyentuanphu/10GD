@@ -18,3 +18,7 @@
 
 [functions."reminders"]
   schedule = "*/15 * * * *"
+
+[[edge_functions]]
+  function = "family-gate"
+  path = "/*"

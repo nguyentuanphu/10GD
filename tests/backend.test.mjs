@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createFamilyHandler } from '../netlify/functions/family.mjs';
-let stored=null,etag=null,revision=0;
-const mock={getWithMetadata:async()=>stored?{data:stored,etag}:null,setJSON:async(key,data,options)=>{if(options.onlyIfNew&&stored||options.onlyIfMatch&&options.onlyIfMatch!==etag)return{modified:false};stored=data;etag='"'+(++revision)+'"';return{modified:true,etag}},set:async()=>{},get:async()=>null};
+let stored=null,etag=null,revision=0;const auxiliary=new Map();
+const mock={getWithMetadata:async()=>stored?{data:stored,etag}:null,setJSON:async(key,data,options={})=>{if(key!=='state'){auxiliary.set(key,data);return{modified:true,etag:'aux'}}if(options.onlyIfNew&&stored||options.onlyIfMatch&&options.onlyIfMatch!==etag)return{modified:false};stored=data;etag='"'+(++revision)+'"';return{modified:true,etag}},set:async()=>{},get:async key=>auxiliary.get(key)||null};
 const handler=createFamilyHandler({getStoreFn:()=>mock,passwordFn:()=> 'synthetic-test-passphrase-42'});
 const req=(op,method='GET',body,cookie)=>new Request('https://test.example/.netlify/functions/family?op='+op,{method,headers:{Origin:'https://test.example',...(cookie?{Cookie:cookie}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
 assert.equal((await handler(req('state'))).status,401);

@@ -1,7 +1,7 @@
 'use strict';
 // Display preferences are device-local: a shopper can use large text independently.
 let screenPreferences={};
-try{screenPreferences=JSON.parse(localStorage.getItem('bep-screen-preferences')||'{}')||{}}catch(e){}
+try{screenPreferences=JSON.parse(familyStorage.getItem('bep-screen-preferences')||'{}')||{}}catch(e){}
 if(typeof screenPreferences!=='object'||Array.isArray(screenPreferences))screenPreferences={};
 const disclosureState=new Map();
 const fullRender=render;
@@ -50,7 +50,7 @@ render=function(){
   }
 };
 document.addEventListener('toggle',event=>{const d=event.target;if(d.matches?.('details[data-disclosure]'))disclosureState.set(view+':'+d.dataset.disclosure,d.open)},true);
-function saveScreenPreferences(){try{localStorage.setItem('bep-screen-preferences',JSON.stringify(screenPreferences))}catch(e){toast('Không lưu được chế độ xem; lựa chọn vẫn dùng trong lần mở này.',true)}}
+function saveScreenPreferences(){try{familyStorage.setItem('bep-screen-preferences',JSON.stringify(screenPreferences))}catch(e){toast('Không lưu được chế độ xem; lựa chọn vẫn dùng trong lần mở này.',true)}}
 document.addEventListener('click',event=>{const b=event.target.closest('[data-screen-mode]');if(!b)return;screenPreferences[view]=b.dataset.screenMode;saveScreenPreferences();render();$('#main [data-screen-mode="'+b.dataset.screenMode+'"]').focus()});
 document.addEventListener('change',event=>{if(!event.target.matches('[data-screen-remaining]'))return;screenPreferences.remaining=event.target.checked;saveScreenPreferences();render();$('#main [data-screen-remaining]')?.focus()});
 render();

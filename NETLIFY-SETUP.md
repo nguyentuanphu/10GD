@@ -6,7 +6,7 @@ Gói này gồm giao diện PWA trong `dist/`, backend trong `netlify/functions/
 
 1. Giải nén gói, đưa các tệp/thư mục ở gốc gói vào repository Git của bạn. Giữ nguyên cấu trúc `dist/`, `netlify/`, `scripts/`, `package.json`, `package-lock.json`, `netlify.toml`.
 2. Trong Netlify, Import an existing project → chọn repository. Netlify đọc `netlify.toml`: build `npm run check`, publish `dist`, functions `netlify/functions`. Node 22.
-3. Trong cấu hình môi trường của Netlify, tạo `FAMILY_PASSWORD` với ít nhất 12 ký tự (nên là một mật khẩu dài, khó đoán). Phạm vi phải có Functions. Không ghi mật khẩu thật vào repository, HTML hay `netlify.toml`.
+3. Trong cấu hình môi trường của Netlify, tạo `FAMILY_PASSWORD` với ít nhất 5 ký tự (app dùng giá trị đã cấu hình; không nhúng mật khẩu trong mã). Phạm vi phải có Functions. Không ghi mật khẩu thật vào repository, HTML hay `netlify.toml`.
 4. Deploy / redeploy sau khi đặt biến. Nếu dùng CLI, cài dependency tại gốc bằng `npm ci`, rồi dùng Netlify CLI deploy có build và functions. Chỉ kéo thư mục `dist` vào Netlify Drop sẽ KHÔNG triển khai backend lưu trữ.
 5. Mở website → Gia đình / Cài đặt → Lưu trên Netlify (hoặc tab Chi tiêu → Đồng bộ Netlify) → nhập mật khẩu. Lần đầu sẽ tạo bản chung từ dữ liệu trên máy. Khi đã có bản chung, app cho chọn dùng bản Netlify hoặc bản trên máy.
 6. Điện thoại khác mở cùng URL, nhập cùng mật khẩu. Dữ liệu được tải lại khi mở app và kiểm tra cập nhật khi app đang mở. Nếu hai máy sửa chồng nhau, app dừng ghi và cho đối chiếu; không âm thầm ghi đè.
@@ -110,3 +110,33 @@ Hôm Nay, Thực Đơn Tuần và Đi Chợ mở ở chế độ Đơn giản. N
 - Thông báo: từng máy chọn vai trò nấu/đi chợ/cả hai và ngôn ngữ riêng; thiết bị cũ cần mở Push & người nhận và lưu lại lựa chọn. Nhắc báo cơm chỉ tới người còn pending. Nhắc tự động tối đa 2/thiết bị/ngày, có conditional writes để tránh vượt do chạy đồng thời.
 - Nhờ mua thêm mặc định thường (`shopping`); gửi khẩn (`urgent`) cần chọn riêng. Yên lặng chặn cả hai trừ khi người nhận cho phép khẩn đi qua. Không gửi bù các nhắc bị yên lặng, tắt hoặc vượt giới hạn; yêu cầu vẫn trong app. Nút thử chỉ gửi tới ID thiết bị hiện tại, không gửi cả gia đình.
 - Test kiểm tra bằng transport giả lập; chưa kiểm tra giao nhận thực trên iPhone/Android. Không có email hay tin nhắn Messenger nào được gửi tự động trong kiểm tra.
+
+
+## Bản review: khóa web, lịch tháng và nhắn khẩn
+
+Bản thay đổi này chưa được deploy. Cần chủ nhà duyệt bằng “Deploy” theo AGENTS.md.
+
+Edge Function `family-gate` chặn toàn bộ trang và tài nguyên riêng trước đăng nhập; chỉ endpoint đăng nhập/trạng thái và tài nguyên PWA công khai được miễn. FAMILY_PASSWORD phải có Functions scope. Nếu không có mật khẩu cũ, người dùng vẫn có thể đăng nhập tài khoản riêng; khách chỉ thấy trang đăng nhập. Chưa kiểm tra hoặc thay đổi giá trị môi trường Netlify trong đợt này.
+
+“Tin cậy trình duyệt” lưu cookie phiên tối đa 30 ngày; không chọn thì phiên máy chủ 8 giờ, cookie theo phiên trình duyệt. Cookie HttpOnly, Secure, SameSite=Strict. Trang riêng không được CDN cache công khai. Service Worker kiểm tra phiên khi có mạng; bản tổng hợp mới cho phép mở cache offline bằng quyền đã ký còn hạn, sau lần đăng nhập/tải đủ đầu tiên. Đăng xuất xóa cookie và cache riêng.
+
+Trong Ai về ăn cơm → Lịch tháng, chọn thành viên, ngày và bữa, đánh dấu Vắng/Bận, chọn có trừ khẩu phần và nhắc 19:00 hôm trước hay không. Bữa tự tính sẽ cập nhật nguyên liệu; bữa đã nấu hoặc nhập số suất cố định giữ nguyên và có chú thích. Chọn trạng thái Xóa để bỏ lịch đã chọn. Thiết bị nhận nhắc cần bật “Lịch vắng & khẩu phần”; vẫn áp dụng giờ yên lặng và giới hạn 2 nhắc tự động/ngày.
+
+Nhắn khẩn lưu độc lập trong Netlify Blobs, gửi push đến thiết bị phù hợp đã đăng ký. Dịch vụ nhận push không có nghĩa người nhận đã đọc; trạng thái đã đọc do người nhà đánh dấu trong app. Tên thành viên được chọn trên thiết bị dùng chung mật khẩu. SMS/chia sẻ chỉ mở ứng dụng để người dùng tự chọn người nhận và gửi; chưa có dịch vụ SMS tự động. Cần kiểm tra push/SMS trên điện thoại thật sau khi deploy được duyệt.
+
+
+## Bản tổng hợp tiếp theo — tài khoản, thiết lập, VND/AUD, giọng nói và offline
+
+Chưa deploy. Giữ nguyên biến FAMILY_PASSWORD để gia đình cũ dùng như trước. Backend accounts độc lập với mật khẩu chung. Có thể đặt ALLOW_ACCOUNT_SIGNUP=false (Functions scope) để tắt đăng ký mới. Cần deploy đầy đủ Functions + Edge, không chỉ kéo thả dist.
+
+Kho bep-accounts giữ hash mật khẩu, phiên, vai trò và mã mời. Mỗi gia đình dùng tiền tố households/<id>/ trong bep-family-data. Kho bep-family-auth giữ khóa ký quyền offline (private key không gửi ra trình duyệt). Mọi tài nguyên gia đình vẫn cần xác thực ở API. Đăng ký dùng username, không gửi email; người dùng phải tự giữ mã khôi phục một lần.
+
+Người mới: đăng ký → lưu mã khôi phục → tạo/tham gia gia đình → thiết lập 5 bước hoặc giữ/chuyển dữ liệu cũ. Người đang dùng mật khẩu chung không bị ép chuyển. Chuyển bản cũ chỉ vào gia đình trống, xác thực cả tài khoản và mật khẩu cũ, tải backup rồi xác nhận; không ghi đè nguồn hay đích đã có dữ liệu. Bật push lại sau khi chuyển. Trình duyệt dùng một đăng ký push cho gia đình bật gần nhất.
+
+Tiền tệ giữ riêng AUD/VND; không quy đổi hóa đơn cũ. Giá dự toán lấy từ giá nhập hoặc receipt đã xác nhận cùng currency/đơn vị. Việt Nam dùng Asia/Ho_Chi_Minh; lịch nhắc Sydney vẫn giữ Australia/Sydney cho gia đình chưa đổi.
+
+Offline: đăng nhập và để tải đủ một lần; vào Bếp của tôi để kiểm tra trạng thái sẵn sàng offline. Phiên thường tối đa 8 giờ (mở lại offline trong cùng phiên trình duyệt); tin cậy tối đa 30 ngày. Thực đơn, món riêng, lịch, tủ thực phẩm, tick đi chợ, Notes, ghi receipt/ảnh thủ công và thống kê trên dữ liệu đã tải hoạt động trên máy. Thay đổi còn chờ đồng bộ được giữ qua tải lại; đồng bộ dùng etag và dừng nếu người khác đã thay đổi. Hết hạn quyền hoặc logout thì phải đăng nhập online lại. Thu hồi từ máy khác chỉ được biết khi thiết bị kết nối lại.
+
+Tài khoản/lời mời/khôi phục, gửi và nhận push/tin khẩn, thời tiết, mic nhận dạng trình duyệt, tải OCR và website cửa hàng/Messenger cần mạng. App báo lúc dùng. Ảnh receipt offline vẫn giữ được và nhập dòng bằng tay. Không hứa gửi thông báo lịch khi máy hoàn toàn offline. Voice chỉ nghe khi bấm bật và luôn có bản xem lại; có thể dùng bàn phím/đọc chính tả của hệ điều hành thay thế.
+
+QA hiện tại là test backend/service worker với network và push được mock cùng review giao diện offline mô phỏng. Chưa mở đăng ký trên production, chưa thay cấu hình Netlify, chưa thử mic/push/chế độ máy bay trên iPhone thật. Sau khi chủ nhà nói Deploy cho bản này, cần kiểm tra các bước đó trên deployment trước khi giới thiệu dùng rộng.
