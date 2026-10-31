@@ -29,3 +29,7 @@ WebKit testing was attempted, but the browser cannot launch because this worker 
 - `src/netlify/lib`: password/session hashing, live household membership/scoping, signed offline grants, login HTML, push routing/limits, announcement persistence and weather caching. Edge gate protects pages/assets.
 - `src/tests`: calculation, backend/auth/isolation, planning, voice/currencies and real service-worker logic under synthetic transports, plus startup browser regressions.
 - `src/scripts`: reproducible compiler-output copy and script/offline-artifact checks. HTML/CSS, image assets and existing deployment paths remain in place.
+
+## Follow-up: personal login before entering the app
+
+Owner clarified that login uses an individual account; desktop behavior is unknown. Added regression coverage for an authenticated account with no household: backend status remains connected in account mode with a signed offline grant, and browser startup renders create/join forms with no runtime errors. Screenshot: `new-account.png`. This case passes locally and does not establish the exact exception in the affected live Safari session. Production remains unchanged.

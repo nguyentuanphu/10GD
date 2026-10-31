@@ -11,7 +11,7 @@ async function main() {
   mkdirSync(screenshots, { recursive: true });
   const browser = await (process.env.QA_BROWSER === 'webkit' ? webkit : chromium).launch();
   try {
-    async function open({ account = false, fault = '', baseline = false, viewport = { width: 375, height: 812 } } = {}) {
+    async function open({ account = false, noHousehold = false, fault = '', baseline = false, viewport = { width: 375, height: 812 } } = {}) {
       const context = await browser.newContext({ viewport, serviceWorkers: 'block', reducedMotion: 'reduce' });
       await context.addInitScript(() => localStorage.setItem('qa-preserved', 'family-data-kept'));
       const page = await context.newPage();
@@ -22,7 +22,7 @@ async function main() {
         const path = new URL(route.request().url()).pathname;
         if (path.startsWith('/.netlify/')) {
           const op = new URL(route.request().url()).searchParams.get('op');
-          const status = { configured: true, connected: true, mode: account ? 'account' : 'legacy', ...(account ? { account: { username: 'qa', name: 'QA' }, household: { id: 'qa', name: 'QA kitchen', role: 'owner' } } : {}) };
+          const status = { configured: true, connected: true, mode: account ? 'account' : 'legacy', ...(account ? { account: { username: 'qa', name: 'QA' }, household: noHousehold ? null : { id: 'qa', name: 'QA kitchen', role: 'owner' } } : {}) };
           await route.fulfill({ json: op === 'status' ? status : op === 'state' ? { state: null, etag: null } : { announcements: [], devices: [] } });
           return;
         }
@@ -93,6 +93,13 @@ async function main() {
     await timeout.page.getByRole('alert').waitFor();
     assert.match(await timeout.page.getByRole('alert').innerText(), /quá lâu/);
     await timeout.context.close();
+    const newcomer = await open({ account: true, noHousehold: true });
+    await newcomer.page.locator('#account-create').waitFor();
+    await newcomer.page.locator('#account-join').waitFor();
+    assert.deepEqual(newcomer.errors, []);
+    await newcomer.page.screenshot({ path: `${screenshots}/new-account.png`, fullPage: true });
+    await newcomer.context.close();
+    console.log('PASS personal account with no household shows create/join forms');
     const legacy = await open();
     await legacy.page.waitForFunction(() => (document.querySelector('#main')?.textContent?.length || 0) > 500);
     await legacy.context.close();

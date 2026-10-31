@@ -11,6 +11,8 @@ const call=(op,options)=>accounts(request('accounts',op,options));
 const password='synthetic-account-passphrase-42';
 async function register(username){const r=await call('register',{method:'POST',body:{username,name:username,password,trust:true}});assert.equal(r.status,201);const data=await r.json();assert.equal(data.account.username,username);assert.equal(data.password,undefined);assert.match(r.headers.get('set-cookie'),/HttpOnly.*Secure.*SameSite/);return{cookie:r.headers.get('set-cookie'),...data}}
 const alice=await register('alice'),bob=await register('bob'),cara=await register('cara');
+const newAccountStatus=await family(request('family','status',{cookie:alice.cookie}));
+assert.equal(newAccountStatus.status,200);const newcomerStatus=await newAccountStatus.json();assert.equal(newcomerStatus.mode,'account');assert.equal(newcomerStatus.connected,true);assert.equal(newcomerStatus.household,null);assert.ok(newcomerStatus.offlineGrant);
 assert.equal((await call('register',{method:'POST',body:{username:'alice',name:'copy',password}})).status,409);
 assert.equal((await call('register',{method:'POST',body:{username:'constructor',name:'bad',password}})).status,400);
 assert.equal((await call('login',{method:'POST',body:{username:'alice',password:'wrong'}})).status,401);
