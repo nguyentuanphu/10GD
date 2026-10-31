@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "preserve",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "strict": true,
+    "types": [],
+    "outDir": "dist",
+    "sourceMap": true,
+    "noEmitOnError": true,
+    "rootDir": "src/frontend"
+  },
+  "files": [
+    "src/frontend/bootstrap.ts"
+  ]
+}

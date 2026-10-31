@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "preserve",
+    "moduleDetection": "legacy",
+    "rootDir": "src/frontend",
+    "outDir": "dist",
+    "noCheck": true,
+    "sourceMap": true
+  },
+  "include": [
+    "src/frontend/*.ts"
+  ],
+  "exclude": [
+    "src/frontend/bootstrap.ts"
+  ]
+}

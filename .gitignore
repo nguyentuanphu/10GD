@@ -6,3 +6,16 @@ node_modules/
 .DS_Store
 
 .openai/
+
+# JavaScript is generated from src TypeScript; do not edit outputs.
+.compiled/
+dist/*.js
+dist/*.js.map
+netlify/**/*.js
+netlify/**/*.mjs
+netlify/**/*.map
+scripts/*.cjs
+scripts/*.map
+tests/**/*.cjs
+tests/**/*.mjs
+tests/**/*.map

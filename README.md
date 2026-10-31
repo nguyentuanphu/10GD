@@ -1,6 +1,6 @@
 # Bếp Gia Đình · v1.4
 
-Family meal planning, shopping and receipts, built with HTML/CSS/Vanilla JavaScript and a Netlify backend.
+Family meal planning, shopping and receipts, built with HTML/CSS, TypeScript sources and a Netlify backend. JavaScript files in deployment directories are generated build outputs.
 
 ## What is included
 
@@ -31,8 +31,10 @@ Full instructions are in [NETLIFY-SETUP.md](NETLIFY-SETUP.md). A drag-and-drop u
 
 ```sh
 npm ci
-npm run check
+npm run check  # builds TypeScript, checks scripts and offline assets
 npm test
+npx playwright install chromium
+npm run test:browser
 ```
 
 Tests cover meal quantities, inventory and undo, recipe variants, remembered sale units, unknown weights/prices, store preferences, weekday ranking, receipt matching/prices, authentication, conditional writes, push recipients, Sydney daylight saving and reminder deduplication. Push transport is mocked in tests; delivery to real phones must be verified after Netlify deployment.
@@ -91,3 +93,11 @@ Offline grants are signed with an ECDSA server key held in private Blobs storage
 Tests include household isolation, recovery/revocation, concurrent invite acceptance, migration/photo copying without overwrite, currency separation, voice parsing, actual service-worker offline fetch logic, offline edit persistence and reconnect conflict handling. All network transport in tests is mocked; no family notifications/SMS were sent. Browser evidence covers the walkthrough, VI/EN UI, voice preview/confirm/undo and offline-mode shopping/manual VND spending. Physical iPhone mic/push/airplane-mode verification is pending an approved Netlify release.
 
 The header now shows an animated, labelled Online/Offline icon and a direct VI↔EN language button. Motion respects prefers-reduced-motion. AGENTS.md requires mobile/tablet/PC review and saved evidence for every UI release. This review checked 375×828, 820×1100 and 1363×936 browser viewports and corrected overlapping English day labels. Simulated tablet pointer automation had a coordinate limitation; keyboard activation and DOM hit-target checks were used there. Physical device testing is not claimed.
+
+## TypeScript development
+
+Edit only `src/frontend/*.ts`, `src/netlify/**/*.mts` (and Edge `.ts`), `src/tests/*.{cts,mts}` and `src/scripts/*.cts` for application, test and tooling code. HTML/CSS, artwork and recipe data are retained. `npm run build` generates the public JS in `dist`, backend JS in `netlify`, and executable tests/scripts; these outputs are ignored by Git. The compiler does not bundle the legacy browser scripts: global scope and load order remain compatible with the application and service worker. Netlify's existing `npm run check` command performs this build before publication. Run the build before running tests or a static local server.
+
+`npm run typecheck` strictly checks the new startup entry point. **The migration is not a claim of full-project type safety:** legacy dynamic globals, backend, tests and tooling are currently transpiled with `noCheck` in the other configurations. They need explicit domain types and module boundaries before full type checking can be enabled. No `any` annotations or disabled test assertions were added to hide type errors.
+
+For local development after `npm run build`, serve `dist` with `python3 -m http.server 8000 --bind 127.0.0.1 --directory dist`. Backend integration tests use synthetic storage and mock transports. The browser startup regression test uses an intercepted synthetic origin and never signs into the live site or sends real family notifications.
