@@ -10,7 +10,7 @@ export async function editRecord(store,key,fn){for(let i=0;i<8;i++){const row=aw
 export async function resolveAccount(request,getStore,now=Date.now()){
  const token=cookieToken(request);if(!/^[\w-]{43}$/.test(token))return null;const store=accountStore(getStore),session=await store.get('sessions/'+hash(token),{type:'json'});if(!session||session.expires<=now)return null;const account=await store.get('users/'+session.username,{type:'json'});if(!account||account.epoch!==session.epoch)return null;const household=session.householdId?await store.get('families/'+session.householdId,{type:'json'}):null,member=household?.members?.[account.username];return{store,session,account,household:member?household:null,member,sessionKey:'sessions/'+hash(token)};
 }
-const publicUser=a=>({username:a.username,name:a.name,email:a.email||null,emailVerified:!!a.emailVerifiedAt,pendingEmail:a.pendingEmail||null});
+const publicUser=a=>({username:a.username,name:a.name,email:a.email||null});
 export const publicContext=c=>({connected:!!c,account:c?publicUser(c.account):null,household:c?.household?{id:c.household.id,name:c.household.name,role:c.member.role,memberId:c.member.memberId||null}:null});
 async function passwordHash(password,salt=randomBytes(16).toString('hex')){const key=await derive(password,salt,64,{N:131072,r:8,p:1,maxmem:160*1024*1024});return{salt,key:key.toString('hex')}}
 async function passwordMatches(password,record){const candidate=await passwordHash(password,record.salt);return timingSafeEqual(Buffer.from(candidate.key,'hex'),Buffer.from(record.key,'hex'))}
@@ -30,13 +30,6 @@ export function createAccountsHandler({getStoreFn,signupFn=()=>process.env.ALLOW
  if(op==='logout'&&request.method==='POST'){if(context)await store.delete(context.sessionKey);return json({connected:false},200,{'Set-Cookie':`${ACCOUNT_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`})}
  let body={};if(request.method==='POST'){const raw=await request.text();if(raw.length>20000)fail('Yêu cầu quá lớn.',413);body=JSON.parse(raw)}
  // Mail tokens are random bearer credentials. Only hashes are stored server-side.
- async function sendVerification(account,email){
-  const version=randomUUID(),updated=await editRecord(store,'users/'+account.username,a=>{if(a.epoch!==account.epoch)fail('Đăng nhập lại trước khi đổi email.',401);return{...a,pendingEmail:email,pendingEmailVersion:version}});
-  if(!mailer.configured())return{sent:false,account:publicUser(updated)};
-  const token=newMailToken(),key='mail-tokens/'+digestToken(token);
-  await store.setJSON(key,{kind:'verify',username:account.username,email,version,epoch:account.epoch,expires:nowFn()+24*3600000},{onlyIfNew:true});
-  try{await mailer.send('verify',email,token);return{sent:true,account:publicUser(updated)}}catch{await store.delete(key);return{sent:false,account:publicUser(updated)}}
- }
  async function mailToken(kind){
   const token=String(body.token||'');if(!/^[\w-]{43}$/.test(token))fail('Liên kết không hợp lệ hoặc đã hết hạn. Yêu cầu một liên kết mới.');
   const key='mail-tokens/'+digestToken(token),record=await store.get(key,{type:'json'});
@@ -47,27 +40,20 @@ export function createAccountsHandler({getStoreFn,signupFn=()=>process.env.ALLOW
   await rate(store,request,'request-reset',5,900000);
   if(!mailer.configured())return json({error:'Khôi phục qua email đang tạm ngưng. Vui lòng thử lại sau.'},503);
   const name=String(body.username||'').toLowerCase().trim(),user=username(name)?await store.get('users/'+name,{type:'json'}):null;
-  // Always return the same accepted response; unverified email cannot recover an account.
-  if(user?.emailVerifiedAt&&validEmail(user.email)){
-   try{await rate(store,request,'reset-user-'+hash(name),3,900000)}catch(e){if(e.status===429)return json({accepted:true,message:'Nếu tài khoản có email đã xác minh, yêu cầu khôi phục sẽ được xử lý. Kiểm tra hộp thư và thư rác; nếu chưa nhận được thư, hãy thử lại sau.'},202);throw e}
+  // Always return the same accepted response; the emailed one-use link is the proof required to reset a password.
+  if(user&&validEmail(user.email)){
+   try{await rate(store,request,'reset-user-'+hash(name),3,900000)}catch(e){if(e.status===429)return json({accepted:true,message:'Nếu tài khoản có email khôi phục, yêu cầu khôi phục sẽ được xử lý. Kiểm tra hộp thư và thư rác; nếu chưa nhận được thư, hãy thử lại sau.'},202);throw e}
    const token=newMailToken(),key='mail-tokens/'+digestToken(token);
    await store.setJSON(key,{kind:'reset',username:name,email:user.email,epoch:user.epoch,expires:nowFn()+900000},{onlyIfNew:true});
    try{await mailer.send('reset',user.email,token)}catch{await store.delete(key)}
   }
-  return json({accepted:true,message:'Nếu tài khoản có email đã xác minh, yêu cầu khôi phục sẽ được xử lý. Kiểm tra hộp thư và thư rác; nếu chưa nhận được thư, hãy thử lại sau.'},202);
+  return json({accepted:true,message:'Nếu tài khoản có email khôi phục, yêu cầu khôi phục sẽ được xử lý. Kiểm tra hộp thư và thư rác; nếu chưa nhận được thư, hãy thử lại sau.'},202);
  }
- if(op==='verify-email'&&request.method==='POST'){
-  await rate(store,request,'verify-email',12,900000);const {key,record}=await mailToken('verify');
-  const user=await store.get('users/'+record.username,{type:'json'});
-  if(!user||user.epoch!==record.epoch||user.pendingEmail!==record.email||user.pendingEmailVersion!==record.version)fail('Liên kết đã được thay thế. Yêu cầu xác minh lại email.');
-  await editRecord(store,key,t=>{if(!t||t.usedAt!==undefined||t.expires<=nowFn())fail('Liên kết đã dùng hoặc hết hạn.');return{...t,usedAt:nowFn()}});
-  await editRecord(store,'users/'+record.username,a=>{if(a.epoch!==record.epoch||a.pendingEmailVersion!==record.version)fail('Liên kết đã được thay thế.');const next={...a,email:record.email,emailVerifiedAt:nowFn()};delete next.pendingEmail;delete next.pendingEmailVersion;return next});
-  return json({verified:true});
- }
+ if(op==='verify-email')return json({error:'Không cần xác minh email để tạo tài khoản.'},410);
  if(op==='complete-reset'&&request.method==='POST'){
   await rate(store,request,'complete-reset',10,900000);if(!validPassword(body.password))fail('Mật khẩu phải dài từ 12 đến 128 ký tự.');
   const {key,record}=await mailToken('reset'),user=await store.get('users/'+record.username,{type:'json'});
-  if(!user||user.epoch!==record.epoch||user.email!==record.email||!user.emailVerifiedAt)fail('Liên kết đã được thay thế. Yêu cầu đặt lại mật khẩu.');
+  if(!user||user.epoch!==record.epoch||user.email!==record.email)fail('Liên kết đã được thay thế. Yêu cầu đặt lại mật khẩu.');
   const password=await passwordHash(body.password),recoveryCode=randomBytes(24).toString('base64url');
   await editRecord(store,key,t=>{if(!t||t.usedAt!==undefined||t.expires<=nowFn())fail('Liên kết đã dùng hoặc hết hạn.');return{...t,usedAt:nowFn()}});
   await editRecord(store,'users/'+record.username,a=>{if(a.epoch!==record.epoch||a.email!==record.email)fail('Liên kết đã được thay thế.');const next={...a,password,recoveryHash:hash(recoveryCode),epoch:randomUUID()};delete next.pendingEmail;delete next.pendingEmailVersion;return next});
@@ -78,9 +64,9 @@ export function createAccountsHandler({getStoreFn,signupFn=()=>process.env.ALLOW
  const name=String(body.username||'').toLowerCase().trim();if(!username(name)||typeof body.password!=='string'||body.password.length>128)fail('Kiểm tra tên đăng nhập và mật khẩu.');
  let account=await store.get('users/'+name,{type:'json'});
  if(op==='register'){
- if(body.email!==undefined&&!validEmail(body.email))fail('Nhập địa chỉ email hợp lệ.');
+ if(body.email!==undefined&&body.email!==''&&!validEmail(body.email))fail('Nhập địa chỉ email hợp lệ.');
  if(!signupFn())fail('Đăng ký mới đang tắt.',403);if(!validPassword(body.password)||typeof body.name!=='string'||!body.name.trim()||body.name.length>80)fail('Tên hiển thị và mật khẩu từ 12–128 ký tự là bắt buộc.');
- const recoveryCode=randomBytes(24).toString('base64url');account={username:name,name:body.name.trim(),password:await passwordHash(body.password),recoveryHash:hash(recoveryCode),epoch:randomUUID(),createdAt:new Date().toISOString()};const saved=await store.setJSON('users/'+name,account,{onlyIfNew:true});if(!saved.modified)fail('Tên đăng nhập không khả dụng.',409);const emailVerification=body.email?await sendVerification(account,body.email.trim().toLowerCase()):null;return json({account:publicUser(account),recoveryCode,emailVerification},201,{'Set-Cookie':await startSession(store,account,body.trust===true)});
+ const recoveryCode=randomBytes(24).toString('base64url');account={username:name,name:body.name.trim(),...(body.email?{email:body.email.trim().toLowerCase()}:{}),password:await passwordHash(body.password),recoveryHash:hash(recoveryCode),epoch:randomUUID(),createdAt:new Date().toISOString()};const saved=await store.setJSON('users/'+name,account,{onlyIfNew:true});if(!saved.modified)fail('Tên đăng nhập không khả dụng.',409);return json({account:publicUser(account),recoveryCode},201,{'Set-Cookie':await startSession(store,account,body.trust===true)});
  }
  if(op==='recover'){
  if(!validPassword(body.password)||!account||typeof body.recoveryCode!=='string'||!timingSafeEqual(Buffer.from(hash(body.recoveryCode)),Buffer.from(account.recoveryHash)))fail('Thông tin khôi phục không đúng.',401);
@@ -92,7 +78,7 @@ export function createAccountsHandler({getStoreFn,signupFn=()=>process.env.ALLOW
  }
  if(!context)fail('Cần đăng nhập tài khoản.',401);
  const {account}=context;
- if(op==='set-email'&&request.method==='POST'){await rate(store,request,'set-email',5,900000);if(!validEmail(body.email)||typeof body.password!=='string'||body.password.length>128||!await passwordMatches(body.password,account.password))fail('Kiểm tra email và mật khẩu hiện tại.',400);return json(await sendVerification(account,body.email.trim().toLowerCase()))}
+ if(op==='set-email'&&request.method==='POST'){await rate(store,request,'set-email',5,900000);if((body.email!==''&&!validEmail(body.email))||typeof body.password!=='string'||body.password.length>128||!await passwordMatches(body.password,account.password))fail('Kiểm tra email và mật khẩu hiện tại.',400);const updated=await editRecord(store,'users/'+account.username,a=>{if(a.epoch!==account.epoch)fail('Đăng nhập lại.',401);const next={...a};if(body.email)next.email=body.email.trim().toLowerCase();else delete next.email;delete next.emailVerifiedAt;delete next.pendingEmail;delete next.pendingEmailVersion;return next});return json({saved:true,account:publicUser(updated)})}
  if(op==='families'&&request.method==='GET'){const families=[];for await(const page of store.list({prefix:'families/',paginate:true}))for(const row of page.blobs){const f=await store.get(row.key,{type:'json'});if(f?.members?.[account.username])families.push({id:f.id,name:f.name,role:f.members[account.username].role})}return json({families,...publicContext(context)})}
  if(op==='create-family'&&request.method==='POST'){
  if(typeof body.name!=='string'||!body.name.trim()||body.name.length>80)fail('Nhập tên gia đình (tối đa 80 ký tự).');await rate(store,request,'create-family',5,86400000);

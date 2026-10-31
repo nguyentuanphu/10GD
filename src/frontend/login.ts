@@ -9,7 +9,7 @@ const field=(id:string):HTMLInputElement=>node<HTMLInputElement>(id);
 function changeMode(next:AuthMode):void {
  if(busy)return;mode=next;
  form.hidden=false;node('recovery').hidden=true;
- node('registration-fields').hidden=mode!=='register';field('name').disabled=mode!=='register';field('email').disabled=mode!=='register';field('name').required=mode==='register';field('email').required=mode==='register';
+ node('registration-fields').hidden=mode!=='register';field('name').disabled=mode!=='register';field('email').disabled=mode!=='register';field('name').required=mode==='register';field('email').required=false;
  node('recovery-field').hidden=mode!=='recover';field('recoveryCode').disabled=mode!=='recover';field('recoveryCode').required=mode==='recover';
  const requesting=mode==='request-reset';
  // Visibility reserves geometry: username/password/buttons stay in the same place.
@@ -20,12 +20,12 @@ function changeMode(next:AuthMode):void {
  field('password').minLength=['register','reset','recover'].includes(mode)?12:1;
  field('password').autocomplete=mode==='login'?'current-password':'new-password';
  node('mode-note').hidden=['register','recover'].includes(mode);
- node('mode-note').textContent=requesting?'Nhập tên đăng nhập. Nếu tài khoản có email đã xác minh, hướng dẫn đặt lại mật khẩu sẽ được gửi.':mode==='reset'?'Đặt mật khẩu mới. Các phiên đăng nhập cũ sẽ hết hiệu lực khi bạn hoàn tất.':'Mỗi người dùng một tài khoản riêng. Bạn có thể tạo hoặc tham gia gia đình sau khi đăng nhập.';
+ node('mode-note').textContent=requesting?'Nhập tên đăng nhập. Nếu tài khoản có email khôi phục, hướng dẫn đặt lại mật khẩu sẽ được gửi.':mode==='reset'?'Đặt mật khẩu mới. Các phiên đăng nhập cũ sẽ hết hiệu lực khi bạn hoàn tất.':'Mỗi người dùng một tài khoản riêng. Bạn có thể tạo hoặc tham gia gia đình sau khi đăng nhập.';
  node('submit').textContent=mode==='register'?'Tạo tài khoản':requesting?'Gửi email khôi phục':['reset','recover'].includes(mode)?'Đặt mật khẩu mới':'Đăng nhập';
  node('error').textContent='';
  tabs.forEach(tab=>tab.setAttribute('aria-selected',String(tab.dataset.mode===mode)));
 }
-interface AuthResponse {error?:unknown;recoveryCode?:string;emailVerification?:{sent?:boolean};message?:string;verified?:boolean}
+interface AuthResponse {error?:unknown;recoveryCode?:string;message?:string}
 async function request(op:string,body:Record<string,unknown>):Promise<AuthResponse> {
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
  try {
@@ -40,7 +40,7 @@ tabs.forEach(tab=>{
  tab.onkeydown=event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();const other=tabs.find(t=>t!==tab);other?.focus();other?.click()}};
 });
 node('forgot').onclick=()=>changeMode('request-reset');node('backup').onclick=()=>changeMode('recover');
-node('continue').onclick=()=>location.replace(mode==='recover'||mode==='reset'?'/login?locked=1':'/');
+node('continue').onclick=()=>location.replace(mode==='recover'||mode==='reset'?'/login?locked=1':'/?connect=1');
 form.addEventListener('submit',async event=>{
  event.preventDefault();if(busy)return;const submittedMode=mode;
  busy=true;const button=node<HTMLButtonElement>('submit');button.disabled=true;tabs.forEach(t=>t.disabled=true);node('error').textContent='';
@@ -48,29 +48,25 @@ form.addEventListener('submit',async event=>{
   const payload:Record<string,unknown>={};
   if(submittedMode!=='reset')payload.username=field('username').value;
   if(submittedMode!=='request-reset')payload.password=field('password').value;
-  if(submittedMode==='register'){payload.name=field('name').value;payload.email=field('email').value;}
+  if(submittedMode==='register'){payload.name=field('name').value;if(field('email').value.trim())payload.email=field('email').value.trim();}
   if(submittedMode==='recover')payload.recoveryCode=field('recoveryCode').value;
   if(submittedMode==='login'||submittedMode==='register')payload.trust=field('trust').checked;
   if(submittedMode==='reset')payload.token=resetToken;
   const data=await request(submittedMode==='reset'?'complete-reset':submittedMode,payload);
-  if(submittedMode==='request-reset'){node('error').textContent=String(data.message||'Nếu tài khoản có email đã xác minh, hướng dẫn sẽ được gửi.');return}
-  field('password').value='';field('recoveryCode').value='';try{localStorage.removeItem('bep-local-locked')}catch{}
+  if(submittedMode==='request-reset'){node('error').textContent=String(data.message||'Nếu tài khoản có email khôi phục, hướng dẫn sẽ được gửi.');return}
+  field('password').value='';field('recoveryCode').value='';try{localStorage.removeItem('bep-local-locked');if(submittedMode==='login'||submittedMode==='register')localStorage.setItem('bep-account-present','yes');else localStorage.removeItem('bep-account-present')}catch{}
   if(typeof data.recoveryCode==='string'){
    form.hidden=true;node('recovery').hidden=false;node('recovery-value').textContent=data.recoveryCode;
    node('result-title').textContent='Lưu mã khôi phục dự phòng';
-   node('result-message').textContent=data.emailVerification?.sent?'Đã gửi email xác minh. Mã dự phòng dưới đây chỉ hiện lần này; lưu riêng và không chia sẻ.':submittedMode==='register'?'Tài khoản đã được tạo. Chưa gửi được email xác minh; bạn có thể thêm/xác minh email trong Tài khoản sau. Hãy lưu mã dự phòng này.':'Mật khẩu đã được đổi và các phiên cũ đã bị thu hồi. Lưu mã dự phòng mới; mã trước đã hết hiệu lực.';
+   node('result-message').textContent=submittedMode==='register'?'Tài khoản đã được tạo. Không cần xác minh email. Hãy lưu mã khôi phục dự phòng này.':'Mật khẩu đã được đổi và các phiên cũ đã bị thu hồi. Lưu mã dự phòng mới; mã trước đã hết hiệu lực.';
    return;
   }
   const target=new URLSearchParams(location.search).get('return')||'/';
-  location.replace(target.startsWith('/')&&!target.startsWith('//')&&!target.startsWith('/login')&&!target.startsWith('/.netlify/')?target+location.hash:'/'+location.hash);
+  const destination=target.startsWith('/')&&!target.startsWith('//')&&!target.startsWith('/login')&&!target.startsWith('/.netlify/')?target+location.hash:'/'+location.hash;let next=new URL(destination,location.origin);if(next.origin!==location.origin||next.pathname.startsWith('/login')||next.pathname.startsWith('/.netlify/'))next=new URL('/'+location.hash,location.origin);next.searchParams.set('connect','1');location.replace(next.href);
  } catch(error){node('error').textContent=error instanceof Error?error.message:'Chưa kết nối được. Hãy thử lại khi có mạng.'}
  finally{busy=false;button.disabled=false;tabs.forEach(t=>t.disabled=false)}
 });
-const parameters=new URLSearchParams(location.search),verificationToken=parameters.get('verify');resetToken=parameters.get('reset')||'';
-if(verificationToken||resetToken){history.replaceState(null,'','/login?locked=1');}
+const parameters=new URLSearchParams(location.search);resetToken=parameters.get('reset')||'';
+if(resetToken)history.replaceState(null,'','/login?locked=1');
 changeMode(resetToken?'reset':'login');
-if(verificationToken){
- busy=true;tabs.forEach(t=>t.disabled=true);node<HTMLButtonElement>('submit').disabled=true;
- void request('verify-email',{token:verificationToken}).then(()=>{node('error').textContent='Email đã được xác minh. Bạn có thể đăng nhập.'}).catch(error=>{node('error').textContent=error instanceof Error?error.message:'Chưa xác minh được email.'}).finally(()=>{busy=false;tabs.forEach(t=>t.disabled=false);node<HTMLButtonElement>('submit').disabled=false});
-}
 export {};

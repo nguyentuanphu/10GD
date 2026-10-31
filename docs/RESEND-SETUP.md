@@ -1,13 +1,16 @@
-# Email recovery setup for 10GD
+# Optional password-reset email with Resend
 
-Code is prepared; real delivery requires your Resend account, a verified sender and Netlify runtime variables. Do not paste API keys in chat or commit them.
+The website and account creation work without mail configuration. Email is optional at sign-up, and no user-verification email is sent. A supplied address receives mail only when password recovery is requested. The reset link is random, expires after 15 minutes and can be used once. Keep the one-time backup recovery code too.
 
-1. Create a Resend account and verify a domain you control, using the DNS records provided by Resend. Use a sender address under that verified domain. The shared testing sender is not suitable for recovery mail to arbitrary public users.
-2. Create a Resend API key with sending permission for that domain. In the 10GD site's Netlify environment settings, add `RESEND_API_KEY` securely with Functions runtime scope.
-3. Add `AUTH_EMAIL_FROM` as the verified sender (optionally including the display name “Bếp Gia Đình”). Set `AUTH_PUBLIC_URL` to `https://10gd.netlify.app` for the production recovery/verification link origin. No sender address or API key is invented by the application.
-4. Deploy the reviewed application after owner approval. Verify delivery to a mailbox you control: register, save the one-time backup code, receive and open the email verification link, request a reset, open the reset link and change the password. Check spam/junk too. Confirm old password/session rejection and that the reset link cannot be reused.
-5. Existing accounts have no automatically verified email. After login, open “Tài khoản & email”, enter the address and current password, then open the verification message. Until that completes, use the saved backup recovery code if needed.
+For real reset delivery:
 
-If keys/sender are missing, email-reset requests report that recovery is temporarily unavailable. Registration can still succeed and displays the unsent verification state with a backup recovery code. A provider failure does not mark an address verified. Passwords are never included in messages. Verification is mailbox ownership confirmation, not an added second factor at each login.
+1. Create a Resend account and verify a sending domain you control, using Resend's DNS records. This provider/sender requirement is separate from end-user verification. The shared testing sender cannot support arbitrary public recipients.
+2. Add `RESEND_API_KEY` securely in the 10GD Netlify site's Functions runtime settings, with sending permission for that domain. Do not paste keys in chat or commit them.
+3. Set `AUTH_EMAIL_FROM` to an address under the verified sending domain and `AUTH_PUBLIC_URL` to `https://10gd.netlify.app`.
+4. Deploy the specifically reviewed release after owner approval. Test with an account and mailbox you control: register without a verification step, request a reset, open the emailed link, change the password and verify that the old password/session/link no longer works.
 
-The retired `FAMILY_PASSWORD` variable is no longer read. It can be removed from Netlify settings; existing account/household records are retained.
+Existing users can save/change/remove a recovery address in Account & family using their current password. Use an address you own and check it carefully. No address confirmation is required before using the site or account. If mail is unconfigured, only email-reset requests report temporary unavailability; device tools, sign-up and backup-code recovery remain usable. No 2FA has been added.
+
+Guest data stays in the current browser and can be backed up manually. Cloud storage/sync belongs to a selected account/family workspace; creating an account alone does not silently upload or merge guest work.
+
+The retired `FAMILY_PASSWORD` variable is no longer read. Existing account/household data is retained.

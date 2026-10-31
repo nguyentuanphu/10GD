@@ -6,7 +6,7 @@ declare function readOfflineAccess(): Promise<SessionStatus | null>;
 interface SessionStatus {
   configured?: boolean;
   connected: boolean;
-  mode?: 'legacy' | 'account';
+  mode?: 'guest' | 'account';
   household?: { id: string; role: string; memberId?: string };
 }
 interface Window {
@@ -93,30 +93,26 @@ interface Window {
     } finally { clearTimeout(timer); }
   };
   try {
-    try {
-      if (localStorage.getItem('bep-local-locked') === 'yes') {
-        location.replace('/login?locked=1'); return;
-      }
-    } catch { /* Storage can be unavailable; authentication still runs. */ }
-    if (!local) {
-      try {
-        const response = await statusRequest();
-        if ([401,403].includes(response.status)) {
-          clearOfflineAccess(); showFailure('Cần đăng nhập lại. / Please sign in again.'); return;
-        }
-        if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('Status unavailable');
-        const status: SessionStatus = await response.json();
-        if (!status.configured || !status.connected) {
-          clearOfflineAccess(); location.replace('/login?return=' + encodeURIComponent(location.pathname) + location.hash); return;
-        }
-        window.BEP_SESSION = status;
-        await rememberOfflineAccess(status);
-        try { sessionStorage.setItem('bep-access-checked', 'yes'); } catch { /* Optional marker. */ }
-      } catch {
-        const offline = await readOfflineAccess();
-        if (!offline) { showFailure('Cần mạng để kiểm tra đăng nhập. Thử lại khi có kết nối. / Connect to the internet and retry.'); return; }
-        window.BEP_SESSION = offline;
-        window.BEP_OFFLINE = true;
+    let deviceOnly=new URLSearchParams(location.search).get('mode')==='guest';
+    if(deviceOnly)try{localStorage.setItem('bep-local-locked','yes')}catch{}
+    try{deviceOnly ||= localStorage.getItem('bep-local-locked')==='yes'}catch{}
+    window.BEP_SESSION={configured:true,connected:false,mode:'guest'};
+    if(deviceOnly)clearOfflineAccess();
+    let wantsAccount=new URLSearchParams(location.search).get('connect')==='1';
+    try{wantsAccount ||= localStorage.getItem('bep-account-present')==='yes'||!!localStorage.getItem('bep-offline-access-v1')}catch{}
+    window.BEP_OFFLINE=!navigator.onLine;
+    if(!local&&!deviceOnly&&wantsAccount){
+      try{
+        const response=await statusRequest();
+        if(response.ok){
+          const status:SessionStatus=await response.json();
+          if(status.connected&&status.mode==='account'){window.BEP_SESSION=status;try{localStorage.setItem('bep-account-present','yes')}catch{}await rememberOfflineAccess(status)}
+          else clearOfflineAccess();
+        }else if([401,403].includes(response.status))clearOfflineAccess();
+      }catch{
+        const offline=await readOfflineAccess();
+        if(offline)window.BEP_SESSION=offline;
+        window.BEP_OFFLINE=!navigator.onLine||!!offline;
       }
     }
     // Fetch a single authenticated source pack. Each classic script is still
@@ -154,7 +150,7 @@ interface Window {
     document.querySelector('#startup-progress')?.remove();
     document.querySelector('main')?.removeAttribute('aria-busy');
     if (!document.querySelector('#main')?.textContent?.trim()) throw new Error('Ứng dụng chưa hiển thị nội dung. Hãy thử lại. / The app did not render; please retry.');
-    if (!local) {
+    if (!local && window.BEP_SESSION?.mode==='account') {
       let checking = false;
       const check = async (): Promise<void> => {
         if (checking || failed) return;
@@ -163,19 +159,19 @@ interface Window {
         try {
           const response = await statusRequest();
           if ([401,403].includes(response.status)) {
-            clearOfflineAccess(); showFailure('Cần đăng nhập lại. / Please sign in again.'); return;
+            clearOfflineAccess(); location.replace('/?mode=guest'); return;
           }
           const status: SessionStatus | null = response.ok ? await response.json() : null;
           if (status?.connected && status.mode === 'account' &&
             (status.household?.id !== window.BEP_SESSION?.household?.id || status.household?.role !== window.BEP_SESSION?.household?.role || status.household?.memberId !== window.BEP_SESSION?.household?.memberId)) {
             location.reload(); return;
           }
-          if (response.ok && !status?.connected) { clearOfflineAccess(); location.replace('/login'); return; }
+          if (response.ok && !status?.connected) { clearOfflineAccess(); location.replace('/?mode=guest'); return; }
           if (status) { await rememberOfflineAccess(status); window.BEP_OFFLINE = false; }
-          else if (!await readOfflineAccess()) showFailure('Cần kết nối lại để đăng nhập. / Reconnect to sign in.');
+          else if (!await readOfflineAccess()) {clearOfflineAccess();location.replace('/?mode=guest');}
           else window.BEP_OFFLINE = true;
         } catch {
-          if (!await readOfflineAccess()) showFailure('Cần mạng để kiểm tra phiên đăng nhập. / Reconnect to verify your session.');
+          if (!await readOfflineAccess()) {clearOfflineAccess();location.replace('/?mode=guest');}
           else window.BEP_OFFLINE = true;
         } finally {
           checking = false;

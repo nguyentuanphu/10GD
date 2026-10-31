@@ -1,7 +1,7 @@
 'use strict';
 const $=(s,p=document)=>p.querySelector(s),$$=(s,p=document)=>[...p.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const KEY='bep-gia-dinh-v1';let state,loadError='';try{const raw=familyStorage.getItem(KEY);state=raw?JSON.parse(raw):(globalThis.BEP_SESSION?.mode==='account'?newHouseholdState():defaults());if(!validImport(state))throw Error('Dữ liệu không đúng định dạng')}catch(e){state=defaults();loadError='Không đọc được dữ liệu đã lưu. Bản mẫu đang mở; dữ liệu cũ chưa bị ghi đè. Hãy xuất bản sao trước khi tiếp tục.'}
+const KEY='bep-gia-dinh-v1';let state,loadError='';try{const raw=familyStorage.getItem(KEY);state=raw?JSON.parse(raw):(newHouseholdState());if(!validImport(state))throw Error('Dữ liệu không đúng định dạng')}catch(e){state=defaults();loadError='Không đọc được dữ liệu đã lưu. Bản mẫu đang mở; dữ liệu cũ chưa bị ghi đè. Hãy xuất bản sao trước khi tiếp tục.'}
 if(!loadError&&(state.seedVersion||1)<2){state.recipes.push(...clone(RECIPES.filter(r=>r.category==='noodle'&&!state.recipes.some(x=>x.id===r.id))));state.seedVersion=2;state.preferences.weekendSoup=true;state.preferences.weekendMeals='lunch';}
 if(!loadError&&(state.seedVersion||1)<3){state.recipes.push(...clone(RECIPES.filter(r=>r.expanded&&!state.recipes.some(x=>x.id===r.id))));state.seedVersion=3;}
 let recoveryBlocked=!!loadError;let selectedDate=sydneyDate(),weekStart=monday(selectedDate),view=location.hash.slice(1)||'today',attendanceType='dinner',recipeFilter='all',recipeSearch='',recipeTime=0,pantryFilter='all',shopRange='week',timerId=null,timerEnd=0,cooking=null,returnFocus=null,unsaved=false;

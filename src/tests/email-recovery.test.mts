@@ -10,14 +10,9 @@ const request=(op,body={},cookie='',ip='email-test-'+(++requestNumber))=>new Req
 const call=(op,body={},cookie='',ip)=>handler(request(op,body,cookie,ip));
 const password='synthetic-password-only-42';
 async function register(username,email){const response=await call('register',{username,name:username,password,...(email?{email}:{}),trust:true});assert.equal(response.status,201);return{cookie:response.headers.get('set-cookie').split(';')[0],data:await response.json()}}
-const alice=await register('emailalice','alice@example.test');assert.equal(alice.data.emailVerification.sent,true);const verification=sent.at(-1);
-const user=await store.get('users/emailalice');assert.equal(user.email,undefined);assert.equal(user.pendingEmail,'alice@example.test');assert.notEqual(user.password.key,password);assert.equal(user.password.salt.length,32);
-assert(!JSON.stringify([...rows.values()]).includes(verification.token));
-const before=sent.length;const unverified=await call('request-reset',{username:'emailalice'});assert.equal(unverified.status,202);assert.equal(sent.length,before);
-assert.equal((await call('verify-email',{token:'broken'})).status,400);
-assert.equal((await call('verify-email',{token:verification.token})).status,200);
-assert.equal((await call('verify-email',{token:verification.token})).status,400);
-assert.equal((await store.get('users/emailalice')).email,'alice@example.test');
+const alice=await register('emailalice','alice@example.test');assert.equal(sent.length,0,'sign-up must not send verification email');
+const user=await store.get('users/emailalice');assert.equal(user.email,'alice@example.test');assert.notEqual(user.password.key,password);assert.equal(user.password.salt.length,32);
+assert.equal((await call('verify-email',{token:'retired'})).status,410);
 const unknown=await call('request-reset',{username:'unknownperson'});const generic=await unknown.json();assert.equal(unknown.status,202);
 let response=await call('request-reset',{username:'emailalice'});assert.deepEqual(await response.json(),generic);const expired=sent.at(-1);
 clock+=16*60000;assert.equal((await call('complete-reset',{token:expired.token,password:password+'new'})).status,400);
@@ -30,15 +25,13 @@ assert.equal((await call('complete-reset',{token:reset.token,password:password+'
 assert.equal((await call('complete-reset',{token:stale.token,password:password+'other'})).status,400);
 assert.equal((await call('recover',{username:'emailalice',password:password+'other',recoveryCode:alice.data.recoveryCode})).status,401);
 const storedToken=await store.get('mail-tokens/'+digestToken(reset.token));assert.ok(storedToken.usedAt);assert.equal(storedToken.token,undefined);
-console.log('PASS verified email only, generic reset responses, hashed expiring one-use links, stale-token rejection, password replacement, backup rotation and session revocation');
+console.log('PASS optional sign-up email, no verification step, generic reset responses, hashed expiring one-use links, stale-token rejection, password replacement, backup rotation and session revocation');
 
-const bob=await register('emailbob','bob@example.test');assert.notEqual((await store.get('users/emailbob')).password.salt,user.password.salt);await call('verify-email',{token:sent.at(-1).token});await call('request-reset',{username:'emailbob'});const concurrent=sent.at(-1);
+const bob=await register('emailbob','bob@example.test');assert.notEqual((await store.get('users/emailbob')).password.salt,user.password.salt);await call('request-reset',{username:'emailbob'});const concurrent=sent.at(-1);
 const attempts=await Promise.all([call('complete-reset',{token:concurrent.token,password:password+'one'}),call('complete-reset',{token:concurrent.token,password:password+'two'})]);assert.deepEqual(attempts.map(r=>r.status).sort(),[200,400]);
-const existing=await register('existingaccount');assert.equal(existing.data.emailVerification,null);
+const existing=await register('existingaccount');assert.equal(existing.data.emailVerification,undefined);
 assert.equal((await call('set-email',{email:'existing@example.test',password:'incorrect'},existing.cookie)).status,400);
-response=await call('set-email',{email:'existing@example.test',password},existing.cookie);assert.equal(response.status,200);assert.equal((await response.json()).sent,true);const existingVerification=sent.at(-1);
-const noMail=sent.length;await call('request-reset',{username:'existingaccount'});assert.equal(sent.length,noMail);
-assert.equal((await call('verify-email',{token:existingVerification.token})).status,200);
+const sentBeforeBind=sent.length;response=await call('set-email',{email:'existing@example.test',password},existing.cookie);assert.equal(response.status,200);assert.equal((await response.json()).saved,true);assert.equal(sent.length,sentBeforeBind,'saving email must not send verification mail');
 await call('request-reset',{username:'existingaccount'});assert.equal(sent.at(-1).email,'existing@example.test');
 const foreign=new Request('https://test.example/.netlify/functions/accounts?op=request-reset',{method:'POST',headers:{Origin:'https://evil.example','Content-Type':'application/json'},body:JSON.stringify({username:'emailbob'})});assert.equal((await handler(foreign)).status,403);
 console.log('PASS concurrent token consumption is atomic, existing accounts can bind email using their password, and cross-origin reset requests are rejected');
@@ -47,5 +40,5 @@ const disabled=createAccountsHandler({getStoreFn:()=>store,mailer:{configured:()
 assert.equal((await disabled(request('request-reset',{username:'emailalice'}))).status,503);assert.equal((await disabled(request('request-reset',{username:'missing'}))).status,503);
 let delivery;const service=createAuthMailer({apiKeyFn:()=> 'synthetic-provider-key',fromFn:()=> 'Kitchen <auth@example.test>',originFn:()=> 'https://kitchen.example.test',fetchFn:async(url,options)=>{delivery={url,options,body:JSON.parse(options.body)};return new Response('{}',{status:200})}});
 assert(service.configured());await service.send('reset','recipient@example.test','a'.repeat(43));assert.equal(delivery.url,'https://api.resend.com/emails');assert.equal(delivery.options.headers.Authorization,'Bearer synthetic-provider-key');assert.match(delivery.body.text,/https:\/\/kitchen\.example\.test\/login\?reset=/);assert.match(delivery.body.text,/15/);assert.deepEqual(delivery.body.to,['recipient@example.test']);
-const failed=createAuthMailer({apiKeyFn:()=> 'synthetic',fromFn:()=> 'auth@example.test',fetchFn:async()=>new Response('{}',{status:403})});await assert.rejects(()=>failed.send('verify','recipient@example.test','b'.repeat(43)),/unavailable/);
+const failed=createAuthMailer({apiKeyFn:()=> 'synthetic',fromFn:()=> 'auth@example.test',fetchFn:async()=>new Response('{}',{status:403})});await assert.rejects(()=>failed.send('reset','recipient@example.test','b'.repeat(43)),/unavailable/);
 console.log('PASS Resend payload and server-side credentials, HTTPS recovery origin, explicit unconfigured state and delivery failure handling (all mail mocked)');

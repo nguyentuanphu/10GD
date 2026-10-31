@@ -5,7 +5,7 @@ import { legacyBootstrap } from './fixtures/legacy-bootstrap.cjs';
 import { chromium, webkit } from 'playwright';
 
 const origin = 'https://kitchen.test';
-const screenshots = 'docs/reviews/startup-pack' + (process.env.QA_BROWSER === 'webkit' ? '/webkit' : '');
+const screenshots = 'docs/reviews/public-device' + (process.env.QA_BROWSER === 'webkit' ? '/webkit' : '');
 const mime = { '.js': 'application/javascript', '.css': 'text/css', '.html': 'text/html', '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp' };
 async function main() {
   mkdirSync(screenshots, { recursive: true });
@@ -13,7 +13,7 @@ async function main() {
   try {
     async function open({ account = true, noHousehold = false, fault = '', baseline = false, viewport = { width: 375, height: 812 } } = {}) {
       const context = await browser.newContext({ viewport, serviceWorkers: 'block', reducedMotion: 'reduce' });
-      await context.addInitScript(() => localStorage.setItem('qa-preserved', 'family-data-kept'));
+      await context.addInitScript(account => {localStorage.setItem('qa-preserved','family-data-kept');if(account)localStorage.setItem('bep-account-present','yes')},account);
       const page = await context.newPage();
       if (fault === 'timeout') await page.clock.install();
       const errors = [];
@@ -22,6 +22,7 @@ async function main() {
         const path = new URL(route.request().url()).pathname;
         if (path.startsWith('/.netlify/')) {
           const op = new URL(route.request().url()).searchParams.get('op');
+          if (path.includes('/accounts') && op === 'families') { await route.fulfill({json:{families:[],account:{username:'qa',name:'QA'}}}); return; }
           const status = { configured: true, connected: true, mode: account ? 'account' : 'legacy', ...(account ? { account: { username: 'qa', name: 'QA' }, household: noHousehold ? null : { id: 'qa', name: 'QA kitchen', role: 'owner' } } : {}) };
           await route.fulfill({ json: op === 'status' ? status : op === 'state' ? { state: null, etag: null } : { announcements: [], devices: [] } });
           return;
@@ -100,12 +101,12 @@ async function main() {
     assert.match(await timeout.page.getByRole('alert').innerText(), /quá lâu/);
     await timeout.context.close();
     const newcomer = await open({ account: true, noHousehold: true });
-    await newcomer.page.locator('#account-create').waitFor();
+    await newcomer.page.locator('[data-device-mode]').waitFor();await newcomer.page.getByRole('button',{name:'Kết nối gia đình',exact:true}).click();await newcomer.page.locator('[data-personal=new-family]').click();await newcomer.page.locator('#account-create').waitFor();
     await newcomer.page.locator('#account-join').waitFor();
     assert.deepEqual(newcomer.errors, []);
     await newcomer.page.screenshot({ path: `${screenshots}/new-account.png`, fullPage: true });
     await newcomer.context.close();
-    console.log('PASS personal account with no household shows create/join forms');
+    console.log('PASS account without household keeps device tools and offers optional create/join forms');
     const returning = await open();
     await returning.page.waitForFunction(() => (document.querySelector('#main')?.textContent?.length || 0) > 500);
     await returning.context.close();

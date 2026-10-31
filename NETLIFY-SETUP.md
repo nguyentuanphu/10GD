@@ -1,3 +1,9 @@
+# Latest access policy
+
+The website is public and device-only tools need no account. Accounts are optional for cloud/family sharing, members and notifications. Sign-up does not require email verification; recovery email is optional. Resend configuration is needed only for real reset-email delivery; see [setup](docs/RESEND-SETUP.md). The [public-device review](docs/reviews/public-device/review.md) supersedes earlier login/verification descriptions below.
+
+---
+
 # Cấu hình hiện tại
 
 Bản tiếp theo dùng tài khoản cá nhân; luồng mật khẩu gia đình cũ đã được bỏ. Build `npm run check`, publish `dist`, Functions `netlify/functions`. Email khôi phục cần khóa Resend và địa chỉ gửi đã xác minh, xem [hướng dẫn Resend](docs/RESEND-SETUP.md). Những nội dung FAMILY_PASSWORD bên dưới là ghi chú lịch sử, không còn là cấu hình hiện tại. Chỉ deploy sau khi chủ nhà duyệt bản cụ thể.

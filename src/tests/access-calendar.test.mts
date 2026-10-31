@@ -14,12 +14,12 @@ assert.match(cookieHeader,/Max-Age=2592000/);assert.match(cookieHeader,/HttpOnly
 assert(await resolveAccount(req('status',null,cookie),getStoreFn));assert.equal(await resolveAccount(req('status',null,cookie+'x'),getStoreFn),null);assert.equal(await resolveAccount(req('status',null,cookie),getStoreFn,Date.now()+31*86400000),null);
 let response=await accounts(fixture.request('login',{username:'fixtureowner',password,trust:false}));assert(!response.headers.get('set-cookie').includes('Max-Age'));assert.equal((await handler(req('state'))).status,401);
 for(let i=0;i<10;i++)assert.equal((await accounts(fixture.request('login',{username:'fixtureowner',password:'incorrect'},'', 'rate-test'))).status,401);assert.equal((await accounts(fixture.request('login',{username:'fixtureowner',password},'','rate-test'))).status,429);
-let nextCalls=0;const gate=createGate({accountCheck:async request=>!!await resolveAccount(request,getStoreFn)}),context={next:async()=>{nextCalls++;return new Response('private application')}};
-assert.equal((await gate(new Request('https://test.example/',{headers:{Accept:'text/html'}}),context)).status,303);assert.equal(nextCalls,0);
-assert.equal((await gate(new Request('https://test.example/app.js'),context)).status,401);assert.equal(nextCalls,0);
+let nextCalls=0;const gate=createGate(),context={next:async()=>{nextCalls++;return new Response('public application')}};
+assert.equal((await gate(new Request('https://test.example/',{headers:{Accept:'text/html'}}),context)).status,200);assert.equal(nextCalls,1);
+assert.equal((await gate(new Request('https://test.example/app.js'),context)).status,200);assert.equal(nextCalls,2);
 response=await gate(new Request('https://test.example/login'),context);assert.match(await response.text(),/Tin cậy trình duyệt/);assert(!response.headers.get('set-cookie'));
-response=await gate(new Request('https://test.example/',{headers:{Cookie:cookie}}),context);assert.equal(await response.text(),'private application');assert.equal(response.headers.get('cache-control'),'private, no-store');assert.equal(nextCalls,1);
-assert.equal((await createGate({accountCheck:async()=>false})(new Request('https://test.example/'),context)).status,303);
+response=await gate(new Request('https://test.example/',{headers:{Cookie:cookie}}),context);assert.equal(await response.text(),'public application');assert.equal(response.headers.get('cache-control'),'no-cache');assert.equal(nextCalls,3);
+assert.equal((await createGate()(new Request('https://test.example/'),context)).status,200);
 const familyStore=fixture.store;await familyStore.setJSON('state',{members:[{id:'dad',name:'Dad'},{id:'mum',name:'Mum'}]});
 assert.equal((await accounts(fixture.request('link-member',{memberId:'dad'},cookie))).status,200);
 response=await handler(req('alert-send',{id:'test-alert-0001',fromId:'dad',targets:['dad'],message:'Synthetic message only'},cookie));assert.equal(response.status,200);const created=(await response.json()).alert;assert.equal(created.message,'Synthetic message only');assert.equal(created.pushAccepted,0);assert.equal(created.pushStatus,'not_sent');
@@ -34,10 +34,10 @@ console.log('PASS whole-site gate, trusted/session cookies, expiry/tampering, lo
 // A signed-out or offline service worker must not fall back to a cached private app.
 const handlers={},swCache={matches:0,opened:0},swContext=vm.createContext({AbortController,setTimeout,clearTimeout,URL,Response,Request,console,self:{location:{hostname:'secure.example',origin:'https://secure.example',href:'https://secure.example/sw.js'},addEventListener:(name,fn)=>handlers[name]=fn,skipWaiting:async()=>{},clients:{claim:async()=>{}}},caches:{open:async name=>{if(!name.includes('access'))swCache.opened++;return{addAll:async()=>{},put:async()=>{},match:async()=>null}},match:async()=>{swCache.matches++;return new Response('private cached snapshot')},keys:async()=>[],delete:async()=>true},fetch:async()=>{throw Error('offline')}});vm.runInContext(fs.readFileSync('dist/sw.js','utf8'),swContext);
 let pending;handlers.fetch({request:{url:'https://secure.example/',method:'GET',mode:'navigate'},respondWith:p=>pending=p});assert.equal((await pending).status,503);assert.equal(swCache.matches,0);
-handlers.install({waitUntil:p=>pending=p});await pending;assert.equal(swCache.opened,0,'signed-out install must still activate without caching private assets');
+const beforeInstall=swCache.opened;handlers.install({waitUntil:p=>pending=p});await pending;assert.equal(swCache.opened,beforeInstall+1,'public app cache can be installed without an account');
 console.log('PASS offline/signed-out service worker cannot read private cached pages');
 
-// A stuck account API must fail closed instead of hanging a protected asset.
-const previousFetch=globalThis.fetch;let checked=0,aborted=false;
-try{globalThis.fetch=async(_url,options)=>{checked++;return new Promise((_resolve,reject)=>{const keepAlive=setTimeout(()=>reject(new Error('missing abort')),1000);options.signal.addEventListener('abort',()=>{aborted=true;clearTimeout(keepAlive);reject(new Error('synthetic timeout'))},{once:true})})};const bounded=createGate({authTimeoutMs:10});assert.equal((await bounded(new Request('https://test.example/seed.js',{headers:{Cookie:'bep_account_session='+ 'x'.repeat(43)}}),context)).status,401);assert.equal(checked,1);assert.equal(aborted,true)}finally{globalThis.fetch=previousFetch}
-console.log('PASS Edge authentication timeout fails closed for protected assets');
+// Static assets never consult the account service; business APIs still authenticate themselves.
+const previousFetch=globalThis.fetch;let checked=0;
+try{globalThis.fetch=async()=>{checked++;throw Error('public assets must not call auth')};assert.equal((await createGate()(new Request('https://test.example/startup-scripts.json'),context)).status,200);assert.equal(checked,0)}finally{globalThis.fetch=previousFetch}
+console.log('PASS public app assets do not depend on an account API request');
