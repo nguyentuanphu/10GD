@@ -34,7 +34,7 @@ async function main() {
    const url=new URL(request.url);
    const response=await gate(request,{next:async()=>{
     if(url.pathname==='/.netlify/functions/accounts')return accounts(request);
-    if(url.pathname==='/.netlify/functions/family'){if(url.searchParams.get('op')!=='status'){if(req.method==='GET')counters.privateReads++;else counters.privateWrites++;}return family(request);}
+    if(url.pathname==='/.netlify/functions/family'){if(!['status','offline-key'].includes(url.searchParams.get('op')||'')){/* the public offline verification key is not private family data */if(req.method==='GET')counters.privateReads++;else counters.privateWrites++;}return family(request);}
     if(url.pathname==='/seed.js'){
      counters.seed++;
      if((req.headers.cookie||'').includes('qa-baseline=1')){pending.add(res);res.on('close',()=>pending.delete(res));return new Promise(()=>{});}
@@ -46,7 +46,7 @@ async function main() {
     if(!file.startsWith(dist+'/')&&!file.startsWith(dist+'\\'))return new Response('',{status:404});
     try{return new Response(readFileSync(file),{headers:{'Content-Type':mime[extname(file)]||'application/octet-stream'}})}catch{return new Response('',{status:404})}
    }});
-   res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));
+   const outHeaders:Record<string,string|string[]>=Object.fromEntries(response.headers);const cookies=response.headers.getSetCookie?.()||[];if(cookies.length)outHeaders['set-cookie']=cookies;res.writeHead(response.status,outHeaders);res.end(Buffer.from(await response.arrayBuffer()));
   } catch(error) {res.writeHead(500);res.end('Synthetic test server error');console.error(error)}
  });
  await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
@@ -180,8 +180,8 @@ async function main() {
   await page.locator('[data-fm=edit-meal]').first().click();await page.locator('#quick-dish-name').fill('Cá thu sốt cà nhà làm');await page.locator('[data-fm=quick-add-dish]').click();await page.locator('[data-action=submit-form][data-id=family-meal-form]').click();await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
   assert.match(await page.locator('.family-meal-card').first().innerText(),/Cá thu sốt cà nhà làm/);
   await page.evaluate(()=>{location.hash='today'});await page.waitForTimeout(100);
-  await page.locator('[data-house=urgent-new]').click();await page.locator('#family-urgent-form textarea[name=message]').fill('Mua thêm rau thơm trước 5h chiều');await page.locator('[data-action=submit-form][data-id=family-urgent-form]').click();
-  await page.locator('[data-house=alert-archive]').first().waitFor();await page.locator('[data-house=alert-archive]').first().click();
+  if(!(await page.evaluate(()=>!!(document.querySelector('[data-urgent-panel]') as HTMLDetailsElement|null)?.open)))await page.locator('[data-urgent-panel]>summary').click();await page.locator('[data-house=urgent-new]').click();await page.locator('#family-urgent-form textarea[name=message]').fill('Mua thêm rau thơm trước 5h chiều');await page.locator('[data-action=submit-form][data-id=family-urgent-form]').click();
+  await page.locator('[data-house=alert-archive]').first().waitFor({state:'attached'});if(!(await page.evaluate(()=>!!(document.querySelector('[data-urgent-panel]') as HTMLDetailsElement|null)?.open)))await page.locator('[data-urgent-panel]>summary').click();await page.locator('[data-house=alert-archive]').first().waitFor();await page.locator('[data-house=alert-archive]').first().click();
   await page.locator('.archived-alerts').waitFor();assert.match(await page.locator('.archived-alerts').innerText(),/Tin đã lưu trữ|Archived messages/);
   console.log('PASS streamlined weekly auto-planner fallback, quick-add own/library dish flow, deduplicated voice button, short invite code and urgent message archiving');
   await page.goto(origin+'/?mode=guest',{waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();assert.equal(await page.evaluate(()=>globalThis.BEP_SESSION.mode),'guest');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),guestBudget);

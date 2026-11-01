@@ -29,7 +29,11 @@ async function main() {
         if (sessionStorage.getItem('qa-init')) return; sessionStorage.setItem('qa-init', '1');
         localStorage.setItem('bep-theme-mode', theme);
         if (account) localStorage.setItem('bep-account-present', 'yes');
-        if (grant) localStorage.setItem('bep-offline-access-v1', JSON.stringify(grant));
+        if (grant) {
+          localStorage.setItem('bep-offline-access-v1', JSON.stringify(grant));
+          // The verifying key is pinned separately from the grant (pinned earlier from a live status response).
+          localStorage.setItem('bep-offline-signing-key-v1', JSON.stringify((grant as any).publicKey));
+        }
       }, { account, grant, theme });
       // Record every text the startup placeholder ever shows.
       await context.addInitScript(() => {
