@@ -96,6 +96,12 @@ const counts=(s:any)=>isShown(s)&&s.counted===true&&(!(s.flags||[]).length||s.ap
 /** Consensus for one group's submissions. CONFIRMED when ≥2 independent families report
  *  a matching price within 7 days (one vote per family), or one receipt from a contributor
  *  with trust ≥ 0.7. Otherwise PENDING (hint only). Held/rejected/hidden/shadowed never show. */
+/** FamTray Scout (v1.6): a price read by a TRUSTED scout's extension (Studio trusted list)
+ *  confirms its cluster like a trusted receipt. Only rows written by the Scout adapter carry it. */
+export const scoutTrustedIn=(cluster:any[])=>cluster.some(x=>x.evidence?.type==='scout'&&x.scoutTrusted===true);
+/** v1.7: when each price was captured (device/photo time, not the server write time):
+ *  the latest capture in the cluster plus the latest per evidence type. */
+export function capturedOf(cluster:any[]){const per:any={};let latest:string|null=null;for(const x of cluster){const t=x.capturedAt;if(typeof t!=='string'||!Number.isFinite(Date.parse(t)))continue;if(!latest||t>latest)latest=t;const k=x.evidence?.type||'other';if(!per[k]||t>per[k])per[k]=t}return{capturedAt:latest,sourceCaptured:per}}
 export function groupConsensus(subs:any[],day:string){
  const shown=subs.filter(isShown).filter(s=>expiryOf(s,day).visible).sort((a,b)=>captured(b)-captured(a));
  if(!shown.length)return null;
@@ -104,7 +110,7 @@ export function groupConsensus(subs:any[],day:string){
   const cluster=countable.filter(x=>pricesMatch(anchor,x)&&withinWindow(anchor,x));
   const families=new Set(cluster.map(x=>x.familyRef)).size;
   // The single trusted-receipt shortcut never applies when the cluster holds app/website prices.
-  const receipt=!cluster.some(x=>ONLINE_EVIDENCE.includes(x.evidence?.type))&&cluster.some(x=>x.evidence?.type==='receipt'&&(x.trustAtSubmit??0)>=RULES.trustReceipt);
+  const receipt=!cluster.some(x=>ONLINE_EVIDENCE.includes(x.evidence?.type))&&cluster.some(x=>x.evidence?.type==='receipt'&&(x.trustAtSubmit??0)>=RULES.trustReceipt)||scoutTrustedIn(cluster);
   const score=(families>=2||receipt?1000:0)+families;
   if(!best||score>best.score)best={anchor,cluster,families,receipt,score};
  }
@@ -112,7 +118,7 @@ export function groupConsensus(subs:any[],day:string){
  const cluster=best?best.cluster:shown.filter(x=>pricesMatch(pick,x));
  const confirmed=!!best&&(best.families>=2||best.receipt);
  const lastObserved=cluster.map(x=>x.observedAt).sort().pop()||pick.observedAt,exp=expiryOf({...pick,observedAt:lastObserved},day);
- return{groupId:pick.groupId,itemId:pick.itemId,label:pick.label,retailer:pick.retailer,branchId:pick.branchId,branchLabel:pick.branchLabel,state:pick.state,status:confirmed?'confirmed':'pending',price:pick.price,unitPrice:pick.unitPrice,unitBasis:pick.unitBasis,packQty:pick.packQty,packUnit:pick.packUnit,units:pick.units,promo:pick.promo,validUntil:pick.validUntil,families:new Set(cluster.map(x=>x.familyRef)).size,reports:cluster.length,lastObserved,ageDays:exp.age,usable:confirmed&&exp.usable,faded:exp.faded,online:cluster.some(x=>x.online===true),sources:[...new Set(cluster.map(x=>x.evidence?.type))].filter(Boolean)};
+ return{groupId:pick.groupId,itemId:pick.itemId,label:pick.label,retailer:pick.retailer,branchId:pick.branchId,branchLabel:pick.branchLabel,state:pick.state,status:confirmed?'confirmed':'pending',price:pick.price,unitPrice:pick.unitPrice,unitBasis:pick.unitBasis,packQty:pick.packQty,packUnit:pick.packUnit,units:pick.units,promo:pick.promo,validUntil:pick.validUntil,families:new Set(cluster.map(x=>x.familyRef)).size,reports:cluster.length,lastObserved,ageDays:exp.age,usable:confirmed&&exp.usable,faded:exp.faded,online:cluster.some(x=>x.online===true),sources:[...new Set(cluster.map(x=>x.evidence?.type))].filter(Boolean),...capturedOf(cluster)};
 }
 export function shardConsensus(shard:any,day:string){const byGroup=new Map<string,any[]>();for(const s of shard?.submissions||[]){const l=byGroup.get(s.groupId)||[];l.push(s);byGroup.set(s.groupId,l)}const out:any[]=[];for(const [gid,subs] of byGroup){if((shard.hiddenGroups||[]).includes(gid))continue;const c=groupConsensus(subs,day);if(c)out.push(c)}return out}
 
@@ -320,7 +326,7 @@ export async function report(getStoreFn:any,{context,body,now}:any){
 }
 
 // ---------- terms ----------
-export const TERMS_VERSION='2026-11-draft';
+export const TERMS_VERSION='2026-11-01';// final wording, see dist/privacy.html#community (earlier acceptances: '2026-11-draft')
 export async function acceptTerms(getStoreFn:any,username:string,now:number){const store=communityStore(getStoreFn);const c=await editContributor(store,username,x=>({...x,termsAcceptedAt:new Date(now).toISOString(),termsVersion:TERMS_VERSION,shareDefault:x.shareDefault??true}),now);return{termsAcceptedAt:c.termsAcceptedAt,termsVersion:c.termsVersion,shareDefault:c.shareDefault!==false}}
 /** After the first consent the share box starts ticked for this account; the user can turn that off. */
 export async function setShareDefault(getStoreFn:any,username:string,on:boolean,now:number){const c=await editContributor(communityStore(getStoreFn),username,x=>({...x,shareDefault:on===true}),now);return{shareDefault:c.shareDefault}}

@@ -55,8 +55,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Every step gets Chromium: suites decide for themselves whether they need a browser
+      # (e.g. test:scout parses fixtures in a real page), and a name filter silently misses them.
       - name: Install Chromium for Playwright
-        if: contains(matrix.step, 'browser') || contains(matrix.step, 'startup')
         run: npx playwright install --with-deps chromium
 
       - name: Resolve the synthetic test host
@@ -68,14 +69,49 @@ jobs:
       - name: Run ${{ matrix.step }}
         run: ${{ matrix.step }}
 
+      # Only failed steps upload screenshots (each upload is ~55 MB of committed evidence otherwise).
       - name: Upload review screenshots
-        if: always() && (contains(matrix.step, 'browser') || contains(matrix.step, 'startup'))
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: screenshots-${{ strategy.job-index }}
           path: docs/reviews/**/*.png
           if-no-files-found: ignore
           retention-days: 14
+
+  # A ready-to-install FamTray Scout zip for Henry: Actions → this run → Artifacts →
+  # famtray-scout-extension (no commands needed). Not part of the test matrix above.
+  # Set the repository variable SCOUT_SERVER_ORIGIN (Settings → Secrets and variables →
+  # Actions → Variables) to bake in the app address; without it the address is typed once.
+  extension-zip:
+    name: build FamTray Scout extension zip
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the extension
+        env:
+          SCOUT_SERVER_ORIGIN: ${{ vars.SCOUT_SERVER_ORIGIN }}
+        run: npm run build && npx tsc -p tsconfig.extension.json && node scripts/build-extension.cjs
+
+      - name: Upload famtray-scout-extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: famtray-scout-extension
+          path: |
+            dist-extension.zip
+            dist-extension-store.zip
+          if-no-files-found: error
+          retention-days: 30
 
   all:
     name: npm run test:all

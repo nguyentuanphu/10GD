@@ -17,13 +17,19 @@ const RETAILERS={
 const RETAILER_IDS=Object.keys(RETAILERS);
 const CATEGORIES=['fresh','meat','seafood','pantry','dairy','frozen','bakery','household','personal'];
 const SAFETY=['ambient','chilled','frozen','raw-meat','household'];
-const SOURCES=['screenshot','bookmark','receipt','catalogue','manual','official'];
+const SOURCES=['screenshot','bookmark','receipt','catalogue','manual','official','voice'];
 const PROMOS=['half-price','special','special-buy','price-drop','multibuy','deal','clearance'];
 const BASIS={per_kg:{dim:'mass',per:1000},per_100g:{dim:'mass',per:100},per_L:{dim:'vol',per:1000},per_100mL:{dim:'vol',per:100},per_each:{dim:'each',per:1},per_wash:{dim:'wash',per:1},per_roll:{dim:'roll',per:1},per_sheet:{dim:'sheet',per:1}};
 const UNITS={g:['mass',1],gram:['mass',1],grams:['mass',1],kg:['mass',1000],kilo:['mass',1000],ml:['vol',1],l:['vol',1000],litre:['vol',1000],liter:['vol',1000],litres:['vol',1000],each:['each',1],ea:['each',1],'quả':['each',1],qua:['each',1],pc:['each',1],pcs:['each',1],bunch:['each',1],wash:['wash',1],washes:['wash',1],roll:['roll',1],rolls:['roll',1],sheet:['sheet',1],sheets:['sheet',1]};
 const COUNT_DIMS=['each','wash','roll','sheet'];
 const FRESH_DAYS=21,STALE_DAYS=35;
+// Studio decides which states Price Scout serves (public banner `priceScoutStates`); NSW+QLD until it has answered.
+// The array is updated in place so every reader sees the change; the last answer is cached for offline use.
 const SUPPORTED_STATES=['NSW','QLD'];
+const ALL_STATES=['NSW','QLD','VIC','SA','WA','TAS','ACT','NT'];
+try{const cached=JSON.parse(localStorage.getItem('bep-scout-states')||'null');if(Array.isArray(cached))SUPPORTED_STATES.splice(0,SUPPORTED_STATES.length,...cached.filter(s=>ALL_STATES.includes(s)))}catch{}
+function setSupportedStates(list){if(!Array.isArray(list))return false;const next=ALL_STATES.filter(s=>list.includes(s));if(next.join()===SUPPORTED_STATES.join())return false;SUPPORTED_STATES.splice(0,SUPPORTED_STATES.length,...next);try{localStorage.setItem('bep-scout-states',JSON.stringify(next))}catch{}return true}
+function unsupportedMessage(){const join=(and:string)=>SUPPORTED_STATES.length>1?SUPPORTED_STATES.slice(0,-1).join(', ')+' '+and+' '+SUPPORTED_STATES[SUPPORTED_STATES.length-1]:SUPPORTED_STATES[0];return SUPPORTED_STATES.length?{vi:'Rất tiếc! Khu vực của bạn hiện chưa được hỗ trợ. Hệ thống hiện chỉ tối ưu giá cho '+join('và')+'. Chúng tôi sẽ sớm mở rộng sang các khu vực khác!',en:'Sorry! Your area isn’t supported yet. Price Scout currently optimises prices for '+join('and')+' only. We’ll expand to other areas soon!'}:{vi:'So giá đang tạm dừng ở mọi khu vực. Danh sách đi chợ vẫn dùng bình thường.',en:'Price Scout is paused in every area for now. Your shopping list still works as usual.'}}
 const UNSUPPORTED={vi:'Rất tiếc! Khu vực của bạn hiện chưa được hỗ trợ. Hệ thống hiện chỉ tối ưu giá cho NSW và QLD. Chúng tôi sẽ sớm mở rộng sang các khu vực khác!',en:'Sorry! Your area isn’t supported yet. Price Scout currently optimises prices for NSW and QLD only. We’ll expand to other areas soon!'};
 
 const round=(n,d=2)=>Math.round(n*10**d)/10**d;
@@ -50,7 +56,7 @@ function postcodeState(input){
  else if(n>=800&&n<=999)state='NT';
  if(!state)return{valid:false,postcode:s,state:null,supported:false};
  const supported=SUPPORTED_STATES.includes(state);
- return{valid:true,postcode:s,state,supported,message:supported?null:UNSUPPORTED};
+ return{valid:true,postcode:s,state,supported,message:supported?null:unsupportedMessage()};
 }
 // The price week starts on Wednesday (Woolworths/Coles specials run Wed→Tue).
 function cycleId(date=sydneyToday()){const dow=new Date(date+'T00:00:00Z').getUTCDay();return addDays(date,-((dow-3+7)%7))}
@@ -308,7 +314,7 @@ function optimizeBasket(items,observations,prefs={}){
  }
  const stopMap=new Map();
  for(const[l,r]of assignment){const key=r||mainStore;const s=stopMap.get(key)||{retailer:key,delivery:!!RETAILERS[key].delivery,items:[],total:0,savings:0,unknownCount:0};
-  if(r){s.items.push({key:l.key,label:l.label,itemId:l.item.id,origin:l.prices[r].origin,cost:l.prices[r].cost,unitPrice:l.prices[r].unitPrice,unitBasis:l.item.unitBasis,approx:l.prices[r].approx,cold:l.cold,chilled:l.chilled,promo:l.prices[r].observation.promo||null});s.total+=l.prices[r].cost;if(r!==mainStore&&l.prices[mainStore])s.savings+=l.prices[mainStore].cost-l.prices[r].cost}
+  if(r){s.items.push({key:l.key,label:l.label,itemId:l.item.id,origin:l.prices[r].origin,cost:l.prices[r].cost,unitPrice:l.prices[r].unitPrice,unitBasis:l.item.unitBasis,approx:l.prices[r].approx,cold:l.cold,chilled:l.chilled,promo:l.prices[r].observation.promo||null,capturedAt:captureTimeOf(l.prices[r].observation),source:l.prices[r].observation.source||null});s.total+=l.prices[r].cost;if(r!==mainStore&&l.prices[mainStore])s.savings+=l.prices[mainStore].cost-l.prices[r].cost}
   else{s.items.push({key:l.key,label:l.label,itemId:l.item.id,cost:null,cold:l.cold,chilled:l.chilled});s.unknownCount++}
   stopMap.set(key,s)}
  const splitStops=[...stopMap.values()].map(s=>({...s,total:round(s.total),savings:round(s.savings)}));
@@ -336,7 +342,7 @@ function sourceMix(origins){const m={family:0,official:0,community:0,shop:0};for
 // "Lưu giá" bookmark captures (page price within $0.01) and confirmed receipt lines. Manual entry never.
 const COMMUNITY_SHAREABLE=['shelf-photo','receipt','screenshot','bookmark'];
 function canShareToCommunity(o){if(!o||!o.itemId||!COMMUNITY_SHAREABLE.includes(o.evidence?.type))return false;const e=o.evidence;if(e.type==='receipt')return true;if(e.type==='screenshot'&&!(typeof e.imageHash==='string'&&/^[a-f0-9]{64}$/.test(e.imageHash)))return false;return typeof e.ocrPrice==='number'&&Math.abs(e.ocrPrice-o.price)<=0.01+1e-9}
-function communityRow(c,origin){return{id:origin+':'+(c.groupId||c.id),groupId:c.groupId||null,itemId:c.itemId,label:c.label,retailer:c.retailer,branchId:c.branchId||null,branchLabel:c.branchLabel||null,state:c.state||null,price:c.price,currency:'AUD',packQty:c.packQty??null,packUnit:c.packUnit??null,units:c.units??null,unitPrice:c.unitPrice??null,unitBasis:c.unitBasis??null,wasPrice:null,promo:c.promo||null,validUntil:c.validUntil||null,observedAt:c.lastObserved||c.observedAt,source:origin,origin,families:c.families||0,status:c.status||null,ageDays:c.ageDays??null,faded:!!c.faded,online:c.online===true,sources:c.sources||[],shop:c.shop||null}}
+function communityRow(c,origin){return{id:origin+':'+(c.groupId||c.id),groupId:c.groupId||null,itemId:c.itemId,label:c.label,retailer:c.retailer,branchId:c.branchId||null,branchLabel:c.branchLabel||null,state:c.state||null,price:c.price,currency:'AUD',packQty:c.packQty??null,packUnit:c.packUnit??null,units:c.units??null,unitPrice:c.unitPrice??null,unitBasis:c.unitBasis??null,wasPrice:null,promo:c.promo||null,validUntil:c.validUntil||null,observedAt:c.lastObserved||c.observedAt,source:origin,origin,families:c.families||0,status:c.status||null,ageDays:c.ageDays??null,faded:!!c.faded,online:c.online===true,sources:c.sources||[],shop:c.shop||null,capturedAt:c.capturedAt||null,sourceCaptured:c.sourceCaptured||null}}
 function communityObservations(items,{branches=[]}={}){
  const preferred=new Set(branches||[]),byRetailer=new Set([...preferred].map(b=>String(b).split(':')[0]));
  const keep=c=>!byRetailer.has(c.retailer)||preferred.has(c.branchId);
@@ -357,7 +363,7 @@ function routeOrder(stops){
 
 // ---------- Provenance (ready for a future, moderated community phase) ----------
 // visibility: 'family' (only value accepted today); 'community' is reserved.
-const VISIBILITY=['family','community'],EVIDENCE=['shelf-photo','receipt','screenshot','bookmark','manual'],CONFIDENCE=['low','medium','high'];
+const VISIBILITY=['family','community'],EVIDENCE=['shelf-photo','receipt','screenshot','bookmark','manual','manual-voice'],CONFIDENCE=['low','medium','high'];
 function evidenceType(source){return source==='receipt'?'receipt':source==='screenshot'?'screenshot':source==='bookmark'?'bookmark':'manual'}
 // manual/catalogue = low; screenshot/bookmark/shelf-photo whose OCR price matched = medium; receipt/official = high.
 function computeConfidence(source,evidence){if(source==='receipt'||source==='official'||evidence?.type==='receipt')return'high';if(['screenshot','bookmark','shelf-photo'].includes(evidence?.type||source)&&evidence?.ocrMatches===true)return'medium';return'low'}
@@ -420,6 +426,19 @@ function receiptObservations(receipts,catalog,{ingredientUnit=null,state=null}={
  return out;
 }
 
-const api={RETAILERS,RETAILER_IDS,CATEGORIES,SAFETY,SOURCES,PROMOS,BASIS,FRESH_DAYS,STALE_DAYS,SUPPORTED_STATES,UNSUPPORTED,norm,sydneyToday,addDays,dayDiff,postcodeState,cycleId,cycleEnd,nextSpecialBuyDays,defaultDealEnd,unitPriceOf,convertUnitPrice,basisMultiplier,detectRetailer,retailerFromHost,matchCatalog,parsePriceText,extractProductPage,bookmarkletSource,captureToDraft,validObservation,freshness,itemUnitPrice,bestPrice,allowedChannel,optimizeBasket,routeOrder,tripsFromReceipts,detectPersona,receiptObservations,VISIBILITY,EVIDENCE,CONFIDENCE,computeConfidence,makeEvidence,withProvenance,validProvenance,priceSanity,sourceMix,canShareToCommunity,communityObservations,shopObservations,COMMUNITY_SHAREABLE};
+// ---------- capture time (v1.7) ----------
+// "2 giờ trước · T4 01/11 06:42" / "2 h ago · Wed 1 Nov 06:42", in the viewer's local time
+// (timeZone only for tests). `at` is a capture time (ISO) or, for old rows, a day (YYYY-MM-DD,
+// shown without a clock time). old = more than 7 days ago (muted "cũ / old" style).
+const VI_DOW=['CN','T2','T3','T4','T5','T6','T7'];
+function captureTimeOf(o){const e=o&&o.evidence||{};return e.capturedAt||o?.capturedAt||o?.observedAt||null}
+function capturedLabel(at,lang='vi',now=Date.now(),timeZone){if(typeof at!=='string')return null;const day=/^\d{4}-\d{2}-\d{2}$/.test(at),t=day?Date.parse(at+'T12:00:00+10:00'):Date.parse(at);if(!Number.isFinite(t))return null;
+ const en=lang==='en',diff=Math.max(0,now-t),min=Math.floor(diff/60000),hrs=Math.floor(min/60),days=day?Math.max(0,dayDiff(sydneyToday(new Date(now)),at)):Math.floor(hrs/24);
+ const rel=day?(days===0?(en?'today':'hôm nay'):days===1?(en?'yesterday':'hôm qua'):en?days+' days ago':days+' ngày trước'):min<1?(en?'just now':'vừa xong'):min<60?(en?min+' min ago':min+' phút trước'):hrs<24?(en?hrs+' h ago':hrs+' giờ trước'):days===1?(en?'yesterday':'hôm qua'):en?days+' days ago':days+' ngày trước';
+ const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone,weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(t)).map(p=>[p.type,p.value]));
+ const dnum=new Intl.DateTimeFormat('en-GB',{timeZone,day:'2-digit',month:'2-digit'}).format(new Date(t)),dow=new Intl.DateTimeFormat('en-US',{timeZone,weekday:'short'}).format(new Date(t)),viDow=VI_DOW[['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(dow)];
+ const clock=day?'':' '+parts.hour+':'+parts.minute,abs=en?`${dow} ${parts.day} ${parts.month}${clock}`:`${viDow} ${dnum}${clock}`;
+ return{rel,abs,text:rel+' · '+abs,old:days>7,iso:new Date(t).toISOString(),day}}
+const api={setSupportedStates,unsupportedMessage,ALL_STATES,RETAILERS,RETAILER_IDS,CATEGORIES,SAFETY,SOURCES,PROMOS,BASIS,FRESH_DAYS,STALE_DAYS,SUPPORTED_STATES,UNSUPPORTED,norm,sydneyToday,addDays,dayDiff,postcodeState,cycleId,cycleEnd,nextSpecialBuyDays,defaultDealEnd,unitPriceOf,convertUnitPrice,basisMultiplier,detectRetailer,retailerFromHost,matchCatalog,parsePriceText,extractProductPage,bookmarkletSource,captureToDraft,validObservation,freshness,itemUnitPrice,bestPrice,allowedChannel,optimizeBasket,routeOrder,tripsFromReceipts,detectPersona,receiptObservations,VISIBILITY,EVIDENCE,CONFIDENCE,computeConfidence,makeEvidence,withProvenance,validProvenance,priceSanity,sourceMix,canShareToCommunity,communityObservations,shopObservations,COMMUNITY_SHAREABLE,capturedLabel,captureTimeOf};
 root.PriceScout=api;
 })(globalThis);

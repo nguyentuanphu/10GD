@@ -196,3 +196,36 @@ const prefs=(x:any={})=>({catalog,today,state:'NSW',...x});
  assert.equal(P.withProvenance({...own[0],source:'screenshot'},{ocrPrice:12,evidenceType:'shelf-photo'}).evidence.type,'shelf-photo');
  assert.equal(P.validObservation(P.withProvenance({...own[0],source:'screenshot'},{ocrPrice:12,evidenceType:'shelf-photo'})),true,'shelf-photo observations are still valid family observations');
  console.log('PASS community pilot: own-family first, then confirmed community, then shop; pending as hints; source mix; branch filter; shareable evidence');}
+
+// ---- Supported states follow Studio (owner report, 1 Nov 2026: unticking every state in Studio left Price Scout on) ----
+{assert.deepEqual(plain(P.SUPPORTED_STATES),['NSW','QLD'],'default before Studio answers');
+ assert.equal(P.postcodeState('2205').supported,true);
+ assert.equal(P.setSupportedStates([]),true,'an empty Studio list is applied, not treated as missing');
+ assert.equal(P.postcodeState('2205').supported,false,'NSW off when no state is ticked');
+ assert.match(P.postcodeState('2205').message.en,/paused in every area/);
+ P.setSupportedStates(['QLD']);
+ assert.equal(P.postcodeState('2205').supported,false);assert.equal(P.postcodeState('4000').supported,true);
+ assert.match(P.postcodeState('2205').message.vi,/QLD/);
+ assert.equal(P.setSupportedStates(['QLD']),false,'no change reported when the list is the same');
+ P.setSupportedStates(['VIC','NSW','XX']);assert.deepEqual(plain(P.SUPPORTED_STATES),['NSW','VIC'],'unknown states dropped, canonical order');
+ assert.equal(P.setSupportedStates(null),false,'a missing list leaves the current states');
+ P.setSupportedStates(['NSW','QLD']);
+ console.log('PASS Price Scout supported states follow the Studio setting (incl. none ticked)');}
+
+// ---- v1.7 capture time next to referenced prices ----
+{const now=Date.parse('2026-11-01T08:42:00+11:00'),tz='Australia/Sydney',at='2026-11-01T06:42:00+11:00';
+ const vi=P.capturedLabel(at,'vi',now,tz),en=P.capturedLabel(at,'en',now,tz);
+ assert.equal(vi.text,'2 giờ trước · CN 01/11 06:42');assert.equal(en.text,'2 h ago · Sun 1 Nov 06:42');
+ assert.equal(vi.iso,new Date(at).toISOString(),'shown time is the capture time');assert.equal(vi.old,false);
+ const wed='2026-11-04T06:42:00+11:00',w=P.capturedLabel(wed,'vi',Date.parse('2026-11-04T06:47:30+11:00'),tz);assert.equal(w.text,'5 phút trước · T4 04/11 06:42');
+ assert.equal(P.capturedLabel(wed,'en',Date.parse('2026-11-04T06:42:20+11:00'),tz).text,'just now · Wed 4 Nov 06:42');
+ assert.equal(P.capturedLabel(wed,'en',Date.parse('2026-11-05T09:00:00+11:00'),tz).rel,'yesterday');
+ const old=P.capturedLabel('2026-10-20T10:00:00+11:00','en',now,tz);assert.equal(old.old,true,'> 7 days is old');assert.equal(old.rel,'11 days ago');
+ const day=P.capturedLabel('2026-10-31','vi',now,tz);assert.equal(day.day,true);assert.equal(day.rel,'hôm qua');assert.doesNotMatch(day.abs,/:/,'a day-only record shows no clock time');
+ assert.equal(P.capturedLabel('nonsense','vi',now,tz),null);
+ assert.equal(P.captureTimeOf({observedAt:'2026-10-31',evidence:{type:'screenshot',capturedAt:at}}),at,'evidence capture time wins over the day');
+ assert.equal(P.captureTimeOf({observedAt:'2026-10-31'}),'2026-10-31');
+ // Plan items carry the capture time of the price they use.
+ const r=plain(P.optimizeBasket([{key:'a',label:'Gạo',itemId:'gao-jasmine',qty:5,unit:'kg'}],[obs('gao-jasmine','woolworths',12,5,'kg',{source:'screenshot',evidence:{type:'screenshot',capturedAt:at}}),obs('gao-jasmine','coles',14,5,'kg')],prefs()));
+ const it=r.split.stops.flatMap((s:any)=>s.items)[0];assert.equal(it.capturedAt,at,'plan item keeps the capture time');
+ console.log('PASS capture time label (VI/EN, relative + absolute, old > 7 days, day-only) and plan items keep the capture time')}

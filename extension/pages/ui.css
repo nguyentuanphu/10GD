@@ -1,0 +1,54 @@
+/* FamTray Scout extension pages (popup, options, runner). Light/dark, ≥44px targets. */
+:root{--bg:#f7f8f6;--card:#fff;--ink:#17201b;--muted:#56625b;--line:#d6ddd8;--brand:#1f7a4d;--brand-ink:#fff;--danger:#b3261e;--warn-bg:#fff4d6;--warn-ink:#5c4300;--ok-bg:#e3f4ea;--ok-ink:#0f4d2c;--focus:#1a5fd0;color-scheme:light}
+html[data-theme="dark"]{--bg:#111613;--card:#1a211d;--ink:#e8eee9;--muted:#a7b3ab;--line:#33403a;--brand:#4cc38a;--brand-ink:#08130d;--danger:#ff8a80;--warn-bg:#3b3010;--warn-ink:#ffe08a;--ok-bg:#12321f;--ok-ink:#b8f0cc;--focus:#8ab4ff;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
+body.popup{width:360px;max-width:100vw}
+main{padding:12px}
+body.options main{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:1.15rem;margin:0}
+h2{font-size:1rem;margin:0 0 8px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.logo{color:var(--brand)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;align-items:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 10px;min-width:0}
+.lead{color:var(--muted);margin:0 0 12px}
+.muted{color:var(--muted)}
+.summary{font-weight:600;margin:0 0 8px}
+.btn{min-height:44px;min-width:44px;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+.btn.small{min-height:44px;padding:8px 10px;font-size:.9rem}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.danger{border-color:var(--danger);color:var(--danger)}
+.btn.big{display:block;width:100%;font-size:1.05rem;margin:0 0 10px}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.link{background:none;border:0;color:var(--brand);text-decoration:underline;font:inherit;min-height:44px;cursor:pointer;padding:0 4px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.switch{display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:6px 0;cursor:pointer}
+.switch input{width:22px;height:22px;margin:2px 0 0;flex:none;accent-color:var(--brand)}
+.form label{display:block;margin:0 0 10px;font-weight:600}
+.form input[type=text],.form input:not([type]),.form input[type=url],.form input[type=number],.form input[type=time]{display:block;width:100%;min-height:44px;margin-top:4px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+.form small,.hint{display:block;font-weight:400;color:var(--muted);margin-top:4px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+fieldset{border:1px solid var(--line);border-radius:10px;margin:0 0 10px;padding:8px 10px;min-width:0}
+legend{font-weight:600;padding:0 4px}
+.days{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.day{display:inline-flex !important;align-items:center;gap:4px;min-height:44px;min-width:44px;padding:0 8px;border:1px solid var(--line);border-radius:8px;font-weight:600}
+.day input{width:18px;height:18px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:8px 0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;overflow-wrap:anywhere}
+.banner{border-radius:10px;padding:10px 12px;margin:0 0 10px}
+.banner.warn,.hint.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.banner.ok{background:var(--ok-bg);color:var(--ok-ink)}
+.chip{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--ok-bg);color:var(--ok-ink);font-size:.85rem}
+.check{padding-left:1.2em;margin:0}
+.plain{padding-left:1.1em;margin:0}
+.foot{margin:6px 0 0;text-align:center}
+.runner{max-width:560px;margin:40px auto}
+@media (prefers-reduced-motion:no-preference){.btn{transition:background-color .15s,border-color .15s}}
+/* v1.7: one-tap store confirmation in the popup */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.store-ask{justify-content:space-between;margin-top:6px}
+.store-ask span{flex:1 1 140px;min-width:0;overflow-wrap:anywhere}

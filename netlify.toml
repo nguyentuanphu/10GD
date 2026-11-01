@@ -1,7 +1,13 @@
 [build]
-  command = "npm run check"
+  # Production build: app checks + the FamTray Scout extension zip (dist/downloads/famtray-scout.zip,
+  # app address baked in from the hosting build's site URL). See docs/scout-store/README.md.
+  command = "npm run build:production"
   publish = "dist"
   functions = "netlify/functions"
+  # AGENTS.md rule 18: the hosting provider only builds production (main, after Henry's explicit DEPLOY).
+  # Deploy previews and branch deploys are cancelled before building to save build credits; exit 0 = skip.
+  # A one-off preview is built only when Henry asks for it and the head commit message contains [netlify-preview].
+  ignore = "bash -c '[ \"$CONTEXT\" != \"production\" ] && ! git log -1 --pretty=%B | grep -qF \"[netlify-preview]\"'"
 [build.environment]
   NODE_VERSION = "22"
 [functions]
@@ -9,6 +15,12 @@
 [[headers]]
   for = "/sw.js"
   [headers.values]
+    Cache-Control = "no-cache"
+[[headers]]
+  for = "/downloads/*.zip"
+  [headers.values]
+    Content-Type = "application/zip"
+    Content-Disposition = "attachment"
     Cache-Control = "no-cache"
 [[headers]]
   for = "/*"
@@ -29,3 +41,9 @@
 [[edge_functions]]
   function = "family-gate"
   path = "/login"
+
+# Connectivity health check (offline detection) must never be cached.
+[[headers]]
+  for = "/health.json"
+  [headers.values]
+    Cache-Control = "no-store"

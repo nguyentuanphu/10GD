@@ -128,6 +128,10 @@ async function main() {
     {
       const { page, context, errors } = await open({ members: 1 });
       await ready(page);
+      // The member count is fetched after startup; the button appears once the family is known to have one account.
+      await page.waitForFunction(() => localStorage.getItem('account/qa/bep-connected-accounts') === '1');
+      await page.evaluate(() => { if (!document.querySelector('.modal')) render(); });
+      await page.locator('.kitchen-action-dock [data-personal=invite]').waitFor();
       assert.equal(await page.locator('.kitchen-action-dock [data-personal=invite]').count(), 1, 'owner with one account sees Today invite');
       // The big Today button is the way into My kitchen (the header avatar opens the account menu).
       await page.locator('.kitchen-action-dock [data-personal=settings]').click();
@@ -157,7 +161,7 @@ async function main() {
       await page.evaluate(() => { (globalThis as any).BEP_OFFLINE = false; return otherSettingsModal(); });
       await page.locator('.other-settings').waitFor();
       assert.equal(await page.locator('#modal-title').innerText(), 'Cài đặt khác');
-      assert.deepEqual(await page.$$eval('.other-settings .kitchen-section', nodes => nodes.map(n => n.id)), ['settings-appearance', 'settings-currency', 'settings-data']);
+      assert.deepEqual(await page.$$eval('.other-settings .kitchen-section', nodes => nodes.map(n => n.id)), ['settings-appearance', 'settings-currency', 'settings-offline-ready', 'settings-offline-downloads', 'settings-data', 'settings-usage']);
       for (const sel of ['#theme-mode-select', '#festival-theme-select', '[data-personal=currency]', '[data-action=export]', '[data-action=import]']) assert.equal(await page.locator('.other-settings ' + sel).count(), 1, sel + ' in Other settings');
       assert.equal(await page.locator('.other-settings :is([data-personal=invite], #members-form, #settings-form, [data-personal=sign-out])').count(), 0, 'nothing from My kitchen or the account sheet');
       await page.locator('#theme-mode-select').selectOption('dark');
@@ -199,10 +203,14 @@ async function main() {
       assert.deepEqual(errors, []);
       await context.close();
       const busy = await open({ members: 3 });
+      // Regression (owner report, 1 Nov 2026): the Today invite flashed on every open and then disappeared, because an
+      // unknown member count was treated as one account. Record whether it ever appears during startup.
+      await busy.page.evaluate(() => { (globalThis as any).__qaInviteSeen = !!document.querySelector('.kitchen-action-dock [data-personal=invite]'); new MutationObserver(() => { if (document.querySelector('.kitchen-action-dock [data-personal=invite]')) (globalThis as any).__qaInviteSeen = true; }).observe(document.documentElement, { childList: true, subtree: true }); });
       await ready(busy.page);
       await busy.page.waitForFunction(() => localStorage.getItem('account/qa/bep-connected-accounts') === '3');
       await busy.page.evaluate(() => render());
       assert.equal(await busy.page.locator('.kitchen-action-dock [data-personal=invite]').count(), 0, 'Today invite hidden once several accounts are connected');
+      assert.equal(await busy.page.evaluate(() => (globalThis as any).__qaInviteSeen), false, 'Today invite never flashes for a family with several accounts');
       await busy.context.close();
       console.log('PASS My kitchen has exactly four family cards; Other settings and the account sheet hold the moved sections; confirmations unchanged');
     }
@@ -292,6 +300,10 @@ async function main() {
       const ops: string[] = [];
       const { page, context, errors } = await open({ families: 2, name: 'Nguyễn An', ops });
       await ready(page);
+      // A new family kitchen shows an inline setup notice once the account check finishes, never a startup modal over
+      // the header (that modal used to open ~1 s after first paint and swallow the avatar tap: the old flake).
+      await page.locator('#setup-notice [data-personal=setup]').waitFor();
+      assert.equal(await page.locator('.modal').count(), 0, 'no modal opens on its own at startup');
       const avatar = page.locator('.top-avatar');
       assert.equal((await avatar.innerText()).trim(), 'N', 'avatar shows the display name initial');
       assert.equal(await avatar.getAttribute('aria-haspopup'), 'menu');
@@ -501,8 +513,8 @@ async function main() {
         await page.locator('.other-settings').waitFor();
         await page.keyboard.press('Escape');
       } else {
-        assert.equal(await page.locator('.sidebar .side-link').count(), 2, 'desktop sidebar: Reminders and Other settings');
-        assert.deepEqual(await page.$$eval('.sidebar .side-link', nodes => nodes.map(n => n.textContent!.trim())), ['Nhắc nhở', 'Cài đặt khác']);
+        assert.equal(await page.locator('.sidebar .side-link').count(), 3, 'desktop sidebar: Reminders, Other settings and (v1.7) How to use'); assert.equal(await page.locator('.sidebar .side-link.guide-side-link').count(), 1);
+        assert.deepEqual(await page.$$eval('.sidebar .side-link', nodes => nodes.map(n => n.textContent!.trim())), ['Nhắc nhở', 'Cài đặt khác', '🧭 Hướng dẫn sử dụng']);
         await page.locator('.sidebar .side-link[data-section=reminders]').click();
         await page.locator('.kitchen-hub #kitchen-reminders').waitFor();
         await page.keyboard.press('Escape');

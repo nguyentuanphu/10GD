@@ -77,7 +77,9 @@ async function main(){
   for(const cls of ['flag-off-priceScout','flag-off-voice','flag-off-urgentMessages'])assert.ok(await page.evaluate((c:string)=>document.body.classList.contains(c),cls),cls);
   const voice=page.locator('[data-personal="voice"]').first();if(await voice.count())assert.equal(await voice.isVisible(),false,'voice entry hidden');
   await page.evaluate('view="shopping";render()');await page.waitForTimeout(400);
-  const scout=page.locator('.price-scout').first();assert.ok(await scout.count(),'price scout rendered');assert.equal(await scout.isVisible(),false,'price scout hidden by flag');
+  // Owner, 1 Nov 2026: Price Scout off in Studio hides everything for users — it is not even rendered.
+  assert.equal(await page.locator(':is(.price-scout,.scout-tray,.scout-viet-badge)').count(),0,'no Price Scout surface rendered when the flag is off');
+  assert.equal(await page.evaluate(()=>[...document.querySelectorAll('[data-scout],[data-voice-price]')].some(n=>(n as HTMLElement).offsetParent!==null)),false,'no visible Price Scout control');
   await shot(page,'flags-off-shopping-tablet-820x1100');
   // switches persist for the next start (applied before the network answers) and turn back on
   await context.close();

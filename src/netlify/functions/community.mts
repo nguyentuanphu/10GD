@@ -26,7 +26,7 @@ export function createCommunityHandler({getStoreFn=getStore,env=process.env,nowF
     if(!pilot.enabled)return json({enabled:false});
     if(!ctx)return json({enabled:true,signedIn:false,publicRead:true,states:pilot.states,rewards:{confirmed:rewards.confirmed,corroborate:rewards.corroborate}});
     const c=await contributor(communityStore(getStoreFn),ctx.account.username);
-    return json({enabled:true,signedIn:true,publicRead:true,states:pilot.states,eligibility:eligibility(ctx.account,ctx.household,now),viewer:ctx.member?.role==='viewer',termsAcceptedAt:c?.termsAcceptedAt||null,termsVersion:TERMS_VERSION,shareDefault:c?.termsAcceptedAt?c.shareDefault!==false:false,shop:await shopStatus(getStoreFn,ctx.account.username),limits:{perDay:RULES.accountDaily,captureMaxDays:RULES.captureMaxDays},rewards:{confirmed:rewards.confirmed,corroborate:rewards.corroborate}});
+    return json({enabled:true,signedIn:true,publicRead:true,states:pilot.states,eligibility:eligibility(ctx.account,ctx.household,now),viewer:ctx.member?.role==='viewer',termsAcceptedAt:c?.termsAcceptedAt||null,termsVersion:TERMS_VERSION,acceptedTermsVersion:c?.termsVersion||null,shareDefault:c?.termsAcceptedAt?c.shareDefault!==false:false,shop:await shopStatus(getStoreFn,ctx.account.username),limits:{perDay:RULES.accountDaily,captureMaxDays:RULES.captureMaxDays},rewards:{confirmed:rewards.confirmed,corroborate:rewards.corroborate}});
    }
    if(!pilot.enabled)return json({error:'Tính năng chưa bật.',errorEn:'Not enabled.',disabled:true},404);
    // ---- public reads: no personal data, per-IP rate limit, short shared cache

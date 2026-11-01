@@ -13,14 +13,23 @@ interface SessionStatus {
 interface Window {
   BEP_SESSION?: SessionStatus;
   BEP_OFFLINE?: boolean;
-  BEP_STARTUP?: { cachedIdentity: boolean; packHash: string; ready?: number };
+  // v1.7 connectivity state machine (offline-access.js): a single failed request never means offline.
+  BepConnectivity?: { reportSuccess(): void; reportFailure(kind: 'network' | 'timeout' | 'server'): Promise<boolean>; wake(): Promise<boolean> };
+  BEP_STARTUP?: { cachedIdentity: boolean; packHash: string; ready?: number; packMismatch?: boolean };
+  BEP_BUILD?: string;
+  // Optional async steps registered by earlier scripts, run before the named script ('@ready': after all).
+  BEP_SCRIPT_HOOKS?: Record<string, () => Promise<void> | void>;
 }
 (async (): Promise<void> => {
   const local = ['terminal.local', 'localhost', '127.0.0.1'].includes(location.hostname);
-  const scripts = ['storage-context.js','seed.js','recipe-catalog.js','core.js','spending-core.js','unit-registry.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','master-catalog.js','shopping-optimizer.js','app.js','dish-composition.js','artwork.js','unit-picker.js','family-features.js','shopping-planning.js','push-ui.js','simple-view.js','language.js','push-settings-ui.js','insights-ui.js','products-ui.js','price-scout-ui.js','family-menu-ui.js','household-ui.js','platform-banner.js','personal-ui.js'];
+  const scripts = ['storage-context.js','seed.js','recipe-catalog-core.js','core.js','spending-core.js','unit-registry.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','voice-learning.js','master-catalog.js','shopping-optimizer.js','app.js','dish-composition.js','artwork.js','unit-picker.js','family-features.js','shopping-planning.js','push-ui.js','simple-view.js','language.js','push-settings-ui.js','insights-ui.js','products-ui.js','price-scout-ui.js','voice-price.js','family-menu-ui.js','voice-recipe.js','household-ui.js','platform-banner.js','personal-ui.js','offline-downloads.js','app-update.js','scout-pair-ui.js','voice-local.js','voice-stats.js','voice-commands.js','onboarding-guide.js','usage-analytics.js'];
   // Replaced by the build with the startup pack's content hash. The service worker
   // answers instantly from its cache when hashes match and refreshes in the background.
   const packHash: string = '__BEP_STARTUP_PACK_HASH__';
+  // Replaced by the build with a sortable build id (UTC time + pack hash), used by forced updates.
+  const buildId: string = '__BEP_BUILD_ID__';
+  window.BEP_BUILD = buildId;
+  let packMismatch = false;
   const params = new URLSearchParams(location.search);
   const retrying = params.has('startup-retry');
   let failed = false;
@@ -116,13 +125,21 @@ interface Window {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 30000);
     const download = async (fresh: boolean): Promise<PackEntry[]> => {
-      const url = '/startup-scripts.json?v=' + encodeURIComponent(packHash) + (fresh ? '&fresh=1' : '');
+      // First visit (no worker yet): request the plain URL so the worker's install revalidates this same
+      // download (304) instead of fetching the whole pack a second time.
+      const plain = !fresh && !navigator.serviceWorker?.controller;
+      const url = plain ? '/startup-scripts.json' : '/startup-scripts.json?v=' + encodeURIComponent(packHash) + (fresh ? '&fresh=1' : '');
       const response = await fetch(url, { credentials: 'same-origin', cache: fresh ? 'reload' : 'no-cache', signal: controller.signal });
       if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
         if (!fresh) return download(true);
         throw new Error('Chưa tải được ứng dụng. Thử lại hoặc đăng nhập lại. / Unable to download the app.');
       }
-      const entries = validPack(await response.json());
+      const pack: unknown = await response.json();
+      const entries = validPack(pack);
+      // An older cached pack that still fits this loader runs while the worker refreshes it; the update
+      // watcher (app-update.js) then offers the new version.
+      const loadedHash = (pack as { hash?: unknown } | null)?.hash;
+      packMismatch = typeof loadedHash === 'string' && loadedHash !== packHash;
       // An earlier release's cached pack may run while the worker refreshes it, but only
       // when it matches this loader's script order; otherwise force the network.
       if (!entries) {
@@ -138,6 +155,12 @@ interface Window {
       if (error instanceof TypeError) throw new Error('Chưa tải được ứng dụng. Kiểm tra kết nối rồi thử lại. / Unable to download the app; check your connection.');
       throw error;
     } finally { clearTimeout(timer); }
+  };
+  // A failed status check is reported, not treated as offline: the connectivity checker confirms with a health ping.
+  const failureKind = (error: unknown): 'network' | 'timeout' => error instanceof DOMException && error.name === 'AbortError' ? 'timeout' : 'network';
+  const reportNet = (kind: 'network' | 'timeout' | 'server'): void => {
+    if (window.BepConnectivity) void window.BepConnectivity.reportFailure(kind);
+    else window.BEP_OFFLINE = !navigator.onLine;
   };
   // Missing and null fields are the same identity (servers may omit an unlinked memberId).
   const norm = (value: unknown): unknown => value ?? null;
@@ -167,12 +190,12 @@ interface Window {
         location.reload(); return;
       }
       if (response.ok && !status?.connected) { leave(); return; }
-      if (status) { await rememberOfflineAccess(status); window.BEP_OFFLINE = false; }
+      if (status) { await rememberOfflineAccess(status); window.BepConnectivity?.reportSuccess(); if (!window.BepConnectivity) window.BEP_OFFLINE = false; }
       else if (!await readOfflineAccess()) leave();
-      else window.BEP_OFFLINE = true;
-    } catch {
+      else reportNet('server');
+    } catch (error) {
       if (!await readOfflineAccess()) leave();
-      else window.BEP_OFFLINE = true;
+      else reportNet(failureKind(error));
     } finally {
       checking = false;
       document.documentElement.style.visibility = 'visible';
@@ -212,16 +235,24 @@ interface Window {
             if(status.connected&&status.mode==='account'){window.BEP_SESSION=status;try{localStorage.setItem('bep-account-present','yes')}catch{}await rememberOfflineAccess(status)}
             else clearOfflineAccess();
           }else if([401,403].includes(response.status))clearOfflineAccess();
-        }catch{
+        }catch(error){
           const offline=await readOfflineAccess();
           if(offline)window.BEP_SESSION=offline;
-          window.BEP_OFFLINE=!navigator.onLine||!!offline;
+          window.BEP_OFFLINE=!navigator.onLine;
+          if(offline)reportNet(failureKind(error));
         }
       }
     }
     window.BEP_STARTUP={cachedIdentity,packHash};
     const entries = await packPromise;
+    window.BEP_STARTUP.packMismatch = packMismatch;
+    const runHook = async (name: string): Promise<void> => {
+      const hook = window.BEP_SCRIPT_HOOKS?.[name];
+      if (hook) try { await hook(); } catch (error) { console.warn('Startup hook failed', name, error); }
+    };
     for (const entry of entries) {
+      if (failed) return;
+      await runHook(entry.name);
       if (failed) return;
       activeScript = entry.name;
       const script = document.createElement('script');
@@ -229,6 +260,7 @@ interface Window {
       document.body.append(script);
       if (failed) return;
     }
+    await runHook('@ready');
     document.querySelector('#startup-progress')?.remove();
     document.querySelector('main')?.removeAttribute('aria-busy');
     if (!document.querySelector('#main')?.textContent?.trim()) throw new Error('Ứng dụng chưa hiển thị nội dung. Hãy thử lại. / The app did not render; please retry.');
@@ -237,6 +269,7 @@ interface Window {
       if (pendingConfirmation) void check(pendingConfirmation, true);
       window.addEventListener('pageshow', () => { void check(); });
       document.addEventListener('visibilitychange', () => { if (!document.hidden) void check(); });
+      window.addEventListener('online', () => { void check(); });
       setInterval(() => { void check(); }, 60000);
     }
   } catch (error) {
