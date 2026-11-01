@@ -775,3 +775,14 @@ html[data-theme="dark"] .offline-note{background:var(--warn-surface,#2e2717);col
 /* Studio turned Price Scout off: hide every Price Scout surface, including list badges, the Amazon tray and voice price buttons. */
 body.flag-off-priceScout :is(.price-scout,.scout-tray,.scout-tray-sheet,.scout-viet-badge,.scout-badges,[data-scout],[data-voice-price]){display:none!important}
 /* === v1.6 price-scout-off end === */
+/* === v1.7 alerts-online start === */
+/* Optimistic urgent send: the message appears at once, marked "sent · delivering"; no layout shift (same box as a stored message). */
+.urgent-message.sending p{opacity:.92}
+.urgent-message .urgent-status{display:flex;align-items:center;gap:6px}
+.urgent-sent-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2d7152;flex-shrink:0;animation:urgent-sent-pulse 1.2s ease-in-out infinite}
+@keyframes urgent-sent-pulse{0%,100%{opacity:.35}50%{opacity:1}}
+html[data-theme="dark"] .urgent-sent-dot{background:#8fd3ac}
+/* Service slow, network fine: keep "Online", only soften the waves (no Offline pill for a slow server). */
+.network-status[data-degraded] .wifi-wave{opacity:.5;animation:none}
+@media (prefers-reduced-motion:reduce){.urgent-sent-dot{animation:none;opacity:1}}
+/* === v1.7 alerts-online end === */

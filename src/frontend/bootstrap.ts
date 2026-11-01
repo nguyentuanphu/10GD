@@ -13,6 +13,8 @@ interface SessionStatus {
 interface Window {
   BEP_SESSION?: SessionStatus;
   BEP_OFFLINE?: boolean;
+  // v1.7 connectivity state machine (offline-access.js): a single failed request never means offline.
+  BepConnectivity?: { reportSuccess(): void; reportFailure(kind: 'network' | 'timeout' | 'server'): Promise<boolean>; wake(): Promise<boolean> };
   BEP_STARTUP?: { cachedIdentity: boolean; packHash: string; ready?: number; packMismatch?: boolean };
   BEP_BUILD?: string;
   // Optional async steps registered by earlier scripts, run before the named script ('@ready': after all).
@@ -154,6 +156,12 @@ interface Window {
       throw error;
     } finally { clearTimeout(timer); }
   };
+  // A failed status check is reported, not treated as offline: the connectivity checker confirms with a health ping.
+  const failureKind = (error: unknown): 'network' | 'timeout' => error instanceof DOMException && error.name === 'AbortError' ? 'timeout' : 'network';
+  const reportNet = (kind: 'network' | 'timeout' | 'server'): void => {
+    if (window.BepConnectivity) void window.BepConnectivity.reportFailure(kind);
+    else window.BEP_OFFLINE = !navigator.onLine;
+  };
   // Missing and null fields are the same identity (servers may omit an unlinked memberId).
   const norm = (value: unknown): unknown => value ?? null;
   const sameIdentity = (status: SessionStatus): boolean => norm(status.household?.id) === norm(window.BEP_SESSION?.household?.id) &&
@@ -182,12 +190,12 @@ interface Window {
         location.reload(); return;
       }
       if (response.ok && !status?.connected) { leave(); return; }
-      if (status) { await rememberOfflineAccess(status); window.BEP_OFFLINE = false; }
+      if (status) { await rememberOfflineAccess(status); window.BepConnectivity?.reportSuccess(); if (!window.BepConnectivity) window.BEP_OFFLINE = false; }
       else if (!await readOfflineAccess()) leave();
-      else window.BEP_OFFLINE = true;
-    } catch {
+      else reportNet('server');
+    } catch (error) {
       if (!await readOfflineAccess()) leave();
-      else window.BEP_OFFLINE = true;
+      else reportNet(failureKind(error));
     } finally {
       checking = false;
       document.documentElement.style.visibility = 'visible';
@@ -227,10 +235,11 @@ interface Window {
             if(status.connected&&status.mode==='account'){window.BEP_SESSION=status;try{localStorage.setItem('bep-account-present','yes')}catch{}await rememberOfflineAccess(status)}
             else clearOfflineAccess();
           }else if([401,403].includes(response.status))clearOfflineAccess();
-        }catch{
+        }catch(error){
           const offline=await readOfflineAccess();
           if(offline)window.BEP_SESSION=offline;
-          window.BEP_OFFLINE=!navigator.onLine||!!offline;
+          window.BEP_OFFLINE=!navigator.onLine;
+          if(offline)reportNet(failureKind(error));
         }
       }
     }
@@ -260,6 +269,7 @@ interface Window {
       if (pendingConfirmation) void check(pendingConfirmation, true);
       window.addEventListener('pageshow', () => { void check(); });
       document.addEventListener('visibilitychange', () => { if (!document.hidden) void check(); });
+      window.addEventListener('online', () => { void check(); });
       setInterval(() => { void check(); }, 60000);
     }
   } catch (error) {
