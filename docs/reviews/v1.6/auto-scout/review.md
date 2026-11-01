@@ -66,16 +66,35 @@ Henry chose option C knowing that retailer Terms of Use may prohibit automated a
 
 Storage: own store `bep-scout`; the key scheme is documented at the top of `src/netlify/lib/scout.mts`. Concurrent writes use `editRecord` (onlyIfMatch/onlyIfNew retries) and append-only events use onlyIfNew.
 
-## Merge notes (Agent I's community work) — TODO(merge)
-`createDefaultAdapter()` in `scout-adapter.mts` keeps everything inside `bep-scout` until wired. Replace each method:
-- `wantedItems()` → the “Cần săn giá” wanted-list read in `community-prices.mts` (map to `{itemId,name,families}`).
-- `productMappings()` → the product-mapping store public GET (confirmed rows `{itemId,retailer,productUrl,productId,packQty,confirmations}`).
-- `lastSeen()` → community pool latest `observedAt` per `itemId|retailer`.
-- `catalogItems()` → master catalog `{id,name}`.
-- `publishObservation(obs,{confirmed,agreeing})` → the pool write used for screenshot facts, with `source:'scout-extension'` (obs already uses the app's field names: `label, price, unitPrice, unitBasis, wasPrice, promo, validUntil, packQty, packUnit…`).
-- `holdObservation(obs,reason)` → community moderation hold queue.
-- `recordMappingCandidate(c)` → mapping-store candidate write (confirmations++).
-Also: `networkSettings()` should read an `autoScout` key from Studio platform settings once one exists (studio.mts), keeping `bep-scout` as fallback; `studio-scout.ts` should register as a Studio page if `studio.ts` gains a page registry; add a “Pair FamTray Scout” button in My kitchen calling `scout?op=pair-code` (endpoint ready; UI not added here to avoid editing files other agents own).
+## v1.6 wiring (branch `agent-q/scout-wire`, from `v16-base`)
+The former `TODO(merge)` items are done. `createDefaultAdapter(getStoreFn,{env,nowFn})` in `src/netlify/lib/scout-adapter.mts` now uses the community pool (`bep-community`, `community-prices.mts`):
+
+| Adapter method | Now reads / writes |
+|---|---|
+| `wantedItems()` | “Cần săn giá tuần này” counts (`wantedFor`) summed over the pilot states, named from the master catalogue |
+| `productMappings()` | confirmed rows of the product-link memory (`productLinks`) |
+| `lastSeen()` | latest `observedAt` per item\|retailer in the community item shards (every evidence type) + unplaced Scout facts |
+| `catalogItems()` | `data/master-catalog.json` `{id,name}` (bundled into the function as JSON) |
+| `publishObservation()` | upserts one row per device per fact per day into `items/<STATE>/<itemId>` with `evidence.type:'scout'`, `source:'scout-extension'` (conditional write via `mutateShard`) |
+| `holdObservation()` | same row with `status:'held'`, `holdReason:'cross-device-disagreement'`; the other undecided Scout rows of that fact are held too → Studio → Cộng đồng giá moderation queue |
+| `recordMappingCandidate()` | `products/<retailer>/<itemId>` candidate, one vote per family (`mutateDoc`); confirmed at 2 families or by a moderator, like “Lưu link” |
+
+Rules: the device owner’s family is the consensus vote. **Trusted scouts** (Studio trusted list + Studio owners) are confirmed at once (`scoutTrusted`, one added clause in `groupConsensus`); everyone else needs the normal ≥2-family consensus. Outliers (Price Scout 40–250 % median rule) are held. Moderator decisions are never overwritten by a re-capture. Scout rows earn no reward points (`awarded:'scout'`). The branch is the device postcode + the store name (“Woolworths Rockdale” → `Rockdale 2216`). Facts that cannot be placed (no catalogue item — semi-auto pages are placed only through a confirmed product mapping —, no device postcode, state outside the pilot, community prices off, store mismatch) stay in the Scout store as before and are not shown to families. Price Scout shows Scout prices with a “🔎 Scout” label; Studio moderation shows “🔎 Scout” as the evidence.
+
+**`autoScout` platform setting**: `flags.autoScout` (default `false`) in Studio platform settings. Precedence: env `SCOUT_AUTO=on|off` → Studio setting → Scout store → off. Studio → Cài đặt has a “FamTray Scout tự động” card; the Scout page’s Auto switch writes the same setting. While off the server refuses tasks and auto results; semi-auto is unaffected.
+
+**Studio page**: `studio.ts` exposes its page registry (`window.studioPages`, one line); `studio-scout.ts` registers `scout` as a normal page, so the overview no longer loads behind it. Fallback to the standalone panel remains for an older `studio.js`.
+
+**My kitchen → Kết nối gia đình → “Ghép máy tính này / Pair this computer”** (`src/frontend/scout-pair-ui.ts`, loaded after `personal-ui.js`): family owners and trusted scouts only (not viewers/plain members, never device-only use). One-time code `XXXX-XXXX` with app address and expiry countdown (polls for the new device and confirms “Đã ghép máy tính”), install steps (download link only when the app serves `/downloads/famtray-scout.zip`), list of this account’s paired computers with **Thu hồi / Revoke** (`scout?op=my-revoke`, own devices only). Offline: “Cần mạng…”, no requests.
+
+**Extension**: options page shows `v<extension> · config <version>` (stored config, or the bundled one); heartbeats report `configVersion`, shown in the Studio device table. `npm run build:extension` writes `dist-extension.zip` and copies it to `dist/downloads/famtray-scout.zip` (gitignored, never committed). The production build (`npm run check`) does **not** run it, so the app shows install instructions instead of a download link unless the deploy build also runs `npm run build:extension` (owner decision; not changed here). Extension id from the pinned manifest key verified: `mjeoekikdicoojgoppnfibjbfpcfngja`.
+
+### Setup for Henry
+1. Hosting environment (not changed by this work): `SCOUT_EXTENSION_IDS=mjeoekikdicoojgoppnfibjbfpcfngja` (required, else extension requests are refused in production); keep `SCOUT_DEV` unset; optional `SCOUT_AUTO=off` as a hard kill switch; `STUDIO_ADMINS=henrynguyen` already makes Henry a trusted scout.
+2. Build the extension on a computer: `npm ci && SCOUT_SERVER_ORIGIN=https://<the app address> npm run build:extension` → folder `dist-extension/` (and `dist-extension.zip`). Optional: set the deploy build command to `npm run check && npm run build:extension` so My kitchen offers the zip download.
+3. Install (Chrome/Edge, separate profile, not signed in to shopping/rewards): `chrome://extensions` → Developer mode → Load unpacked → `dist-extension`.
+4. Pair: app → My kitchen → Kết nối gia đình → **Ghép máy tính này** → **Tạo mã ghép nối** (or Studio → Mạng Scout → Tạo mã ghép nối). Extension → Settings → App address + code (+ postcode and the store name per retailer) → Pair. Postcode is needed for prices to reach Giá cộng đồng.
+5. Semi-auto works at once. Auto stays off until Studio → Cài đặt → FamTray Scout tự động (or Mạng Scout → Bật chế độ tự động) **and** “Cho phép tự động” for the device **and** Auto on in the extension.
 
 ## Verification (sandbox, 1 Nov 2026)
 - `npm run test:all` passes locally (see commit). New suites: Scout API (pairing, token auth, revoked/unpaired token rejected, CORS, kill switches, schedule window, leases with no duplicates and expiry re-queue, release, caps, priority Wed-specials → wanted-by-many → stale → rest, validation/facts-only/dedupe/consensus/disagreement hold, trusted scouts, robots skip, parser-breakage auto-pause + resume, challenge → 24 h pause, Studio audit, config override); parsing (unit prices per 100g/1kg/500g/each/wash/roll/L/100mL, packs, promos, promo end dates, robots, challenges, pacing clamp, 8 fixture pages incl. 24-tile specials with shadow DOM, 30-tile Coles list, Amazon list, meta-tag product, store labels, signed-in marker); extension e2e in Chromium (MV3 loaded with `--load-extension`, new headless): options pairing, semi-auto capture → badge 24 → popup “Đã lưu 24 giá · Woolworths Hurstville”, paced auto run (2 pages, robots skip), challenge stop + 24 h pause; Studio panel against real handlers.
@@ -88,4 +107,13 @@ Also: `networkSettings()` should read an `autoScout` key from Studio platform se
 - In the e2e test build the start-time idle gate is bypassed (headless has no user input) and pacing is shortened via `testPacing`; production builds ignore both.
 - The extension's popup is a fixed 360 px panel on desktop; the “375×812” popup screenshot is the closest representative size. Popup/Options were not tested in Edge (Chromium only).
 - Store selection must be done by the person on each retailer site once; the extension only reads and compares the label.
-- The Studio panel is a standalone container at `#scout` (studio.ts has no page hook); while it is shown, Studio's own router still renders its overview into the hidden main area.
+- Scout prices are placed on catalogue items only via a wanted/mapped task or a confirmed product mapping; other semi-auto captures stay in the Scout store (no fuzzy name matching, nothing invented).
+- The Studio platform setting is cached up to 60 s per server instance (same as every Studio setting), so switching Auto off can take up to a minute to reach every instance; env `SCOUT_AUTO=off` is immediate on redeploy.
+- Scout rows use the device postcode for the branch; a store far from the device postcode is grouped under that postcode.
+
+### v1.6 wiring verification (sandbox, 1 Nov 2026 — supporting evidence only; GitHub CI on the PR head is the release evidence)
+- New `src/tests/scout-community.test.mts` (in `test:scout`): real handlers + default adapter + in-memory stores — wanted list drives tasks, trusted scout confirmed at once with `sources:['scout']`, non-trusted pending → confirmed by a second family, product mapping confirmed at 2 families and then used to place a semi-auto capture, duplicates never inflate, no device details or reward points in the pool, disagreement → 3 held rows in Studio moderation → approve restores, re-capture keeps the moderator decision, community off → pool untouched, `autoScout` platform default off → tasks/auto results refused while semi works, Studio settings ↔ Scout page in sync, env override, `my-revoke` own devices only.
+- New `src/tests/scout-pair-browser.test.cts` (`test:scout-pair:browser` in `test:all`): owner card at 320×740, 375×812, 820×1100, 1280×800 (light; dark except 320), VI + EN — code `QAPX-7K2M`, ticking countdown, install steps, download link only when served, revoke with confirm, no overflow, ≥44 px targets, no untranslated Vietnamese in EN; trusted editor sees it, plain member and device-only do not; offline state; “Scout” label in Price Scout rows.
+- Updated `scout-studio-browser`: Scout is a registered Studio page inside `#main`, the overview is not requested behind it, leaving restores Studio pages, Settings → Auto Scout card saves off (audited) — screenshot `studio-settings-autoscout-vi-dark-desktop-1280x800.png`.
+- Ran locally: `npm run check`, `npm run typecheck`, `npm test`, `test:browser`, `test:community:browser`, `test:price-scout:browser`, `test:scout`, `test:scout:browser`, `test:scout-studio:browser`, `test:scout-pair:browser` — all passed.
+- Screenshots `pair-<size>-<w>x<h>-<lang>-<theme>.png` (browser viewport simulation, not physical devices).

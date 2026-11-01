@@ -552,3 +552,23 @@ html[data-theme="dark"] .unit-chip[aria-pressed="true"]{color:var(--accent-ink,#
 .qty .unit-qty{flex-wrap:wrap;justify-content:center;row-gap:2px}
 @media (prefers-reduced-motion:no-preference){.unit-chip{transition:background-color .15s ease,border-color .15s ease}}
 /* === v1.5 units end === */
+/* === v1.6 scout-pair start === */
+.scout-pair-card{margin-top:14px;padding:12px;border:1px dashed var(--line);border-radius:12px;background:var(--paper);min-width:0}
+.scout-pair-card h4{margin:0 0 4px}.scout-pair-card h5{margin:14px 0 4px;font-size:.95rem}
+.scout-pair-card .btn{min-height:44px}
+.scout-pair-code{margin:10px 0;padding:10px 12px;border-radius:10px;background:var(--mint);min-width:0}
+.scout-pair-card .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.scout-pair-card .scout-pair-big{margin:0 0 6px;font:700 clamp(1.4rem,6vw,1.9rem)/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.12em;overflow-wrap:anywhere;color:var(--green)}
+.scout-pair-code dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;margin:0 0 8px}
+.scout-pair-code dt{color:var(--muted)}.scout-pair-code dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.scout-pair-steps{margin:8px 0}.scout-pair-steps summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
+.scout-pair-steps ol{margin:4px 0 0;padding-left:1.3em}.scout-pair-steps li{margin:4px 0;overflow-wrap:anywhere}
+.scout-pair-devices{list-style:none;margin:0;padding:0}
+.scout-pair-devices li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);min-width:0}
+.scout-pair-devices li>span{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}.scout-pair-devices small{color:var(--muted)}
+.scout-pair-card :focus-visible{outline:3px solid var(--green2);outline-offset:2px}
+.scout-src-chip{display:inline-block;padding:0 6px;margin-right:2px;border-radius:999px;background:var(--mint);color:var(--green);font-weight:700;font-size:.8em}
+html[data-theme="dark"] .scout-pair-card{background:#18241f;border-color:#3a4c43}
+html[data-theme="dark"] .scout-pair-code,html[data-theme="dark"] .scout-src-chip{background:#223a30;color:#e8f2ec}
+html[data-theme="dark"] .scout-pair-card .scout-pair-big{color:#a8e0c2}
+/* === v1.6 scout-pair end === */

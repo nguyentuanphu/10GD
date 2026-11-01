@@ -16,7 +16,7 @@ function setup(){chrome.alarms.create('scout-tick',{periodInMinutes:1});chrome.a
 setup();
 
 async function heartbeat(){const st=await SC.get(['token','autoEnabled','semiEnabled','warnings','run']);if(!st.token)return null;
- try{const view=await SC.api('heartbeat',{version:SC.BUILD.version,autoEnabled:st.autoEnabled===true,semiEnabled:st.semiEnabled!==false,running:!!st.run,signedIn:st.warnings.signedIn,storesSeen:st.warnings.storesSeen,storeMismatch:st.warnings.storeMismatch});await SC.set({device:view,deviceAt:Date.now()});if(view.configVersion)SC.refreshConfig();return view}catch{return null}}
+ try{const view=await SC.api('heartbeat',{version:SC.BUILD.version,configVersion:(await SC.get(['config'])).config?.version||SC.BUILD.configVersion||null,autoEnabled:st.autoEnabled===true,semiEnabled:st.semiEnabled!==false,running:!!st.run,signedIn:st.warnings.signedIn,storesSeen:st.warnings.storesSeen,storeMismatch:st.warnings.storeMismatch});await SC.set({device:view,deviceAt:Date.now()});if(view.configVersion)SC.refreshConfig();return view}catch{return null}}
 
 // ---------- semi-auto ----------
 let flushTimer:any=null;

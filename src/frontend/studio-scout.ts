@@ -1,9 +1,9 @@
-// Studio · Scout network panel (FamTray Scout). Separate classic script loaded by
-// dist/studio.html after studio.js. studio.ts has no page-registration hook, so this
-// adds a "Scout" nav link and renders its own <main id="scout-main"> at #scout,
-// hiding Studio's #main while it is shown.
-// TODO(merge): when studio.ts exposes a page registry, register {scout:{vi,en,icon,render}}
-// instead of the MutationObserver/own-container approach below.
+// Studio · Scout network page (FamTray Scout). Separate classic script loaded by
+// dist/studio.html after studio.js. v1.6: studio.ts exposes its page registry as
+// window.studioPages, so this registers a normal Studio page {scout:{vi,en,icon,render}}
+// (nav link, routing, language switch and focus handled by Studio) and adds the
+// "Scout tự động / Auto Scout" platform setting card to Studio → Settings.
+// Fallback (older studio.js without the registry): its own <main id="scout-main"> at #scout.
 // Every action posts to /.netlify/functions/scout?op=studio-* which writes the Studio audit log.
 (function studioScout(){
 'use strict';
@@ -41,13 +41,15 @@ const css=`#scout-main .scout-grid{display:grid;grid-template-columns:repeat(aut
 const style=document.createElement('style');style.textContent=css;document.head.appendChild(style);
 
 // ---------- container + nav ----------
-const host=document.createElement('main');host.id='scout-main';host.className='main';host.tabIndex=-1;host.hidden=true;host.setAttribute('aria-labelledby','scout-h1');
-$('#main').after(host);
-function navLink(){const nav=$('#nav');if(!nav||!nav.children.length)return;let a=$('a[href="#scout"]',nav);const on=location.hash==='#scout';
+const registry=(window as any).studioPages;
+let host:any;
+if(registry){host=document.createElement('div');host.id='scout-main'}
+else{host=document.createElement('main');host.id='scout-main';host.className='main';host.tabIndex=-1;host.hidden=true;host.setAttribute('aria-labelledby','scout-h1');$('#main').after(host)}
+function navLink(){if(registry)return;const nav=$('#nav');if(!nav||!nav.children.length)return;let a=$('a[href="#scout"]',nav);const on=location.hash==='#scout';
  if(!a){a=document.createElement('a');a.href='#scout';nav.appendChild(a)}
  const label=`<span aria-hidden="true">◎</span>${esc(T('Mạng Scout','Scout network'))}`;if(a.innerHTML!==label)a.innerHTML=label;
  if(on){a.setAttribute('aria-current','page');for(const x of nav.querySelectorAll('a[aria-current]'))if(x!==a)x.removeAttribute('aria-current')}else a.removeAttribute('aria-current')}
-new MutationObserver(navLink).observe($('#nav'),{childList:true,subtree:true,characterData:true});
+if(!registry)new MutationObserver(navLink).observe($('#nav'),{childList:true,subtree:true,characterData:true});
 
 // ---------- API ----------
 async function handle(r:Response){let d:any={};try{d=await r.json()}catch{}if(!r.ok){const e:any=new Error(lang()==='en'?d.errorEn||d.error||'Request failed':d.error||d.errorEn||'Lỗi');e.status=r.status;e.data=d;throw e}return d}
@@ -82,7 +84,7 @@ function render(){
   ${table([{label:T('Cửa hàng','Retailer'),render:(r:any)=>esc(r.label)},{label:T('Trạng thái','Status'),render:(r:any)=>r.paused?chip('red',r.reason==='parser-breakage'?T('Tự dừng: trình đọc lỗi','Auto-paused: parser breakage'):r.reason==='blocked-network'?T('Tự dừng: bị chặn','Auto-paused: blocked'):T('Tạm dừng','Paused'))+(r.until?` <small class="muted">${T('đến','until')} ${esc(when(r.until))}</small>`:''):chip('green',T('Hoạt động','Active'))},{label:T('Tỉ lệ đọc được','Parse success'),render:(r:any)=>esc(pct(r.successRate))+` <small class="muted">(${r.samples})</small>`},{label:T('Hôm nay','Today'),render:(r:any)=>esc(T(`${r.today.pages} trang · ${r.today.prices} giá · ${r.today.parseFail} lỗi · ${r.today.blocked} chặn · ${r.today.robots} robots`,`${r.today.pages} pages · ${r.today.prices} prices · ${r.today.parseFail} failed · ${r.today.blocked} blocked · ${r.today.robots} robots`))},{label:T('Giới hạn/ngày','Daily cap'),render:(r:any)=>esc(r.today.leased+' / '+r.cap)},{label:'',render:(r:any)=>`<button class="btn small" type="button" data-ret="${r.retailer}" data-act="${r.paused?'resume':'pause'}">${r.paused?T('Tiếp tục','Resume'):T('Tạm dừng','Pause')}</button>`}],data.retailers,T('Cửa hàng','Retailers'))}
  </section>
  <section class="card" aria-labelledby="sc-dev"><h2 id="sc-dev">${T('Thiết bị','Devices')} <small class="muted">(${devRows.length}${revoked?' · '+T('đã thu hồi','revoked')+' '+revoked:''})</small></h2>
-  ${table([{label:T('Máy','Device'),render:(d:any)=>`<strong>${esc(d.name)}</strong><br><small class="muted">${esc(d.owner)}${d.version?' · v'+esc(d.version):''}</small>`},{label:T('Khu vực','Location'),render:(d:any)=>esc([d.suburb,d.postcode].filter(Boolean).join(' ')||'—')},{label:T('Cửa hàng','Stores'),render:(d:any)=>Object.entries(d.stores).map(([r,l]:any)=>`${esc(LABEL[r])}: ${esc(l)}${d.storeMismatch?.[r]?' <span class="alert" title="'+esc(T('Trang hiển thị cửa hàng khác','Site shows another store'))+'">!</span>':''}`).join('<br>')||'—'},{label:T('Lần chạy trước','Last run'),render:(d:any)=>esc(when(d.lastRunAt))+`<br><small class="muted">${T('liên lạc','seen')} ${esc(when(d.lastHeartbeat))}</small>`},{label:T('Trang / giá','Pages / prices'),render:(d:any)=>esc(d.pages+' / '+d.prices)+`<br><small class="muted">${T('hôm nay','today')} ${d.today.pages} / ${d.today.prices}</small>`},{label:T('Đọc được','Success'),render:(d:any)=>esc(pct(d.successRate))},{label:T('Bị chặn','Blocked'),render:(d:any)=>d.blocked?`<span class="alert">${d.blocked}</span>`:'0'},{label:T('Trạng thái','Status'),render:(d:any)=>statusChip(d.status)+'<br>'+(d.autoAllowed?chip('green',T('Được chạy tự động','Auto allowed')):chip('amber',T('Chưa cho tự động','Auto not allowed')))+(d.signedInWarning?.length?'<br>'+chip('red',T('Đang đăng nhập: ','Signed in: ')+d.signedInWarning.map((r:string)=>LABEL[r]).join(', ')):'')},{label:'',render:(d:any)=>`<div class="switchrow"><button class="btn small" type="button" data-dev="${d.id}" data-act="${d.autoAllowed?'deny-auto':'allow-auto'}">${d.autoAllowed?T('Không cho tự động','Disallow auto'):T('Cho phép tự động','Allow auto')}</button><button class="btn small" type="button" data-dev="${d.id}" data-act="${d.status==='active'?'pause':'resume'}">${d.status==='active'?T('Tạm dừng','Pause'):T('Tiếp tục','Resume')}</button><button class="btn small danger" type="button" data-dev="${d.id}" data-act="revoke">${T('Thu hồi','Revoke')}</button></div>`}],devRows,T('Thiết bị','Devices'))}
+  ${table([{label:T('Máy','Device'),render:(d:any)=>`<strong>${esc(d.name)}</strong><br><small class="muted">${esc(d.owner)}${d.version?' · v'+esc(d.version):''}${d.configVersion?' · '+esc(T('cấu hình','config'))+' '+esc(d.configVersion):''}</small>`},{label:T('Khu vực','Location'),render:(d:any)=>esc([d.suburb,d.postcode].filter(Boolean).join(' ')||'—')},{label:T('Cửa hàng','Stores'),render:(d:any)=>Object.entries(d.stores).map(([r,l]:any)=>`${esc(LABEL[r])}: ${esc(l)}${d.storeMismatch?.[r]?' <span class="alert" title="'+esc(T('Trang hiển thị cửa hàng khác','Site shows another store'))+'">!</span>':''}`).join('<br>')||'—'},{label:T('Lần chạy trước','Last run'),render:(d:any)=>esc(when(d.lastRunAt))+`<br><small class="muted">${T('liên lạc','seen')} ${esc(when(d.lastHeartbeat))}</small>`},{label:T('Trang / giá','Pages / prices'),render:(d:any)=>esc(d.pages+' / '+d.prices)+`<br><small class="muted">${T('hôm nay','today')} ${d.today.pages} / ${d.today.prices}</small>`},{label:T('Đọc được','Success'),render:(d:any)=>esc(pct(d.successRate))},{label:T('Bị chặn','Blocked'),render:(d:any)=>d.blocked?`<span class="alert">${d.blocked}</span>`:'0'},{label:T('Trạng thái','Status'),render:(d:any)=>statusChip(d.status)+'<br>'+(d.autoAllowed?chip('green',T('Được chạy tự động','Auto allowed')):chip('amber',T('Chưa cho tự động','Auto not allowed')))+(d.signedInWarning?.length?'<br>'+chip('red',T('Đang đăng nhập: ','Signed in: ')+d.signedInWarning.map((r:string)=>LABEL[r]).join(', ')):'')},{label:'',render:(d:any)=>`<div class="switchrow"><button class="btn small" type="button" data-dev="${d.id}" data-act="${d.autoAllowed?'deny-auto':'allow-auto'}">${d.autoAllowed?T('Không cho tự động','Disallow auto'):T('Cho phép tự động','Allow auto')}</button><button class="btn small" type="button" data-dev="${d.id}" data-act="${d.status==='active'?'pause':'resume'}">${d.status==='active'?T('Tạm dừng','Pause'):T('Tiếp tục','Resume')}</button><button class="btn small danger" type="button" data-dev="${d.id}" data-act="revoke">${T('Thu hồi','Revoke')}</button></div>`}],devRows,T('Thiết bị','Devices'))}
  </section>
  <section class="card" aria-labelledby="sc-cov"><h2 id="sc-cov">${T('Độ phủ (7 ngày)','Coverage (7 days)')}</h2>
   ${cov&&cov.rows.length?`<div class="covw" tabindex="0" role="region" aria-label="${T('Độ phủ','Coverage')}"><table class="cov"><caption class="sr-only">${T('Mặt hàng × cửa hàng','Items × stores')}</caption><thead><tr><th scope="col">${T('Mặt hàng','Item')}</th>${cov.columns.map((c:string)=>`<th scope="col">${esc(c)}</th>`).join('')}</tr></thead><tbody>${cov.rows.map((r:any)=>`<tr><th scope="row">${esc(r.name)}</th>${cov.columns.map((c:string)=>{const cell=r.cells[c];if(!cell)return `<td class="f2">—</td>`;const age=Math.floor((Date.now()-Date.parse(cell.at))/864e5);return `<td class="${age<=2?'f0':age<=5?'f1':'f2'}">${age===0?T('hôm nay','today'):esc(T(age+' ngày',age+' d'))}</td>`}).join('')}</tr>`).join('')}</tbody></table></div><p class="muted">${T('Xanh: ≤2 ngày · vàng: 3–5 ngày · đỏ: cũ hoặc chưa có.','Green: ≤2 days · amber: 3–5 days · red: stale or missing.')}</p>`:`<p class="empty">${T('Chưa có kết quả tự động nào.','No auto results yet.')}</p>`}
@@ -124,9 +126,28 @@ function wire(){
   const retailerPagesPerDay:any={};for(const r of RET)retailerPagesPerDay[r]=n('cap-'+r);
   act('studio-network',{patch:{caps:{devicePagesPerRun:n('run'),devicePagesPerDay:n('day'),retailerPagesPerDay},pacing:{minMs:n('pmin')*1000,maxMs:Math.max(n('pmin'),n('pmax'))*1000},parser:{minSuccess:n('thr')/100,minSamples:n('smp')},schedule}},T('Đã lưu giới hạn và lịch.','Caps and schedule saved.'))};
 }
-async function load(){try{[data,cov]=await Promise.all([get('studio-overview'),get('studio-coverage')]);render()}catch(e:any){host.innerHTML=`<div class="card notice"><h1 id="scout-h1" tabindex="-1">${T('Không tải được','Could not load')}</h1><p>${esc(e.message)}</p></div>`}}
-async function show(focus=false){const on=location.hash==='#scout';host.hidden=!on;$('#main').hidden=on;navLink();if(on){render();await load();if(focus)$('#scout-h1',host)?.focus?.()}}
-addEventListener('hashchange',()=>show(true));
-document.getElementById('lang')?.addEventListener('click',()=>setTimeout(()=>{if(location.hash==='#scout')render();navLink()},0));
-show();
+async function load(){try{[data,cov]=await Promise.all([get('studio-overview'),get('studio-coverage')]);if(host.isConnected)render()}catch(e:any){if(host.isConnected)host.innerHTML=`<div class="card notice"><h1 id="scout-h1" tabindex="-1">${T('Không tải được','Could not load')}</h1><p>${esc(e.message)}</p></div>`}}
+// ---------- Studio → Settings: "Auto Scout" platform setting (flags.autoScout, off by default) ----------
+async function autoScoutCard(el:any){
+ const card=document.createElement('section');card.className='card';card.id='scout-auto-setting';card.setAttribute('aria-labelledby','scout-auto-h');
+ const f=el.querySelector('#sf');if(f)f.after(card);else el.appendChild(card);await fillAuto(card)}
+async function fillAuto(card:any){
+ card.innerHTML=`<h2 id="scout-auto-h">${T('FamTray Scout tự động','FamTray Scout Auto mode')}</h2><p class="muted">…</p>`;
+ let a:any;try{a=await get('studio-auto')}catch(e:any){card.innerHTML=`<h2 id="scout-auto-h">${T('FamTray Scout tự động','FamTray Scout Auto mode')}</h2><p class="muted">${esc(e.message)}</p>`;return}
+ const on=a.autoScout==='on',env=a.source==='env';
+ card.innerHTML=`<h2 id="scout-auto-h">${T('FamTray Scout tự động','FamTray Scout Auto mode')}</h2>
+ <p class="muted">${T('Tắt mặc định. Khi tắt, máy chủ từ chối mọi việc tự động; chế độ bán tự động (trang người dùng tự mở) không bị ảnh hưởng. Từng máy vẫn cần được cho phép trong Mạng Scout.','Off by default. While off, the server refuses every Auto task; semi-auto (pages a person opens) is unaffected. Each device still needs approval in Scout network.')}</p>
+ <form id="scout-auto-form" class="form"><label class="check"><input type="checkbox" name="on" ${on?'checked':''} ${env?'disabled':''}> <span>${T('Cho phép Scout tự động trên toàn mạng','Allow Auto Scout network-wide')} <span class="src ${env?'env':a.source==='default'?'default':'stored'}">${env?T('biến môi trường','environment'):a.source==='default'?T('mặc định','default'):T('đã lưu','stored')}</span></span></label>
+ <div class="row"><button class="btn primary" type="submit" ${env?'disabled':''}>${T('Lưu','Save')}</button> <a class="btn" href="#scout">${T('Mở Mạng Scout','Open Scout network')}</a></div></form>`;
+ $('#scout-auto-form',card).onsubmit=async(e:any)=>{e.preventDefault();const want=!!e.target.on.checked;if(want&&!confirm(T('Bật chế độ tự động cho cả mạng? Từng máy vẫn cần được cho phép và người dùng phải tự bật.','Switch Auto on network-wide? Each device still needs your approval and the user must switch it on.')))return;try{await post('studio-network',{patch:{autoScout:want?'on':'off'}});toast(want?T('Đã bật tự động.','Auto switched on.'):T('Đã tắt tự động.','Auto switched off.'));fillAuto(card)}catch(x:any){toast(x.message,true)}};
+}
+if(registry){
+ registry.scout={vi:'Mạng Scout',en:'Scout network',icon:'◎',async render(el:any){el.innerHTML='';el.appendChild(host);render();await load()}};
+ const settings=registry.settings;if(settings&&typeof settings.render==='function'){const orig=settings.render;settings.render=async function(this:any,el:any){await orig.call(this,el);try{await autoScoutCard(el)}catch{}}}
+}else{
+ async function show(focus=false){const on=location.hash==='#scout';host.hidden=!on;$('#main').hidden=on;navLink();if(on){render();await load();if(focus)$('#scout-h1',host)?.focus?.()}}
+ addEventListener('hashchange',()=>show(true));
+ document.getElementById('lang')?.addEventListener('click',()=>setTimeout(()=>{if(location.hash==='#scout')render();navLink()},0));
+ show();
+}
 })();

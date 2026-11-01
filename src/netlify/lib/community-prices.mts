@@ -96,6 +96,9 @@ const counts=(s:any)=>isShown(s)&&s.counted===true&&(!(s.flags||[]).length||s.ap
 /** Consensus for one group's submissions. CONFIRMED when ≥2 independent families report
  *  a matching price within 7 days (one vote per family), or one receipt from a contributor
  *  with trust ≥ 0.7. Otherwise PENDING (hint only). Held/rejected/hidden/shadowed never show. */
+/** FamTray Scout (v1.6): a price read by a TRUSTED scout's extension (Studio trusted list)
+ *  confirms its cluster like a trusted receipt. Only rows written by the Scout adapter carry it. */
+export const scoutTrustedIn=(cluster:any[])=>cluster.some(x=>x.evidence?.type==='scout'&&x.scoutTrusted===true);
 export function groupConsensus(subs:any[],day:string){
  const shown=subs.filter(isShown).filter(s=>expiryOf(s,day).visible).sort((a,b)=>captured(b)-captured(a));
  if(!shown.length)return null;
@@ -104,7 +107,7 @@ export function groupConsensus(subs:any[],day:string){
   const cluster=countable.filter(x=>pricesMatch(anchor,x)&&withinWindow(anchor,x));
   const families=new Set(cluster.map(x=>x.familyRef)).size;
   // The single trusted-receipt shortcut never applies when the cluster holds app/website prices.
-  const receipt=!cluster.some(x=>ONLINE_EVIDENCE.includes(x.evidence?.type))&&cluster.some(x=>x.evidence?.type==='receipt'&&(x.trustAtSubmit??0)>=RULES.trustReceipt);
+  const receipt=!cluster.some(x=>ONLINE_EVIDENCE.includes(x.evidence?.type))&&cluster.some(x=>x.evidence?.type==='receipt'&&(x.trustAtSubmit??0)>=RULES.trustReceipt)||scoutTrustedIn(cluster);
   const score=(families>=2||receipt?1000:0)+families;
   if(!best||score>best.score)best={anchor,cluster,families,receipt,score};
  }

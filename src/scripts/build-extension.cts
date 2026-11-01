@@ -24,7 +24,7 @@ if(test){
 }
 fs.writeFileSync(path.join(out,'manifest.json'),JSON.stringify(manifest,null,2));
 fs.writeFileSync(path.join(out,'default-config.js'),"'use strict';\nglobalThis.SCOUT_DEFAULT_CONFIG=Object.freeze("+JSON.stringify(config)+");\n");
-fs.writeFileSync(path.join(out,'build-info.js'),"'use strict';\nglobalThis.SCOUT_BUILD=Object.freeze("+JSON.stringify({test,version:manifest.version,server:/^https:\/\//.test(process.env.SCOUT_SERVER_ORIGIN||'')?process.env.SCOUT_SERVER_ORIGIN:'',keepRunnerOpen:false})+");\n");
+fs.writeFileSync(path.join(out,'build-info.js'),"'use strict';\nglobalThis.SCOUT_BUILD=Object.freeze("+JSON.stringify({test,version:manifest.version,configVersion:config.version,server:/^https:\/\//.test(process.env.SCOUT_SERVER_ORIGIN||'')?process.env.SCOUT_SERVER_ORIGIN:'',keepRunnerOpen:false})+");\n");
 for(const f of fs.readdirSync(src+'/pages'))fs.copyFileSync(path.join(src,'pages',f),path.join(out,f));
 // ---- icons: a simple green lens, drawn as PNG without dependencies ----
 function crc32(buf:Buffer){return zlib.crc32(buf)>>>0}
@@ -44,5 +44,8 @@ function zip(dir:string,file:string){const entries:Buffer[]=[],central:Buffer[]=
   central.push(ch,n);offset+=30+n.length+comp.length}
  const cd=Buffer.concat(central),end=Buffer.alloc(22);end.writeUInt32LE(0x06054b50,0);end.writeUInt16LE(central.length/2,8);end.writeUInt16LE(central.length/2,10);end.writeUInt32LE(cd.length,12);end.writeUInt32LE(offset,16);
  fs.writeFileSync(file,Buffer.concat([...entries,cd,end]))}
-if(!test)zip(out,'dist-extension.zip');
+if(!test){zip(out,'dist-extension.zip');
+ // Also served by the app (My kitchen → Pair this computer) when the deploy build runs
+ // build:extension. Generated only, never committed (dist/downloads/ is gitignored).
+ fs.mkdirSync('dist/downloads',{recursive:true});fs.copyFileSync('dist-extension.zip','dist/downloads/famtray-scout.zip')}
 console.log('FamTray Scout extension built: '+out+(test?' (test build)':' + dist-extension.zip')+' · version '+manifest.version+' · config '+config.version);
