@@ -5,8 +5,9 @@
 //    (paired, Auto switched on here AND allowed in Studio, network on, not paused,
 //    inside the schedule window, a normal Chrome window is open, the user is not
 //    active). The run itself lives in runner.html inside one dedicated window.
-declare const chrome:any,importScripts:any;
-importScripts('build-info.js','default-config.js','scout-core.js','scout-client.js');
+declare const chrome:any;
+// The build prepends build info, parser config, ScoutCore and ScoutClient to this file
+// (one bundled background.js, v1.7.1); no importScripts.
 const SC=(globalThis as any).ScoutClient,CORE=(globalThis as any).ScoutCore;
 const LABEL:any={woolworths:'Woolworths',coles:'Coles',aldi:'ALDI',chemist:'Chemist Warehouse',amazon:'Amazon AU'};
 
@@ -89,7 +90,7 @@ chrome.runtime.onMessage.addListener((msg:any,sender:any,reply:any)=>{
   if(msg?.type==='run-now')return SC.BUILD.test&&msg.direct?startRun():requestRunNow();
   if(msg?.type==='flush')return flushSemi();
   if(msg?.type==='heartbeat')return heartbeat();
-  if(msg?.type==='notify')return chrome.notifications.create('scout-'+Date.now(),{type:'basic',iconUrl:'icon-128.png',title:msg.title,message:msg.message,priority:2});
+  if(msg?.type==='notify')return chrome.notifications.create('scout-'+Date.now(),{type:'basic',iconUrl:'icon.png',title:msg.title,message:msg.message,priority:2});
   // Graceful stop: the runner sees stopRun, releases its leases and closes its window.
   // If it does not answer within 10 s the window is closed; leases then expire server-side.
   if(msg?.type==='stop-run'){await stopNow();try{if(msg.server)await SC.api('run-stop',{})}catch{}return true}

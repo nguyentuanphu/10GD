@@ -23,12 +23,15 @@ execFileSync('npm',['run','build:production'],{stdio:'inherit',env});
 for(const f of ['dist/downloads/famtray-scout.zip','dist-extension.zip','dist-extension-store.zip'])assert.ok(existsSync(f),f+' exists after the production build');
 assert.deepEqual(readFileSync('dist/downloads/famtray-scout.zip'),readFileSync('dist-extension.zip'),'served zip is the built zip');
 const z=unzip('dist/downloads/famtray-scout.zip'),store=unzip('dist-extension-store.zip');
-for(const f of ['manifest.json','background.js','build-info.js','popup.html','options.html','icon-128.png'])assert.ok(z[f],'zip contains '+f);
+// v1.7.1: bundled package — one script per extension context, CSS inlined, one icon (owner: fewer files).
+assert.deepEqual(Object.keys(z).sort(),['background.js','content.js','icon.png','manifest.json','options.html','popup.html','runner.html','ui.js'],'bundled package: exactly 8 files');
+for(const f of ['popup.html','options.html','runner.html']){const h=z[f].toString();assert.match(h,/<script src="ui\.js"><\/script>/,f+' loads the one page script');assert.equal((h.match(/<script/g)||[]).length,1,f+' has one script');assert.ok(!h.includes('ui.css')&&h.includes('<style>'),f+' has its CSS inlined')}
+assert.ok(!z['background.js'].toString().includes('importScripts('),'background worker is self-contained');
 const m=JSON.parse(z['manifest.json'].toString());
 assert.ok(m.key,'download zip keeps the pinned key (stable id for unpacked installs)');
 assert.deepEqual(m.externally_connectable,{matches:[origin+'/*','https://kitchen-alias.example/*']},'only the https app origins may talk to the extension');
 assert.ok(!JSON.stringify(m).includes('localhost')&&!JSON.stringify(m).includes('scout.test'),'no test hosts in the production manifest');
-const build=z['build-info.js'].toString();
+const build=z['background.js'].toString();for(const f of ['content.js','ui.js'])assert.match(z[f].toString(),/globalThis\.SCOUT_BUILD=Object\.freeze\(/,f+' embeds the build info');
 assert.match(build,new RegExp('"server":"'+origin.replace(/[.]/g,'\\.')+'"'),'app address baked in from the hosting site URL');
 assert.match(build,/"test":false/);assert.match(build,/"testAppHosts":\[\]/);
 const sm=JSON.parse(store['manifest.json'].toString());
@@ -54,5 +57,5 @@ console.log('PASS zip never precached, bypassed by the service worker, served as
 execFileSync(process.execPath,['scripts/build-extension.cjs'],{stdio:'inherit',env:{...process.env,URL:'',SCOUT_SERVER_ORIGIN:'',SCOUT_APP_ORIGINS:''}});
 const plain=unzip('dist-extension.zip'),pm=JSON.parse(plain['manifest.json'].toString());
 assert.equal(pm.externally_connectable,undefined,'no externally_connectable without an app origin');
-assert.match(plain['build-info.js'].toString(),/"server":""/);
+assert.match(plain['background.js'].toString(),/"server":""/);
 console.log('PASS build without a hosting URL: manual address + code path only');

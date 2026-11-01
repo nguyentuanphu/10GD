@@ -12,8 +12,8 @@
 import {getStore} from '@netlify/blobs';
 import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount} from '../lib/accounts.mjs';
-import {platformSettings,roleFor,csrfFor,writeAudit,recordEvent} from '../lib/studio.mjs';
-import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo,effectivePacing,validPacing,grantRunNow,stopRun,runNowActive,backoffRetailer,dayKey,queueCommand,takeCommands,commandResult,deviceTimeline,logEvent,scoutHooks} from '../lib/scout.mjs';
+import {platformSettings,roleFor,csrfFor,writeAudit,recordEvent,readIndex} from '../lib/studio.mjs';
+import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,extensionAllowlist,isExtensionAllowed,setExtensionAllowed,NOT_ASSIGNED,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo,effectivePacing,validPacing,grantRunNow,stopRun,runNowActive,backoffRetailer,dayKey,queueCommand,takeCommands,commandResult,deviceTimeline,logEvent,scoutHooks} from '../lib/scout.mjs';
 import {notifyOwners} from '../lib/scout-notify.mjs';
 
 const BASE_HEADERS={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
@@ -32,6 +32,9 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    if(method==='OPTIONS')return ext?new Response(null,{status:204,headers:{...cors}}):json({error:'Nguồn không được phép.',errorEn:'Origin not allowed.'},403);
    const body=async(max=200000)=>{const raw=await request.text();if(raw.length>max)throw Object.assign(Error('Quá lớn.'),{status:413,en:'Too large.'});try{return raw?JSON.parse(raw):{}}catch{throw Object.assign(Error('Dữ liệu không hợp lệ.'),{status:400,en:'Invalid JSON.'})}};
    const settings=await networkSettings(getStoreFn,env);
+   // v1.7.1 extension allowlist: the first request after the upgrade migrates trusted price checkers and accounts with paired devices (audited once).
+   {const al=await extensionAllowlist(getStoreFn,now);if(al.migrated)await writeAudit(getStoreFn,{actor:'system',role:'system',action:'scout_extension_allowlist_migrated',target:{type:'scout',id:'extension-allowlist'},details:{accounts:al.migrated}},now)}
+   const notAssigned=()=>json({error:NOT_ASSIGNED[0],errorEn:NOT_ASSIGNED[1],code:'not_assigned'},403);
 
    // ----- public parser config (data only; versioned; cacheable) -----
    if(op==='config'&&isRead){const c=await scoutConfig(getStoreFn);if(url.searchParams.get('v')===c?.version)return json({version:c.version,unchanged:true},200,{'Cache-Control':'public, max-age=300'});return json({version:c?.version||null,config:c},200,{'Cache-Control':'public, max-age=300'})}
@@ -43,8 +46,10 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    if(deviceOps.includes(op)){
     if(origin&&!ext&&origin!==url.origin)return json({error:'Nguồn không được phép.',errorEn:'Origin not allowed.'},403);
     // Cookies are never consulted for device ops: the bearer token is the only credential.
-    if(op==='pair'&&method==='POST'){await rate(getStoreFn,'pair:'+(request.headers.get('x-nf-client-connection-ip')||'unknown'),10,now);const {device,token}=await pairDevice(getStoreFn,await body(4000),now);return json({token,device:await deviceView(getStoreFn,device,settings,now,env)},201)}
+    if(op==='pair'&&method==='POST'){await rate(getStoreFn,'pair:'+(request.headers.get('x-nf-client-connection-ip')||'unknown'),10,now);const {device,token}=await pairDevice(getStoreFn,await body(4000),now,env);return json({token,device:await deviceView(getStoreFn,device,settings,now,env)},201)}
     const device=await deviceFromRequest(getStoreFn,request);await rate(getStoreFn,'dev:'+device.id,120,now);
+    // Only accounts assigned in Studio may run the extension; unpair always works.
+    if(op!=='unpair'&&!(await isExtensionAllowed(getStoreFn,device.owner,env,now)))return notAssigned();
     if((op==='device'&&isRead)||(op==='heartbeat'&&method==='POST')){
      if(op==='heartbeat'){const b=await body(8000),signedIn:any={},storeSeen:any={},mismatch:any={};for(const r of RETAILERS){if(typeof b.signedIn?.[r]==='boolean')signedIn[r]=b.signedIn[r];if(typeof b.storesSeen?.[r]==='string')storeSeen[r]=String(b.storesSeen[r]).slice(0,80);if(typeof b.storeMismatch?.[r]==='boolean')mismatch[r]=b.storeMismatch[r]}
       // v1.7 live status (no page contents): Chrome/idle/battery, current run, last run summary, last error.
@@ -89,8 +94,8 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    if(!isRead&&origin!==url.origin)return json({error:'Yêu cầu phải từ cùng trang.',errorEn:'Same-origin request required.'},403);
    const ctx=await resolveAccount(request,getStoreFn,now);if(!ctx)return json({error:'Cần đăng nhập tài khoản.',errorEn:'Sign in first.',login:'/login'},401);
    const actor=ctx.account.username;
-   if(op==='pair-code'&&method==='POST'){if(ctx.member?.role==='viewer')return json({error:'Tài khoản chỉ xem không ghép nối được.',errorEn:'View-only accounts cannot pair devices.'},403);await rate(getStoreFn,'code:'+actor,10,now);const r=await createPairCode(getStoreFn,actor,now,env);await recordEvent(getStoreFn,'scout_pair_code',{account:actor},now);return json(r,201)}
-   if(op==='my-devices'&&isRead){const mine=(await listDevices(getStoreFn)).filter(d=>d.owner===actor&&!d.revokedAt);return json({trusted:await isTrusted(getStoreFn,actor,env),familyRole:ctx.member?.role||null,semiAuto:settings.semiAuto,autoScout:settings.autoScout,devices:mine.map(d=>({id:d.id,name:d.name,stores:d.stores,createdAt:d.createdAt||null,lastHeartbeat:d.lastHeartbeat,lastRunAt:d.lastRunAt,lastSemiAt:d.lastSemiAt||null,paused:d.pausedUntil>now}))})}
+   if(op==='pair-code'&&method==='POST'){if(!(await isExtensionAllowed(getStoreFn,actor,env,now)))return notAssigned();if(ctx.member?.role==='viewer')return json({error:'Tài khoản chỉ xem không ghép nối được.',errorEn:'View-only accounts cannot pair devices.'},403);await rate(getStoreFn,'code:'+actor,10,now);const r=await createPairCode(getStoreFn,actor,now,env);await recordEvent(getStoreFn,'scout_pair_code',{account:actor},now);return json(r,201)}
+   if(op==='my-devices'&&isRead){const mine=(await listDevices(getStoreFn)).filter(d=>d.owner===actor&&!d.revokedAt);const assigned=await isExtensionAllowed(getStoreFn,actor,env,now);if(!assigned)return json({assigned:false,trusted:false,familyRole:ctx.member?.role||null,devices:[]});return json({assigned:true,trusted:await isTrusted(getStoreFn,actor,env),familyRole:ctx.member?.role||null,semiAuto:settings.semiAuto,autoScout:settings.autoScout,devices:mine.map(d=>({id:d.id,name:d.name,stores:d.stores,createdAt:d.createdAt||null,lastHeartbeat:d.lastHeartbeat,lastRunAt:d.lastRunAt,lastSemiAt:d.lastSemiAt||null,paused:d.pausedUntil>now}))})}
    // The account revokes one of its OWN paired computers (My kitchen → Pair this computer).
    if(op==='my-revoke'&&method==='POST'){const b=await body(2000),d=await getDevice(getStoreFn,b.deviceId);if(d.owner!==actor||d.revokedAt)return json({error:'Không tìm thấy máy.',errorEn:'Device not found.'},404);await revokeDevice(getStoreFn,d.id,actor,now);await recordEvent(getStoreFn,'scout_device_revoked_by_owner',{account:actor},now);return json({ok:true})}
    if(!op.startsWith('studio-'))return json({error:'Thao tác không hỗ trợ.',errorEn:'Unsupported operation.'},404);
@@ -104,7 +109,12 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    if(op==='studio-auto'&&isRead)return json({autoScout:settings.autoScout,source:settings.autoScoutSource||'default'});
    if(op==='studio-coverage'&&isRead)return json(await coverage(getStoreFn,{now}));
    if(op==='studio-events'&&isRead)return json({events:await listEvents(getStoreFn,{days:14,limit:200,now})});
-   if(op==='studio-pair-code'&&method==='POST'){const r=await createPairCode(getStoreFn,actor,now,env);await audit('scout_pair_code',{type:'scout',id:'pair'});return json(r,201)}
+   if(op==='studio-pair-code'&&method==='POST'){const who=String(b.username||actor).toLowerCase();if(!(await isExtensionAllowed(getStoreFn,who,env,now)))return notAssigned();const r=await createPairCode(getStoreFn,who,now,env);await audit('scout_pair_code',{type:'scout',id:'pair'},{details:{account:who}});return json({...r,account:who},201)}
+   // Accounts allowed to use the extension (owner-only POST, CSRF, audited). STUDIO_ADMINS are always allowed.
+   if(op==='studio-extension-users'&&method==='POST'){const u=String(b.username||'').trim().toLowerCase();
+    // Picked from the Studio accounts search; a grant must name an existing account.
+    if(b.grant===true){const ix=await readIndex(getStoreFn,{now});const rows=ix.accounts?.rows||[];if(rows.length&&!rows.some((r:any)=>r.username===u))return json({error:'Không tìm thấy tài khoản.',errorEn:'Account not found.'},404)}
+    await setExtensionAllowed(getStoreFn,u,b.grant===true,actor,now);await audit(b.grant===true?'scout_extension_access_grant':'scout_extension_access_remove',{type:'account',id:u},{reason:reasonOf()||undefined});return json(await studioOverview(getStoreFn,{now,env}))}
    if(op==='studio-network'&&method==='POST'){const patch=validateNetworkPatch(b.patch||{},await scoutConfig(getStoreFn));await saveNetwork(getStoreFn,patch,actor,now);await audit('scout_network',{type:'scout',id:'network'},{details:patch,reason:reasonOf()||undefined});return json(await studioOverview(getStoreFn,{now,env}))}
    // Remote control: queue a command for one device (delivered with its next heartbeat).
    if(op==='studio-command'&&method==='POST'){const d=await getDevice(getStoreFn,b.deviceId),type=String(b.type||'');if(d.revokedAt)return json({error:'Máy đã bị thu hồi.',errorEn:'Device revoked.'},409);

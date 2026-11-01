@@ -199,20 +199,43 @@ export async function trustedList(getStoreFn:any){return (await readJSON(scoutSt
 export async function isTrusted(getStoreFn:any,username:string,env:any=process.env){const u=String(username||'').toLowerCase();if(adminNames(env).includes(u))return true;return !!(await trustedList(getStoreFn))[u]}
 export async function setTrusted(getStoreFn:any,username:string,grant:boolean,actor:string,now:number){if(!/^[a-z0-9][a-z0-9_.-]{2,39}$/.test(String(username||'')))fail('Tên tài khoản không hợp lệ.','Invalid username.');return editRecord(scoutStore(getStoreFn),'roles/trusted',(cur:any)=>{const users={...(cur?.users||{})};if(grant)users[username]={by:actor,at:new Date(now).toISOString()};else delete users[username];return{users}})}
 
+// ---------- extension allowlist (v1.7.1, owner: "only the accounts I assign in Studio can run and pair the extension") ----------
+// roles/extension {users:{username:{by,at,source}},migratedAt}. Being a family owner no longer grants pairing.
+// STUDIO_ADMINS are always allowed. First read migrates: every trusted price checker and every account with a
+// paired (not revoked) device is added, so nothing breaks; the caller writes that to the Studio audit log.
+// Removing an account keeps its device tokens but every device op refuses them (403 not_assigned) while the
+// account is off the list; re-adding the same account re-enables those devices without re-pairing (the token
+// never left the extension and only the admin can re-grant the same account).
+export const NOT_ASSIGNED=['Tài khoản này chưa được cấp quyền dùng tiện ích. Liên hệ quản trị.','This account isn’t allowed to use the extension yet. Contact the admin.'];
+export async function extensionAllowlist(getStoreFn:any,now:number=Date.now()){const store=scoutStore(getStoreFn),cur=await readJSON(store,'roles/extension');if(cur?.migratedAt)return{users:cur.users||{},migrated:null as string[]|null};
+ const at=new Date(now).toISOString(),seed:any={},added:string[]=[];
+ for(const u of Object.keys(await trustedList(getStoreFn)))if(!seed[u]){seed[u]={by:'migration',at,source:'trusted'};added.push(u)}
+ for(const d of await listDevices(getStoreFn)){const u=String(d.owner||'').toLowerCase();if(!d.revokedAt&&u&&!seed[u]){seed[u]={by:'migration',at,source:'paired-device'};added.push(u)}}
+ let won=false;const next=await editRecord(store,'roles/extension',(c:any)=>{if(c?.migratedAt)return undefined;won=true;return{users:{...seed,...(c?.users||{})},migratedAt:at}});
+ return{users:next?.users||{},migrated:won?added:null}}
+export async function isExtensionAllowed(getStoreFn:any,username:string,env:any=process.env,now:number=Date.now()){const u=String(username||'').toLowerCase();if(!u)return false;if(adminNames(env).includes(u))return true;return !!(await extensionAllowlist(getStoreFn,now)).users[u]}
+export async function assertExtensionAllowed(getStoreFn:any,username:string,env:any=process.env,now:number=Date.now()){if(!(await isExtensionAllowed(getStoreFn,username,env,now)))fail(NOT_ASSIGNED[0],NOT_ASSIGNED[1],403,'not_assigned')}
+export async function setExtensionAllowed(getStoreFn:any,username:string,grant:boolean,actor:string,now:number){const u=String(username||'').toLowerCase();if(!/^[a-z0-9][a-z0-9_.-]{2,39}$/.test(u))fail('Tên tài khoản không hợp lệ.','Invalid username.');await extensionAllowlist(getStoreFn,now);
+ const r=await editRecord(scoutStore(getStoreFn),'roles/extension',(cur:any)=>{const users={...(cur?.users||{})};if(grant)users[u]={by:actor,at:new Date(now).toISOString(),source:'studio'};else delete users[u];return{...(cur||{}),users,migratedAt:cur?.migratedAt||new Date(now).toISOString()}});
+ if(!grant)for(const d of await listDevices(getStoreFn))if(d.owner===u&&!d.revokedAt)await releaseDeviceLeases(getStoreFn,d.id,now);
+ await logEvent(getStoreFn,grant?'extension_access_granted':'extension_access_removed',{account:u,by:actor},now);return r}
+
 // ---------- pairing / devices ----------
 const CODE_ALPHABET='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const normCode=(c:any)=>String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 export async function createPairCode(getStoreFn:any,username:string,now:number,env:any=process.env){
+ await assertExtensionAllowed(getStoreFn,username,env,now);
  const s=await networkSettings(getStoreFn,env),mine=(await listDevices(getStoreFn)).filter(d=>d.owner===username&&!d.revokedAt);const max=adminNames(env).includes(username)?Math.max(20,s.maxDevicesPerAccount):s.maxDevicesPerAccount;
  if(mine.length>=max)fail('Đã đạt số máy tối đa cho tài khoản này.','This account already has the maximum number of price-compare computers.',409,'device-limit');
  const bytes=randomBytes(8);let code='';for(const b of bytes)code+=CODE_ALPHABET[b%32];
  const expires=now+15*MIN;await scoutStore(getStoreFn).setJSON('pair/'+sha('scout-pair:'+code),{username,expires,createdAt:new Date(now).toISOString()},{onlyIfNew:true});
  return{code,expires:new Date(expires).toISOString()}}
-export async function pairDevice(getStoreFn:any,body:any,now:number){
+export async function pairDevice(getStoreFn:any,body:any,now:number,env:any=process.env){
  const code=normCode(body?.code);if(code.length!==8)fail('Mã ghép nối gồm 8 ký tự.','The pairing code has 8 characters.',400,'bad-code');
  const store=scoutStore(getStoreFn),key='pair/'+sha('scout-pair:'+code),rec=await readJSON(store,key);
  if(!rec||rec.expires<=now)fail('Mã ghép nối sai hoặc đã hết hạn.','The pairing code is wrong or expired.',400,'bad-code');
  await store.delete(key);// one-time
+ await assertExtensionAllowed(getStoreFn,rec.username,env,now);
  const id='dev-'+randomBytes(6).toString('hex'),token=randomBytes(32).toString('base64url'),tokenHash=sha('scout-token:'+token);
  const device={id,owner:rec.username,name:clean(body?.name,40)||'Chrome',postcode:/^\d{4}$/.test(String(body?.postcode||''))?String(body.postcode):null,suburb:clean(body?.suburb,40)||null,timeZone:validTz(body?.timeZone),stores:cleanStores(body?.stores),schedule:null,caps:{},autoAllowed:false,pausedUntil:null,pauseReason:null,createdAt:new Date(now).toISOString(),revokedAt:null,tokenHash,client:{version:clean(body?.version,20)||null},lastHeartbeat:null,lastRunAt:null,totals:{pages:0,prices:0,parseFail:0,blocked:0}};
  await store.setJSON('devices/'+id,device,{onlyIfNew:true});await store.setJSON('tokens/'+tokenHash,{deviceId:id},{onlyIfNew:true});
@@ -388,12 +411,12 @@ export async function ingestResults(getStoreFn:any,{device,settings:s,body,now,a
 
 // ---------- Studio views ----------
 export async function studioOverview(getStoreFn:any,{now,env=process.env}:any){
- const s=await networkSettings(getStoreFn,env),devices=await listDevices(getStoreFn),day=dayKey(now),{retailers,devices:dc}=await counters(getStoreFn,day),health=await retailerHealth(getStoreFn),trusted=await trustedList(getStoreFn),cfg=await scoutConfig(getStoreFn);
+ const s=await networkSettings(getStoreFn,env),devices=await listDevices(getStoreFn),day=dayKey(now),{retailers,devices:dc}=await counters(getStoreFn,day),health=await retailerHealth(getStoreFn),trusted=await trustedList(getStoreFn),cfg=await scoutConfig(getStoreFn),allow=(await extensionAllowlist(getStoreFn,now)).users,admins=adminNames(env),assigned=(u:any)=>admins.includes(String(u||'').toLowerCase())||!!allow[String(u||'').toLowerCase()];
  const live:any={};for(const d of devices)live[d.id]=liveStatus(d,s,now);
- const rows=devices.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).map(d=>{const t=d.totals||{},today=dc[d.id]||{};const pages=t.pages||0;return{id:d.id,name:d.name,owner:d.owner,postcode:d.postcode,suburb:d.suburb,stores:d.stores||{},lastHeartbeat:d.lastHeartbeat,lastRunAt:d.lastRunAt,lastSemiAt:d.lastSemiAt||null,pages,prices:t.prices||0,blocked:t.blocked||0,successRate:pages?Math.round((1-(t.parseFail||0)/pages)*100)/100:null,today:{pages:today.pages||0,leased:today.leased||0,prices:today.prices||0},autoAllowed:d.autoAllowed===true,autoEnabled:d.client?.autoEnabled===true,semiEnabled:d.client?.semiEnabled!==false,signedInWarning:Object.keys(d.client?.signedIn||{}).filter(r=>d.client.signedIn[r]),storeMismatch:d.client?.storeMismatch||{},version:d.client?.version||null,configVersion:d.client?.configVersion||null,caps:effectiveCaps(d,s),schedule:d.schedule||null,status:d.revokedAt?'revoked':d.pausedUntil&&d.pausedUntil>now?(String(d.pauseReason||'').startsWith('blocked')?'blocked':'paused'):'active',pausedUntil:d.pausedUntil&&d.pausedUntil>now?new Date(d.pausedUntil).toISOString():null,pauseReason:d.pauseReason||null,live:live[d.id]}});
+ const rows=devices.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).map(d=>{const t=d.totals||{},today=dc[d.id]||{};const pages=t.pages||0;return{id:d.id,name:d.name,owner:d.owner,postcode:d.postcode,suburb:d.suburb,stores:d.stores||{},lastHeartbeat:d.lastHeartbeat,lastRunAt:d.lastRunAt,lastSemiAt:d.lastSemiAt||null,pages,prices:t.prices||0,blocked:t.blocked||0,successRate:pages?Math.round((1-(t.parseFail||0)/pages)*100)/100:null,today:{pages:today.pages||0,leased:today.leased||0,prices:today.prices||0},autoAllowed:d.autoAllowed===true,autoEnabled:d.client?.autoEnabled===true,semiEnabled:d.client?.semiEnabled!==false,signedInWarning:Object.keys(d.client?.signedIn||{}).filter(r=>d.client.signedIn[r]),storeMismatch:d.client?.storeMismatch||{},version:d.client?.version||null,configVersion:d.client?.configVersion||null,caps:effectiveCaps(d,s),schedule:d.schedule||null,status:d.revokedAt?'revoked':!assigned(d.owner)?'access-removed':d.pausedUntil&&d.pausedUntil>now?(String(d.pauseReason||'').startsWith('blocked')?'blocked':'paused'):'active',pausedUntil:d.pausedUntil&&d.pausedUntil>now?new Date(d.pausedUntil).toISOString():null,pauseReason:d.pauseReason||null,live:live[d.id]}});
  const retailerRows=RETAILERS.map(r=>{const h=health[r]||{},c=retailers[r]||{};return{retailer:r,label:RETAILER_LABELS[r],paused:retailerPaused(h,now),reason:retailerPaused(h,now)?h.reason:null,until:h.until?new Date(h.until).toISOString():null,successRate:h.successRate??null,samples:(h.recent||[]).length,today:{leased:c.leased||0,pages:c.pages||0,prices:c.prices||0,parseFail:c.parseFail||0,blocked:c.blocked||0,robots:c.robots||0,semiPages:c.semiPages||0},cap:s.caps.retailerPagesPerDay[r]??0}});
  const tasks=await listTasks(getStoreFn,day),byStatus:any={};for(const t of tasks)byStatus[t.status]=(byStatus[t.status]||0)+1;
- return{settings:s,installInfo:{...publicInstallInfo(s,env),envStoreUrl:!!validStoreUrl(env?.SCOUT_STORE_URL,'chrome'),envEdgeStoreUrl:!!validStoreUrl(env?.SCOUT_EDGE_STORE_URL,'edge')},devices:rows,retailers:retailerRows,trusted:Object.entries<any>(trusted).map(([username,v])=>({username,...v})),tasks:{total:tasks.length,byStatus},configVersion:cfg?.version||null,events:await listEvents(getStoreFn,{days:7,limit:40,now}),day}}
+ return{settings:s,installInfo:{...publicInstallInfo(s,env),envStoreUrl:!!validStoreUrl(env?.SCOUT_STORE_URL,'chrome'),envEdgeStoreUrl:!!validStoreUrl(env?.SCOUT_EDGE_STORE_URL,'edge')},devices:rows,retailers:retailerRows,trusted:Object.entries<any>(trusted).map(([username,v])=>({username,...v})),extensionUsers:Object.entries<any>(allow).map(([username,v])=>({username,...v})).sort((a:any,b:any)=>a.username.localeCompare(b.username)),admins,tasks:{total:tasks.length,byStatus},configVersion:cfg?.version||null,events:await listEvents(getStoreFn,{days:7,limit:40,now}),day}}
 export async function coverage(getStoreFn:any,{now,days=7}:any){const rows:any={},stores=new Set<string>();
  for(let d=0;d<days;d++)for(const t of await listTasks(getStoreFn,dayKey(now-d*DAY))){if(!t.itemId||t.status!=='done')continue;const col=t.retailer+' · '+t.storeLabel;stores.add(col);const row=rows[t.itemId]||(rows[t.itemId]={itemId:t.itemId,name:t.name||t.itemId,cells:{}});const prev=row.cells[col];if(!prev||prev.at<t.doneAt)row.cells[col]={at:t.doneAt,prices:t.prices||0}}
  return{columns:[...stores].sort(),rows:Object.values(rows).sort((a:any,b:any)=>String(a.name).localeCompare(String(b.name))).slice(0,300)}}

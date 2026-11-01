@@ -44,7 +44,7 @@ assert.equal(extensionOriginAllowed(EXT,{SCOUT_EXTENSION_IDS:'zzz'}),false);asse
 assert.equal(extensionOriginAllowed('https://evil.example',{SCOUT_DEV:'1'}),false);
 const cfg=await scoutConfig(getStoreFn);assert.ok(cfg?.retailers?.woolworths,'bundled config shipped to the server');
 // The extension core agrees with the server's schedule rule.
-const core=require('../dist-extension/scout-core.js');
+const core=require('../.compiled/extension/scout-core.js');
 for(const t of ['2026-11-04T06:29:00+11:00','2026-11-04T06:30:00+11:00','2026-11-04T08:59:00+11:00','2026-11-04T09:00:00+11:00','2026-11-07T07:00:00+11:00','2026-11-08T07:00:00+11:00'])assert.equal(core.inWindow(Date.parse(t),core.DEFAULT_SCHEDULE,'Australia/Sydney'),inWindow(Date.parse(t)),t);
 assert.equal(validFact({name:'X',price:3,currency:'USD'},'woolworths',cfg).ok,false,'non-AUD rejected');
 assert.equal(validFact({name:'X',price:0.01},'woolworths',cfg).ok,false,'implausible price rejected');

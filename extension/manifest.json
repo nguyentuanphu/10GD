@@ -24,12 +24,12 @@
         "https://www.chemistwarehouse.com.au/*",
         "https://www.amazon.com.au/*"
       ],
-      "js": ["build-info.js", "default-config.js", "scout-core.js", "scout-parse.js", "content.js"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     }
   ],
-  "action": { "default_popup": "popup.html", "default_title": "FamTray So sánh giá · Price Compare", "default_icon": { "16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon-128.png" } },
-  "icons": { "16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon-128.png" },
+  "action": { "default_popup": "popup.html", "default_title": "FamTray So sánh giá · Price Compare", "default_icon": { "16": "icon.png", "32": "icon.png", "48": "icon.png", "128": "icon.png" } },
+  "icons": { "16": "icon.png", "32": "icon.png", "48": "icon.png", "128": "icon.png" },
   "options_page": "options.html",
   "content_security_policy": { "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'" }
 }

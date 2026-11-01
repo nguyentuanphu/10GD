@@ -5,7 +5,7 @@
     "moduleDetection": "legacy",
     "lib": ["ES2022", "DOM"],
     "rootDir": "extension/src",
-    "outDir": "dist-extension",
+    "outDir": ".compiled/extension",
     "noCheck": true,
     "sourceMap": false,
     "types": []
