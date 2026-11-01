@@ -1,4 +1,14 @@
-# FamTray · Bếp Gia Đình · v1.6
+# FamTray · Bếp Gia Đình · v1.7
+
+## What's new in v1.7 (ships together with v1.6 in one deploy)
+- **Usage statistics:** anonymous, on by default with an opt-out in Cài đặt khác; postcode or network (country/state only, no IP stored) location; Studio "Mức sử dụng" tab (DAU/WAU/MAU, minutes, sessions, peak hours, features, retention, inactive families, locations); 13-month retention; audited drill-downs. Studio switch `usageAnalytics`.
+- **Privacy & terms:** final `privacy.html` (VI/EN); community/voice terms no longer drafts; one-time "terms updated" notice.
+- **Connection & alerts:** no more false "Offline" (health check + retries, automatic recovery); urgent alerts appear instantly and push in the background with high urgency.
+- **Library:** one row of category chips + Filters panel, show 10/20/50/100 with "Xem thêm", compact image + name cards (tap to expand, tap image to open).
+- **Get-started guide** on Today, re-openable from More → Hướng dẫn sử dụng.
+- **FamTray Scout:** production build ships the extension download; guided install and one-click "Ghép ngay" pairing; phones/tablets get screenshot/voice alternatives; Web Store pack in `docs/scout-store/`; pace presets (≥3 s/page) with auto back-off; Run now; remote status/commands and owner notifications in Studio; every referenced price shows its capture time (older than 7 days marked "cũ").
+
+Evidence: `docs/reviews/v1.7/*/review.md`.
 
 ## What's new in v1.6
 - **Voice:** Auto language by default (no VI/EN choice needed), Vietlish understanding ("1kg salmon", "sa mơn"), spoken lists split into items, did-you-mean confirmation, commands (bought / remove / change meal / not eating tonight / pantry / urgent message / questions), read-back and spoken confirmation, regional words and per-family learned corrections, mic level meter and push-to-talk. Optional on-device recognition (download, off by default) and opt-in text-only voice statistics in Studio.

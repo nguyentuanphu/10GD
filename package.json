@@ -1,6 +1,6 @@
 {
   "name": "bep-gia-dinh",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "private": true,
   "description": "Family meal planning, receipts, shopping and shared family data",
   "engines": {

@@ -41,3 +41,9 @@
 [[edge_functions]]
   function = "family-gate"
   path = "/login"
+
+# Connectivity health check (offline detection) must never be cached.
+[[headers]]
+  for = "/health.json"
+  [headers.values]
+    Cache-Control = "no-store"
