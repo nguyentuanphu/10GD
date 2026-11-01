@@ -69,7 +69,9 @@ function usageOnline(){return typeof navigator==='undefined'||navigator.onLine!=
 let usageInflight=null;
 function usageFlush(opts={}){if(opts.beacon)return usageSend(opts);if(usageInflight)return usageInflight;usageInflight=usageSend(opts).finally(()=>{usageInflight=null});return usageInflight}
 async function usageSend({beacon=false,fetchFn}={}){
- if(!usageEnabled()||!usageOnline())return false;
+ if(!usageEnabled())return false;
+ // v1.7: the app's offline flag can lag behind a restored network until the connectivity checker confirms it.
+ if(!usageOnline()){const c=(globalThis as any).BepConnectivity;if(beacon||!c||(typeof navigator!=='undefined'&&navigator.onLine===false))return false;if(!(await c.wake().catch(()=>false))||!usageOnline())return false}
  const st=usageLoad(),install=usageInstall();if(!install)return false;
  if(!st.pending){const days=usageDaysPayload(st);if(!days.length)return false;const p=usagePlatform();
   st.pending={batch:usageRandom(12),body:{v:1,install,batch:'',ver:usageVersion(),lang:typeof appLanguage!=='undefined'&&appLanguage==='en'?'en':'vi',platform:p.platform,standalone:p.standalone,postcode:usagePostcode(),days}};
@@ -144,6 +146,7 @@ function usageStart(){
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){usageTick();usageFlush({beacon:true})}else usageLastTick=Date.now()});
  addEventListener('pagehide',()=>{usageTick();usageFlush({beacon:true})});
  addEventListener('online',()=>{usageRetryForget();usageFlush()});
+ addEventListener('bep-connectivity',()=>{if(usageOnline()){usageRetryForget();usageFlush()}});
  usageTimer=setInterval(()=>usageTick(),USAGE_TICK_MS);setInterval(()=>usageFlush(),USAGE_FLUSH_MS);
  usageNoteView();usageRetryForget();renderTermsNotice();setTimeout(()=>usageFlush(),3000);
 }
