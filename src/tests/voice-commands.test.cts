@@ -105,7 +105,7 @@ t('where is X cheapest (Price Scout data, else no price yet)',()=>{run(`globalTh
  const q=(lang:string,obs='OBS')=>J(run(`voiceCheapest({ingredient:'waterSpinach',label:'rau muống'},{catalog:CAT,observations:${obs},PS:PriceScout,today:'${TODAY}',lang:'${lang}'})`));
  const vi=q('vi');assert.equal(vi.best.retailer,'viet-grocer','$8/kg beats $14/kg and $20/kg; the stale ALDI price is ignored');assert.match(vi.text,/^Rau muống rẻ nhất: Chợ Việt \$8\.00\/kg, giá ghi ngày 28\/10\. Tiếp theo: /);
  assert.match(q('en').text,/^Cheapest Water spinach: Vietnamese grocer \$8\.00\/kg/);
- assert.equal(q('vi','[]').text,'Chưa có giá cho Rau muống. Lưu giá trong So giá để so sánh.');
+ assert.equal(q('vi','[]').text,'Chưa có giá cho Rau muống. Lưu giá trong So sánh giá để so sánh.');
  assert.match(J(run(`voiceCheapest({ingredient:'',label:'quả sầu riêng'},{catalog:CAT,observations:OBS,PS:PriceScout,today:'${TODAY}',lang:'en'})`)).text,/^No price yet for quả sầu riêng/)});
 t('recogniser registry validates plug-ins',()=>{assert.throws(()=>run('registerVoiceRecognizer({id:"x"})'));assert.throws(()=>run('registerVoiceRecognizer({id:"browser",label:"b",start(){},stop(){}})'));const off=run('registerVoiceRecognizer({id:"ondevice",label:"On device",start(){},stop(){},offline:true})');assert.deepEqual(J(run('voiceRecognizerList()')).map((r:any)=>r.id),['browser','ondevice']);off();assert.deepEqual(J(run('voiceRecognizerList()')).map((r:any)=>r.id),['browser']);
  for(const k of['parseVoiceInput','parseCommands','learn','forget','lookupLearned','regionalCanon','matchMember','confirmWord','cheapest','registerVoiceRecognizer'])assert.equal(typeof run('VoiceAPI.'+k),'function','VoiceAPI.'+k)});

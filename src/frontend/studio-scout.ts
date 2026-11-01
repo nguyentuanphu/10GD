@@ -57,7 +57,7 @@ if(registry){host=document.createElement('div');host.id='scout-main'}
 else{host=document.createElement('main');host.id='scout-main';host.className='main';host.tabIndex=-1;host.hidden=true;host.setAttribute('aria-labelledby','scout-h1');$('#main').after(host)}
 function navLink(){if(registry)return;const nav=$('#nav');if(!nav||!nav.children.length)return;let a=$('a[href="#scout"]',nav);const on=location.hash==='#scout';
  if(!a){a=document.createElement('a');a.href='#scout';nav.appendChild(a)}
- const label=`<span aria-hidden="true">◎</span>${esc(T('Mạng Scout','Scout network'))}`;if(a.innerHTML!==label)a.innerHTML=label;
+ const label=`<span aria-hidden="true">◎</span>${esc(T('Mạng so sánh giá','Price-compare network'))}`;if(a.innerHTML!==label)a.innerHTML=label;
  if(on){a.setAttribute('aria-current','page');for(const x of nav.querySelectorAll('a[aria-current]'))if(x!==a)x.removeAttribute('aria-current')}else a.removeAttribute('aria-current')}
 if(!registry)new MutationObserver(navLink).observe($('#nav'),{childList:true,subtree:true,characterData:true});
 
@@ -113,12 +113,12 @@ function remoteHtml(devs:any[]){const s=data.settings,n=s.notify||{};
   <div class="row"><button class="btn primary" type="submit">${T('Lưu thông báo','Save notifications')}</button></div></form>
  </section>`}
 function render(){
- if(!data){host.innerHTML=`<header class="page-head"><div><h1 id="scout-h1" tabindex="-1">${T('Mạng Scout','Scout network')}</h1><p class="muted">…</p></div></header>`;return}
+ if(!data){host.innerHTML=`<header class="page-head"><div><h1 id="scout-h1" tabindex="-1">${T('Mạng so sánh giá','Price-compare network')}</h1><p class="muted">…</p></div></header>`;return}
  const s=data.settings,auto=s.autoScout==='on',semi=s.semiAuto==='on';
  const devRows=data.devices.filter((d:any)=>d.status!=='revoked'),revoked=data.devices.length-devRows.length;
  host.innerHTML=`
- <header class="page-head"><div><h1 id="scout-h1" tabindex="-1">${T('Mạng Scout','Scout network')}</h1>
-  <p class="muted">${T('Tiện ích FamTray Scout trên máy tính của các gia đình: ghi giá trên trang họ xem (bán tự động) và, khi bạn cho phép, chạy tự động theo lịch với nhịp chậm như người dùng.','The FamTray Scout extension on family computers: captures prices on pages they view (semi-auto) and, when you allow it, runs on a schedule at a human pace.')}</p></div>
+ <header class="page-head"><div><h1 id="scout-h1" tabindex="-1">${T('Mạng so sánh giá','Price-compare network')}</h1>
+  <p class="muted">${T('Tiện ích FamTray So sánh giá trên máy tính của các gia đình: ghi giá trên trang họ xem (bán tự động) và, khi bạn cho phép, chạy tự động theo lịch với nhịp chậm như người dùng.','The FamTray Price Compare extension on family computers: captures prices on pages they view (semi-auto) and, when you allow it, runs on a schedule at a human pace.')}</p></div>
   <div class="row switchrow"><button class="btn primary" id="sc-code" type="button">${T('Tạo mã ghép nối','Create pairing code')}</button></div></header>
  ${code?`<section class="card" aria-live="polite"><h2>${T('Mã ghép nối (dùng một lần, 15 phút)','Pairing code (one-time, 15 minutes)')}</h2><p class="code">${esc(code.code.slice(0,4)+'-'+code.code.slice(4))}</p><dl class="kv"><dt>${T('Địa chỉ ứng dụng','App address')}</dt><dd>${esc(location.origin)}</dd><dt>${T('Hết hạn','Expires')}</dt><dd>${esc(when(code.expires))}</dd></dl></section>`:''}
  <section class="card" aria-labelledby="sc-sw"><h2 id="sc-sw">${T('Công tắc','Switches')}</h2>
@@ -159,8 +159,8 @@ function render(){
   <p class="muted">${T('Mã tiện ích được nhận:','Extension ids accepted:')} <code>${esc((data.installInfo?.extensionIds||[]).join(', '))}</code></p>
   <div class="row"><button class="btn primary" type="submit">${T('Lưu đường dẫn','Save links')}</button></div></form>
  </section>
- <section class="card" aria-labelledby="sc-tr"><h2 id="sc-tr">${T('Người dò giá tin cậy','Trusted scouts')}</h2>
-  <p class="muted">${T('Giá từ người dò tin cậy được xác nhận ngay; người khác cần đồng thuận cộng đồng. Chủ Studio luôn được tin cậy.','Prices from trusted scouts are confirmed immediately; others go through community consensus. Studio owners are always trusted.')}</p>
+ <section class="card" aria-labelledby="sc-tr"><h2 id="sc-tr">${T('Người dò giá tin cậy','Trusted price checkers')}</h2>
+  <p class="muted">${T('Giá từ người dò tin cậy được xác nhận ngay; người khác cần đồng thuận cộng đồng. Chủ Studio luôn được tin cậy.','Prices from trusted price checkers are confirmed immediately; others go through community consensus. Studio owners are always trusted.')}</p>
   <ul class="plain">${data.trusted.map((t:any)=>`<li>${esc(t.username)} <small class="muted">${esc(when(t.at))}</small> <button class="btn small" type="button" data-untrust="${esc(t.username)}">${T('Bỏ','Remove')}</button></li>`).join('')||`<li class="muted">${T('Chưa có.','None yet.')}</li>`}</ul>
   <form id="sc-trust" class="row" style="margin-top:8px"><label>${T('Tên tài khoản','Username')} <input type="text" name="u" required minlength="3" maxlength="40" autocomplete="off" spellcheck="false"></label><button class="btn" type="submit">${T('Thêm','Add')}</button></form>
  </section>
@@ -178,14 +178,14 @@ function wire(){
  $('#sc-pause',host).onclick=()=>{const p=!data.settings.paused;act('studio-network',{patch:{paused:p}},p?T('Đã tạm dừng cả mạng.','Network paused.'):T('Mạng đã chạy lại.','Network resumed.'))};
  for(const b of host.querySelectorAll('[data-ret]'))b.onclick=()=>act('studio-retailer',{retailer:b.dataset.ret,action:b.dataset.act},T('Đã lưu.','Saved.'));
  for(const b of host.querySelectorAll('[data-dev]'))b.onclick=()=>{const id=b.dataset.dev,a=b.dataset.act;if(a==='revoke'){const why=prompt(T('Lý do thu hồi (ghi vào nhật ký kiểm tra):','Reason for revoking (written to the audit log):'));if(!why||why.trim().length<3)return;act('studio-revoke',{deviceId:id,reason:why},T('Đã thu hồi máy.','Device revoked.'));return}act('studio-device',{deviceId:id,action:a},T('Đã lưu.','Saved.'))};
- for(const b of host.querySelectorAll('[data-untrust]'))b.onclick=()=>act('studio-trusted',{username:b.dataset.untrust,grant:false},T('Đã bỏ quyền tin cậy.','Trusted scout removed.'));
+ for(const b of host.querySelectorAll('[data-untrust]'))b.onclick=()=>act('studio-trusted',{username:b.dataset.untrust,grant:false},T('Đã bỏ quyền tin cậy.','Trusted price checker removed.'));
  for(const b of host.querySelectorAll('[data-cmd]'))b.onclick=async()=>{const type=b.dataset.cmd;if(type==='run-now'&&!confirm(T('Chạy ngay máy này (ngoài khung giờ, mọi giới hạn vẫn áp dụng)?','Run this computer now (outside the schedule; all limits still apply)?')))return;await act('studio-command',{deviceId:b.dataset.id,type},T('Đã gửi lệnh. Đang chờ máy nhận lệnh…','Command sent. Waiting for the computer…'));startLive()};
  for(const sel of host.querySelectorAll('[data-pace-dev]'))sel.onchange=async()=>{await act('studio-command',{deviceId:sel.dataset.paceDev,type:'pace',args:{pacing:sel.value||null}},T('Đã đổi nhịp.','Pace changed.'));startLive()};
  const all=$('#sc-runall',host);if(all)all.onclick=async()=>{if(!confirm(T('Chạy ngay mọi máy được phép?','Run now on every allowed computer?')))return;await act('studio-run-now',{all:true},T('Đã gửi lệnh chạy ngay.','Run now sent.'));startLive()};
  for(const det of host.querySelectorAll('details[data-tl]'))det.ontoggle=async()=>{const id=det.dataset.tl;if(!det.open){delete tl[id];return}if(tl[id])return;try{tl[id]=(await get('studio-device-timeline&deviceId='+encodeURIComponent(id))).events;render()}catch(e:any){toast(e.message,true)}};
  $('#sc-notify',host).onsubmit=(e:any)=>{e.preventDefault();const f=e.target,notify:any={offlineHours:parseInt(f.offlineHours.value,10)||3};for(const k of ['runFinished','blocked','offline','parserBreakage'])notify[k]=!!f[k].checked;act('studio-network',{patch:{notify}},T('Đã lưu thông báo.','Notifications saved.'))};
  $('#sc-install',host).onsubmit=(e:any)=>{e.preventDefault();const f=e.target,install:any={};for(const k of ['chrome','edge'])if(!f[k].disabled)install[k]=f[k].value.trim()||null;act('studio-network',{patch:{install}},T('Đã lưu đường dẫn cài đặt.','Install links saved.'))};
- $('#sc-trust',host).onsubmit=(e:any)=>{e.preventDefault();act('studio-trusted',{username:e.target.u.value.trim().toLowerCase(),grant:true},T('Đã thêm người dò giá tin cậy.','Trusted scout added.'))};
+ $('#sc-trust',host).onsubmit=(e:any)=>{e.preventDefault();act('studio-trusted',{username:e.target.u.value.trim().toLowerCase(),grant:true},T('Đã thêm người dò giá tin cậy.','Trusted price checker added.'))};
  $('#sc-form',host).onsubmit=(e:any)=>{e.preventDefault();const f=e.target,n=(k:string)=>parseInt(f[k].value,10),s=data.settings;
   const schedule=s.schedule.map((_:any,i:number)=>({days:[...f.querySelectorAll(`input[name=w${i}d]:checked`)].map((x:any)=>+x.value),start:f[`w${i}s`].value,end:f[`w${i}e`].value})).filter((w:any)=>w.days.length);
   const retailerPagesPerDay:any={};for(const r of RET)retailerPagesPerDay[r]=n('cap-'+r);
@@ -201,17 +201,17 @@ async function autoScoutCard(el:any){
  const card=document.createElement('section');card.className='card';card.id='scout-auto-setting';card.setAttribute('aria-labelledby','scout-auto-h');
  const f=el.querySelector('#sf');if(f)f.after(card);else el.appendChild(card);await fillAuto(card)}
 async function fillAuto(card:any){
- card.innerHTML=`<h2 id="scout-auto-h">${T('FamTray Scout tự động','FamTray Scout Auto mode')}</h2><p class="muted">…</p>`;
- let a:any;try{a=await get('studio-auto')}catch(e:any){card.innerHTML=`<h2 id="scout-auto-h">${T('FamTray Scout tự động','FamTray Scout Auto mode')}</h2><p class="muted">${esc(e.message)}</p>`;return}
+ card.innerHTML=`<h2 id="scout-auto-h">${T('So sánh giá tự động','Automatic price compare')}</h2><p class="muted">…</p>`;
+ let a:any;try{a=await get('studio-auto')}catch(e:any){card.innerHTML=`<h2 id="scout-auto-h">${T('So sánh giá tự động','Automatic price compare')}</h2><p class="muted">${esc(e.message)}</p>`;return}
  const on=a.autoScout==='on',env=a.source==='env';
- card.innerHTML=`<h2 id="scout-auto-h">${T('FamTray Scout tự động','FamTray Scout Auto mode')}</h2>
- <p class="muted">${T('Tắt mặc định. Khi tắt, máy chủ từ chối mọi việc tự động; chế độ bán tự động (trang người dùng tự mở) không bị ảnh hưởng. Từng máy vẫn cần được cho phép trong Mạng Scout.','Off by default. While off, the server refuses every Auto task; semi-auto (pages a person opens) is unaffected. Each device still needs approval in Scout network.')}</p>
- <form id="scout-auto-form" class="form"><label class="check"><input type="checkbox" name="on" ${on?'checked':''} ${env?'disabled':''}> <span>${T('Cho phép Scout tự động trên toàn mạng','Allow Auto Scout network-wide')} <span class="src ${env?'env':a.source==='default'?'default':'stored'}">${env?T('biến môi trường','environment'):a.source==='default'?T('mặc định','default'):T('đã lưu','stored')}</span></span></label>
- <div class="row"><button class="btn primary" type="submit" ${env?'disabled':''}>${T('Lưu','Save')}</button> <a class="btn" href="#scout">${T('Mở Mạng Scout','Open Scout network')}</a></div></form>`;
+ card.innerHTML=`<h2 id="scout-auto-h">${T('So sánh giá tự động','Automatic price compare')}</h2>
+ <p class="muted">${T('Tắt mặc định. Khi tắt, máy chủ từ chối mọi việc tự động; chế độ bán tự động (trang người dùng tự mở) không bị ảnh hưởng. Từng máy vẫn cần được cho phép trong Mạng so sánh giá.','Off by default. While off, the server refuses every Auto task; semi-auto (pages a person opens) is unaffected. Each device still needs approval in Price-compare network.')}</p>
+ <form id="scout-auto-form" class="form"><label class="check"><input type="checkbox" name="on" ${on?'checked':''} ${env?'disabled':''}> <span>${T('Cho phép so sánh giá tự động trên toàn mạng','Allow automatic price compare network-wide')} <span class="src ${env?'env':a.source==='default'?'default':'stored'}">${env?T('biến môi trường','environment'):a.source==='default'?T('mặc định','default'):T('đã lưu','stored')}</span></span></label>
+ <div class="row"><button class="btn primary" type="submit" ${env?'disabled':''}>${T('Lưu','Save')}</button> <a class="btn" href="#scout">${T('Mở Mạng so sánh giá','Open Price-compare network')}</a></div></form>`;
  $('#scout-auto-form',card).onsubmit=async(e:any)=>{e.preventDefault();const want=!!e.target.on.checked;if(want&&!confirm(T('Bật chế độ tự động cho cả mạng? Từng máy vẫn cần được cho phép và người dùng phải tự bật.','Switch Auto on network-wide? Each device still needs your approval and the user must switch it on.')))return;try{await post('studio-network',{patch:{autoScout:want?'on':'off'}});toast(want?T('Đã bật tự động.','Auto switched on.'):T('Đã tắt tự động.','Auto switched off.'));fillAuto(card)}catch(x:any){toast(x.message,true)}};
 }
 if(registry){
- registry.scout={vi:'Mạng Scout',en:'Scout network',icon:'◎',async render(el:any){el.innerHTML='';el.appendChild(host);render();await load()}};
+ registry.scout={vi:'Mạng so sánh giá',en:'Price-compare network',icon:'◎',async render(el:any){el.innerHTML='';el.appendChild(host);render();await load()}};
  const settings=registry.settings;if(settings&&typeof settings.render==='function'){const orig=settings.render;settings.render=async function(this:any,el:any){await orig.call(this,el);try{await autoScoutCard(el)}catch{}}}
 }else{
  async function show(focus=false){const on=location.hash==='#scout';host.hidden=!on;$('#main').hidden=on;navLink();if(on){render();await load();if(focus)$('#scout-h1',host)?.focus?.()}}

@@ -3,7 +3,7 @@
 // NSW 1000–1999, 2000–2599, 2619–2899, 2921–2999; QLD 4000–4999, 9000–9999.
 // ACT ranges (0200–0299, 2600–2618, 2900–2920) are NOT NSW.
 export const SUPPORTED_STATES=['NSW','QLD'];
-export const UNSUPPORTED_MESSAGE={vi:'Rất tiếc! Khu vực của bạn hiện chưa được hỗ trợ. Hệ thống hiện chỉ tối ưu giá cho NSW và QLD. Chúng tôi sẽ sớm mở rộng sang các khu vực khác!',en:'Sorry! Your area isn’t supported yet. Price Scout currently optimises prices for NSW and QLD only. We’ll expand to other areas soon!'};
+export const UNSUPPORTED_MESSAGE={vi:'Rất tiếc! Khu vực của bạn hiện chưa được hỗ trợ. Hệ thống hiện chỉ tối ưu giá cho NSW và QLD. Chúng tôi sẽ sớm mở rộng sang các khu vực khác!',en:'Sorry! Your area isn’t supported yet. Price compare currently optimises prices for NSW and QLD only. We’ll expand to other areas soon!'};
 export function postcodeToState(input){
  const s=String(input??'').trim();
  if(!/^\d{4}$/.test(s))return{valid:false,postcode:null,state:null,supported:false};

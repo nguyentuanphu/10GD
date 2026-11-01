@@ -17,7 +17,7 @@ async function render(){
  const st=await SC.get(),v=st.device,paired=!!st.token,next=UI.nextRun(st),warn=UI.storeWarnings(st);
  const semi=st.lastSemi,last=st.lastRun;
  $('#app').innerHTML=`
- <header class="bar"><h1><span class="logo" aria-hidden="true">◎</span> FamTray Scout</h1><button id="lang" class="btn ghost small" type="button" lang="${UI.lang==='en'?'vi':'en'}">${UI.lang==='en'?'Tiếng Việt':'English'}</button></header>
+ <header class="bar"><h1><span class="logo" aria-hidden="true">◎</span> ${esc(T('FamTray So sánh giá','FamTray Price Compare'))}</h1><button id="lang" class="btn ghost small" type="button" lang="${UI.lang==='en'?'vi':'en'}">${UI.lang==='en'?'Tiếng Việt':'English'}</button></header>
  ${st.paused?`<p class="banner warn" role="status">${T('Đang tạm dừng — không ghi giá, không chạy tự động.','Paused — no capture and no auto runs.')}</p>`:''}
  <button id="pause" class="btn big ${st.paused?'primary':'danger'}" type="button" aria-pressed="${st.paused?'true':'false'}">${st.paused?T('▶ Tiếp tục','▶ Resume'):T('⏸ Tạm dừng tất cả','⏸ Pause everything')}</button>
  ${!paired?`<section class="card"><h2>${T('Chưa ghép nối','Not paired yet')}</h2><p>${T('Mở Bếp Gia Đình trên máy này → Bếp của tôi → “Ghép ngay”. Hoặc nhập mã 8 ký tự trong Cài đặt.','Open the family kitchen app on this computer → My kitchen → “Pair now”. Or enter the 8-character code in Settings.')}</p><button id="opts" class="btn primary" type="button">${T('Mở cài đặt','Open settings')}</button></section>`:`

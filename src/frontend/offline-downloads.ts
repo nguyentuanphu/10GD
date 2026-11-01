@@ -73,7 +73,7 @@ function registerBuiltInOfflinePacks(){
   download:async(onProgress,signal)=>{const f=offlineOcrFiles(await offlineManifest());if(!f)throw Error('OCR unavailable');await navigator.storage?.persist?.().catch(()=>false);return offlineDownloadFiles(OFFLINE_CACHES.ocr,f.files,onProgress,signal)},
   remove:async()=>{await caches.delete(OFFLINE_CACHES.ocr);return true}});
  registerOfflinePack({id:'price-scout',large:false,builtIn:true,
-  label:()=>otr('Danh mục Price Scout','Price Scout catalog'),
+  label:()=>otr('Danh mục So sánh giá','Price compare catalog'),
   description:()=>otr('Có sẵn trong ứng dụng; luôn dùng được offline.','Included with the app; always available offline.'),
   sizeBytes:async()=>(await offlineManifest()).priceScout.transfer,
   status:async()=>({state:typeof MASTER_CATALOG!=='undefined'?'builtin':'none'})});

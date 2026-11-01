@@ -11,22 +11,22 @@ const say=(m:string,bad=false)=>{msg=m;msgBad=bad};
 async function render(){
  const st=await SC.get(),v=st.device,paired=!!st.token,warn=UI.storeWarnings(st),sched=v?.schedule||CORE.DEFAULT_SCHEDULE,caps=v?.caps||{pagesPerRun:150,pagesPerDay:300};
  const ob=st.onboarding||{};
- document.title=T('Cài đặt FamTray Scout','FamTray Scout settings');
+ document.title=T('Cài đặt FamTray So sánh giá','FamTray Price Compare settings');
  $('#app').innerHTML=`
- <header class="bar"><h1><span class="logo" aria-hidden="true">◎</span> FamTray Scout</h1><div class="row"><button id="lang" class="btn ghost small" type="button">${UI.lang==='en'?'Tiếng Việt':'English'}</button><button id="theme" class="btn ghost small" type="button">${({auto:T('Giao diện: tự động','Theme: auto'),light:T('Giao diện: sáng','Theme: light'),dark:T('Giao diện: tối','Theme: dark')} as any)[UI.theme]}</button></div></header>
+ <header class="bar"><h1><span class="logo" aria-hidden="true">◎</span> ${esc(T('FamTray So sánh giá','FamTray Price Compare'))}</h1><div class="row"><button id="lang" class="btn ghost small" type="button">${UI.lang==='en'?'Tiếng Việt':'English'}</button><button id="theme" class="btn ghost small" type="button">${({auto:T('Giao diện: tự động','Theme: auto'),light:T('Giao diện: sáng','Theme: light'),dark:T('Giao diện: tối','Theme: dark')} as any)[UI.theme]}</button></div></header>
  <p class="lead">${T('Ghi lại giá trên kệ (tên, giá, giá theo đơn vị, giá cũ, khuyến mãi, quy cách, mã sản phẩm, cửa hàng) từ các trang siêu thị — không bao giờ lấy hình ảnh, mô tả, đánh giá hay thông tin cá nhân.','Records shelf facts (name, price, unit price, was-price, promotion, pack size, product id, store) from supermarket pages — never images, descriptions, reviews or personal data.')}</p>
  ${msg?`<p class="banner ${msgBad?'warn':'ok'}" role="${msgBad?'alert':'status'}">${esc(msg)}</p>`:''}
  ${warn.map((w:string)=>`<p class="banner warn" role="alert">${esc(w)}</p>`).join('')}
  <div class="grid">
  <section class="card" aria-labelledby="h-check"><h2 id="h-check">1. ${T('Chuẩn bị (bắt buộc)','Before you start (required)')}</h2>
   <ol class="check">
-   <li><label class="switch"><input type="checkbox" data-ob="profile" ${ob.profile?'checked':''}><span>${T('Tôi dùng một hồ sơ Chrome RIÊNG cho FamTray Scout (Chrome → biểu tượng hồ sơ → Thêm).','I use a SEPARATE Chrome profile for FamTray Scout (Chrome → profile icon → Add).')}</span></label></li>
+   <li><label class="switch"><input type="checkbox" data-ob="profile" ${ob.profile?'checked':''}><span>${T('Tôi dùng một hồ sơ Chrome RIÊNG cho FamTray So sánh giá (Chrome → biểu tượng hồ sơ → Thêm).','I use a SEPARATE Chrome profile for FamTray Price Compare (Chrome → profile icon → Add).')}</span></label></li>
    <li><label class="switch"><input type="checkbox" data-ob="rewards" ${ob.rewards?'checked':''}><span>${T('Hồ sơ này KHÔNG đăng nhập Everyday Rewards, Flybuys hay tài khoản mua sắm nào.','This profile is NOT signed in to Everyday Rewards, Flybuys or any shopping account.')}</span></label>${Object.values(st.warnings?.signedIn||{}).some(Boolean)?`<p class="hint warn">${T('Phát hiện dấu hiệu đang đăng nhập — hãy đăng xuất hoặc dùng hồ sơ khác.','A signed-in indicator was detected — sign out or use another profile.')}</p>`:''}</li>
    <li><label class="switch"><input type="checkbox" data-ob="store" ${ob.store?'checked':''}><span>${T('Tôi đã mở từng trang siêu thị một lần và chọn cửa hàng gần nhà.','I opened each supermarket site once and selected my nearby store.')}</span></label></li>
   </ol>
  </section>
  <section class="card" aria-labelledby="h-pair"><h2 id="h-pair">2. ${T('Ghép nối','Pairing')}</h2>
- ${paired?`<p>${esc(T('Đã ghép nối: ','Paired: ')+(v?.name||st.deviceId))} ${v?.trusted?`<span class="chip">${T('Người dò giá tin cậy','Trusted scout')}</span>`:''}</p><p class="muted">${esc(st.server)}</p><button id="unpair" class="btn danger" type="button">${T('Hủy ghép nối máy này','Unpair this device')}</button>`:`
+ ${paired?`<p>${esc(T('Đã ghép nối: ','Paired: ')+(v?.name||st.deviceId))} ${v?.trusted?`<span class="chip">${T('Người dò giá tin cậy','Trusted price checker')}</span>`:''}</p><p class="muted">${esc(st.server)}</p><button id="unpair" class="btn danger" type="button">${T('Hủy ghép nối máy này','Unpair this device')}</button>`:`
   <p class="muted" data-easy-pair>${T('Cách dễ nhất: mở Bếp Gia Đình trên máy này → Bếp của tôi → Kết nối gia đình → “Ghép ngay”. Hoặc nhập mã bên dưới.','Easiest: open the family kitchen app on this computer → My kitchen → Family connection → “Pair now”. Or enter a code below.')}</p>
   <form id="pair" class="form">
    <label>${T('Địa chỉ ứng dụng','App address')}<input name="server" type="url" required placeholder="https://…" value="${esc(st.server)}" autocomplete="off"><small>${T('Địa chỉ bạn dùng để mở Bếp Gia Đình (hiện cạnh mã ghép nối).','The address you open the family kitchen app at (shown next to the pairing code).')}</small></label>

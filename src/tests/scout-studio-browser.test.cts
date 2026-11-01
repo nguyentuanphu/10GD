@@ -57,7 +57,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
   const {context,page}=await open(size,lang,theme);
   const nav=page.locator('#nav a[href="#scout"]');await nav.waitFor();assert.equal(await nav.getAttribute('aria-current'),'page');assert.equal(await page.locator('#main #scout-main').count(),1,'Scout renders as a normal Studio page inside #main');{// Studio (v1.5 speed-up) quietly prefetches the overview AFTER the first page has rendered; it must never load first.
    const ov=reqLog.indexOf('studio:overview'),sc=reqLog.findIndex(x=>x.startsWith('scout:'));assert.ok(sc>=0,'Scout page loaded its data');assert.ok(ov===-1||ov>sc,'the overview is not loaded behind the Scout page: '+reqLog.join(' '))}
-  assert.match(await nav.innerText(),lang==='en'?/Scout network/:/Mạng Scout/);
+  assert.match(await nav.innerText(),lang==='en'?/Price-compare network/:/Mạng so sánh giá/);
   const body=await page.locator('#scout-main').innerText();
   for(const want of (lang==='en'?['Máy bàn nhà Alice','Minh laptop','Henry PC','Auto-paused: parser breakage','Blocked — paused 24 h','Signed in: Coles','Coverage (7 days)','Trusted scouts','alice','Device blocked — paused 24 h']:['Máy bàn nhà Alice','Tự dừng: trình đọc lỗi','Bị chặn — tạm dừng 24 giờ','Độ phủ (7 ngày)','Người dò giá tin cậy'])) assert.ok(body.includes(want),size+' '+lang+' missing: '+want);
   assert.ok(!/netlify|blobs/i.test(body),'no hosting vendor named in UI');
@@ -99,7 +99,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
    await page.evaluate(()=>{const el=document.querySelector('#sc-rc');if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-10)});await shot(page,'studio-remote-commands-en-dark-desktop-1280x800');
    const acts2=(await listLog(getStoreFn,'audit',{now:Date.now(),limit:200,from:dayKey(Date.now()-86400000)})).items.map((x:any)=>x.action);for(const x of ['scout_command_run_now','scout_command_pace','scout_network'])assert.ok(acts2.includes(x),'audited '+x);
    // language switch re-renders the panel
-   await page.locator('#lang').click();await page.locator('#scout-h1:has-text("Mạng Scout")').waitFor();
+   await page.locator('#lang').click();await page.locator('#scout-h1:has-text("Mạng so sánh giá")').waitFor();
    // leaving #scout restores Studio's own page
    await page.evaluate(()=>{location.hash='#overview'});await page.waitForFunction(()=>!document.querySelector('#scout-main')&&!!document.querySelector('#main h1'));assert.equal(await page.locator('#nav a[href="#scout"]').getAttribute('aria-current'),null);
    // Studio → Settings shows the Auto Scout platform setting (currently on) and saving it off is audited.

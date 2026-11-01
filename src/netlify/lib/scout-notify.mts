@@ -8,11 +8,11 @@ import {sendPushBatch,devices} from './push.mjs';
 
 const LABEL:any={woolworths:'Woolworths',coles:'Coles',aldi:'ALDI',chemist:'Chemist Warehouse',amazon:'Amazon AU'};
 /** Message text for one Scout event (VI + EN). */
-export function scoutMessage(type:string,d:any){const name=String(d?.name||d?.deviceId||'Scout').slice(0,40),shop=LABEL[d?.retailer]||'';
- if(type==='run_finished')return{title:'FamTray Scout: đã chạy xong',enTitle:'FamTray Scout: run finished',body:`${name}: ${d.pages||0} trang, ${d.prices||0} giá${d.skipped?`, bỏ qua ${d.skipped}`:''}.`,enBody:`${name}: ${d.pages||0} pages, ${d.prices||0} prices${d.skipped?`, ${d.skipped} skipped`:''}.`};
- if(type==='device_blocked')return{title:'FamTray Scout: bị chặn, tạm dừng 24 giờ',enTitle:'FamTray Scout: blocked, paused 24 h',body:`${shop||'Cửa hàng'} hiện trang xác minh/chặn (${d.kind||'?'}). Máy tự dừng; không cần làm gì.`,enBody:`${shop||'A retailer'} showed a check/block (${d.kind||'?'}). The computer paused itself; nothing to do.`};
- if(type==='device_offline')return{title:'FamTray Scout: máy tính không liên lạc',enTitle:'FamTray Scout: computer offline',body:`${name} không liên lạc trong khung giờ chạy. Máy có thể đang ngủ, tắt hoặc Chrome đã đóng.`,enBody:`${name} has been silent during its scout window. It may be asleep, off, or Chrome is closed.`};
- if(type==='parser_breakage')return{title:'FamTray Scout: tự dừng một cửa hàng',enTitle:'FamTray Scout: retailer auto-paused',body:`${shop}: trình đọc giá lỗi nhiều, đã tự dừng. Kiểm tra trong Studio.`,enBody:`${shop}: too many pages could not be read, auto-paused. Check Studio.`};
+export function scoutMessage(type:string,d:any){const name=String(d?.name||d?.deviceId||'FamTray').slice(0,40),shop=LABEL[d?.retailer]||'';
+ if(type==='run_finished')return{title:'FamTray So sánh giá: đã chạy xong',enTitle:'FamTray Price Compare: run finished',body:`${name}: ${d.pages||0} trang, ${d.prices||0} giá${d.skipped?`, bỏ qua ${d.skipped}`:''}.`,enBody:`${name}: ${d.pages||0} pages, ${d.prices||0} prices${d.skipped?`, ${d.skipped} skipped`:''}.`};
+ if(type==='device_blocked')return{title:'FamTray So sánh giá: bị chặn, tạm dừng 24 giờ',enTitle:'FamTray Price Compare: blocked, paused 24 h',body:`${shop||'Cửa hàng'} hiện trang xác minh/chặn (${d.kind||'?'}). Máy tự dừng; không cần làm gì.`,enBody:`${shop||'A retailer'} showed a check/block (${d.kind||'?'}). The computer paused itself; nothing to do.`};
+ if(type==='device_offline')return{title:'FamTray So sánh giá: máy tính không liên lạc',enTitle:'FamTray Price Compare: computer offline',body:`${name} không liên lạc trong khung giờ chạy. Máy có thể đang ngủ, tắt hoặc Chrome đã đóng.`,enBody:`${name} has been silent during its price-compare window. It may be asleep, off, or Chrome is closed.`};
+ if(type==='parser_breakage')return{title:'FamTray So sánh giá: tự dừng một cửa hàng',enTitle:'FamTray Price Compare: retailer auto-paused',body:`${shop}: trình đọc giá lỗi nhiều, đã tự dừng. Kiểm tra trong Studio.`,enBody:`${shop}: too many pages could not be read, auto-paused. Check Studio.`};
  return null}
 const admins=(env:any)=>String(env?.STUDIO_ADMINS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
 /** Sends one Scout event to every Studio owner's own push devices. `send` is injectable for tests. */

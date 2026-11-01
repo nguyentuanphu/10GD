@@ -4,8 +4,9 @@
 - **Voice:** one-tap VI │ EN toggle next to every mic; hold-to-talk is the default (tap mode optional); unclear results ("các bạn") ask to repeat instead of adding junk; "5x" asks "trứng (eggs)?"; iPhone fixes for words lost at session restart and after Stop.
 - **On-device "More accurate" speech** available on every iPhone/iPad (warning on older devices, automatic fallback); the Light pack is removed; honest reasons instead of "Not available on this server".
 - **Settings:** "Cài đặt khác" now sits under the avatar's "Tài khoản & cài đặt".
+- **Renamed "Scout" to "So sánh giá" (Price compare):** the shopping panel, the computer extension ("FamTray So sánh giá" / "FamTray Price Compare"), automatic mode, the Studio "Mạng so sánh giá" page and the "🔎 Máy so giá" price source label. Wording only: settings, stored prices and installed extensions keep working unchanged.
 
-Evidence: `docs/reviews/v1.7.1/voice-settings/review.md`.
+Evidence: `docs/reviews/v1.7.1/voice-settings/review.md`, `docs/reviews/v1.7.1/rename/review.md`.
 
 
 ## What's new in v1.7 (ships together with v1.6 in one deploy)
