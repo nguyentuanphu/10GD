@@ -2,6 +2,10 @@
   command = "npm run check"
   publish = "dist"
   functions = "netlify/functions"
+  # AGENTS.md rule 18: the hosting provider only builds production (main, after Henry's explicit DEPLOY).
+  # Deploy previews and branch deploys are cancelled before building to save build credits; exit 0 = skip.
+  # A one-off preview is built only when Henry asks for it and the head commit message contains [netlify-preview].
+  ignore = "bash -c '[ \"$CONTEXT\" != \"production\" ] && ! git log -1 --pretty=%B | grep -qF \"[netlify-preview]\"'"
 [build.environment]
   NODE_VERSION = "22"
 [functions]
