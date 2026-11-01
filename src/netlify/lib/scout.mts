@@ -36,6 +36,7 @@ import {randomBytes,createHash} from 'node:crypto';
 import {editRecord} from './accounts.mjs';
 import {scoutStore,createDefaultAdapter} from './scout-adapter.mjs';
 import {scoutDefaultConfig} from './scout-config.mjs';
+import {platformSettings,saveSettings} from './studio.mjs';
 export {scoutStore,createDefaultAdapter};
 const DAY=86400000,MIN=60000;
 export const sha=(x:string)=>createHash('sha256').update(x).digest('hex');
@@ -77,14 +78,20 @@ export function validateNetworkPatch(p:any,config:any=scoutDefaultConfig){const 
  if(p.specials!==undefined){if(p.specials===null)out.specials=null;else{out.specials={};for(const [r,list] of Object.entries<any>(p.specials||{})){if(!RETAILERS.includes(r)||!Array.isArray(list)||list.length>5)bad('specials.'+r);out.specials[r]=list.map((u:any)=>{if(!validRetailerUrl(u,r,config))bad('specials.'+r);return String(u)})}}}
  return out}
 export function validRetailerUrl(u:any,retailer:string,config:any=scoutDefaultConfig){try{const url=new URL(String(u));const hosts=config?.retailers?.[retailer]?.hosts||[];return url.protocol==='https:'&&hosts.includes(url.hostname)}catch{return false}}
-/** TODO(merge): when Studio platform settings gain an `autoScout` key, read it via
- *  platformSettings() (studio.mjs) and keep this store as the fallback. Env SCOUT_AUTO=on|off overrides. */
+/** Studio platform setting `flags.autoScout` (Studio → Settings, off by default). Returns
+ *  'on' | 'off', or null while it has never been set (then the Scout store value applies). */
+export async function platformAutoScout(getStoreFn:any,env:any=process.env){try{const s=await platformSettings(getStoreFn,{env});const src=s.sources?.['flags.autoScout'];if(!src||src==='default')return null;return s.values.flags.autoScout===true?'on':'off'}catch{return null}}
+/** Network settings. autoScout precedence: env SCOUT_AUTO=on|off → Studio platform setting
+ *  flags.autoScout → this store (settings/network) → default 'off'. */
 export async function networkSettings(getStoreFn:any,env:any=process.env){
  const stored=await readJSON(scoutStore(getStoreFn),'settings/network')||{},v:any=structuredClone(NETWORK_DEFAULTS);
  for(const k of Object.keys(v)){if(stored[k]===undefined)continue;if(k==='caps')v.caps={...v.caps,...stored.caps,retailerPagesPerDay:{...v.caps.retailerPagesPerDay,...(stored.caps?.retailerPagesPerDay||{})}};else v[k]=stored[k]}
- const envAuto=String(env?.SCOUT_AUTO||'').toLowerCase();if(['on','off'].includes(envAuto))v.autoScout=envAuto;
+ const plat=await platformAutoScout(getStoreFn,env);if(plat)v.autoScout=plat;v.autoScoutSource=plat?'platform':stored.autoScout!==undefined?'scout':'default';
+ const envAuto=String(env?.SCOUT_AUTO||'').toLowerCase();if(['on','off'].includes(envAuto)){v.autoScout=envAuto;v.autoScoutSource='env'}
  v.robots='respect';v.updatedAt=stored.updatedAt||null;v.updatedBy=stored.updatedBy||null;return v}
-export async function saveNetwork(getStoreFn:any,patch:any,actor:string,now:number){return editRecord(scoutStore(getStoreFn),'settings/network',(cur:any)=>{const b=cur||{};return{...b,...patch,...(patch.caps?{caps:{...(b.caps||{}),...patch.caps,retailerPagesPerDay:{...(b.caps?.retailerPagesPerDay||{}),...(patch.caps.retailerPagesPerDay||{})}}}:{}),updatedAt:new Date(now).toISOString(),updatedBy:actor}})}
+/** Saves network settings; an autoScout change is also written to the Studio platform
+ *  setting so Studio → Settings and the Scout page always agree. */
+export async function saveNetwork(getStoreFn:any,patch:any,actor:string,now:number){if(patch?.autoScout==='on'||patch?.autoScout==='off')await saveSettings(getStoreFn,{flags:{autoScout:patch.autoScout==='on'}});return editRecord(scoutStore(getStoreFn),'settings/network',(cur:any)=>{const b=cur||{};return{...b,...patch,...(patch.caps?{caps:{...(b.caps||{}),...patch.caps,retailerPagesPerDay:{...(b.caps?.retailerPagesPerDay||{}),...(patch.caps.retailerPagesPerDay||{})}}}:{}),updatedAt:new Date(now).toISOString(),updatedBy:actor}})}
 export async function scoutConfig(getStoreFn:any){const o=await readJSON(scoutStore(getStoreFn),'config/override');return o?.config?.retailers?o.config:scoutDefaultConfig}
 export function validateConfig(c:any){if(!c||typeof c!=='object'||typeof c.version!=='string'||!/^[\w.-]{1,40}$/.test(c.version)||!c.retailers||typeof c.retailers!=='object')fail('Cấu hình không hợp lệ.','Invalid config.');if(JSON.stringify(c).length>120000)fail('Cấu hình quá lớn.','Config too large.',413);for(const [r,x] of Object.entries<any>(c.retailers)){if(!RETAILERS.includes(r)||!Array.isArray(x.hosts))fail('Cấu hình không hợp lệ: '+r,'Invalid config: '+r)}
  // Data only: every regex string must compile; no functions can exist in JSON.
@@ -165,7 +172,7 @@ export async function ensurePlan(getStoreFn:any,{settings,now,adapter}:any){
  const signature=sha([...targets.keys()].sort().join(',')+'|'+(config?.version||'')).slice(0,16),marker=await readJSON(store,'plan/'+day);
  if(marker?.signature===signature)return{planned:false,count:marker.count};
  const isWed=sydneyDow(now)===3,specialsCfg=settings.specials||{};
- const [wanted,mappings,seen,catalog]=await Promise.all([adapter.wantedItems(),adapter.productMappings(),adapter.lastSeen(),adapter.catalogItems()]);
+ const [wanted,mappings,seen,catalog]=await Promise.all([adapter.wantedItems({now}),adapter.productMappings(),adapter.lastSeen(),adapter.catalogItems()]);
  const staleBefore=dayKey(now-6*DAY),out:any[]=[];
  for(const {retailer,storeLabel} of targets.values()){
   const add=(t:any)=>{if(!t.url)return;out.push({...t,retailer,storeLabel,taskId:taskIdFor(day,retailer,t.url,storeLabel)})};
@@ -270,7 +277,7 @@ export async function ingestResults(getStoreFn:any,{device,settings:s,body,now,a
     next={key,retailer,storeLabel:f.storeLabel,name:f.name,productId:f.productId,values,status:statusNow,published:r?.published||null,firstAt:r?.firstAt||new Date(now).toISOString()};return next});
    if(!next){out.duplicates++;continue}
    out.accepted++;
-   const obs={key,itemId:task?.itemId||null,label:f.name,retailer,storeLabel:f.storeLabel,price:f.price,currency:'AUD',unitPrice:f.unitPrice,unitBasis:f.unitBasis,wasPrice:f.wasPrice,promo:f.promoType,validUntil:f.promoEnd,packQty:f.packQty,packUnit:f.packUnit,packCount:f.packCount,productId:f.productId,productUrl:f.productUrl,observedAt:new Date(now).toISOString(),source:'scout-extension',mode,deviceId:device.id,account:device.owner,storeMismatch:it.storeMismatch===true};
+   const obs={key,itemId:task?.itemId||null,label:f.name,retailer,storeLabel:f.storeLabel,price:f.price,currency:'AUD',unitPrice:f.unitPrice,unitBasis:f.unitBasis,wasPrice:f.wasPrice,promo:f.promoType,validUntil:f.promoEnd,packQty:f.packQty,packUnit:f.packUnit,packCount:f.packCount,productId:f.productId,productUrl:f.productUrl,observedAt:new Date(now).toISOString(),source:'scout-extension',mode,deviceId:device.id,account:device.owner,trusted,postcode:device.postcode||null,suburb:device.suburb||null,storeMismatch:it.storeMismatch===true};
    if(next.status==='held'){out.held++;if(prev?.status!=='held'){await adapter.holdObservation(obs,'cross-device-disagreement');await logEvent(getStoreFn,'disagreement_hold',{retailer,name:f.name,storeLabel:f.storeLabel},now)}}
    else{const confirmed=next.status==='confirmed'&&!obs.storeMismatch;if(confirmed)out.confirmed++;if(next.published!==(confirmed?'confirmed':'pending')||!prev){await adapter.publishObservation(obs,{confirmed,agreeing:Object.keys(next.values).length});await editRecord(store,okey,(r:any)=>r?{...r,published:confirmed?'confirmed':'pending'}:undefined)}}
    if(task?.itemId&&(f.productId||f.productUrl)&&(facts.length===1||task.kind!=='specials'&&facts.indexOf(f)===0))await adapter.recordMappingCandidate({itemId:task.itemId,retailer,productUrl:f.productUrl,productId:f.productId,packQty:f.packQty,deviceId:device.id,account:device.owner});
@@ -285,7 +292,7 @@ export async function ingestResults(getStoreFn:any,{device,settings:s,body,now,a
 // ---------- Studio views ----------
 export async function studioOverview(getStoreFn:any,{now,env=process.env}:any){
  const s=await networkSettings(getStoreFn,env),devices=await listDevices(getStoreFn),day=dayKey(now),{retailers,devices:dc}=await counters(getStoreFn,day),health=await retailerHealth(getStoreFn),trusted=await trustedList(getStoreFn),cfg=await scoutConfig(getStoreFn);
- const rows=devices.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).map(d=>{const t=d.totals||{},today=dc[d.id]||{};const pages=t.pages||0;return{id:d.id,name:d.name,owner:d.owner,postcode:d.postcode,suburb:d.suburb,stores:d.stores||{},lastHeartbeat:d.lastHeartbeat,lastRunAt:d.lastRunAt,lastSemiAt:d.lastSemiAt||null,pages,prices:t.prices||0,blocked:t.blocked||0,successRate:pages?Math.round((1-(t.parseFail||0)/pages)*100)/100:null,today:{pages:today.pages||0,leased:today.leased||0,prices:today.prices||0},autoAllowed:d.autoAllowed===true,autoEnabled:d.client?.autoEnabled===true,semiEnabled:d.client?.semiEnabled!==false,signedInWarning:Object.keys(d.client?.signedIn||{}).filter(r=>d.client.signedIn[r]),storeMismatch:d.client?.storeMismatch||{},version:d.client?.version||null,caps:effectiveCaps(d,s),schedule:d.schedule||null,status:d.revokedAt?'revoked':d.pausedUntil&&d.pausedUntil>now?(String(d.pauseReason||'').startsWith('blocked')?'blocked':'paused'):'active',pausedUntil:d.pausedUntil&&d.pausedUntil>now?new Date(d.pausedUntil).toISOString():null,pauseReason:d.pauseReason||null}});
+ const rows=devices.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).map(d=>{const t=d.totals||{},today=dc[d.id]||{};const pages=t.pages||0;return{id:d.id,name:d.name,owner:d.owner,postcode:d.postcode,suburb:d.suburb,stores:d.stores||{},lastHeartbeat:d.lastHeartbeat,lastRunAt:d.lastRunAt,lastSemiAt:d.lastSemiAt||null,pages,prices:t.prices||0,blocked:t.blocked||0,successRate:pages?Math.round((1-(t.parseFail||0)/pages)*100)/100:null,today:{pages:today.pages||0,leased:today.leased||0,prices:today.prices||0},autoAllowed:d.autoAllowed===true,autoEnabled:d.client?.autoEnabled===true,semiEnabled:d.client?.semiEnabled!==false,signedInWarning:Object.keys(d.client?.signedIn||{}).filter(r=>d.client.signedIn[r]),storeMismatch:d.client?.storeMismatch||{},version:d.client?.version||null,configVersion:d.client?.configVersion||null,caps:effectiveCaps(d,s),schedule:d.schedule||null,status:d.revokedAt?'revoked':d.pausedUntil&&d.pausedUntil>now?(String(d.pauseReason||'').startsWith('blocked')?'blocked':'paused'):'active',pausedUntil:d.pausedUntil&&d.pausedUntil>now?new Date(d.pausedUntil).toISOString():null,pauseReason:d.pauseReason||null}});
  const retailerRows=RETAILERS.map(r=>{const h=health[r]||{},c=retailers[r]||{};return{retailer:r,label:RETAILER_LABELS[r],paused:retailerPaused(h,now),reason:retailerPaused(h,now)?h.reason:null,until:h.until?new Date(h.until).toISOString():null,successRate:h.successRate??null,samples:(h.recent||[]).length,today:{leased:c.leased||0,pages:c.pages||0,prices:c.prices||0,parseFail:c.parseFail||0,blocked:c.blocked||0,robots:c.robots||0,semiPages:c.semiPages||0},cap:s.caps.retailerPagesPerDay[r]??0}});
  const tasks=await listTasks(getStoreFn,day),byStatus:any={};for(const t of tasks)byStatus[t.status]=(byStatus[t.status]||0)+1;
  return{settings:s,devices:rows,retailers:retailerRows,trusted:Object.entries<any>(trusted).map(([username,v])=>({username,...v})),tasks:{total:tasks.length,byStatus},configVersion:cfg?.version||null,events:await listEvents(getStoreFn,{days:7,limit:40,now}),day}}

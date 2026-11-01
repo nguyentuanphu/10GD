@@ -187,11 +187,11 @@ const pages:any={
 
  community:{vi:'Cộng đồng giá',en:'Community prices',icon:'⚖',state:{tab:'queue'},async render(el:any){const s=this.state,d=await api('community'),st=d.stats,owner=me.role==='owner',locked=d.flagSource==='env';
   const flagName=(f:string)=>({'shared-ip':T('Nhiều tài khoản cùng mạng','Many accounts on one network'),'new-account-burst':T('Dồn dập từ tài khoản mới','Burst from new accounts'),'single-branch-low':T('Chỉ một chi nhánh, luôn rẻ hơn đối thủ','One branch, always below competitors')} as any)[f]||f;
-  const holdName=(r:string)=>({'too-low':T('Thấp bất thường (<40% trung vị)','Unusually low (<40% of median)'),'too-high':T('Cao bất thường (>250% trung vị)','Unusually high (>250% of median)')} as any)[r]||r||'—';
+  const holdName=(r:string)=>({'cross-device-disagreement':T('Các máy Scout báo giá khác nhau','Scout devices disagree'),'too-low':T('Thấp bất thường (<40% trung vị)','Unusually low (<40% of median)'),'too-high':T('Cao bất thường (>250% trung vị)','Unusually high (>250% of median)')} as any)[r]||r||'—';
   const kindName=(k:string)=>({held:T('Đang giữ','Held'),flagged:T('Bị gắn cờ','Flagged'),reported:T('Bị báo sai','Reported'),'shop-reported':T('Giá tiệm bị báo','Shop price reported')} as any)[k]||k;
   const money=(n:any)=>n==null?'—':'$'+Number(n).toFixed(2);
   const shopName=(r:string)=>({woolworths:'Woolworths',coles:'Coles',aldi:'ALDI',chemist:'Chemist Warehouse',amazon:'Amazon AU','viet-grocer':T('Chợ Việt','Vietnamese grocer'),other:T('Khác','Other')} as any)[r]||r||'';
-  const evidence=(x:any)=>x.evidence?`${x.evidence.type==='receipt'?'🧾 '+T('Hóa đơn','Receipt'):'📸 '+T('Ảnh kệ giá','Shelf photo')}${x.evidence.type==='shelf-photo'?` · OCR ${money(x.evidence.ocrPrice)} ${x.evidence.ocrMatches?chip('green',T('khớp','match')):chip('amber',T('không khớp','mismatch'))}`:''}${x.evidence.hash?` · <code>${esc(x.evidence.hash)}…</code>`:''}`:'—';
+  const evidence=(x:any)=>x.evidence?`${x.evidence.type==='scout'?'🔎 Scout':x.evidence.type==='receipt'?'🧾 '+T('Hóa đơn','Receipt'):'📸 '+T('Ảnh kệ giá','Shelf photo')}${x.evidence.type==='shelf-photo'?` · OCR ${money(x.evidence.ocrPrice)} ${x.evidence.ocrMatches?chip('green',T('khớp','match')):chip('amber',T('không khớp','mismatch'))}`:''}${x.evidence.hash?` · <code>${esc(x.evidence.hash)}…</code>`:''}`:'—';
   const who=(c:any)=>c?`<code>${esc(c.account)}</code> · ${T('tin cậy','trust')} <strong>${c.trust==null?'—':Number(c.trust).toFixed(2)}</strong>${c.banned?' '+chip('disabled',T('Đã chặn','Banned')):''}${(c.flags||[]).map((f:string)=>' '+chip('amber',flagName(f))).join('')}`:'—';
   const actions=(x:any)=>{if(!owner)return '';const b=(a:string,l:string,extra='')=>`<button class="btn small" data-ca="${a}" data-id="${esc(x.id||'')}" data-group="${esc(x.groupId||'')}" data-state="${esc(x.state||'')}" data-item="${esc(x.itemId||'')}" data-account="${esc(x.contributor?.account||'')}" data-shop="${esc(x.shop||'')}" data-price="${esc(x.priceId||'')}" ${extra}>${l}</button>`;
    if(x.kind==='reported')return b('dismiss-reports',T('Giữ giá, bỏ báo cáo','Keep, dismiss'))+(x.hiddenGroup?b('restore',T('Khôi phục','Restore')):b('hide',T('Ẩn giá','Hide price')));
@@ -357,5 +357,6 @@ async function boot(){shell();$('#main').innerHTML=`<div class="view">${skeleton
 $('#lang').onclick=()=>{lang=lang==='en'?'vi':'en';store.set('studio-lang',lang);me?route():boot()};
 $('#theme').onclick=()=>{themePref=({auto:'light',light:'dark',dark:'auto'} as any)[themePref];store.set('studio-theme',themePref);applyTheme();shell()};
 addEventListener('hashchange',()=>{if(me){$('#drawer').open&&$('#drawer').close();route()}});addEventListener('online',shell);addEventListener('offline',shell);
+(window as any).studioPages=pages;// v1.6 hook: studio-scout.js registers its page here
 boot();
 })();

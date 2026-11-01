@@ -15,7 +15,7 @@ const getStoreFn=memoryStores(),origin='https://test.example',password='syntheti
 // Wednesday 4 Nov 2026 07:00 Sydney (AEDT, UTC+11) — inside the default Wed 06:30–09:00 window.
 let clock=Date.parse('2026-11-04T07:00:00+11:00');
 const env:any={STUDIO_ADMINS:'henrynguyen',SCOUT_DEV:'1'};
-// Fake adapter standing in for the community pool / wanted list / mappings (TODO(merge) in scout-adapter.mts).
+// Fake adapter isolating the network logic (the real community wiring is tested in scout-community.test.mts).
 const published:any[]=[],held:any[]=[],candidates:any[]=[];
 const fake={
  wanted:[{itemId:'nuoc-mam',name:'Fish sauce',families:9},{itemId:'gao',name:'Jasmine rice 5kg',families:2}],

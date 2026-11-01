@@ -1,7 +1,8 @@
 // Studio · Scout network panel in Chromium against the REAL studio/scout/accounts
 // handlers (in-memory stores, synthetic data). Checks the nav link, devices table,
 // parser health with auto-pause indicator, coverage, switches (audited), device
-// actions, VI/EN, light/dark, at 320×740, 375×812, 820×1100 and 1280×800 with no
+// actions, the Studio → Settings "Auto Scout" platform setting (v1.6: Scout is a
+// registered Studio page, so the overview no longer loads behind it), VI/EN, light/dark, at 320×740, 375×812, 820×1100 and 1280×800 with no
 // horizontal overflow and ≥44 px touch targets on touch-size layouts.
 // Screenshots go to docs/reviews/v1.6/auto-scout/.
 import assert from 'node:assert/strict';
@@ -36,14 +37,14 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
  await dev('block',h.token,{retailer:'woolworths',kind:'challenge',url:'https://www.woolworths.com.au/shop/search/products?searchTerm=x'});
  await lib.setTrusted(getStoreFn,'alice',true,'henrynguyen',now);
 
- const browser=await chromium.launch();const posts:any[]=[];
+ const browser=await chromium.launch();const posts:any[]=[],studioOps:string[]=[];
  async function open(size:string,lang:string,theme:string){
   const context=await browser.newContext({viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme as any,hasTouch:size!=='desktop'});
   await context.addInitScript(({lang,theme}:any)=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});
   await context.addCookies([{name:henry.split('=')[0],value:henry.split('=').slice(1).join('='),domain:'kitchen.test',path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
-  const page=await context.newPage();page.on('dialog',(d:any)=>d.accept(d.type()==='prompt'?'QA: thiết bị thử nghiệm':undefined));
+  studioOps.length=0;const page=await context.newPage();page.on('dialog',(d:any)=>d.accept(d.type()==='prompt'?'QA: thiết bị thử nghiệm':undefined));
   await page.route(origin+'/**',async(route:any)=>{const req=route.request(),url=new URL(req.url());const fn=url.pathname.match(/^\/\.netlify\/functions\/(\w+)/);
-   if(fn&&handlers[fn[1]]){const hdr=await req.allHeaders();if(req.method()==='POST'&&fn[1]==='scout')posts.push({op:url.searchParams.get('op'),body:JSON.parse(req.postData()||'{}')});
+   if(fn&&handlers[fn[1]]){const hdr=await req.allHeaders();if(req.method()==='POST'&&fn[1]==='scout')posts.push({op:url.searchParams.get('op'),body:JSON.parse(req.postData()||'{}')});if(fn[1]==='studio')studioOps.push(url.searchParams.get('op')||'');
     const r=await handlers[fn[1]](new Request(url.href,{method:req.method(),headers:hdr,body:['GET','HEAD'].includes(req.method())?undefined:req.postDataBuffer()}));
     return route.fulfill({status:r.status,headers:Object.fromEntries(r.headers),body:Buffer.from(await r.arrayBuffer())})}
    const file='dist'+(url.pathname==='/'?'/index.html':url.pathname);if(existsSync(file))return route.fulfill({status:200,contentType:mime[extname(file)]||'application/octet-stream',body:readFileSync(file)});return route.fulfill({status:404,body:''})});
@@ -53,7 +54,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
  const shot=async(page:any,name:string)=>{await page.waitForTimeout(80);await page.screenshot({path:`${out}/${name}.png`})};
  for(const [size,lang,theme] of [['narrow','vi','light'],['mobile','vi','light'],['tablet','vi','light'],['desktop','vi','light'],['mobile','en','dark'],['tablet','en','dark'],['desktop','en','dark']]){
   const {context,page}=await open(size,lang,theme);
-  const nav=page.locator('#nav a[href="#scout"]');await nav.waitFor();assert.equal(await nav.getAttribute('aria-current'),'page');assert.equal(await page.locator('#main').isHidden(),true,'Studio main hidden on #scout');
+  const nav=page.locator('#nav a[href="#scout"]');await nav.waitFor();assert.equal(await nav.getAttribute('aria-current'),'page');assert.equal(await page.locator('#main #scout-main').count(),1,'Scout renders as a normal Studio page inside #main');assert.equal(studioOps.includes('overview'),false,'the overview is not loaded behind the Scout page');
   assert.match(await nav.innerText(),lang==='en'?/Scout network/:/Mạng Scout/);
   const body=await page.locator('#scout-main').innerText();
   for(const want of (lang==='en'?['Máy bàn nhà Alice','Minh laptop','Henry PC','Auto-paused: parser breakage','Blocked — paused 24 h','Signed in: Coles','Coverage (7 days)','Trusted scouts','alice','Device blocked — paused 24 h']:['Máy bàn nhà Alice','Tự dừng: trình đọc lỗi','Bị chặn — tạm dừng 24 giờ','Độ phủ (7 ngày)','Người dò giá tin cậy'])) assert.ok(body.includes(want),size+' '+lang+' missing: '+want);
@@ -76,7 +77,13 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
    // language switch re-renders the panel
    await page.locator('#lang').click();await page.locator('#scout-h1:has-text("Mạng Scout")').waitFor();
    // leaving #scout restores Studio's own page
-   await page.evaluate(()=>{location.hash='#overview'});await page.waitForFunction(()=>!(document.querySelector('#main') as any).hidden&&(document.querySelector('#scout-main') as any).hidden);
+   await page.evaluate(()=>{location.hash='#overview'});await page.waitForFunction(()=>!document.querySelector('#scout-main')&&!!document.querySelector('#main h1'));assert.equal(await page.locator('#nav a[href="#scout"]').getAttribute('aria-current'),null);
+   // Studio → Settings shows the Auto Scout platform setting (currently on) and saving it off is audited.
+   await page.evaluate(()=>{location.hash='#settings'});const card=page.locator('#scout-auto-setting');await card.locator('input[name=on]').waitFor();
+   assert.equal(await card.locator('input[name=on]').isChecked(),true,'Auto Scout setting reflects the network state');assert.match(await card.innerText(),/semi-auto|bán tự động/i);
+   await card.locator('input[name=on]').uncheck();await card.locator('button[type=submit]').click();await page.waitForFunction(()=>/Auto switched off|Đã tắt tự động/.test(document.querySelector('#toast')?.textContent||''));
+   assert.deepEqual(posts.at(-1),{op:'studio-network',body:{patch:{autoScout:'off'}}});assert.equal((await lib.networkSettings(getStoreFn,env)).autoScout,'off');
+   await card.locator('input[name=on]:not(:checked)').waitFor();await shot(page,'studio-settings-autoscout-vi-dark-desktop-1280x800');
   }
   await context.close();
  }

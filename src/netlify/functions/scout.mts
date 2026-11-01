@@ -13,7 +13,7 @@ import {getStore} from '@netlify/blobs';
 import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount} from '../lib/accounts.mjs';
 import {platformSettings,roleFor,csrfFor,writeAudit,recordEvent} from '../lib/studio.mjs';
-import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,setRetailerPause,listEvents,rate,sha,RETAILERS} from '../lib/scout.mjs';
+import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,setRetailerPause,listEvents,rate,sha,RETAILERS} from '../lib/scout.mjs';
 
 const BASE_HEADERS={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const ids=(env:any)=>String(env.SCOUT_EXTENSION_IDS||'').split(',').map((x:string)=>x.trim()).filter(Boolean);
@@ -21,7 +21,7 @@ export function extensionOriginAllowed(origin:string,env:any){if(!origin.startsW
 const REFUSALS:any={'auto-off':['Chế độ tự động đang tắt trong Studio.','Auto mode is switched off in Studio.'],'paused-global':['Mạng Scout đang tạm dừng.','The scout network is paused.'],'device-not-allowed':['Studio chưa cho phép máy này chạy tự động.','Studio has not allowed this device to run Auto mode.'],'device-toggle-off':['Chế độ tự động đang tắt trên máy này.','Auto mode is off on this device.'],'paused-device':['Máy này đang tạm dừng.','This device is paused.'],'outside-window':['Ngoài khung giờ chạy.','Outside the schedule window.']};
 
 export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()=>Date.now(),adapter}:any={}){
- const ad=adapter||createDefaultAdapter(getStoreFn);
+ const ad=adapter||createDefaultAdapter(getStoreFn,{env,nowFn});
  return async(request:Request)=>{
   const url=new URL(request.url),op=url.searchParams.get('op')||'',method=request.method,now=nowFn(),origin=request.headers.get('origin')||'',isRead=['GET','HEAD'].includes(method);
   const ext=extensionOriginAllowed(origin,env),cors:any=ext?{'Access-Control-Allow-Origin':origin,'Vary':'Origin','Access-Control-Allow-Headers':'Authorization, Content-Type','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Max-Age':'600'}:{'Vary':'Origin'};
@@ -43,7 +43,7 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
     const device=await deviceFromRequest(getStoreFn,request);await rate(getStoreFn,'dev:'+device.id,120,now);
     if((op==='device'&&isRead)||(op==='heartbeat'&&method==='POST')){
      if(op==='heartbeat'){const b=await body(8000),signedIn:any={},storeSeen:any={},mismatch:any={};for(const r of RETAILERS){if(typeof b.signedIn?.[r]==='boolean')signedIn[r]=b.signedIn[r];if(typeof b.storesSeen?.[r]==='string')storeSeen[r]=String(b.storesSeen[r]).slice(0,80);if(typeof b.storeMismatch?.[r]==='boolean')mismatch[r]=b.storeMismatch[r]}
-      await editDevice(getStoreFn,device.id,d=>({...d,lastHeartbeat:new Date(now).toISOString(),client:{version:String(b.version||'').slice(0,20)||null,autoEnabled:b.autoEnabled===true,semiEnabled:b.semiEnabled!==false,running:b.running===true,signedIn,storesSeen:storeSeen,storeMismatch:mismatch,onBattery:b.onBattery===true}}))}
+      await editDevice(getStoreFn,device.id,d=>({...d,lastHeartbeat:new Date(now).toISOString(),client:{version:String(b.version||'').slice(0,20)||null,configVersion:/^[\w.-]{1,40}$/.test(String(b.configVersion||''))?String(b.configVersion):null,autoEnabled:b.autoEnabled===true,semiEnabled:b.semiEnabled!==false,running:b.running===true,signedIn,storesSeen:storeSeen,storeMismatch:mismatch,onBattery:b.onBattery===true}}))}
      return json(await deviceView(getStoreFn,{...device},settings,now,env))}
     if(op==='device-settings'&&method==='POST'){const b=await body(8000);const patch:any={};if(b.name!==undefined)patch.name=String(b.name||'').replace(/\s+/g,' ').trim().slice(0,40)||device.name;if(b.postcode!==undefined)patch.postcode=/^\d{4}$/.test(String(b.postcode||''))?String(b.postcode):null;if(b.suburb!==undefined)patch.suburb=String(b.suburb||'').trim().slice(0,40)||null;if(b.stores!==undefined)patch.stores=cleanStores(b.stores);
      if(b.schedule!==undefined){if(b.schedule!==null&&!validSchedule(b.schedule))return json({error:'Khung giờ không hợp lệ.',errorEn:'Invalid schedule.'},400);patch.schedule=b.schedule}
@@ -66,7 +66,9 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    const ctx=await resolveAccount(request,getStoreFn,now);if(!ctx)return json({error:'Cần đăng nhập tài khoản.',errorEn:'Sign in first.',login:'/login'},401);
    const actor=ctx.account.username;
    if(op==='pair-code'&&method==='POST'){if(ctx.member?.role==='viewer')return json({error:'Tài khoản chỉ xem không ghép nối được.',errorEn:'View-only accounts cannot pair devices.'},403);await rate(getStoreFn,'code:'+actor,10,now);const r=await createPairCode(getStoreFn,actor,now,env);await recordEvent(getStoreFn,'scout_pair_code',{account:actor},now);return json(r,201)}
-   if(op==='my-devices'&&isRead){const mine=(await listDevices(getStoreFn)).filter(d=>d.owner===actor&&!d.revokedAt);return json({devices:mine.map(d=>({id:d.id,name:d.name,stores:d.stores,lastHeartbeat:d.lastHeartbeat,lastRunAt:d.lastRunAt,paused:d.pausedUntil>now}))})}
+   if(op==='my-devices'&&isRead){const mine=(await listDevices(getStoreFn)).filter(d=>d.owner===actor&&!d.revokedAt);return json({trusted:await isTrusted(getStoreFn,actor,env),familyRole:ctx.member?.role||null,semiAuto:settings.semiAuto,autoScout:settings.autoScout,devices:mine.map(d=>({id:d.id,name:d.name,stores:d.stores,createdAt:d.createdAt||null,lastHeartbeat:d.lastHeartbeat,lastRunAt:d.lastRunAt,lastSemiAt:d.lastSemiAt||null,paused:d.pausedUntil>now}))})}
+   // The account revokes one of its OWN paired computers (My kitchen → Pair this computer).
+   if(op==='my-revoke'&&method==='POST'){const b=await body(2000),d=await getDevice(getStoreFn,b.deviceId);if(d.owner!==actor||d.revokedAt)return json({error:'Không tìm thấy máy.',errorEn:'Device not found.'},404);await revokeDevice(getStoreFn,d.id,actor,now);await recordEvent(getStoreFn,'scout_device_revoked_by_owner',{account:actor},now);return json({ok:true})}
    if(!op.startsWith('studio-'))return json({error:'Thao tác không hỗ trợ.',errorEn:'Unsupported operation.'},404);
    const ps=await platformSettings(getStoreFn,{env,now}),role=roleFor(actor,env,ps.values);
    if(!role)return json({error:'Tài khoản này không có quyền vào Studio.',errorEn:'This account does not have Studio access.'},403);
@@ -75,6 +77,7 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    const audit=(action:string,target:any=null,extra:any={})=>writeAudit(getStoreFn,{actor,role,action,target,...extra},now);
    const reasonOf=()=>String(b.reason||'').trim().slice(0,300);
    if(op==='studio-overview'&&isRead)return json(await studioOverview(getStoreFn,{now,env}));
+   if(op==='studio-auto'&&isRead)return json({autoScout:settings.autoScout,source:settings.autoScoutSource||'default'});
    if(op==='studio-coverage'&&isRead)return json(await coverage(getStoreFn,{now}));
    if(op==='studio-events'&&isRead)return json({events:await listEvents(getStoreFn,{days:14,limit:200,now})});
    if(op==='studio-pair-code'&&method==='POST'){const r=await createPairCode(getStoreFn,actor,now,env);await audit('scout_pair_code',{type:'scout',id:'pair'});return json(r,201)}
