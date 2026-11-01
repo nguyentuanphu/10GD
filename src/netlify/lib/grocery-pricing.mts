@@ -8,9 +8,10 @@ export const CACHE_STORE='bep-grocery-cache';
 export const MAX_OBSERVATIONS=3000;
 export const RATE_WINDOW_MS=10*60*1000,RATE_MAX=120;
 const RETAILERS=['woolworths','coles','aldi','chemist','amazon','viet-grocer','other'];
-const SOURCES=['screenshot','bookmark','receipt','catalogue','manual','official'];
+const SOURCES=['screenshot','bookmark','receipt','catalogue','manual','official','voice'];
 const PROMOS=['half-price','special','special-buy','price-drop','multibuy','deal','clearance'];
-const EVIDENCE=['shelf-photo','receipt','screenshot','bookmark','manual'];
+// 'manual-voice' (spoken price, v1.6) is family-only: it is not in the community evidence list.
+const EVIDENCE=['shelf-photo','receipt','screenshot','bookmark','manual','manual-voice'];
 // Server-computed; client values are ignored. manual=low, OCR-matched screenshot/bookmark=medium, receipt/official=high.
 export function confidenceFor(source,evidence){if(source==='receipt'||source==='official'||evidence?.type==='receipt')return'high';if(['screenshot','bookmark','shelf-photo'].includes(evidence?.type)&&evidence?.ocrMatches===true)return'medium';return'low'}
 const BASES=['per_kg','per_100g','per_L','per_100mL','per_each','per_wash','per_roll','per_sheet'];
