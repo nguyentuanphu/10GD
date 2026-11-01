@@ -16,7 +16,8 @@ const getStoreFn=memoryStores(),origin='https://test.example',password='syntheti
 let clock=Date.parse('2026-11-04T07:00:00+11:00');
 const env:any={STUDIO_ADMINS:'henrynguyen',STUDIO_SUPPORT:'supporthelper',SCOUT_DEV:'1'};
 const adapter={async wantedItems(){return[]},async productMappings(){return[]},async lastSeen(){return{}},async catalogItems(){return[]},async publishObservation(){},async holdObservation(){},async recordMappingCandidate(){}};
-const scout=createScoutHandler({getStoreFn,env,nowFn:()=>clock,adapter,notify:async()=>null});
+const pushes:string[]=[];
+const scout=createScoutHandler({getStoreFn,env,nowFn:()=>clock,adapter,notify:async()=>null,assignedPush:async(u:string)=>{pushes.push(u)}});
 const studio=createStudioHandler({getStoreFn,env,nowFn:()=>clock,limits:{all:5000,mutate:5000}});
 const accounts=createAccountsHandler({getStoreFn});
 let ip=0;
@@ -57,12 +58,14 @@ const S=(op:string,body?:any,cookie=henry,csrf=hc)=>call(op,{method:body===undef
  const sh=await csrfOf(helper);const sup=await S('studio-extension-users',{username:'familyowner',grant:true},helper,sh);assert.equal(sup.status,403,'support role is read-only');
  assert.equal((await S('studio-extension-users',{username:'nobody-here',grant:true})).status,404,'unknown account refused');
  const ok=await S('studio-extension-users',{username:'FamilyOwner',grant:true});assert.equal(ok.status,200);assert.ok(ok.data.extensionUsers.some((u:any)=>u.username==='familyowner'&&u.by==='henrynguyen'&&u.source==='studio'));
+ assert.deepEqual(pushes,['familyowner'],'a new assignment pushes once to that account');await S('studio-extension-users',{username:'familyowner',grant:true});assert.deepEqual(pushes,['familyowner'],'re-saving an existing assignment does not push again');
+ {const m=await J(await call('my-devices',{cookie:owner}));assert.equal(m.data.assigned,true);assert.ok(m.data.grantedAt,'grantedAt for the one-time notice');assert.equal((await J(await call('my-devices',{cookie:oldTrusted}))).data.grantedAt,null,'no notice for migrated accounts')}
  const ov=await S('studio-overview');assert.ok(ov.data.extensionUsers.map((u:any)=>u.username).includes('trustedmum'));assert.deepEqual(ov.data.admins,['henrynguyen'])}
 // now the owner pairs
 const code=(await J(await call('pair-code',{method:'POST',body:{},cookie:owner}))).data.code;assert.match(code,/^[A-Z0-9]{8}$/);
 const paired=await J(await call('pair',{method:'POST',body:{code,name:'Owner PC',postcode:'2166'},from:EXT}));assert.equal(paired.status,201);const token=paired.data.token,deviceId=paired.data.device.id;
 assert.equal((await dev('heartbeat',token,{version:'1.7.1'})).status,200);
-console.log('PASS Studio allowlist: add needs owner + CSRF (support read-only, unknown account refused), assigned owner pairs');
+console.log('PASS Studio allowlist: add needs owner + CSRF (support read-only, unknown account refused), a new assignment pushes once and sets grantedAt, assigned owner pairs');
 
 // ---- 4. removal stops the device at once; every device op refuses; re-adding re-enables without re-pairing
 {const code2=(await J(await call('pair-code',{method:'POST',body:{},cookie:owner}))).data.code;
@@ -73,7 +76,7 @@ console.log('PASS Studio allowlist: add needs owner + CSRF (support read-only, u
  assert.equal((await J(await call('pair-code',{method:'POST',body:{},cookie:owner}))).status,403);
  const sc=await S('studio-pair-code',{username:'familyowner'});assert.equal(sc.status,403,'Studio cannot make a code for an unassigned account');assert.equal(sc.data.code,'not_assigned');
  assert.equal((await J(await call('my-devices',{cookie:owner}))).data.devices.length,0);
- await S('studio-extension-users',{username:'familyowner',grant:true});assert.equal((await dev('heartbeat',token,{})).status,200,'re-adding the account re-enables its device without re-pairing');
+ await S('studio-extension-users',{username:'familyowner',grant:true});assert.deepEqual(pushes,['familyowner','familyowner'],'re-assignment after removal notifies again');assert.equal((await dev('heartbeat',token,{})).status,200,'re-adding the account re-enables its device without re-pairing');
  const bound=await S('studio-pair-code',{username:'familyowner'});assert.equal(bound.status,201);assert.equal(bound.data.account,'familyowner','Studio code bound to the assigned account');
  const p3=await J(await call('pair',{method:'POST',body:{code:bound.data.code,name:'Bound'},from:EXT}));assert.equal(p3.status,201);assert.equal(p3.data.device.owner,'familyowner');
  assert.equal((await dev('unpair',p3.data.token,{})).status,200,'unpair always works')}
@@ -83,3 +86,9 @@ console.log('PASS Studio allowlist: add needs owner + CSRF (support read-only, u
 // Henry (STUDIO_ADMINS) is always allowed, without being on the list.
 assert.equal((await J(await call('my-devices',{cookie:henry}))).data.assigned,true);
 console.log('PASS removal stops the paired device at once (heartbeat/device/tasks/results/run-now/settings → 403 not_assigned, codes refused, Studio shows Access removed); re-adding re-enables it; Studio codes are bound to an assigned account; admin always allowed');
+
+// The push itself: type 'scout' to the account's own devices only, linking to Today (quiet hours/types handled by sendPushBatch).
+{const {assignedMessage}=await import('../netlify/lib/scout-notify.mjs');const {pushPayload}=await import('../netlify/lib/push.mjs');
+ const vi=JSON.parse(pushPayload({type:'scout',...assignedMessage},'vi')),en=JSON.parse(pushPayload({type:'scout',...assignedMessage},'en'));
+ assert.equal(vi.title,'Bạn đã được cấp quyền So Giá');assert.equal(en.title,'You can now use Price Check');assert.equal(vi.url,'/#today');assert.equal(vi.type,'scout')}
+console.log('PASS assignment push: VI/EN text, opens Today, normal (non-urgent) scout type so per-device types and quiet hours apply');

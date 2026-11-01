@@ -14,14 +14,15 @@ import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount} from '../lib/accounts.mjs';
 import {platformSettings,roleFor,csrfFor,writeAudit,recordEvent,readIndex} from '../lib/studio.mjs';
 import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,extensionAllowlist,isExtensionAllowed,setExtensionAllowed,NOT_ASSIGNED,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo,effectivePacing,validPacing,grantRunNow,stopRun,runNowActive,backoffRetailer,dayKey,queueCommand,takeCommands,commandResult,deviceTimeline,logEvent,scoutHooks} from '../lib/scout.mjs';
-import {notifyOwners} from '../lib/scout-notify.mjs';
+import {notifyOwners,notifyAssigned} from '../lib/scout-notify.mjs';
 
 const BASE_HEADERS={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const ids=(env:any)=>String(env.SCOUT_EXTENSION_IDS||'').split(',').map((x:string)=>x.trim()).filter(Boolean);
 export function extensionOriginAllowed(origin:string,env:any){if(!origin.startsWith('chrome-extension://'))return false;const id=origin.slice(19),list=ids(env);if(list.length)return list.includes(id);return env.SCOUT_DEV==='1'}
 const REFUSALS:any={'auto-off':['Chế độ tự động đang tắt trong Studio.','Auto mode is switched off in Studio.'],'paused-global':['Mạng So Giá đang tạm dừng.','The Price Check network is paused.'],'device-not-allowed':['Studio chưa cho phép máy này chạy tự động.','Studio has not allowed this device to run Auto mode.'],'device-toggle-off':['Chế độ tự động đang tắt trên máy này.','Auto mode is off on this device.'],'paused-device':['Máy này đang tạm dừng.','This device is paused.'],'outside-window':['Ngoài khung giờ chạy.','Outside the schedule window.'],stopped:['Đã yêu cầu dừng lần chạy này.','This run was asked to stop.']};
 
-export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()=>Date.now(),adapter,notify}:any={}){
+export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()=>Date.now(),adapter,notify,assignedPush}:any={}){
+ const pushAssigned=assignedPush||((u:string)=>notifyAssigned(getStoreFn,u));
  const ad=adapter||createDefaultAdapter(getStoreFn,{env,nowFn});
  if(notify)scoutHooks.notify=notify;else scoutHooks.notify=(type:string,data:any,gs:any)=>notifyOwners(gs,type,data,env);
  return async(request:Request)=>{
@@ -95,7 +96,7 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    const ctx=await resolveAccount(request,getStoreFn,now);if(!ctx)return json({error:'Cần đăng nhập tài khoản.',errorEn:'Sign in first.',login:'/login'},401);
    const actor=ctx.account.username;
    if(op==='pair-code'&&method==='POST'){if(!(await isExtensionAllowed(getStoreFn,actor,env,now)))return notAssigned();if(ctx.member?.role==='viewer')return json({error:'Tài khoản chỉ xem không ghép nối được.',errorEn:'View-only accounts cannot pair devices.'},403);await rate(getStoreFn,'code:'+actor,10,now);const r=await createPairCode(getStoreFn,actor,now,env);await recordEvent(getStoreFn,'scout_pair_code',{account:actor},now);return json(r,201)}
-   if(op==='my-devices'&&isRead){const mine=(await listDevices(getStoreFn)).filter(d=>d.owner===actor&&!d.revokedAt);const assigned=await isExtensionAllowed(getStoreFn,actor,env,now);if(!assigned)return json({assigned:false,trusted:false,familyRole:ctx.member?.role||null,devices:[]});return json({assigned:true,trusted:await isTrusted(getStoreFn,actor,env),familyRole:ctx.member?.role||null,semiAuto:settings.semiAuto,autoScout:settings.autoScout,devices:mine.map(d=>({id:d.id,name:d.name,stores:d.stores,createdAt:d.createdAt||null,lastHeartbeat:d.lastHeartbeat,lastRunAt:d.lastRunAt,lastSemiAt:d.lastSemiAt||null,paused:d.pausedUntil>now}))})}
+   if(op==='my-devices'&&isRead){const mine=(await listDevices(getStoreFn)).filter(d=>d.owner===actor&&!d.revokedAt);const assigned=await isExtensionAllowed(getStoreFn,actor,env,now);if(!assigned)return json({assigned:false,trusted:false,familyRole:ctx.member?.role||null,devices:[]});const grant=(await extensionAllowlist(getStoreFn,now)).users[actor];return json({assigned:true,grantedAt:grant?.source==='studio'?grant.at:null,trusted:await isTrusted(getStoreFn,actor,env),familyRole:ctx.member?.role||null,semiAuto:settings.semiAuto,autoScout:settings.autoScout,devices:mine.map(d=>({id:d.id,name:d.name,stores:d.stores,createdAt:d.createdAt||null,lastHeartbeat:d.lastHeartbeat,lastRunAt:d.lastRunAt,lastSemiAt:d.lastSemiAt||null,paused:d.pausedUntil>now}))})}
    // The account revokes one of its OWN paired computers (My kitchen → Pair this computer).
    if(op==='my-revoke'&&method==='POST'){const b=await body(2000),d=await getDevice(getStoreFn,b.deviceId);if(d.owner!==actor||d.revokedAt)return json({error:'Không tìm thấy máy.',errorEn:'Device not found.'},404);await revokeDevice(getStoreFn,d.id,actor,now);await recordEvent(getStoreFn,'scout_device_revoked_by_owner',{account:actor},now);return json({ok:true})}
    if(!op.startsWith('studio-'))return json({error:'Thao tác không hỗ trợ.',errorEn:'Unsupported operation.'},404);
@@ -114,7 +115,9 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    if(op==='studio-extension-users'&&method==='POST'){const u=String(b.username||'').trim().toLowerCase();
     // Picked from the Studio accounts search; a grant must name an existing account.
     if(b.grant===true){const ix=await readIndex(getStoreFn,{now});const rows=ix.accounts?.rows||[];if(rows.length&&!rows.some((r:any)=>r.username===u))return json({error:'Không tìm thấy tài khoản.',errorEn:'Account not found.'},404)}
-    await setExtensionAllowed(getStoreFn,u,b.grant===true,actor,now);await audit(b.grant===true?'scout_extension_access_grant':'scout_extension_access_remove',{type:'account',id:u},{reason:reasonOf()||undefined});return json(await studioOverview(getStoreFn,{now,env}))}
+    const wasAllowed=b.grant===true&&await isExtensionAllowed(getStoreFn,u,env,now);await setExtensionAllowed(getStoreFn,u,b.grant===true,actor,now);
+    // A new assignment tells the person once by push (their push settings and quiet hours apply); never blocks the save.
+    if(b.grant===true&&!wasAllowed){try{await pushAssigned(u)}catch(e:any){console.warn('Assigned push failed',e?.message)}}await audit(b.grant===true?'scout_extension_access_grant':'scout_extension_access_remove',{type:'account',id:u},{reason:reasonOf()||undefined});return json(await studioOverview(getStoreFn,{now,env}))}
    if(op==='studio-network'&&method==='POST'){const patch=validateNetworkPatch(b.patch||{},await scoutConfig(getStoreFn));await saveNetwork(getStoreFn,patch,actor,now);await audit('scout_network',{type:'scout',id:'network'},{details:patch,reason:reasonOf()||undefined});return json(await studioOverview(getStoreFn,{now,env}))}
    // Remote control: queue a command for one device (delivered with its next heartbeat).
    if(op==='studio-command'&&method==='POST'){const d=await getDevice(getStoreFn,b.deviceId),type=String(b.type||'');if(d.revokedAt)return json({error:'Máy đã bị thu hồi.',errorEn:'Device revoked.'},409);

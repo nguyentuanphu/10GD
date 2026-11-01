@@ -15,6 +15,17 @@ export function scoutMessage(type:string,d:any){const name=String(d?.name||d?.de
  if(type==='parser_breakage')return{title:'FamTray So Giá: tự dừng một cửa hàng',enTitle:'FamTray Price Check: retailer auto-paused',body:`${shop}: trình đọc giá lỗi nhiều, đã tự dừng. Kiểm tra trong Studio.`,enBody:`${shop}: too many pages could not be read, auto-paused. Check Studio.`};
  return null}
 const admins=(env:any)=>String(env?.STUDIO_ADMINS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+/** Push to one account's own app devices in each family it belongs to (type 'scout': per-device types and quiet hours apply). */
+export async function notifyAccount(getStoreFn:any,username:string,m:any,{send}:any={}){const accounts=accountStore(getStoreFn),root=getStoreFn({name:'bep-family-data',consistency:'strong',region:'ap-southeast-2'});let sent=0,a:any=null;
+ try{a=await accounts.get('users/'+username,{type:'json'})}catch{}if(!a)return{sent:0};
+ const ids=[...new Set([...Object.keys(membershipIndex(a)||{}),a.lastHouseholdId].filter((x:any)=>/^[a-f0-9-]{36}$/.test(String(x||''))))];
+ for(const id of ids){try{const f=await accounts.get('families/'+id,{type:'json'});if(!f?.members?.[username])continue;const store=scopedStore(root,id,f.members);
+  const mine=(await devices(store)).filter((d:any)=>d.accountUsername===username).map((d:any)=>d.deviceId);if(!mine.length)continue;
+  const r=await sendPushBatch(store,{type:'scout',...m},{deviceIds:mine,...(send?{send}:{})});sent+=r.accepted||0}catch{}}
+ return{sent}}
+/** v1.7.1: Studio assigned this account to the price-check extension → one push to its own devices (if push is on). */
+export const assignedMessage={key:'scout-assigned',tag:'scout-assigned',url:'/#today',title:'Bạn đã được cấp quyền So Giá',enTitle:'You can now use Price Check',body:'Cài trên máy tính: Tài khoản & cài đặt → So Giá trên máy tính.',enBody:'Install on a computer: Account & settings → Price Check on a computer.'};
+export function notifyAssigned(getStoreFn:any,username:string,opts:any={}){return notifyAccount(getStoreFn,username,assignedMessage,opts)}
 /** Sends one Scout event to every Studio owner's own push devices. `send` is injectable for tests. */
 export async function notifyOwners(getStoreFn:any,type:string,data:any,env:any=process.env,{send}:any={}){const m=scoutMessage(type,data);if(!m)return{sent:0};
  const accounts=accountStore(getStoreFn),root=getStoreFn({name:'bep-family-data',consistency:'strong',region:'ap-southeast-2'});let sent=0;

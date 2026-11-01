@@ -147,8 +147,9 @@ function wire(card:any){
  for(const b of card.querySelectorAll('[data-scout-revoke]'))b.addEventListener('click',async()=>{const d=(mine?.devices||[]).find((x:any)=>x.id===b.dataset.scoutRevoke);if(!confirm(T('Thu hồi máy “'+(d?.name||'')+'”? Máy đó sẽ ngừng gửi giá.','Revoke “'+(d?.name||'')+'”? It will stop sending prices.')))return;b.disabled=true;try{await call('my-revoke',{deviceId:b.dataset.scoutRevoke});await refresh();await check();paint(card);say(T('Đã thu hồi máy.','Computer revoked.'))}catch(x:any){say(x.message,true);b.disabled=false}});
 }
 async function inject(section:any){
- if(section.querySelector('.scout-pair-card')||!session()?.account||!session()?.household||!online())return;
- await refresh();if(!allowed()||section.querySelector('.scout-pair-card')||!section.isConnected)return;
+ if(section.querySelector('.scout-pair-card')||!session()?.account||!session()?.household)return;
+ // Offline: only an account the server already confirmed in this session (no stale guess).
+ if(online())await refresh();else if(!mine)return;if(!allowed()||section.querySelector('.scout-pair-card')||!section.isConnected)return;
  const card=document.createElement('div');card.className='scout-pair-card';card.setAttribute('role','group');card.setAttribute('aria-labelledby','scout-pair-title');section.appendChild(card);paint(card);
  if(code&&left()&&!timer)timer=setInterval(tick,1000);
  const tasks:Promise<any>[]=[];if(desktopChromium()){if(download===null&&online())tasks.push(hasDownload());tasks.push(publicInfo().then(check))}if(online())tasks.push(refresh());if(tasks.length){await Promise.all(tasks);if(card.isConnected)paint(card)}
@@ -187,14 +188,15 @@ function bannerHtml(){const busy=bannerState==='pairing';
  if(bannerState==='done')return `<p class="scout-found-text" role="status">✅ <b>${T('Đã ghép máy tính này với FamTray So Giá.','This computer is paired with FamTray Price Check.')}</b> ${T('Lần đầu bạn mở mỗi siêu thị, biểu tượng tiện ích sẽ hỏi tên cửa hàng một lần.','The first time you open each supermarket, the extension icon asks for the store name once.')}</p><button type="button" class="btn small" data-scout-found-close>${T('Đóng','Close')}</button>`;
  return `<p class="scout-found-text"><span aria-hidden="true">💻</span> <b>${T('Đã thấy FamTray So Giá trên máy này','Found FamTray Price Check on this computer')}</b>${requested?` · ${T('Bấm “Ghép ngay” để xác nhận ghép với tài khoản này.','Tap “Pair now” to confirm pairing with this account.')}`:''}${bannerState==='error'?`<span class="scout-found-error" role="alert">${E(bannerError)}</span>`:''}</p>
  <div class="scout-found-actions"><button type="button" class="btn primary" data-scout-found-pair ${busy?'disabled aria-busy="true"':''}>${busy?T('Đang ghép…','Pairing…'):T('🔗 Ghép ngay','🔗 Pair now')}</button><button type="button" class="btn ghost" data-scout-found-later ${busy?'disabled':''}>${T('Để sau','Not now')}</button></div>`}
-function paintBanner(){const main=document.querySelector('#main');let b=document.querySelector('.scout-found-banner') as any;
+const FOUND='.scout-found-banner:not(.scout-granted-notice):not(.scout-signin-banner)';
+function paintBanner(){const main=document.querySelector('#main');let b=document.querySelector(FOUND) as any;
  if(!main||!onToday()||!bannerWanted()){if(b)b.remove();return}
  if(!b||b.parentElement!==main||main.firstElementChild!==b){b?.remove();b=document.createElement('section');b.className='scout-found-banner';b.setAttribute('aria-label',T('Ghép máy tính','Pair this computer'));main.prepend(b)}
  const html=bannerHtml();if(b.dataset.html!==html){b.dataset.html=html;b.innerHTML=html;b.dataset.state=bannerState;
   b.querySelector('[data-scout-found-pair]')?.addEventListener('click',async()=>{if(bannerState==='pairing')return;bannerState='pairing';paintBanner();
    try{await oneTapPair();bannerState='done';requested=false;try{sessionStorage.removeItem(REQ_KEY)}catch{};say(T('Đã ghép máy tính.','Computer paired.'))}
    catch(x:any){bannerState='error';bannerError=x?.message||T('Chưa ghép được. Thử lại.','Could not pair. Try again.')}
-   paintBanner();(document.querySelector('.scout-found-banner [data-scout-found-close], .scout-found-banner [data-scout-found-pair]') as any)?.focus?.();const c=document.querySelector('.scout-pair-card');if(c)paint(c)});
+   paintBanner();(document.querySelector('[data-scout-found-close], [data-scout-found-pair]') as any)?.focus?.();const c=document.querySelector('.scout-pair-card');if(c)paint(c)});
   b.querySelector('[data-scout-found-later]')?.addEventListener('click',()=>{try{localStorage.setItem(DISMISS_KEY,today());sessionStorage.removeItem(REQ_KEY)}catch{}requested=false;bannerState='idle';paintBanner()});
   b.querySelector('[data-scout-found-close]')?.addEventListener('click',()=>{bannerState='idle';paintBanner()});
   if(requested&&bannerState==='idle')(b.querySelector('[data-scout-found-pair]') as any)?.focus?.()}}
@@ -202,7 +204,7 @@ function paintBanner(){const main=document.querySelector('#main');let b=document
 function paintSignIn(){const main=document.querySelector('#main');let b=document.querySelector('.scout-signin-banner') as any;const want=requested&&!session()?.account&&onToday()&&desktopChromium();
  if(!main||!want){if(b)b.remove();return}if(b&&b.parentElement===main)return;b?.remove();b=document.createElement('section');b.className='scout-found-banner scout-signin-banner';b.setAttribute('aria-label',T('Đăng nhập','Sign in'));
  const href=typeof accountLoginUrl==='function'?accountLoginUrl():'/login';b.innerHTML=`<p class="scout-found-text">${T('Đăng nhập tài khoản gia đình để tiếp tục.','Sign in to your family account to continue.')}</p><div class="scout-found-actions"><a class="btn primary" href="${E(href)}">${T('Đăng nhập','Sign in')}</a></div>`;main.prepend(b)}
-async function bannerCheck(){if(bannerBusy)return;bannerBusy=true;try{if(!bannerChecked&&desktopChromium()&&online()&&session()?.account&&session()?.household&&appReady()){await refresh();if(allowed()){await publicInfo();await check()}bannerChecked=true}}finally{bannerBusy=false}paintBanner();paintSignIn();
+async function bannerCheck(){if(bannerBusy)return;bannerBusy=true;try{if(!bannerChecked&&online()&&session()?.account&&session()?.household&&appReady()){await refresh();if(allowed()&&desktopChromium()){await publicInfo();await check()}bannerChecked=true}}finally{bannerBusy=false}paintBanner();paintSignIn();paintGranted();
  if(requested&&bannerChecked&&ext?.pairedHere&&bannerState==='idle'){requested=false;try{sessionStorage.removeItem(REQ_KEY)}catch{}say(T('Máy này đã được ghép.','This computer is already paired.'))}}
 let bannerQueued=false;new MutationObserver(()=>{if(bannerQueued)return;bannerQueued=true;requestAnimationFrame(()=>{bannerQueued=false;bannerCheck().catch(()=>{})})}).observe(document.body,{childList:true,subtree:true});
 // #pair-extension and #kitchen-family-pair are one-shot links: Today renders underneath (unknown views fall back to Today).
@@ -211,13 +213,27 @@ function deepLink(){const h=location.hash;if(h!=='#pair-extension'&&h!=='#kitche
  if(h==='#pair-extension'){requested=true;bannerState='idle';try{sessionStorage.setItem(REQ_KEY,String(Date.now()))}catch{}bannerCheck().catch(()=>{});return}
  let n=0;const t=setInterval(async()=>{n++;if(!(session()?.household&&appReady())&&n<=40)return;clearInterval(t);if(!session()?.household||!online())return;await refresh();openPairCard()},500)}
 addEventListener('hashchange',deepLink);deepLink();
-// Account & settings → "So Giá trên máy tính" (assigned accounts on desktop Chrome/Edge only) → the same card.
+// One-time notice on Today after Studio assigns this account (server sends grantedAt only for Studio grants).
+const grantedKey=()=>'bep-scout-granted-seen:'+String(session()?.account?.username||'');
+function paintGranted(){const main=document.querySelector('#main');let b=document.querySelector('.scout-granted-notice') as any;let seen='';try{seen=localStorage.getItem(grantedKey())||''}catch{}
+ const want=!!main&&onToday()&&online()&&allowed()&&!!mine?.grantedAt&&seen!==mine.grantedAt&&!document.querySelector(FOUND);
+ if(!want){if(b)b.remove();return}if(b&&b.parentElement===main&&main.firstElementChild===b)return;b?.remove();b=document.createElement('section');b.className='scout-found-banner scout-granted-notice';b.setAttribute('aria-label',T('So Giá','Price Check'));
+ b.innerHTML=`<p class="scout-found-text">🏷️ <b>${T('Bạn đã được cấp quyền So Giá','You can now use Price Check')}</b> · ${T('Cài trên máy tính','Install on a computer')}</p><div class="scout-found-actions"><button type="button" class="btn primary" data-scout-granted-open>${T('Xem cách cài','See how to install')}</button><button type="button" class="btn ghost" data-scout-granted-close>${T('Đã hiểu','Got it')}</button></div>`;main.prepend(b);
+ const mark=()=>{try{localStorage.setItem(grantedKey(),String(mine?.grantedAt||''))}catch{}b.remove()};
+ b.querySelector('[data-scout-granted-close]')!.addEventListener('click',mark);b.querySelector('[data-scout-granted-open]')!.addEventListener('click',()=>{mark();if(typeof otherSettingsModal==='function')otherSettingsModal('price-check')})}
+// Account & settings → "So Giá trên máy tính" (assigned accounts only). Desktop Chrome/Edge: opens the pairing card with the
+// install guide and one-tap pairing. Phones, tablets and other browsers: "Open on a computer" with Copy link and Share.
+async function shareLink(){const url=appLink(),title=T('FamTray So Giá — mở trên máy tính','FamTray Price Check — open on a computer');try{if(navigator.share){await navigator.share({title,text:T('Mở Bếp Gia Đình bằng Chrome hoặc Edge trên máy tính để cài So Giá.','Open the family kitchen app in Chrome or Edge on a computer to install Price Check.'),url});return}}catch(e:any){if(e?.name==='AbortError')return}copy(url)}
+function entryBody(){if(desktopChromium())return `<button type="button" class="btn small" data-scout-open-pair>💻 ${T('Cài & ghép máy tính này','Install & pair this computer')}</button>`;
+ return `<p class="hint">${T('Mở trên máy tính: So Giá chạy trong Chrome hoặc Edge trên máy tính. Gửi đường dẫn này cho chính bạn rồi mở trên máy tính.','Open on a computer: Price Check runs in Chrome or Edge on a computer. Send yourself this link and open it there.')}</p>${copyBox(appLink(),T('Địa chỉ ứng dụng','App address'),'data-scout-open-link')}<p class="toolbar"><button type="button" class="btn small" data-scout-share>📤 ${T('Chia sẻ đường dẫn','Share link')}</button></p>`}
 try{if(typeof otherSettingsModal==='function'){const baseOther=otherSettingsModal;
  // @ts-ignore reassigning the shared classic-script function
- otherSettingsModal=function(section=''){const r=baseOther.apply(this,arguments as any);(async()=>{if(!desktopChromium()||!online()||!session()?.account||!session()?.household)return;await refresh();if(!allowed())return;const host=document.querySelector('.modal.account-sheet .modal-content')||document.querySelector('.modal .modal-content');if(!host||host.querySelector('#settings-price-check'))return;
-  const html=typeof settingsCard==='function'?settingsCard('settings','price-check',T('So Giá trên máy tính','Price Check on a computer'),T('Tiện ích Chrome/Edge ghi giá siêu thị cho gia đình.','The Chrome/Edge extension that records supermarket prices for your family.'),`<button type="button" class="btn small" data-scout-open-pair>💻 ${T('Mở thẻ ghép máy tính','Open the pairing card')}</button>`):'';
+ otherSettingsModal=function(section=''){const r=baseOther.apply(this,arguments as any);(async()=>{if(!online()||!session()?.account||!session()?.household)return;await refresh();if(!allowed())return;const host=document.querySelector('.modal.account-sheet .modal-content')||document.querySelector('.modal .modal-content');if(!host||host.querySelector('#settings-price-check'))return;
+  const html=typeof settingsCard==='function'?settingsCard('settings','price-check',T('So Giá trên máy tính','Price Check on a computer'),T('Tiện ích Chrome/Edge ghi giá siêu thị cho gia đình.','The Chrome/Edge extension that records supermarket prices for your family.'),entryBody()):'';
   const other=host.querySelector('#settings-other-title');if(other)other.insertAdjacentHTML('beforebegin',html);else host.insertAdjacentHTML('beforeend',html);
-  host.querySelector('[data-scout-open-pair]')?.addEventListener('click',openPairCard)})().catch(()=>{});return r}}}catch{}
+  const card=host.querySelector('#settings-price-check') as any;card?.querySelector('[data-scout-open-pair]')?.addEventListener('click',openPairCard);card?.querySelector('[data-scout-share]')?.addEventListener('click',shareLink);
+  for(const b of card?.querySelectorAll('[data-scout-copy-value]')||[])b.addEventListener('click',()=>copy(b.dataset.scoutCopyValue,b.previousElementSibling));
+  if(section==='price-check'&&card){card.scrollIntoView({block:'start'});card.classList.add('scout-pair-highlight');setTimeout(()=>card.classList.remove('scout-pair-highlight'),4000)}})().catch(()=>{});return r}}}catch{}
 
 // ---------- "Scout" label on community prices (Price Scout) ----------
 try{if(typeof scoutCommunityRow==='function'){const base=scoutCommunityRow;
