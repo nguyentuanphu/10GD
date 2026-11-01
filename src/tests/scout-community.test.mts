@@ -9,7 +9,7 @@ import {createAccountsHandler} from '../netlify/lib/accounts.mjs';
 import {createScoutHandler} from '../netlify/functions/scout.mjs';
 import {createStudioHandler} from '../netlify/functions/studio.mjs';
 import {createCommunityHandler} from '../netlify/functions/community.mjs';
-import {createDefaultAdapter,networkSettings} from '../netlify/lib/scout.mjs';
+import {createDefaultAdapter,networkSettings,setExtensionAllowed} from '../netlify/lib/scout.mjs';
 import {SCOUT_CATALOG,branchName,scoutPlacement} from '../netlify/lib/scout-adapter.mjs';
 import {recordWanted,communityStore,clearCommunityCache} from '../netlify/lib/community-prices.mjs';
 import {resetSettingsCache} from '../netlify/lib/studio.mjs';
@@ -44,6 +44,8 @@ assert.equal(scoutPlacement({retailer:'woolworths',storeLabel:'',postcode:'2216'
 
 // ---- accounts: Henry (Studio owner = trusted scout), three families
 const henry=await register('henrynguyen'),alice=await register('alice','Synthetic family A'),bob=await register('bob','Synthetic family B'),carol=await register('carol','Synthetic family C');
+// v1.7.1: only accounts assigned in Studio may pair/run the extension; these synthetic accounts are assigned.
+for(const u of ['alice','bob','carol'])await setExtensionAllowed(getStoreFn,u,true,'henrynguyen',clock);
 const csrf=(await studioGet('me',henry.cookie)).data.csrf;assert.ok(csrf);
 const S=(op:string,body?:any)=>call(op,{method:body===undefined?'GET':'POST',body,cookie:henry.cookie,csrf});
 

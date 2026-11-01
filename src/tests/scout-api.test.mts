@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {createAccountsHandler} from '../netlify/lib/accounts.mjs';
 import {createScoutHandler,extensionOriginAllowed} from '../netlify/functions/scout.mjs';
 import {createStudioHandler} from '../netlify/functions/studio.mjs';
-import {inWindow,dayKey,validFact,scoutConfig,validateConfig,validateNetworkPatch} from '../netlify/lib/scout.mjs';
+import {inWindow,dayKey,validFact,scoutConfig,validateConfig,validateNetworkPatch,setExtensionAllowed} from '../netlify/lib/scout.mjs';
 import {listLog,resetSettingsCache} from '../netlify/lib/studio.mjs';
 import {memoryStores} from './helpers/accounts.mjs';
 const require=(await import('node:module')).createRequire(import.meta.url);
@@ -57,6 +57,8 @@ assert.throws(()=>validateConfig({version:'x',retailers:{woolworths:{hosts:[],pa
 
 // ---- accounts
 const henry=await register('henrynguyen'),alice=await register('alice'),bob=await register('bob');
+// v1.7.1: only accounts assigned in Studio may pair/run the extension; these synthetic accounts are assigned.
+for(const u of ['alice','bob'])await setExtensionAllowed(getStoreFn,u,true,'henrynguyen',clock);
 const me=await (await studio(new Request(origin+'/.netlify/functions/studio?op=me',{headers:{Cookie:henry}}))).json();const csrf=me.csrf;assert.ok(csrf);
 const S=(op:string,body?:any)=>call(op,{method:body===undefined?'GET':'POST',body,cookie:henry,csrf}).then(J);
 
