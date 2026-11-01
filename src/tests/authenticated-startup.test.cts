@@ -67,7 +67,7 @@ async function main() {
    const context=await browser.newContext({viewport,serviceWorkers:'allow',reducedMotion:'reduce'}),page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
    const reads=counters.privateReads,writes=counters.privateWrites;
    await page.goto(origin,{waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();assert.equal(new URL(page.url()).pathname,'/');
-   await page.locator('.top-avatar').click();await page.locator('#settings-form input[name=budget]').fill('321');await page.locator('[data-action=submit-form][data-id=settings-form]').click();
+   await page.locator('.kitchen-action-dock [data-personal=settings]').click();await page.locator('#settings-form input[name=budget]').fill('321');await page.locator('[data-action=submit-form][data-id=settings-form]').click();
    await page.evaluate(()=>{location.hash='shopping'});await page.waitForTimeout(100);assert.match(await page.locator('#main').innerText(),/Đi chợ|Shopping/);
    assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),321);
    if(name==='mobile'){
@@ -148,7 +148,7 @@ async function main() {
   await page.waitForFunction(()=>globalThis.BEP_SESSION?.household?.id&&localStorage.getItem('account/'+globalThis.BEP_SESSION.household.id+'/bep-gia-dinh-v1'));
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),guestBudget);
   await page.waitForFunction(()=>!cloudConnection.checking&&!cloudConnection.syncing);await page.keyboard.press('Escape');
-  await page.locator('.top-avatar').click();await page.locator('#settings-form input[name=budget]').fill('777');await page.locator('[data-action=submit-form][data-id=settings-form]').click();await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
+  await page.locator('.kitchen-action-dock [data-personal=settings]').click();await page.locator('#settings-form input[name=budget]').fill('777');await page.locator('[data-action=submit-form][data-id=settings-form]').click();await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
   const familyId=await page.evaluate(()=>globalThis.BEP_SESSION.household.id),ownerUsername=await page.evaluate(()=>accountSession.account.username);
   for(const [size,viewport] of Object.entries({narrow:{width:320,height:740},mobile:{width:375,height:812},tablet:{width:820,height:1100},desktop:{width:1280,height:800}})){
    await page.setViewportSize(viewport);await page.evaluate(()=>{location.hash='today'});await page.waitForTimeout(100);
