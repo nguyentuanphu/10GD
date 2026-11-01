@@ -69,8 +69,9 @@ jobs:
       - name: Run ${{ matrix.step }}
         run: ${{ matrix.step }}
 
+      # Only failed steps upload screenshots (each upload is ~55 MB of committed evidence otherwise).
       - name: Upload review screenshots
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: screenshots-${{ strategy.job-index }}
