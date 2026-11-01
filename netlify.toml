@@ -19,6 +19,8 @@
 [functions."reminders"]
   schedule = "*/15 * * * *"
 
+# Only the sign-in page is rendered at the edge. Static app files (startup pack,
+# artwork, icons) are served directly with the default revalidating cache headers.
 [[edge_functions]]
   function = "family-gate"
-  path = "/*"
+  path = "/login"
