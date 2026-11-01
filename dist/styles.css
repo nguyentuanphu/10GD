@@ -452,3 +452,7 @@ html[data-theme="dark"] .scout-steps li::before{color:#0d1511}
 .scout-exact{color:var(--green2);display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .scout-link-report{font-size:12px;padding:0 8px}
 /* === v1.5 community-rewards end === */
+/* === v1.5 modal-close start === */
+/* The shared modal close button must be a 44px touch target (AGENTS.md rules 8 and 13). */
+.modal header [data-action="close-modal"]{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px}
+/* === v1.5 modal-close end === */
