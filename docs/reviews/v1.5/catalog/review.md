@@ -88,3 +88,77 @@ Limits: these are browser viewport simulations, not tests on physical devices. R
   - `west-v4-060` Pancake yến mạch sữa chua mặn
 
   None of these recipes uses peas.
+
+## Follow-up (Agent M, branch `agent-m/catalog-filters` on `be017cd`): library filters and meal editor search
+
+Henry reported on the PR #6 preview that the library chips (Món nước, Âu/Ý, Healthy, Vegetarian, Thuần chay) "don't work", that Vegetarian and Thuần chay look identical, that Salad hạt and Dressing seem missing, and that the meal editor search ("spag") still lists the default suggestions. This is preview work only. **Deploy is not approved.**
+
+### Reproduction (Chromium, device-only mode, 375×812 and 1280×800, VI and EN)
+
+- On a fresh device the predicates did return different sets in the Reference and All scopes (Salad hạt 35, Dressing 25). The JavaScript was not broken, but what the user saw was misleading or wrong, for the reasons below.
+- In the meal editor, typing "spag" changed only CSS classes. All **740** reference rows stayed visible (`hiddenClass: 728, visible: 740`).
+
+### Root causes
+
+| # | Symptom | Root cause | Fix |
+|---|---|---|---|
+| 1 | Chips "do nothing"; Salad hạt and Dressing look "missing" | The library opens on **Món gia đình**, and chips filter only inside the active scope. A family scope with no matching dish fell through to the first-run card "Bắt đầu bằng món nhà mình hay ăn", because the empty-state code only checked for search text, not for active filters. Outside search mode, no result count was shown. | A count/status line is always visible (`231 món · Kho tham khảo · Thuần chay`, role=status). Every chip shows its count for the current scope and search. A filtered empty result shows "Không tìm thấy món phù hợp" with **"Xem N món trong Tất cả"** and **"Bỏ bộ lọc"**. |
+| 2 | Healthy shows ordinary Vietnamese dishes | The chip used `isHealthyRecipe`, which treats every `veg` dish of 20 minutes or less as healthy. Page 1 was Rau muống xào tỏi, Bông cải luộc… (156 recipes). The chip also disagreed with the planner's cuisine index (`recipeCuisine`). | There is a new shared index, `recipeMatchesLibraryTag` in `family-menu-core.ts`. Healthy = planner cuisine `healthy`, seed salads, or Healthy/Thanh đạm/Ít dầu tags or names. That gives **111**, with no dressings. The planner's `isHealthyRecipe` is unchanged. |
+| 3 | Âu/Ý count differs from the planner | `isWesternRecipe` returned 79 recipes, while the planner's `recipeCuisine` classed 81 as Western. | The chip now uses `recipeCuisine === 'western'` (**81**). That covers every Ý/Âu collection dish and every Spaghetti, Penne and Mì Ý dish. |
+| 4 | Vegetarian looks the same as Thuần chay | Vegetarian (275) was vegan (231) plus 44 egg/dairy dishes. The "Chay? Xem nhãn" dishes (28) were in neither. In catalogue order, page 1 of the two chips differed by one card (Canh cà chua trứng), and no count was shown. | Vegetarian = vegan + egg/dairy + "Chay? Xem nhãn" = **303**, strictly larger than Thuần chay (**231**). Counts are shown on the chips and in the status line. |
+| 5 | Results can depend on the device's stored data | `upgradeReferenceCatalog` adds missing reference recipes but never refreshes stored copies. The chips read `tags`, `recipeKind` and `collection` from the stored copy, so a copy saved by an older edition could drop out of a chip. | For reference recipes (never family ones), `libraryRecipeMeta` falls back to the built-in recipe with the same id. Nothing stored is rewritten. "Chép thành món nhà" now keeps the source's tags and collection, so a copied Western dish stays under Âu/Ý. |
+| 6 | Tapping a chip re-rendered the whole page | Focus was lost for keyboard users, and IME text still being composed could be dropped. | Chips, count and results now update in place, and the search input is never re-rendered. Focus stays on the chip that was pressed. Chips are `<button>` elements with `aria-pressed`, in a `role=group`, at least 44×44 px, with a visible focus ring. Page resets to 1 on every chip change and search. |
+| 7 | Meal editor search does nothing | Introduced in `818e2a6`. The handler toggled a `.hidden` class on `.family-select-row`, but `dist/styles.css` has **no** `.hidden` rule and the row is `display:grid`. Every row was always visible, and the "Hiện 30 món gợi ý đầu tiên" hint was false. No test touched `#meal-dish-search`, so the earlier "filters in place" note was never verified. Matching also skipped ingredients, ranking, IME handling and the empty state. | Both sections (`#meal-own-list` and `#meal-lib-list`) are re-rendered from the same ranked library search (`recipeSearchScore`, now in `rankRecipesBySearch`). Matching covers names, English names and ingredients, ignoring diacritics, with accented exact matches ranked first. Composition input is ignored, the search runs on `compositionend`, and there is a 150 ms debounce. Shown: 30 suggestions with no query, up to 60 matches with one. The status line shows the count, or "Không tìm thấy món … (0 món)". Ticked dishes and chosen portions are kept in `mealEditorCtx`, pinned at the top of their section, and submitted even when the filter hides them. Enter in the search box no longer submits the meal. A CSS fallback hides rows marked `[hidden]` or `.hidden`. |
+
+"Món nước / súp" is the `noodle` category: 170 phở, bún, hủ tiếu, mì, miến, cháo and súp bowls. It includes the 3 "Mì Ý …" pasta dishes that the catalogue classes in that role. They were not re-categorised, because that is catalogue data.
+
+### Verified counts (fresh device; asserted from catalogue fields, not hard-coded)
+
+| Chip | Kho tham khảo | Tất cả (+4 test family recipes) |
+|---|---|---|
+| Món nước / súp | 170 | 171 |
+| 🍝 Món Âu & Ý | 81 | 81 |
+| 🥗 Healthy | 111 | 111 |
+| Vegetarian | 303 | 305 |
+| Thuần chay | 231 | 232 |
+| Salad hạt | 35 | 35 |
+| Dressing | 25 | 25 |
+
+### Tests
+
+- `tests/catalog-filters.test.cjs` (in `npm test`) checks the filter predicates:
+  - Salad hạt and Dressing equal the catalogue's `seed-salad` and `dressing` recipes.
+  - Vegetarian ⊋ Thuần chay and equals vegan + vegetarian + check. It contains no meat or fish sauce, and no egg/dairy or label-check dish is vegan.
+  - Âu/Ý equals the planner's cuisine index.
+  - Healthy includes the Healthy collection and the seed salads, and excludes plain stir-fries.
+  - Category, tag and time filters combine.
+  - Stale reference copies resolve by id, while family recipes are never re-labelled.
+- `tests/catalog-filters-browser.test.cjs` (new `npm run test:catalog-filters:browser`, added to `test:all`) runs at 375×812 (touch taps), 820×1100 (touch) and 1280×800:
+  - For each chip in the Family, Reference and All scopes, the chip badge, status count, card count and pager agree with the catalogue-derived count. The chip has `aria-pressed`, is at least 44 px, and a second tap clears it. An empty scope shows the no-match state, not the first-run card.
+  - Vegetarian and Thuần chay differ, with Canh cà chua trứng under Vegetarian only.
+  - Chip + IME search "đậu" gives the right count, the same input element is kept, and page 2 resets to page 1. Category, tag and search combine. "Tất cả" resets all filters.
+  - Enter and Space on a focused chip toggle it, and focus stays on the chip.
+  - EN chip labels and the EN status line are checked.
+  - Meal editor:
+    - "spag" filters the reference list to the Spaghetti/Mì Ý dishes.
+    - "phở" (real CDP IME composition) narrows the family section to "Phở bò nhà mình" and ranks Phở dishes first.
+    - "canh chua" (IME) ranks Canh chua dishes first.
+    - A dish ticked before filtering stays ticked and is saved.
+    - "Không tìm thấy món (0 món)" shows when nothing matches.
+    - Enter does not submit the meal.
+    - The EN status is checked.
+  - No page errors and no horizontal overflow occur at any size.
+
+### Screenshots (this folder)
+
+- `{mobile,tablet,desktop}-filter-{noodle,western,healthy,vegetarian,vegan,seed-salad,dressing}-vi.png`
+- `{mobile,tablet,desktop}-filter-{vegan,seed-salad}-en.png`
+- `{mobile,tablet,desktop}-meal-search-{vi,en}.png`
+
+Tablet and desktop library shots are clipped to the top 520 px and 460 px to keep the repo small.
+
+**Limits:**
+
+- These are browser viewport simulations, not tests on physical devices. Reduced motion was emulated, and only the light theme was captured for these shots. Dark tokens are covered in the appended CSS block.
+- Henry's own family data was not available, so root cause 5 is hardening rather than a confirmed reproduction.
+- Offline state was not re-checked here, because these changes add no network calls.
