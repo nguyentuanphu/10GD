@@ -203,7 +203,7 @@ function extractProductPage(html,text,href,title){
  return out;
 }
 function bookmarkletSource(origin){
- const code='(function(){var f='+extractProductPage.toString()+';var d=f(document.documentElement.outerHTML.slice(0,3000000),(document.body&&document.body.innerText||'+"''"+').slice(0,200000),location.href,document.title);if(!d.price&&!d.label){alert("Không tìm thấy giá trên trang này / No price found on this page");return}var u='+JSON.stringify(String(origin).replace(/\/$/,''))+'+"/?price-capture="+encodeURIComponent(JSON.stringify(d));var w=window.open(u,"_blank");if(!w)location.href=u})()';
+ const code='(function(){var f='+extractProductPage.toString().replace(/\n\s+/g,'\n')+';var d=f(document.documentElement.outerHTML.slice(0,3000000),(document.body&&document.body.innerText||'+"''"+').slice(0,200000),location.href,document.title);if(!d.price&&!d.label){alert("Không tìm thấy giá trên trang này / No price found on this page");return}var u='+JSON.stringify(String(origin).replace(/\/$/,''))+'+"/?price-capture="+encodeURIComponent(JSON.stringify(d));var w=window.open(u,"_blank");if(!w)location.href=u})()';
  return'javascript:'+encodeURIComponent(code);
 }
 // Validate and normalise an incoming ?price-capture= payload into an editable draft.
