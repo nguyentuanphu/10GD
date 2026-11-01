@@ -229,6 +229,15 @@ async function main() {
       const row = (sources: string[]) => page.evaluate((sources: string[]) => (globalThis as any).scoutCommunityRow({ groupId: 'g', itemId: 'nuoc-mam', label: 'Synthetic fish sauce', retailer: 'woolworths', branchLabel: 'Rockdale 2216', status: 'confirmed', price: 4.2, families: 2, ageDays: 0, sources }), sources);
       assert.match(await row(['scout']), /class="scout-src-chip"[^>]*>🔎 Scout</, 'Scout label on Scout prices');
       assert.doesNotMatch(await row(['shelf-photo']), /scout-src-chip/, 'no Scout label on family photos');
+      // v1.7: the capture time shown next to a community price is the capture time itself, in local time.
+      const at = new Date(Date.now() - 2 * 3600000).toISOString(), old = new Date(Date.now() - 9 * 86400000).toISOString();
+      const capRow = (capturedAt: string) => page.evaluate(([capturedAt]: string[]) => (globalThis as any).scoutCommunityRow({ groupId: 'g', itemId: 'nuoc-mam', label: 'Synthetic fish sauce', retailer: 'woolworths', branchLabel: 'Rockdale 2216', status: 'confirmed', price: 4.2, families: 2, ageDays: 0, sources: ['scout'], capturedAt, sourceCaptured: { scout: capturedAt } }), [capturedAt]);
+      const html = await capRow(at);
+      assert.match(html, new RegExp(`data-captured="${at.replace(/[.]/g, '\\.')}"`), 'time shown = capture time');
+      const local = await page.evaluate((at: string) => { const d = new Date(at); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }, at);
+      assert.match(html, new RegExp('🔎 Scout · 2 giờ trước · T\\d|CN \\d\\d\\/\\d\\d ' + local), 'VI relative + absolute local time: ' + html.match(/scout-captured[^<]*/)?.[0]);
+      assert.ok(html.includes(local), 'local clock time shown');
+      assert.match(await capRow(old), /scout-captured scout-old[^>]*>[^<]*· cũ</, 'old prices muted');
       await context.close();
     }
     for (const opt of [{ role: 'editor', trusted: false }, { account: false }] as Opt[]) {

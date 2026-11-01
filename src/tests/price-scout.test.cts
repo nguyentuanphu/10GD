@@ -211,3 +211,21 @@ const prefs=(x:any={})=>({catalog,today,state:'NSW',...x});
  assert.equal(P.setSupportedStates(null),false,'a missing list leaves the current states');
  P.setSupportedStates(['NSW','QLD']);
  console.log('PASS Price Scout supported states follow the Studio setting (incl. none ticked)');}
+
+// ---- v1.7 capture time next to referenced prices ----
+{const now=Date.parse('2026-11-01T08:42:00+11:00'),tz='Australia/Sydney',at='2026-11-01T06:42:00+11:00';
+ const vi=P.capturedLabel(at,'vi',now,tz),en=P.capturedLabel(at,'en',now,tz);
+ assert.equal(vi.text,'2 giờ trước · CN 01/11 06:42');assert.equal(en.text,'2 h ago · Sun 1 Nov 06:42');
+ assert.equal(vi.iso,new Date(at).toISOString(),'shown time is the capture time');assert.equal(vi.old,false);
+ const wed='2026-11-04T06:42:00+11:00',w=P.capturedLabel(wed,'vi',Date.parse('2026-11-04T06:47:30+11:00'),tz);assert.equal(w.text,'5 phút trước · T4 04/11 06:42');
+ assert.equal(P.capturedLabel(wed,'en',Date.parse('2026-11-04T06:42:20+11:00'),tz).text,'just now · Wed 4 Nov 06:42');
+ assert.equal(P.capturedLabel(wed,'en',Date.parse('2026-11-05T09:00:00+11:00'),tz).rel,'yesterday');
+ const old=P.capturedLabel('2026-10-20T10:00:00+11:00','en',now,tz);assert.equal(old.old,true,'> 7 days is old');assert.equal(old.rel,'11 days ago');
+ const day=P.capturedLabel('2026-10-31','vi',now,tz);assert.equal(day.day,true);assert.equal(day.rel,'hôm qua');assert.doesNotMatch(day.abs,/:/,'a day-only record shows no clock time');
+ assert.equal(P.capturedLabel('nonsense','vi',now,tz),null);
+ assert.equal(P.captureTimeOf({observedAt:'2026-10-31',evidence:{type:'screenshot',capturedAt:at}}),at,'evidence capture time wins over the day');
+ assert.equal(P.captureTimeOf({observedAt:'2026-10-31'}),'2026-10-31');
+ // Plan items carry the capture time of the price they use.
+ const r=plain(P.optimizeBasket([{key:'a',label:'Gạo',itemId:'gao-jasmine',qty:5,unit:'kg'}],[obs('gao-jasmine','woolworths',12,5,'kg',{source:'screenshot',evidence:{type:'screenshot',capturedAt:at}}),obs('gao-jasmine','coles',14,5,'kg')],prefs()));
+ const it=r.split.stops.flatMap((s:any)=>s.items)[0];assert.equal(it.capturedAt,at,'plan item keeps the capture time');
+ console.log('PASS capture time label (VI/EN, relative + absolute, old > 7 days, day-only) and plan items keep the capture time')}

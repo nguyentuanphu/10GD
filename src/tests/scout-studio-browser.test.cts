@@ -4,12 +4,13 @@
 // actions, the Studio → Settings "Auto Scout" platform setting (v1.6: Scout is a
 // registered Studio page, so the overview no longer loads behind it), VI/EN, light/dark, at 320×740, 375×812, 820×1100 and 1280×800 with no
 // horizontal overflow and ≥44 px touch targets on touch-size layouts.
-// Screenshots go to docs/reviews/v1.6/auto-scout/.
+// Screenshots go to docs/reviews/v1.7/easy-scout/studio/ (v1.6 evidence stays as recorded).
+// v1.7: remote control (live status, Run now → waiting → received, timeline, pace, notifications).
 import assert from 'node:assert/strict';
 import {readFileSync,mkdirSync,existsSync} from 'node:fs';
 import {extname} from 'node:path';
 import {chromium} from 'playwright';
-const origin='https://kitchen.test',out='docs/reviews/v1.6/auto-scout';mkdirSync(out,{recursive:true});
+const origin='https://kitchen.test',out='docs/reviews/v1.7/easy-scout/studio';mkdirSync(out,{recursive:true});
 const mime:any={'.js':'application/javascript','.css':'text/css','.html':'text/html','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.json':'application/json','.webmanifest':'application/manifest+json'};
 const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tablet:{width:820,height:1100},desktop:{width:1280,height:800}};
 (async()=>{
@@ -63,6 +64,11 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);if(overflow>1)console.log(await page.evaluate(()=>[...document.querySelectorAll('#scout-main *')].filter((e:any)=>e.getBoundingClientRect().right>innerWidth+1).slice(0,8).map((e:any)=>e.tagName+'.'+e.className+' '+Math.round(e.getBoundingClientRect().right)+' '+(e.textContent||'').slice(0,40))));assert.ok(overflow<=1,`overflow ${overflow} at ${size}`);
   if(size!=='desktop'){const small=await page.evaluate(()=>[...document.querySelectorAll('#scout-main button,#scout-main input,#scout-main a')].filter((e:any)=>{const r=e.getBoundingClientRect();return r.width&&r.height<44&&e.type!=='checkbox'}).map((e:any)=>e.outerHTML.slice(0,60)));assert.deepEqual(small,[],'touch targets '+size)}
   await shot(page,`studio-scout-${lang}-${theme}-${size}-${sizes[size].width}x${sizes[size].height}`);
+  // v1.7 remote control card for every device (phone-friendly).
+  {const rc=page.locator('#sc-rc');await rc.waitFor();const txt=await page.locator('#scout-main').innerText();
+   assert.match(txt,lang==='en'?/Remote control[\s\S]*Last check-in[\s\S]*Pace[\s\S]*Last run/:/Điều khiển từ xa[\s\S]*Liên lạc[\s\S]*Nhịp[\s\S]*Lần chạy trước/);
+   assert.equal(await page.locator('.rc-dev').count(),3,'one card per active device');
+   await page.evaluate(()=>{const el=document.querySelector('#sc-rc');if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-10)});await shot(page,`studio-remote-${lang}-${theme}-${size}-${sizes[size].width}x${sizes[size].height}`)}
   if(size==='desktop'&&lang==='vi'){await page.evaluate(()=>{const el=document.querySelector('#sc-cov');if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-20)});await shot(page,'studio-scout-coverage-vi-light-desktop-1280x800')}
   if(size==='desktop'&&lang==='en'){
    // Actions: allow Minh's device, pause the network and resume, create a pairing code, revoke (with reason).
@@ -75,6 +81,23 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
    assert.equal((await dev('device',h.token)).code,'revoked','revoked from Studio');
    assert.deepEqual(posts.map(p=>p.op),['studio-device','studio-network','studio-network','studio-pair-code','studio-retailer','studio-revoke']);
    const log=await listLog(getStoreFn,'audit',{now:Date.now(),limit:100,from:dayKey(Date.now()-86400000)});const acts=log.items.map((x:any)=>x.action);for(const x of ['scout_device_allow_auto','scout_network','scout_pair_code','scout_retailer_resume','scout_device_revoke'])assert.ok(acts.includes(x),'audited '+x);
+   // v1.7 remote control: Run now → "Waiting for the computer" → device heartbeat → "Received" → result.
+   await page.locator(`[data-cmd="run-now"][data-id="${a.device.id}"]`).click();await page.waitForFunction(()=>/Command sent/.test(document.querySelector('#toast')?.textContent||''));
+   await page.locator(`.rc-dev:has([data-id="${a.device.id}"]) .rc-cmds`).getByText('Waiting for the computer').waitFor();
+   assert.deepEqual(posts.at(-1),{op:'studio-command',body:{deviceId:a.device.id,type:'run-now'}});
+   const hb=await dev('heartbeat',a.token,{version:'1.7.0',chromeOpen:true,idle:'idle'});assert.equal(hb.commands[0].type,'run-now','device picks the command up with its heartbeat');
+   await page.reload();await page.waitForSelector('#sc-rc');await page.locator(`.rc-dev:has([data-id="${a.device.id}"]) .rc-cmds`).getByText('Received').waitFor();
+   await dev('command-result',a.token,{id:hb.commands[0].id,ok:true,result:'started'});await page.reload();await page.waitForSelector('#sc-rc');await page.locator(`.rc-dev:has([data-id="${a.device.id}"]) .rc-cmds`).getByText('Done: started').waitFor();
+   // Pace preset per device (audited server-side).
+   await page.locator(`[data-pace-dev="${a.device.id}"]`).selectOption('fast');await page.waitForFunction(()=>/Pace changed/.test(document.querySelector('#toast')?.textContent||''));
+   assert.deepEqual(posts.at(-1),{op:'studio-command',body:{deviceId:a.device.id,type:'pace',args:{pacing:'fast'}}});assert.equal((await lib.getDevice(getStoreFn,a.device.id)).pacing.minMs,8000);
+   // Timeline (no page contents).
+   await page.locator(`details[data-tl="${a.device.id}"] summary`).click();await page.locator(`details[data-tl="${a.device.id}"] .ev li`).first().waitFor();assert.match(await page.locator(`details[data-tl="${a.device.id}"]`).innerText(),/Command sent/);
+   // Notification opt-in.
+   await page.locator('#sc-notify input[name=runFinished]').check();await page.locator('#sc-notify button[type=submit]').click();await page.waitForFunction(()=>/Notifications saved/.test(document.querySelector('#toast')?.textContent||''));
+   assert.equal((await lib.networkSettings(getStoreFn,env)).notify.runFinished,true);
+   await page.evaluate(()=>{const el=document.querySelector('#sc-rc');if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-10)});await shot(page,'studio-remote-commands-en-dark-desktop-1280x800');
+   const acts2=(await listLog(getStoreFn,'audit',{now:Date.now(),limit:200,from:dayKey(Date.now()-86400000)})).items.map((x:any)=>x.action);for(const x of ['scout_command_run_now','scout_command_pace','scout_network'])assert.ok(acts2.includes(x),'audited '+x);
    // language switch re-renders the panel
    await page.locator('#lang').click();await page.locator('#scout-h1:has-text("Mạng Scout")').waitFor();
    // leaving #scout restores Studio's own page
