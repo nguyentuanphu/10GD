@@ -165,7 +165,9 @@ const vinv=await (await acc('invite',{role:'viewer'},b.cookie)).json();const vie
 assert.equal((await C('contribute',{method:'POST',cookie:viewerCookie,body:{consent:true,observation:obs(),branch}})).status,403,'viewer read-only');
 assert.equal((await C('prices&state=NSW',{cookie:viewerCookie})).status,200,'viewer can read');
 {const u=await accountsStore.get('users/emlow',{type:'json'});u.disabled=true;await accountsStore.setJSON('users/emlow',u)}
-assert.equal((await share(e,obs())).status,403,'disabled account');
+// Studio's disabled-account hook revokes the session itself, so the request is rejected as signed-out (401).
+{const status=(await share(e,obs())).status;assert.ok(status===401||status===403,'disabled account cannot contribute: '+status)}
+assert.equal((await C('prices&state=NSW',{cookie:e.cookie})).status,401,'disabled account session no longer reads community prices');
 
 // ---- reports → moderation queue
 const gid=(await prices(b)).items.find((x:any)=>x.itemId==='gao-jasmine'&&x.retailer==='coles').groupId;
