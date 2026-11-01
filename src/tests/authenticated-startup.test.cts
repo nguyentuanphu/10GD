@@ -71,6 +71,8 @@ async function main() {
    await page.evaluate(()=>{location.hash='shopping'});await page.waitForTimeout(100);assert.match(await page.locator('#main').innerText(),/Đi chợ|Shopping/);
    assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),321);
    if(name==='mobile'){
+    // The avatar's “Create account” link opens the real sign-in page on the register tab.
+    await page.goto(origin+'/login?return=%2F&mode=register');assert.equal(await page.getByRole('tab',{name:'Đăng ký',exact:true}).getAttribute('aria-selected'),'true');assert.equal(await page.locator('#registration-fields').isHidden(),false);
     await page.goto(origin+'/login?locked=1');await page.getByRole('tab',{name:'Đăng ký',exact:true}).click();await page.locator('#username').fill('guestregistered');await page.locator('#password').fill('GuestSignupPassphrase42');await page.locator('#name').fill('Guest user');await page.locator('#submit').click();await page.locator('#recovery:not([hidden])').waitFor();assert.equal(mail.length,0);await page.locator('#continue').click();await page.locator('[data-device-mode]').waitFor();assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),321,'sign-up without email must retain device work');
    }
    await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
@@ -138,7 +140,7 @@ async function main() {
   assert.ok(counters.pack>packsBefore);
   await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();
   await page.screenshot({path:evidence+'/authenticated-worker.png',fullPage:true});
-  await page.getByRole('button',{name:'Kết nối gia đình',exact:true}).click();await page.locator('.account-security > summary').click();await page.locator('#account-email-address').fill('existing-browser@example.test');await page.locator('#account-email-password').fill('synthetic-startup-passphrase-only');await page.locator('#account-email button').click();await page.getByText('Đã lưu email khôi phục. Không cần xác minh khi đăng ký.',{exact:true}).waitFor();await page.keyboard.press('Escape');
+  await page.locator('.top-avatar').click();await page.getByRole('menuitem',{name:'Tài khoản & bảo mật',exact:true}).click();await page.locator('.account-sheet #account-email-address').waitFor();await page.locator('#account-email-address').fill('existing-browser@example.test');await page.locator('#account-email-password').fill('synthetic-startup-passphrase-only');await page.locator('#account-email button').click();await page.getByText('Đã lưu email khôi phục. Không cần xác minh khi đăng ký.',{exact:true}).waitFor();await page.keyboard.press('Escape');
   await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();
   assert.equal(await page.evaluate(()=>localStorage.getItem('qa-preserved')),'keep-family-data');
   assert.deepEqual(errors,[]);

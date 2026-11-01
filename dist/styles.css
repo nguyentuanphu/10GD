@@ -456,3 +456,38 @@ html[data-theme="dark"] .scout-steps li::before{color:#0d1511}
 /* The shared modal close button must be a 44px touch target (AGENTS.md rules 8 and 13). */
 .modal header [data-action="close-modal"]{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px}
 /* === v1.5 modal-close end === */
+/* === v1.5 my-kitchen-simplify start === */
+/* My kitchen = four family cards; Account & security and Other settings are small sheets sharing the same card style. */
+.kitchen-hub .modal-content,.settings-sheet .modal-content{padding:4px 18px 18px}
+.kitchen-card{padding:16px;margin:12px 0;border:1px solid var(--line);border-radius:14px;background:var(--white);scroll-margin-top:12px}
+.kitchen-hub .kitchen-card:last-child,.settings-sheet .kitchen-card:last-child{border-bottom:1px solid var(--line)}
+.kitchen-card>h3{font-size:16px;margin:0 0 2px}
+.kitchen-desc{margin:0 0 12px;color:var(--muted,#69766b);font-size:13px;line-height:1.45}
+.kitchen-card>.toolbar:last-child,.kitchen-card>form>.toolbar:last-child{margin-bottom:0}
+.kitchen-hub .kitchen-section.family-hub-summary{padding:16px;margin:12px 0;border:1px solid var(--line)}
+.settings-sheet .btn{white-space:normal;text-align:center;font-size:13px;min-height:44px;padding:9px 14px;line-height:1.35}
+.settings-sheet .field label{font-size:13px}
+.settings-sheet .field input,.settings-sheet .field select{min-height:44px;font-size:16px}
+.settings-sheet .hint,.settings-sheet p{font-size:13px}
+.settings-sheet .toolbar{display:flex;flex-wrap:wrap;gap:8px}
+.settings-sheet .form-grid{min-width:0}
+.account-sheet-id{display:flex;align-items:center;gap:12px;padding:12px 2px 4px}
+.account-sheet-id>span:last-child{display:flex;flex-direction:column;min-width:0}
+.account-sheet-id b,.account-sheet-id small{overflow-wrap:anywhere}
+.account-sheet-id small{font-size:12px;color:var(--muted,#69766b)}
+.account-sheet-face{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--mint);color:var(--green);font-weight:700;font-size:18px}
+.side-link{min-height:44px;width:100%;cursor:pointer;border-radius:8px;text-align:left;font-size:13px}
+/* Desktop sidebar: Reminders and Other settings must stay reachable on 800px-tall screens. */
+@media (min-width:761px){.sidebar{overflow-y:auto;overscroll-behavior:contain}}
+@media (min-width:761px) and (max-height:980px){.side-note{display:none}}
+.side-link:hover{background:rgba(23,78,60,.06)}
+.side-link svg{flex:none}
+.more-tools .more-other-settings{margin-top:6px}
+html[data-theme="dark"] .kitchen-card{background:#1f2d26;border-color:var(--line)}
+html[data-theme="dark"] .kitchen-desc,html[data-theme="dark"] .account-sheet-id small{color:var(--muted,#b9c6bd)}
+html[data-theme="dark"] .account-sheet-face{background:var(--surface-3);color:var(--accent-ink)}
+html[data-theme="dark"] .side-link:hover{background:rgba(255,255,255,.06)}
+.kitchen-card .toolbar+.hint{margin-top:10px}
+@media (max-width:600px){.settings-sheet .form-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:420px){.kitchen-hub .modal-content,.settings-sheet .modal-content{padding:4px 12px 14px}.kitchen-card{padding:14px 12px}}
+/* === v1.5 my-kitchen-simplify end === */

@@ -90,5 +90,7 @@ const parameters=new URLSearchParams(location.search);resetToken=parameters.get(
 const incomingInvite=parameters.get('invite');
 try{invitationField.value=incomingInvite||sessionStorage.getItem('bep-invite-draft')||'';if(incomingInvite)sessionStorage.setItem('bep-invite-draft',incomingInvite)}catch{invitationField.value=incomingInvite||''}
 if(resetToken||incomingInvite)history.replaceState(null,'','/login?locked=1');
-changeMode(resetToken?'reset':incomingInvite?'register':'login');
+// ?mode= opens a tab directly (the app's “Create account” and “Change password” links).
+const requestedMode=parameters.get('mode');
+changeMode(resetToken?'reset':incomingInvite?'register':requestedMode==='register'||requestedMode==='request-reset'||requestedMode==='recover'?requestedMode:'login');
 export {};
