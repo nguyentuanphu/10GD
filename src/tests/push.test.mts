@@ -19,7 +19,9 @@ console.log('PASS push endpoint safety, Sydney daylight saving, quiet hours, due
 device.language='en';device.role='shopper';data.set('push/subscriptions/'+device.deviceId,device);
 let lastPayload=null;const capture=async(_sub,payload)=>{lastPayload=JSON.parse(payload);return{statusCode:201}};
 result=await sendPushBatch(store,{type:'prep',title:'Sơ chế',body:'Thử',enTitle:'Prep',enBody:'Test prep'},{automatic:true,now:new Date('2026-10-30T06:00:00Z'),send:capture});assert.equal(result.accepted,0,'shopper does not get automatic prep');
-result=await sendPushBatch(store,{type:'urgent',title:'Thử',body:'Thử',enTitle:'Urgent item',enBody:'Two bunches'},{targets:['dad'],now:new Date('2026-10-30T12:00:00Z'),send:capture});assert.equal(result.accepted,0,'quiet hours respected by default');
+result=await sendPushBatch(store,{type:'urgent',title:'Thử',body:'Thử',enTitle:'Urgent item',enBody:'Two bunches'},{targets:['dad'],now:new Date('2026-10-30T12:00:00Z'),send:capture});assert.equal(result.accepted,1,'v1.5: urgent bypasses quiet hours by default (legacy device without a choice)');
+device.urgentPolicy='v2';device.urgentBypass=false;
+result=await sendPushBatch(store,{type:'urgent',title:'Thử',body:'Thử',enTitle:'Urgent item',enBody:'Two bunches'},{targets:['dad'],now:new Date('2026-10-30T12:00:00Z'),send:capture});assert.equal(result.accepted,0,'device can turn the urgent bypass off');assert.equal(result.reason,'quiet_hours');
 device.urgentBypass=true;
 result=await sendPushBatch(store,{type:'urgent',title:'Thử',body:'Thử',enTitle:'Urgent item',enBody:'Two bunches'},{targets:['dad'],now:new Date('2026-10-30T12:00:00Z'),send:capture});assert.equal(result.accepted,1);assert.equal(lastPayload.title,'Urgent item');assert.equal(lastPayload.body,'Two bunches');
 device.role='both';device.urgentBypass=false;data.delete('push/daily/2026-10-30/'+device.deviceId);
