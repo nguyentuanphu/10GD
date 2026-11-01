@@ -25,14 +25,14 @@ async function release(){const ids=[...state.leased];if(!ids.length)return;try{a
 async function finish(reason:string,winId:number){state.stop=reason;await release();
  const st=await SC.get(['lastRun','blockedEvents']);const lastRun={at:Date.now(),startedAt:state.started,pages:state.pages,prices:state.prices,skipped:state.skipped,errors:state.errors,stop:reason,blocked:state.blocked};
  // Tell the person it is done (the challenge path has already shown its own notice).
- if(reason!=='blocked'&&(state.pages||state.explicit))chrome.runtime.sendMessage({type:'notify',title:T('FamTray So sánh giá đã chạy xong','FamTray Price Compare run finished'),message:T(`${state.pages} trang, ${state.prices} giá${state.skipped?`, bỏ qua ${state.skipped}`:''}. `,`${state.pages} pages, ${state.prices} prices${state.skipped?`, ${state.skipped} skipped`:''}. `)+UI_REASON(reason)}).catch(()=>{});
+ if(reason!=='blocked'&&(state.pages||state.explicit))chrome.runtime.sendMessage({type:'notify',title:T('FamTray So Giá đã chạy xong','FamTray Price Check run finished'),message:T(`${state.pages} trang, ${state.prices} giá${state.skipped?`, bỏ qua ${state.skipped}`:''}. `,`${state.pages} pages, ${state.prices} prices${state.skipped?`, ${state.skipped} skipped`:''}. `)+UI_REASON(reason)}).catch(()=>{});
  await SC.set({lastRun,run:null,blockedEvents:state.blocked?[{...state.blocked,at:Date.now()},...(st.blockedEvents||[])].slice(0,20):st.blockedEvents});
  show(T('Đã dừng: ','Stopped: ')+reason);if(!SC.BUILD.keepRunnerOpen)setTimeout(()=>chrome.windows.remove(winId).catch(()=>{}),1500)}
 const UI_REASON=(r:string)=>({'no-tasks':T('Hết việc.','No more tasks.'),'cap-run':T('Đủ số trang mỗi lần chạy.','Per-run limit reached.'),'cap-day':T('Đủ số trang hôm nay.','Daily limit reached.'),'cap-retailer':T('Đủ giới hạn cửa hàng.','Retailer limit reached.'),stopped:T('Đã dừng theo yêu cầu.','Stopped on request.'),paused:T('Đã tạm dừng.','Paused.'),'outside-window':T('Ngoài khung giờ.','Outside the schedule.')} as any)[r]||'';
 const paceFor=(retailer:string)=>state.pacing?.byRetailer?.[retailer]||state.pacing;
 async function run(){
- const lang=await SC.lang();T=(vi,en)=>lang==='en'?en:vi;document.documentElement.lang=lang;$('#title').textContent=T('So sánh giá tự động đang chạy','Automatic price compare running');
- $('#note').textContent=T('Cửa sổ này do FamTray So sánh giá mở. Bạn có thể đóng hoặc bấm Tạm dừng bất cứ lúc nào.','FamTray Price Compare opened this window. You can close it or press Pause at any time.');
+ const lang=await SC.lang();T=(vi,en)=>lang==='en'?en:vi;document.documentElement.lang=lang;$('#title').textContent=T('So Giá tự động đang chạy','Automatic price check running');
+ $('#note').textContent=T('Cửa sổ này do FamTray So Giá mở. Bạn có thể đóng hoặc bấm Tạm dừng bất cứ lúc nào.','FamTray Price Check opened this window. You can close it or press Pause at any time.');
  const win=await chrome.windows.getCurrent(),st=await SC.get(['device','testPacing','run']);state.explicit=!!st.run?.explicit;if(st.run?.startedAt)state.started=st.run.startedAt;
  const work=await chrome.tabs.create({windowId:win.id,url:'about:blank',active:false});await heartbeatRun({windowId:win.id,workTabId:work.id});
  $('#pause').onclick=async()=>{await SC.set({paused:true})};
@@ -57,7 +57,7 @@ async function run(){
   if(res?.challenge){
    state.blocked={retailer:task.retailer,kind:res.challenge.kind,url:task.url};
    try{await SC.api('block',{retailer:task.retailer,kind:res.challenge.kind,url:task.url})}catch{}
-   await chrome.runtime.sendMessage({type:'notify',title:T('FamTray So sánh giá đã dừng','FamTray Price Compare stopped'),message:T('Trang yêu cầu xác minh hoặc chặn truy cập. Máy này tạm dừng 24 giờ. Không cần làm gì.','The site showed a check or blocked access. This device is paused for 24 hours. Nothing to do.')}).catch(()=>{});
+   await chrome.runtime.sendMessage({type:'notify',title:T('FamTray So Giá đã dừng','FamTray Price Check stopped'),message:T('Trang yêu cầu xác minh hoặc chặn truy cập. Máy này tạm dừng 24 giờ. Không cần làm gì.','The site showed a check or blocked access. This device is paused for 24 hours. Nothing to do.')}).catch(()=>{});
    await chrome.tabs.update(work.id,{url:'about:blank'}).catch(()=>{});
    return finish('blocked',win.id)}
   const want=device.stores?.[task.retailer],mismatch=!!(res?.storeLabel&&want&&!CORE.storeMatches(res.storeLabel,want));

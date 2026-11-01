@@ -1,4 +1,4 @@
-# FamTray Price Compare (FamTray So sánh giá): getting it to families without commands
+# FamTray Price Check (FamTray So Giá): getting it to families without commands
 
 There are two ways to install, and neither needs a command:
 
@@ -19,7 +19,7 @@ You can also download a ready zip from GitHub without commands: Actions → any 
    - the **extension id** (32 letters a–p). The store gives it a **different id** from the zip version, because the zip has a fixed key.
 7. Tell the app about them. Neither needs a command:
    - Hosting environment variable `SCOUT_EXTENSION_IDS`: add the store id after the existing one, separated by a comma: `mjeoekikdicoojgoppnfibjbfpcfngja,<store id>`. Without it, the server refuses requests from the store version.
-   - Store link: either in Studio → Mạng so sánh giá → "Cài từ cửa hàng tiện ích / Store install links" → paste → Save, or as the environment variable `SCOUT_STORE_URL`. The environment variable takes priority.
+   - Store link: either in Studio → Mạng So Giá → "Cài từ cửa hàng tiện ích / Store install links" → paste → Save, or as the environment variable `SCOUT_STORE_URL`. The environment variable takes priority.
    - The app's install check tries every id it is given: the bundled id plus the ids in `SCOUT_EXTENSION_IDS`, which the page reads from `scout?op=public`. Both versions are found.
 8. The "Pair this computer" card then shows **"Cài từ Chrome Web Store"** above the manual steps.
 
@@ -40,10 +40,10 @@ Do the same at the Microsoft Partner Center (Edge Add-ons). Check the current re
 
 ## Keeping the home computer reachable (remote control)
 
-Studio → Mạng so sánh giá lets you watch each computer from your phone and send Run now, Stop, Pause/Resume, change the pace, refresh the rules, and re-check store names. Commands arrive the next time the computer checks in, which happens about once a minute while Chrome is running. A computer that is asleep, switched off, or has Chrome closed **cannot be woken remotely**. Commands wait for up to 30 minutes and then expire. On the home computer:
+Studio → Mạng So Giá lets you watch each computer from your phone and send Run now, Stop, Pause/Resume, change the pace, refresh the rules, and re-check store names. Commands arrive the next time the computer checks in, which happens about once a minute while Chrome is running. A computer that is asleep, switched off, or has Chrome closed **cannot be woken remotely**. Commands wait for up to 30 minutes and then expire. On the home computer:
 
 - keep it plugged in;
-- turn off sleep during price-compare windows. On Windows: Settings → System → Power → Sleep: Never when plugged in. On Mac: System Settings → Lock Screen / Battery → prevent automatic sleeping on power adapter;
+- turn off sleep during price-check windows. On Windows: Settings → System → Power → Sleep: Never when plugged in. On Mac: System Settings → Lock Screen / Battery → prevent automatic sleeping on power adapter;
 - let Chrome keep running in the background: `chrome://settings/system` → "Continue running background apps when Google Chrome is closed". In Edge, use `edge://settings/system`;
 - make Chrome open at login. On Windows: Settings → Apps → Startup, or put a Chrome shortcut in the `shell:startup` folder. On Mac: System Settings → General → Login Items → add Google Chrome;
 - no remote desktop is needed.

@@ -1,4 +1,4 @@
-// Builds the FamTray So sánh giá / Price Compare Chrome/Edge extension (Manifest V3).
+// Builds the FamTray So Giá / Price Compare Chrome/Edge extension (Manifest V3).
 //   node scripts/build-extension.cjs          → dist-extension/ + dist-extension.zip
 //   node scripts/build-extension.cjs --test   → dist-extension-test/ (local test build only)
 // tsc -p tsconfig.extension.json must run first (it writes the compiled .js into
@@ -90,4 +90,4 @@ if(!test){zip(out,'dist-extension.zip');
  for(const f of fs.readdirSync(out))fs.copyFileSync(path.join(out,f),path.join(store,f));
  const {key:_key,...storeManifest}=manifest;fs.writeFileSync(path.join(store,'manifest.json'),JSON.stringify(storeManifest,null,2));
  zip(store,'dist-extension-store.zip')}
-console.log('Price compare extension built: '+out+' ('+files.length+' files: '+files.join(' ')+')'+(test?' (test build)':' + dist-extension.zip + dist-extension-store.zip')+' · version '+manifest.version+' · config '+config.version+' · app address '+(server||'(none: typed by the user)')+(matches.length?' · connectable: '+matches.join(' '):''));
+console.log('Price Check extension built: '+out+' ('+files.length+' files: '+files.join(' ')+')'+(test?' (test build)':' + dist-extension.zip + dist-extension-store.zip')+' · version '+manifest.version+' · config '+config.version+' · app address '+(server||'(none: typed by the user)')+(matches.length?' · connectable: '+matches.join(' '):''));

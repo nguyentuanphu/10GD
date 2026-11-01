@@ -982,3 +982,13 @@ html[data-theme="dark"] .offline-pack-warn{color:#f3c98b}
 .account-sheet .account-part>h3{margin:0 0 8px;font-size:1rem}
 .settings-group-title{margin:18px 0 6px;font-size:1rem;color:var(--muted)}
 /* === v1.7.1 voice-settings end === */
+/* === v1.7.1 price-check pairing start === */
+.scout-found-banner{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-left:4px solid var(--green,#1f7a4d);border-radius:12px;background:var(--mint,#e9f6ef);min-width:0}
+.scout-found-text{flex:1 1 260px;margin:0;min-width:0;overflow-wrap:anywhere}
+.scout-found-error{display:block;margin-top:4px;color:var(--danger,#b3261e)}
+.scout-found-actions{display:flex;flex-wrap:wrap;gap:8px}
+.scout-found-banner .btn{min-height:44px}
+html[data-theme="dark"] .scout-found-banner{background:#163326;border-color:#2f5a45}
+.scout-pair-highlight{outline:3px solid var(--green,#1f7a4d);outline-offset:3px}
+@media (prefers-reduced-motion:no-preference){.scout-pair-highlight{transition:outline-color .6s}}
+/* === v1.7.1 price-check pairing end === */

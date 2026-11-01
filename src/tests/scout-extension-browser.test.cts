@@ -82,6 +82,8 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
  // Account + pairing code (as Studio / My kitchen would create it).
  const reg=await accounts(new Request('https://app.test/.netlify/functions/accounts?op=register',{method:'POST',headers:{Origin:'https://app.test','Content-Type':'application/json','x-nf-client-connection-ip':'e2e'},body:JSON.stringify({username:'scoutfamily',name:'Scout family',password:'synthetic-e2e-passphrase-42',trust:true})}));assert.equal(reg.status,201);
  appCookie=(reg.headers.getSetCookie?.()||[String(reg.headers.get('set-cookie')||'')]).map((c:string)=>c.split(';')[0]).join('; ');assert.ok(appCookie.length>20,'session cookie');
+ // v1.7.1: only accounts assigned in Studio may pair; the family owner is assigned here.
+ await scoutLib.setExtensionAllowed(getStoreFn,'scoutfamily',true,'henrynguyen',Date.now());
  const {code}=await scoutLib.createPairCode(getStoreFn,'scoutfamily',Date.now(),env);
 
  const profile=mkdtempSync(join(tmpdir(),'scout-e2e-'));
@@ -169,7 +171,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
   const card=app.locator('.kitchen-hub .scout-pair-card');
   // 1. Install detection: the card finds the installed extension and offers Pair now.
   await card.locator('[data-scout-state="ready"]').waitFor({timeout:15000});
-  assert.match(await card.innerText(),/Đã cài tiện ích FamTray So sánh giá/);assert.equal(await card.locator('[data-scout-pair-now]').count(),1);
+  assert.match(await card.innerText(),/Đã cài tiện ích FamTray So Giá/);assert.equal(await card.locator('[data-scout-pair-now]').count(),1);
   assert.equal(await card.locator('[data-scout-state="install"]').count(),0,'no install steps once installed');
   // 2. Manual fallback still works: code from the card, typed into the extension's settings.
   await card.locator('.scout-pair-manual summary').click();await card.locator('[data-scout-pair]').click();
@@ -259,12 +261,12 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
   if(process.env.SCOUT_STORE_SCREENSHOTS==='1'){const dir='docs/scout-store/screenshots';mkdirSync(dir,{recursive:true});
    const st=await ctx.newPage();await st.setViewportSize({width:1280,height:800});
    const frame=async(lang:string,title:string,lead:string,file:string)=>{await setStorage({lang,theme:'light',lastSemi:{at:Date.now(),count:24,accepted:24,retailer:'woolworths',retailerLabel:'Woolworths',store:'Hurstville',pages:1}});await st.goto(`chrome-extension://${id}/options.html`);await st.waitForSelector('#h-check');
-    await st.evaluate(([title,lead,name]:string[])=>{document.body.innerHTML=`<div style="display:flex;gap:56px;align-items:center;justify-content:center;height:800px;background:#eef6f1"><div style="max-width:520px"><p style="font-size:64px;margin:0;color:#1f7a4d">◎</p><h1 style="font-size:44px;margin:8px 0">${name}</h1><p style="font-size:26px;line-height:1.35;margin:0 0 12px">${title}</p><p style="font-size:19px;color:#56625b;line-height:1.5">${lead}</p></div><iframe src="popup.html" title="popup" style="width:360px;height:620px;border:1px solid #d6ddd8;border-radius:14px;box-shadow:0 12px 40px #0002;background:#fff"></iframe></div>`},[title,lead,lang==='vi'?'FamTray So sánh giá':'FamTray Price Compare']);await st.waitForTimeout(800);await st.screenshot({path:`${dir}/${file}`})};
+    await st.evaluate(([title,lead,name]:string[])=>{document.body.innerHTML=`<div style="display:flex;gap:56px;align-items:center;justify-content:center;height:800px;background:#eef6f1"><div style="max-width:520px"><p style="font-size:64px;margin:0;color:#1f7a4d">◎</p><h1 style="font-size:44px;margin:8px 0">${name}</h1><p style="font-size:26px;line-height:1.35;margin:0 0 12px">${title}</p><p style="font-size:19px;color:#56625b;line-height:1.5">${lead}</p></div><iframe src="popup.html" title="popup" style="width:360px;height:620px;border:1px solid #d6ddd8;border-radius:14px;box-shadow:0 12px 40px #0002;background:#fff"></iframe></div>`},[title,lead,lang==='vi'?'FamTray So Giá':'FamTray Price Check']);await st.waitForTimeout(800);await st.screenshot({path:`${dir}/${file}`})};
    await frame('vi','Ghi giá kệ siêu thị bạn đang xem cho bếp gia đình.','Chỉ ghi tên, giá, giá theo đơn vị, khuyến mãi và cửa hàng. Không lấy thông tin cá nhân. Tạm dừng bất cứ lúc nào.','1-popup-vi-1280x800.png');
    await frame('en','Saves the shelf prices you view for your family kitchen.','Records name, price, unit price, promotion and store only. No personal data. Pause any time.','2-popup-en-1280x800.png');
    for(const lang of ['vi','en']){await setStorage({lang});await st.goto(`chrome-extension://${id}/options.html`);await st.waitForSelector('#h-check');await st.screenshot({path:`${dir}/${lang==='vi'?3:4}-settings-${lang}-1280x800.png`})}
    await app.setViewportSize({width:1280,height:800});await app.evaluate(()=>document.querySelector('.scout-pair-card')?.scrollIntoView({block:'start'}));await app.screenshot({path:`${dir}/5-pair-now-vi-1280x800.png`});
-   await st.setViewportSize({width:440,height:280});await st.evaluate(()=>{document.body.innerHTML='<div style="width:440px;height:280px;display:flex;align-items:center;gap:18px;padding:24px;box-sizing:border-box;background:#1f7a4d;color:#fff"><span style="font-size:96px;line-height:1">◎</span><div><div style="font:700 28px system-ui">FamTray Price Compare</div><div style="font:600 18px system-ui">FamTray So sánh giá</div><div style="font:18px/1.35 system-ui;margin-top:6px">Shelf prices for your family kitchen · Giá kệ cho bếp gia đình</div></div></div>'});await st.screenshot({path:`${dir}/promo-small-440x280.png`});await st.close();
+   await st.setViewportSize({width:440,height:280});await st.evaluate(()=>{document.body.innerHTML='<div style="width:440px;height:280px;display:flex;align-items:center;gap:18px;padding:24px;box-sizing:border-box;background:#1f7a4d;color:#fff"><span style="font-size:96px;line-height:1">◎</span><div><div style="font:700 28px system-ui">FamTray Price Check</div><div style="font:600 18px system-ui">FamTray So Giá</div><div style="font:18px/1.35 system-ui;margin-top:6px">Shelf prices for your family kitchen · Giá kệ cho bếp gia đình</div></div></div>'});await st.screenshot({path:`${dir}/promo-small-440x280.png`});await st.close();
    console.log('Store screenshots written to '+dir)}
  }finally{await ctx.close();server.close();rmSync(profile,{recursive:true,force:true})}
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -226,7 +226,7 @@ export const normCode=(c:any)=>String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,
 export async function createPairCode(getStoreFn:any,username:string,now:number,env:any=process.env){
  await assertExtensionAllowed(getStoreFn,username,env,now);
  const s=await networkSettings(getStoreFn,env),mine=(await listDevices(getStoreFn)).filter(d=>d.owner===username&&!d.revokedAt);const max=adminNames(env).includes(username)?Math.max(20,s.maxDevicesPerAccount):s.maxDevicesPerAccount;
- if(mine.length>=max)fail('Đã đạt số máy tối đa cho tài khoản này.','This account already has the maximum number of price-compare computers.',409,'device-limit');
+ if(mine.length>=max)fail('Đã đạt số máy tối đa cho tài khoản này.','This account already has the maximum number of price-check computers.',409,'device-limit');
  const bytes=randomBytes(8);let code='';for(const b of bytes)code+=CODE_ALPHABET[b%32];
  const expires=now+15*MIN;await scoutStore(getStoreFn).setJSON('pair/'+sha('scout-pair:'+code),{username,expires,createdAt:new Date(now).toISOString()},{onlyIfNew:true});
  return{code,expires:new Date(expires).toISOString()}}
@@ -373,7 +373,7 @@ const factKey=(retailer:string,f:any)=>retailer+'|'+normLabel(f.storeLabel)+'|'+
 export async function ingestResults(getStoreFn:any,{device,settings:s,body,now,adapter,env=process.env}:any){
  const mode=body?.mode==='auto'?'auto':'semi',items=Array.isArray(body?.items)?body.items.slice(0,60):[],day=dayKey(now),store=scoutStore(getStoreFn),config=await scoutConfig(getStoreFn);
  if(mode==='semi'&&s.semiAuto!=='on')fail('Chế độ bán tự động đang tắt.','Semi-auto is switched off.',403,'semi-off');
- if(s.paused)fail('Mạng so sánh giá đang tạm dừng.','The price-compare network is paused.',403,'paused-global');
+ if(s.paused)fail('Mạng So Giá đang tạm dừng.','The Price Check network is paused.',403,'paused-global');
  if(device.pausedUntil&&device.pausedUntil>now)fail('Thiết bị đang tạm dừng.','This device is paused.',403,'paused-device');
  if(mode==='auto'&&s.autoScout!=='on')fail('Chế độ tự động đang tắt.','Auto mode is switched off.',403,'auto-off');
  const trusted=await isTrusted(getStoreFn,device.owner,env),out={pages:0,accepted:0,duplicates:0,rejected:0,held:0,confirmed:0,skipped:0,parseFailed:0,reasons:{} as any};

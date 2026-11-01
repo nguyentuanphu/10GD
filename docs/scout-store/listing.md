@@ -1,10 +1,10 @@
-# FamTray Price Compare (FamTray So sánh giá): store listing pack (Chrome Web Store / Edge Add-ons)
+# FamTray Price Check (FamTray So Giá): store listing pack (Chrome Web Store / Edge Add-ons)
 
 Copy the text below into the store forms. Everything here matches what the extension does in v1.7.0 (`extension/`). Please check it again if the extension changes.
 
 ## Name and summary
 
-- **Name:** FamTray So sánh giá · Price Compare (EN listing: FamTray Price Compare; VI listing: FamTray So sánh giá)
+- **Name:** FamTray So Giá · Price Check (EN listing: FamTray Price Check; VI listing: FamTray So Giá)
 - **Short description / summary (max 132 characters)**
   - EN: `Saves the shelf prices you view on Woolworths, Coles, ALDI, Chemist Warehouse and Amazon AU for your family kitchen app.` (117)
   - VI: `Ghi lại giá kệ bạn xem trên Woolworths, Coles, ALDI, Chemist Warehouse và Amazon AU cho ứng dụng bếp gia đình.` (112)
@@ -15,7 +15,7 @@ Copy the text below into the store forms. Everything here matches what the exten
 
 ### English
 
-FamTray Price Compare is the price helper for the FamTray / Bếp Gia Đình family kitchen app.
+FamTray Price Check is the price helper for the FamTray / Bếp Gia Đình family kitchen app.
 
 When you open a product or specials page on a supported Australian supermarket site, Price Compare reads the shelf facts on that page: product name, price, unit price, was-price, promotion, pack size, product id and the store name. It then saves them to your family's kitchen app, where they help compare prices for your shopping list and are shared with Community prices.
 
@@ -27,7 +27,7 @@ When you open a product or specials page on a supported Australian supermarket s
 
 ### Tiếng Việt
 
-FamTray So sánh giá là trợ lý ghi giá cho ứng dụng bếp gia đình FamTray / Bếp Gia Đình.
+FamTray So Giá là trợ lý ghi giá cho ứng dụng bếp gia đình FamTray / Bếp Gia Đình.
 
 Khi bạn mở trang sản phẩm hoặc trang khuyến mãi trên các siêu thị Úc được hỗ trợ, tiện ích đọc thông tin giá trên trang đó: tên sản phẩm, giá, giá theo đơn vị, giá cũ, khuyến mãi, quy cách, mã sản phẩm và tên cửa hàng. Sau đó tiện ích lưu chúng vào ứng dụng bếp của gia đình. Ở đó, giá giúp so giá cho danh sách đi chợ và được chia sẻ với Giá cộng đồng.
 
@@ -39,9 +39,9 @@ Khi bạn mở trang sản phẩm hoặc trang khuyến mãi trên các siêu th
 
 ## Single purpose statement
 
-EN: FamTray Price Compare has one purpose: to record the shelf prices of products on five Australian supermarket and pharmacy websites and save them to the user's own family kitchen app for price comparison.
+EN: FamTray Price Check has one purpose: to record the shelf prices of products on five Australian supermarket and pharmacy websites and save them to the user's own family kitchen app for price comparison.
 
-VI: FamTray So sánh giá chỉ có một mục đích: ghi lại giá trên kệ của sản phẩm trên năm trang siêu thị và nhà thuốc ở Úc, rồi lưu vào ứng dụng bếp gia đình của chính người dùng để so giá.
+VI: FamTray So Giá chỉ có một mục đích: ghi lại giá trên kệ của sản phẩm trên năm trang siêu thị và nhà thuốc ở Úc, rồi lưu vào ứng dụng bếp gia đình của chính người dùng để so giá.
 
 ## Permission justifications
 

@@ -19,6 +19,8 @@ async function api(op:string,body?:any,{token}:any={}){
  const r=await fetch(st.server.replace(/\/$/,'')+'/.netlify/functions/scout?op='+encodeURIComponent(op),{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:JSON.stringify(body),credentials:'omit',cache:'no-store'});
  let data:any={};try{data=await r.json()}catch{}
  if(r.status===401&&(data.code==='revoked'||data.code==='no-token'))await set({token:'',deviceId:'',device:null,autoEnabled:false});
+ // v1.7.1: only accounts assigned in Studio may use the extension. Remember the refusal so the popup can say so.
+ {const na=r.status===403&&data.code==='not_assigned',cur=(await get(['notAssigned'])).notAssigned===true;if(na!==cur&&(na||r.ok))await set({notAssigned:na})}
  if(!r.ok&&!(op==='tasks'&&data.code))throw Object.assign(Error(data.errorEn||data.error||('HTTP '+r.status)),{status:r.status,data,code:data.code});
  return data}
 async function lang(){const s=await get(['lang']);return s.lang||(String(navigator.language||'').toLowerCase().startsWith('vi')?'vi':'en')}

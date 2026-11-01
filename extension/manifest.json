@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "FamTray So sánh giá · Price Compare",
-  "short_name": "So sánh giá",
+  "name": "FamTray So Giá · Price Check",
+  "short_name": "So Giá",
   "version": "1.7.0",
   "description": "Ghi lại giá trên trang siêu thị bạn đang xem cho Bếp Gia Đình · Saves the shelf prices you view for your family kitchen.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyLYMfoK8WR087TAsKSLcFm40q/kw5nnZKq08bdUPFj5XVBK53kA7/7sZXALRw0tOR9AJ/Cx+gjeEiKImKBI+2OtlR/UhpDnMBY5vBBQAepeuV+nEIbdfwpyJiQigfHt+7gP3EtmpbGHZXQSUExoqUvOUjKAmA6/q2Qk9RGgTLYHLRV/iMfvogD2g6M79247Tl3HZZM3psxRrCpBlzKvUOjIMcmgmCjUpzAS5vRX9Wp9ZksfYFkFpsN1iuRGgRl0siAA2qSFMm7wdCr4sNnmogPXF2LZDFwxWYGsKk7zHg/nNzQZybzwzpqyYcxQFaIVY4WroDG59SCGFOIl58Df0hwIDAQAB",
@@ -28,7 +28,7 @@
       "run_at": "document_idle"
     }
   ],
-  "action": { "default_popup": "popup.html", "default_title": "FamTray So sánh giá · Price Compare", "default_icon": { "16": "icon.png", "32": "icon.png", "48": "icon.png", "128": "icon.png" } },
+  "action": { "default_popup": "popup.html", "default_title": "FamTray So Giá · Price Check", "default_icon": { "16": "icon.png", "32": "icon.png", "48": "icon.png", "128": "icon.png" } },
   "icons": { "16": "icon.png", "32": "icon.png", "48": "icon.png", "128": "icon.png" },
   "options_page": "options.html",
   "content_security_policy": { "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'" }
