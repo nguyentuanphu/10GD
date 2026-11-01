@@ -513,8 +513,8 @@ async function main() {
         await page.locator('.other-settings').waitFor();
         await page.keyboard.press('Escape');
       } else {
-        assert.equal(await page.locator('.sidebar .side-link').count(), 2, 'desktop sidebar: Reminders and Other settings');
-        assert.deepEqual(await page.$$eval('.sidebar .side-link', nodes => nodes.map(n => n.textContent!.trim())), ['Nhắc nhở', 'Cài đặt khác']);
+        assert.equal(await page.locator('.sidebar .side-link').count(), 3, 'desktop sidebar: Reminders, Other settings and (v1.7) How to use'); assert.equal(await page.locator('.sidebar .side-link.guide-side-link').count(), 1);
+        assert.deepEqual(await page.$$eval('.sidebar .side-link', nodes => nodes.map(n => n.textContent!.trim())), ['Nhắc nhở', 'Cài đặt khác', '🧭 Hướng dẫn sử dụng']);
         await page.locator('.sidebar .side-link[data-section=reminders]').click();
         await page.locator('.kitchen-hub #kitchen-reminders').waitFor();
         await page.keyboard.press('Escape');
