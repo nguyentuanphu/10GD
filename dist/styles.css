@@ -456,3 +456,24 @@ html[data-theme="dark"] .scout-steps li::before{color:#0d1511}
 /* The shared modal close button must be a 44px touch target (AGENTS.md rules 8 and 13). */
 .modal header [data-action="close-modal"]{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px}
 /* === v1.5 modal-close end === */
+/* === v1.5 bilingual-voice start === */
+/* Spoken-language toggle on the voice sheet, language suggestion and "heard" hints (AGENTS.md rules 8 and 13). */
+.voice-lang-row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:12px 0 4px}
+.voice-lang{display:inline-flex;align-items:stretch;border:2px solid var(--green);border-radius:14px;overflow:hidden;background:var(--white)}
+.voice-lang-icon{display:inline-flex;align-items:center;padding:0 10px;font-size:20px;border-right:1px solid var(--line)}
+.voice-lang-btn{min-height:48px;min-width:110px;padding:8px 16px;font-size:18px;font-weight:700;border:0;background:transparent;color:var(--text);cursor:pointer}
+.voice-lang-btn+.voice-lang-btn{border-left:1px solid var(--line)}
+.voice-lang-btn[aria-pressed="true"]{background:var(--green);color:#fff}
+.voice-lang-btn:focus-visible{outline:3px solid var(--green2);outline-offset:-3px}
+.voice-auto{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:15px;cursor:pointer}
+.voice-lang-note{margin:2px 0 8px}
+.voice-lang-hint{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid #c87649;background:#fff6ee;color:var(--text);font-size:16px}
+.voice-lang-hint[hidden]{display:none}
+.voice-lang-hint .btn{min-height:44px}
+.voice-heard{grid-column:2/-1;color:var(--muted);font-size:13px}
+.voice-when{font-size:16px;margin:6px 0}
+html[data-theme="dark"] .voice-lang{background:transparent}
+html[data-theme="dark"] .voice-lang-btn[aria-pressed="true"]{color:#0f1a15}
+html[data-theme="dark"] .voice-lang-hint{background:#2d241c;border-color:#e08e5d}
+@media(max-width:560px){.voice-lang-row{flex-direction:column;align-items:stretch}.voice-lang{display:flex}.voice-lang-btn{flex:1;min-width:0;padding:8px 10px}}
+/* === v1.5 bilingual-voice end === */
