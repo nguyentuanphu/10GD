@@ -1056,3 +1056,34 @@ html[data-theme="dark"] .rc-icon.rc-remove{color:#f2a08c}
 html[data-theme="dark"] .rc-ing-note{color:#f1d39a}
 @media (prefers-reduced-motion:reduce){.rc-sug-opt,.rc-file-btn,.meal-more-btn{transition:none}}
 /* === v1.7.1 recipe-community end === */
+/* === v1.7.1 voice-default start === */
+/* Background download of "More accurate": a small, non-blocking chip above the bottom navigation (phones) or in the corner. */
+.vl-auto-chip{position:fixed;z-index:70;right:16px;bottom:16px;width:min(380px,calc(100vw - 32px));box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:10px 6px 10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--white,#fff);color:var(--text);box-shadow:0 8px 28px #173b2426}
+.vl-auto-main{flex:1;min-width:0}
+.vl-auto-text{margin:0;font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.vl-auto-bytes{font-variant-numeric:tabular-nums;white-space:nowrap}
+.vl-auto-bar{height:6px;margin:6px 0 4px;border-radius:99px;background:var(--mint,#edf3e9);overflow:hidden}
+.vl-auto-bar>span{display:block;height:100%;width:0;border-radius:inherit;background:var(--green);transition:width .3s ease}
+.vl-auto-note{display:block;font-size:11.5px;line-height:1.35;color:var(--muted);overflow-wrap:anywhere}
+.vl-auto-note:empty{display:none}
+.vl-auto-chip .vl-auto-act{flex:none;min-height:44px;min-width:44px;white-space:nowrap}
+.vl-auto-hide{flex:none;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
+.vl-auto-hide:hover{background:var(--mint)}
+.vl-auto-hide:focus-visible,.vl-auto-chip .vl-auto-act:focus-visible,.vl-auto-opt input:focus-visible+span{outline:3px solid var(--green2);outline-offset:2px}
+.vl-auto-chip[data-state="paused"] .vl-auto-bar>span{background:var(--orange)}
+.vl-auto-chip[data-state="error"] .vl-auto-note{color:var(--warn-ink,#7a4a00)}
+@media(max-width:760px){.vl-auto-chip{left:12px;right:12px;width:auto;bottom:calc(84px + env(safe-area-inset-bottom))}}
+@media(prefers-reduced-motion:reduce){.vl-auto-bar>span{transition:none}}
+html[data-theme="dark"] .vl-auto-chip{background:var(--surface-2,#1f2d26);border-color:var(--border-strong,#34473d);box-shadow:0 8px 28px #0008}
+html[data-theme="dark"] .vl-auto-bar{background:var(--surface-3,#26372e)}
+/* Downloads row: the auto-download option, the update note and the automatic job state. */
+.vl-auto-opt{display:flex;gap:10px;align-items:flex-start;min-height:44px;margin:8px 0 2px;cursor:pointer}
+.vl-auto-opt input{flex:none;margin-top:3px}
+.vl-auto-opt span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.vl-auto-opt small{overflow-wrap:anywhere}
+.vl-update-note{display:block;overflow-wrap:anywhere}
+.vl-auto-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px;font-size:13px}
+.vl-auto-row[hidden]{display:none}
+.vl-auto-row .btn{min-height:44px}
+.vl-auto-row-text{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+/* === v1.7.1 voice-default end === */
