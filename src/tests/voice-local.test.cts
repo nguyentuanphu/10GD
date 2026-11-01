@@ -7,7 +7,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const webcrypto=require('node:crypto').webcrypto;
 let count=0;const tests:any[]=[];const t=(name:string,fn:any)=>tests.push([name,fn]);
 function fakeCaches(){const stores=new Map<string,Map<string,any>>();return{stores,async open(name:string){if(!stores.has(name))stores.set(name,new Map());const m=stores.get(name)!;return{async match(u:any){const r=m.get(String(u?.url||u));return r?r.clone():undefined},async put(u:any,res:any){m.set(String(u?.url||u),res)},async delete(u:any){return m.delete(String(u?.url||u))}}}}}
-function ctx(extra:any={}){const c=vm.createContext({console,Intl,Date,Math,URL,TextEncoder,Response,Blob,crypto:webcrypto,btoa,atob,setTimeout,clearTimeout,queueMicrotask,structuredClone,...extra});vm.runInContext(fs.readFileSync('dist/voice-local.js','utf8'),c);return c}
+function ctx(extra:any={}){const c=vm.createContext({console,Intl,Date,Math,URL,TextEncoder,Response,Blob,crypto:webcrypto,btoa,atob,setTimeout,clearTimeout,queueMicrotask,structuredClone,AbortController,DOMException,...extra});vm.runInContext(fs.readFileSync('dist/voice-local.js','utf8'),c);return c}
 const run=(c:any,src:string)=>vm.runInContext(src,c);
 const J=(c:any,src:string)=>JSON.parse(vm.runInContext('JSON.stringify('+src+')',c));
 
