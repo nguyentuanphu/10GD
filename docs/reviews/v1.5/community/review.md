@@ -1,202 +1,96 @@
-# Community Price Pilot / Giá cộng đồng: v1.5 review record
+# Community prices / Giá cộng đồng + rewards: v1.5 review record
 
-Status: the feature is implemented on the feature branch `agent-g/community`, on top of `19b7099` (Price Scout and Studio).
+Status: implemented on the feature branch `agent-i/community-rewards` (on top of `628300b`, `claude/bold-pascal-riryi0`), for the preview build.
 
-- **Not deploy-approved.** Responsive QA does not grant deployment approval (AGENTS.md rule 10).
-- **Off by default.** The pilot only runs after the owner turns on the Studio flag `communityPrices` (or sets `STUDIO_FLAG_COMMUNITY_PRICES=true`). It is limited to the Price Scout states that are also NSW or QLD.
+- **Not deploy-approved.** Responsive QA and green tests do not grant deployment approval (AGENTS.md rules 1–5, 10, 15–16). GitHub CI on the PR head commit is still required.
+- This record replaces the earlier pilot record. The owner (Henry) tested the preview and decided on 1 Nov 2026 the changes below.
 
-## What it does
+## Owner decisions implemented (1 Nov 2026)
 
-### When the flag is off
+| # | Decision | Implementation |
+|---|---|---|
+| 1 | **On by default** | `SETTINGS_DEFAULTS.flags.communityPrices=true`; `pilotConfig` treats anything except an explicit `false` as on. Studio can still turn it off (confirm dialog, audited `save_settings`); `STUDIO_FLAG_COMMUNITY_PRICES=false` still overrides. |
+| 2 | **Everyone can read** | `GET prices`, `GET leaderboard` and `GET products` need no account (device-only users included). No personal data; `Cache-Control: public, max-age=60, stale-while-revalidate=60`; a per-process ~60 s cache cleared on every write; per-IP-hash limit 240/hour (`rate/<hour>/read-<hash>`, pruned after 2 days). Contributing still needs an eligible account (unchanged gates). Device-only users see “Đăng nhập để chia sẻ giá và nhận điểm” with a sign-in link and no report/share controls. |
+| 3 | **Screenshots / bookmarks as facts** | Evidence `screenshot` (image SHA-256 + OCR price within $0.01, else 422 `ocr-mismatch`) and `bookmark` (page price within $0.01) are accepted. Only facts are sent: item, label, price, unit price, pack, retailer, branch or “online”, state, promo, validUntil, capturedAt, hash, OCR match. Never the image, raw OCR text, page URL (in the price facts), notes or names (browser-asserted). They are **“Giá online”**, grouped per retailer + state (`<retailer>:online:<STATE>`; a store branch is optional). Any cluster that contains a screenshot/bookmark always needs **≥2 independent families**; the single trusted-receipt shortcut never applies. Manual/pasted entries stay family-only. Confirm-sheet and terms copy updated. |
+| 4 | **Sharing UX** | First share still shows the consent sheet (box unticked). After consent `shareDefault` is stored per account and the “Chia sẻ với cộng đồng” box starts **ticked**; the user can untick per price or switch the default off (“Cách nhận điểm” → toggle, `POST share-default`). The share fieldset moved up beside the price fields with a “⭐ +10 điểm” pill; screenshots/bookmarks offer “🌐 Giá online” (default) or “🏬 Giá của một cửa hàng”. |
+| 5 | **Empty state** | “Chưa có giá nào…” is gone. (a) With community data: “👥 N giá cộng đồng ở NSW tuần này” (confirmed, ≤7 days) + “already used to compare your list”. (b) Otherwise: “🌟 Hãy là người đầu tiên chia sẻ giá ở NSW”, points incentive and a 3-step how-to. (c) If the community status is unknown/off: a short 3-step how-to. One-stop/split use confirmed community prices, so comparisons work for users with no own prices (unit + browser tested). |
+| 6 | **Rewards (points + badges + leaderboard, no money)** | See below. Reward **redemption is not built** (owner chose points + badges + leaderboard only). |
+| 7 | **Storage** | See “Storage and concurrency”. |
+| 8 | **Legal draft** | `docs/legal/community-prices-terms-draft.md` (still **DRAFT**) covers screenshots-as-facts, public read, points/badges (no monetary value, no purchase necessary, revocable), leaderboard nicknames, product links, and new privacy notes. The owner should decide whether to bump `TERMS_VERSION` so existing contributors re-consent (not done). |
+| + | **“Cần săn giá tuần này / Prices wanted this week”** | Items on the user's own shopping list without a confirmed Woolworths/Coles community price, ordered by how many families in the state need them. Signed-in families send their list item ids (`POST wanted`, once a day or when the list changes); the server keeps hashed family refs per state+week and returns **counts only**. Device-only users never write; they see their own list's gaps ordered by the public counts. Each row: missing retailers, “🔎 Woolworths/Coles” (retailer's public search URL, opened in the user's browser, no server fetch), “📷 Chụp giá” (opens the screenshot capture with the item preselected). 3 rows visible, the rest folded. Filling a gap that ≥3 families needed earns **+5** when confirmed (within the daily cap). |
+| + | **Product link memory (“Mở đúng sản phẩm”)** | When a shared “Lưu giá” capture has a retailer product URL, a separate fact is saved (`POST product`): item, retailer, cleaned product URL (retailer's own https page only, query/hash/tracking stripped; Amazon normalised to `/dp/<ASIN>`), product id from the URL path, name, pack. Confirmed after **2 distinct families** or Studio approval. The wanted list links straight to a confirmed product page (“🛒 Woolworths”, title “Mở đúng sản phẩm”); “⚑ Link hỏng/sản phẩm khác” marks it stale and the app falls back to search. `GET products[&retailer=&item=]` is public (no prices, images or family refs) for a future browser extension. Studio “Link sản phẩm” tab: approve / reject / edit link, reason required, audited. |
 
-Nothing changes for users. The new UI never renders, and the source-mix labels are hidden. Every community API operation except `status` returns 404 `{disabled:true}`. The optimizer output is identical (this is tested).
+## Rewards
 
-### Contributing
+Rules (defaults; editable in Studio → Cộng đồng giá → Điểm thưởng, audited `save_settings` with the values):
 
-Contributions come only from **shelf-tag photos** (new capture button "📸 Ảnh kệ giá ở cửa hàng") and **confirmed receipt lines** (the "👥 Chia sẻ" button on receipt-derived rows). Screenshots, website/app captures, bookmark captures and manual entries stay family-only, and the confirm sheet says so.
-
-- **Opt-in per observation.** The "Chia sẻ giá này với cộng đồng (ẩn danh)" checkbox is unchecked by default. It asks for the store branch as a suburb plus postcode.
-- **Consent.** On the first opt-in, a short bilingual consent sheet appears. The server stores the acceptance timestamp and the terms version.
-- **Facts only.** The client sends only extracted facts: item, label, price, unit price, pack, retailer, branch, state, promo, validUntil, capturedAt, image hash, and OCR price or receipt line reference. It never sends the recorder's name, notes or raw OCR text. This is asserted in the browser test.
-- **Held items.** If the server holds a shelf photo for moderation, the app asks before uploading the photo. The server accepts the upload only when its SHA-256 equals the evidence hash. The photo is deleted after moderation, or by the prune job after 14 days.
-
-### Community price card
-
-The "👥 Giá cộng đồng · Thử nghiệm" card shows, for each price:
-
-- a status chip: **✓ Đã xác nhận** or **⏳ Chờ xác nhận** ("chỉ tham khảo")
-- "N gia đình xác nhận · X ngày trước"
-- source icons (📸 shelf photo, 🧾 receipt)
-- the store branch
-- a promo end date
-- **⚑ Báo giá sai**, which opens a dialog with a reason and a note
-
-Prices are greyed after 14 days. The card always carries a "not a guaranteed shelf price" notice.
-
-Shop-posted prices appear as "🏪 Giá do tiệm đăng · <shop>" with "Tiệm tự đăng, chưa kiểm chứng". The card also offers "Chi nhánh tôi hay đi", which limits totals to chosen branches.
-
-### Optimizer
-
-`optimizeBasket` uses prices in this order: **own-family prices (and the licensed official feed) → CONFIRMED community prices → shop-posted prices**. Pending, held and greyed prices are never used in totals; they come back as `hints`.
-
-The one-stop and split totals carry a `sourceMix`, rendered as "🧮 12 giá của nhà mình · 5 giá cộng đồng đã xác nhận · 1 giá do tiệm đăng".
-
-### Shop channel
-
-A shop applies with a form (shop name, ABN as free text, suburb and postcode). The owner approves or rejects the application in Studio. Shop prices are separate from consensus, expire after 14 days (or at their `validUntil`), and can be reported.
-
-### Studio: "Cộng đồng giá / Community prices" (`#community`)
-
-- **Pilot switch.** Saving it is confirmed with a dialog and audited through `settings-save`.
-- **Stats.** Submissions, confirmed, pending, held, open reports, contributors, banned, and the trust distribution.
-- **Moderation queue.** Covers held, flagged, reported and shop-reported items. Each entry shows the evidence summary, the OCR match, the hash prefix, a "View photo (audited)" button, the contributor's trust and flags, and the reports. Actions: approve, reject, hide, restore, dismiss reports, ban (shadow-limit) and unban.
-- **Shops tab.** Applications (approve, reject, revoke) and the list of shop-posted prices.
-- **COI tab.** Conflict-of-interest signals.
-- **Rules tab.** A plain-language summary of the rules.
-
-Every view and action is written to the existing Studio audit log as `view_community`, `view_community_photo` or `community_<action>`, with the actor and reason. Reject, hide, ban and shop-hide require a reason.
-
-## Gates and rules (server, `src/netlify/lib/community-prices.mts`)
-
-| Rule | Implementation |
-|---|---|
-| Eligibility | The account must be ≥ 7 days old (`createdAt`). It must also have **either** a verified recovery email (`emailVerifiedAt` and `email`) **or** a current family whose `createdAt` is ≥ 7 days ago. The account must not be `disabled`, and the user must not be a viewer. Note: the account system does not currently set `emailVerifiedAt` (email verification is optional, and `verify-email` answers "not needed"), so **in practice the family-age rule applies**. The verified-email branch is wired for when verification exists. |
-| Rate limits | ≤ 30 contributions per account per day and ≤ 60 per salted IP hash per day. Reports are capped at ≤ 20 per account per day. The counters are `rate/<day>/…` keys, which are deleted after 2 days. |
-| Evidence | Evidence must be `shelf-photo` or `receipt`; anything else returns 422 `family-only`. For a shelf photo, the OCR price must be within $0.01 of the entered price, or the server returns 422 `ocr-mismatch`. For a receipt, the line must exist in the family's synced state with a matching total (AUD), dated within 7 days, or the server returns 422 `receipt-unconfirmed`. `capturedAt` must fall within the last 7 days (`too-old`) and must not be in the future (`future`, 5 min skew allowed). |
-| Duplicates | `dedupe/<sha256(imageHash or family+receipt+line)>` is written with `onlyIfNew`, so a second writer gets 409 `duplicate`. This is atomic under concurrency. |
-| Consensus | Group = (itemId, retailer, branch, promo window). Prices match on the same unit basis within ±2% or ±$0.05. **CONFIRMED** needs ≥ 2 distinct families whose captures fall within 7 days of each other, or 1 receipt from a contributor with trust ≥ 0.7 at submission. Only one vote per family counts. Anything else is **PENDING**. |
-| Outlier hold | A price outside 40%–250% of the 35-day median is held. The median is taken over confirmed community prices for the item and state plus the submitter family's own observations, on the same basis, and needs ≥ 3 values. **HELD** prices are not shown. |
-| Trust | Trust starts at 0.5. It rises by 0.05 when another family corroborates a submission and falls by 0.15 when ≥ 2 other families contradict it or a moderator rejects it. Each move applies at most once per contributor per price group, so repeating the same report earns nothing. Trust < 0.3 means submissions are accepted but never counted. |
-| Ban | A ban is a shadow-limit. The contributor gets normal responses, but all their submissions are excluded from display and counting. Unban restores them. |
-| COI signals | Signals are flagged and never auto-banned. **shared-ip:** ≥ 3 accounts behind one IP hash. **new-account-burst:** ≥ 3 accounts younger than 14 days reporting one branch within 24 h; the whole burst is flagged. **single-branch-low:** ≥ 5 submissions, ≥ 80% at one branch, and ≥ 80% of the compared ones below the median of competitors (other branches and retailers, same item). Flagged reports do not count toward confirmation until a moderator approves them. |
-| Expiry | Specials last until `validUntil`. Regular prices count for 14 days, are shown greyed until 21 days, then are hidden. Shop prices last 14 days. The client re-ages a cached copy while offline. |
-| Identity | The public API never returns usernames, family references, IP hashes or evidence references. This is asserted in the tests. Users see only "Cộng đồng". Studio (owner only) shows the username, which is needed to ban. |
+- **+10** when another *independent* family's matching report confirms your price (the first family in the cluster); **+5** extra for a special/half-price; **+5** for filling a ≥3-family “wanted” gap.
+- **+3** for corroborating a price another family reported first (only once it becomes confirmed).
+- **+10 (+5 special)** when a moderator approves your held item.
+- **−20** when a moderator rejects it or ≥2 other families contradict it.
+- **Daily cap 100** positive points per Sydney day (ledger stores requested vs granted). Penalties and Studio adjustments are not capped.
+- **No points**: from members of your own family, for pending/held/flagged/low-trust/banned reports, or for duplicate captures (refused with 409). One award per family per matching cluster.
+- **Levels**: Người đi chợ (0), Thợ săn giá (100), Chuyên gia giá (500), Đại sứ chợ Việt (1500). **Badges**: “Săn deal 1/2 giá” (3 confirmed half-price), “Chợ Việt” (3 confirmed Vietnamese-grocer prices), “Người đầu tiên ở <suburb>” (first confirmed in-store price in that suburb + postcode; online prices don't count).
+- **Trust is separate**: points never change trust and trust cannot be bought (tested).
+- **App**: “⭐ Điểm của bạn” card (total, level, progress bar to the next level, badges, “Cách nhận điểm” rules, share-default toggle) and a “🎉 +N điểm …” toast on the next refresh when the total went up (compared with the last total seen on this device).
+- **Leaderboard** per state, weekly (Monday, Sydney) and all-time: rank, points, level, badge count, and **“Ẩn danh #1234” by default** (number derived from a hash of the username). A nickname shows only after the user opts in; nicknames equal to/containing the username, the family name, an email or a URL are refused. Studio can clear a nickname (audited). Never usernames, emails or family names.
+- **Studio**: leaderboard by state/period (shows the account to the owner), contributors table (total, week/today, level, badges, trust shown separately), per-contributor **ledger drawer** (view audited `view_rewards_ledger`), **Adjust ±points** and **Revoke entry** (reason required; audited `community_points_adjust` / `community_points_revoke` with actor, reason, points; revoke appends a reversing entry), and the points settings form.
 
 ## Storage and concurrency (store `bep-community`, strong consistency)
 
-The store has a per-state, per-item shard `items/<STATE>/<itemId>` holding submissions, reports and hidden groups. Writes to a shard are conditional read-modify-writes (`onlyIfMatch`, or `onlyIfNew` for a new shard), retried 12 times with jitter. Other records are:
+- `points/<username>`: **append-only** ledger — entries are never edited; revokes and adjustments are new entries. Written with the same conditional read-modify-write as the item shards (`onlyIfMatch`/`onlyIfNew`, 12 jittered retries). The award *decision* is made inside the item-shard write (submissions are marked `awarded`), and the ledger entry id is `award:<submissionId>` / `penalty:<submissionId>`, so retries never double-award. Concurrent awards to many ledgers are tested.
+- Leaderboards are **recomputed** from the ledgers and cached per process for ~60 s (cleared on any write in that process). Fine for the pilot; a stored per-state aggregate is the next step at scale (each recompute lists every ledger).
+- `wanted/<STATE>/<weekStart>` (hashed family refs → counts), `firsts/<STATE>/<postcode>-<suburb>` (badge claim, `onlyIfNew`), `products/<retailer>/<itemId>` (link candidates, conditional RMW).
+- Ledgers grow without compaction (pilot scale). Account deletion does not yet delete `points/<username>` or `contributors/<username>` (TODO, noted in the legal draft).
 
-- `contributors/<username>`
-- `ip/<ipHash>`
-- `branches/<STATE>/<hash>`
-- `shops/applications/<username>`
-- `shop-prices/<username>`
+## API changes (`/.netlify/functions/community`)
 
-These use the existing etag-guarded `editRecord`. Evidence dedupe and the photo marker are `onlyIfNew` keys. Contention is per item and per branch, not global. A shard keeps about 40 days, plus held items.
-
-The public GET lists the state's shards and computes consensus on read. This suits the pilot because the catalog has 136 items per state. A cached summary would be the next step at scale.
-
-**Concurrency test.** Six families contribute in parallel to one shard, and all six submissions survive. If a shard write finally fails, the dedupe marker is removed so the user can retry.
-
-## API
-
-`/.netlify/functions/community`. It uses the same session cookie and household resolution as the grocery and family APIs, and same-origin is required for POST.
-
-- `GET status`: flag, states, eligibility, terms acceptance, shop status.
-- `GET prices&state=NSW[&branch=…]`
-- `POST accept-terms`
-- `POST contribute` with `{consent:true, observation, branch}`
-- `POST photo&id&state&item`: raw bytes, held items only.
-- `POST report`
-- `POST shop-apply`
-- `POST shop-price`
-
-**Signed-in only for the pilot.** Device-only users do not read community prices. Reading requires a session so that abuse controls, rate limits and reporting tie back to a family.
-
-Studio ops: `community`, `community-photo`, `community-action`, and `prune` and `recompute`, which now also prune community rate keys and expired photos.
+Public: `GET status`, `GET prices&state=` (now also `wanted.counts`), `GET leaderboard&state=`, `GET products[&retailer=&item=]`.
+Signed-in: `GET rewards`, `POST rewards-profile`, `POST share-default`, `POST wanted`, `POST product`, `POST product-report`, plus the existing `accept-terms`, `contribute`, `photo`, `report`, `shop-apply`, `shop-price`.
+Public shop ids are now an opaque hash (the shop account username is no longer exposed); reports use that id.
+Studio: `community` also returns `rewards` and `products`; new `community-ledger&account=`; `community-action` gains `points-adjust`, `points-revoke`, `nickname-clear`, `product-approve`, `product-reject`, `product-edit`.
 
 ## Tests
 
-### Backend: `tests/community-prices.test.mjs`
+- **New `tests/community-rewards.test.mjs`** (added to `npm test`, so `test:all`/CI run it): default-on flag; device-only status + public read with no personal data (usernames, family name/id, familyRef, ipHash, image hashes); per-IP read limit; share-default; screenshot/bookmark OCR mismatch, missing fingerprint, manual family-only; high-trust screenshot alone stays pending; online label/branch; own-family member never confirms or earns; +10/+3; duplicate bookmark refused; special +5 and first-in-suburb badge; wanted counts (one family counts once; device-only can't write) and the +5 gap bonus; daily cap with requested/granted and next-day reset; Studio rewards settings validation; moderator approve +10, reject −20, contradiction −20; levels; leaderboard anonymity, nickname refusal rules and opt-in, `me` row, per state; Studio adjust needs a reason, is audited, doesn't change trust; revoke appends and can't repeat; ledger view audited and owner-only; concurrent ledgers; product-link URL cleaning, 2-family confirmation, stale on report, Studio approve/edit/reject audited, rejected never re-confirms; Studio can still turn the feature off.
+- **Updated existing tests (intentional behaviour changes only):**
+  - `community-prices.test.mts`: “flag off” now sets `STUDIO_FLAG_COMMUNITY_PRICES=false` explicitly (the default is on) and a default-on assertion was added; “prices without session → 401” became “→ 200, public, cacheable” plus “contribute without session → 401”; the evidence list no longer expects screenshot/bookmark to be `family-only` (manual still is; a screenshot OCR mismatch case was added); “disabled account → 401 on prices” became “→ 200 public data” (its session is revoked, so it reads like a device-only user; it still cannot contribute); the shop report uses the new opaque public shop id and asserts the username isn't exposed.
+  - `price-scout.test.cts`: shareability now expects screenshot (fingerprint + matching OCR) and bookmark (matching page price) to be shareable, manual not; added a community-only comparison case and the `online` flag.
+  - `price-scout-browser.test.cts`: the device-only empty state assertion now expects the short 3-step state instead of “Chưa có giá”.
+  - `community-browser.test.cts`: rewritten for the new flows (below). Its touch-target check now also covers `a.btn` links and `.scout-check` rows; radio inputs are excluded like checkboxes (their ≥44 px label row is checked instead). The held-photo and leaderboard checks target the sheet body/footer rather than the whole modal, because the shared modal close “×” (in `app.ts`, not owned here) is under 44 px.
+- `npm run test:all` passes locally in the sandbox (supporting evidence only; CI on GitHub is the gate).
 
-This suite is in `npm test`. It uses real accounts, family, grocery and Studio handlers with in-memory stores. It covers:
+## Responsive QA (69 screenshots in this folder; outdated ones deleted)
 
-- the flag-off no-op
-- signed-in only access and the origin check
-- eligibility: young account, young family, and verified email allowed
-- terms and consent required
-- evidence: family-only types, OCR mismatch, too old, future, duplicate hash, out-of-state branch
-- one vote per family, and the 2-family confirm
-- trust: +0.05 on corroboration
-- outlier hold, then photo upload: hash mismatch rejected, only the owner may upload, 14-day expiry
-- receipts: confirmed line required, duplicate line rejected, trust ≥ 0.7 receipt confirms alone
-- a low-trust contributor not counted
-- contradiction lowers trust by 0.15
-- the three COI flags, with no auto-ban and flagged reports not counted
-- rate limits per account and per IP
-- viewer and disabled accounts
-- report → queue, and one report per family
-- Studio queue contents, the audited photo view, approve (photo deleted), reject (reason required, −0.15), hide and restore a group, approve flagged reports so the group confirms, ban (shadow) and unban
-- the audit log contains every action with actor and reason; non-admins get 403
-- the shop channel: apply → approve → post → separate from consensus → report → hide, and 14-day expiry
-- regular and special expiry
-- concurrency: 6 parallel writes
-- cross-family isolation, no identity leaks, and state separation
-
-### Optimizer: `tests/price-scout.test.cjs`
-
-New block covering:
-
-- own-family prices beat cheaper community prices
-- community prices fill gaps
-- shop prices are used last
-- pending and greyed prices are never used in totals and come back as hints
-- source-mix counts
-- the branch preference filter
-- shareability (shelf photo with OCR within $0.01, or receipt; never screenshot or bookmark)
-- the flag-off result is identical
-
-### Browser: `npm run test:community:browser`
-
-Mocked APIs. Writes 42 PNGs to this folder.
-
-## Responsive QA
-
-**Method.** Chromium 1243 headless (Playwright 1.64.1), `reducedMotion: reduce`, service workers blocked, mocked community, grocery, account and Studio APIs. All prices and accounts are synthetic QA fixtures. This is **browser viewport simulation, not physical-device testing.**
+Method: Chromium 1243 headless (Playwright 1.64.1), `reducedMotion: reduce`, service workers blocked, mocked community/grocery/account/Studio APIs, synthetic prices and accounts. **Browser viewport simulation, not physical-device testing.**
 
 | Screen | Mobile 375×812 | Tablet 820×1100 | Desktop 1280×800 |
 |---|---|---|---|
-| Community badges + report button (`community-badges-*`) | VI light, EN dark | VI light, EN dark | VI dark, EN light |
-| Totals with source-mix label (`totals-mix-*`) | VI light, EN dark | VI light, EN dark | VI dark, EN light |
-| Contribute opt-in in the confirm sheet (`contribute-optin-*`) | VI light, EN dark | VI light | EN light |
-| First-use consent (`consent-*`) | VI light, EN dark | VI light | EN light |
-| Held → ask before sending photo (`held-photo-ask-*`) | VI light, EN dark | — | — |
-| Report dialog (`report-dialog-*`) | VI light | EN dark | VI dark |
-| Studio overview + moderation queue (`studio-overview-*`, `studio-queue-*`) | VI light, EN dark | VI light, EN dark | EN light, VI dark |
-| Studio ban dialog / Shops tab | VI light (mobile) | VI light (tablet) | — |
-| Screenshot stays family-only; ineligible account; offline cached copy | VI light; EN light; EN light (mobile) | — | — |
+| Device-only, community prices exist (`empty-community-*`, `guest-compare-*`) | VI light, EN dark | VI light | EN light, VI dark |
+| First contributor (`empty-first-*`, incl. device-only `empty-first-guest-*`) | VI light, EN dark, guest VI dark | VI light | EN light |
+| Prices wanted this week (`wanted-*`) | VI light, EN dark, guest VI dark | VI light | EN light |
+| Capture sheet, share ticked by default (`capture-share-default-*`) | VI light, EN dark | VI light | EN light |
+| First-time consent (`consent-*`), held photo ask | VI light | EN dark | EN light |
+| Points widget + toast (`points-toast-*`), community card (`community-badges-*`) | VI light, EN dark | VI light, EN dark | VI dark, EN light |
+| Leaderboard (`leaderboard-*`, nickname opt-in, all-time) | VI light | VI light, EN dark | VI dark, EN light |
+| Report dialog | VI light | EN dark | VI dark |
+| Studio overview/queue | VI light, EN dark | VI light | EN light, VI dark |
+| Studio rewards, ledger, adjust dialog | VI light, EN dark | VI light, EN dark | EN light, VI dark |
+| Studio product links | EN dark | — | VI dark |
+| Manual stays family-only, ineligible, offline | VI light, EN light, EN light (mobile) | — | — |
 
-**Checked automatically in each scenario:**
-
-- No horizontal overflow (`scrollWidth ≤ innerWidth`) in the app and in Studio.
-- Touch targets are ≥ 44 px in the Price Scout panel, the community card, the opt-in form, the consent and held dialogs, and the report form. In Studio this is checked at mobile and tablet sizes; on desktop, Studio keeps its own compact buttons.
-- No page errors, and no vendor names in visible text.
-- The opt-in checkbox starts unchecked.
-- The terms are accepted before the first contribution.
-- The photo is uploaded only after "Send photo".
-- The flag-off state shows no community UI.
-- The offline state shows "Offline" and keeps the cached community prices.
-
-Animations: the new UI adds none, and the existing reduced-motion rules still apply. Header and navigation are unchanged, so there is no 320 px check.
-
-**Fix made during QA:** `.scout-form .scout-grid{display:grid}` was overriding the `hidden` attribute on the branch fields. A scoped `[hidden]{display:none!important}` rule fixes it.
+Checked automatically in each scenario: no horizontal overflow; ≥44 px targets for buttons, links, selects, inputs, summaries and checkbox/radio rows in the panel, sheets and Studio (Studio on mobile/tablet); no page errors; no vendor names; facts-only payloads; device-only makes only GET requests; flag-off shows nothing; offline keeps the cached copy. Animations: none added; the progress bar has no transition under reduced motion. Header/navigation unchanged, so no 320 px check.
 
 ## Limits and open items
 
-- **Not tested on physical iPhone or Android hardware.**
-  - Real shelf-photo OCR accuracy has not been measured, and OCR still needs a connection the first time.
-  - The camera `capture="environment"` behaviour was not verified on devices.
-- **Photo size.** The photo hash must match the original file, so the app cannot downscale before upload. Photos over 5.5 MB are not sent (the user is told). The function body limit on the hosting platform is about 6 MB.
-- **Email verification.** It does not exist in the account system today, so eligibility relies on family age (≥ 7 days).
-- **No contributor data deletion.** There is no bulk "delete my contributions" tool, and account deletion does not yet remove `contributors/<username>`. Both are noted in the legal draft. Moderators can hide, reject or ban instead.
-- **Scale.** Consensus is computed on read, scanning all of a state's shards. This is fine for the pilot (≤ 136 items per state). Add a cached summary before a wider rollout.
-- **Branches.** Branch identity is user-chosen (retailer + postcode + suburb slug). Two spellings of one suburb create two branches.
-- **Shop ABN.** It is free text and not verified automatically.
-- **Legal.** `docs/legal/community-prices-terms-draft.md` is a **DRAFT** that needs owner and legal review. Privacy policy and APP 5 collection notice updates are still required before any public use.
+- Not tested on physical iPhone/Android hardware; real screenshot OCR accuracy not measured.
+- The rewards toast compares with the last total seen **on this device** (a new device shows no toast for earlier points).
+- Leaderboard/public read caches are per process (~60 s); totals across instances can lag by about a minute.
+- Product ids come from the URL path only; JSON-LD SKU is not captured by the bookmarklet yet. Retailer URL patterns may change (unmatched URLs are simply not saved).
+- “Prices wanted” covers Woolworths/Coles only; ALDI/Chợ Việt gaps are not listed.
+- No reward redemption (by owner decision). No contributor/ledger deletion on account deletion yet. No bulk “remove my contributions” tool.
+- `TERMS_VERSION` not bumped (owner decision needed). Legal draft still needs owner and legal review; privacy policy and APP 5 notice still required before public launch.
 
 ## Files outside the stated ownership
 
-- `src/netlify/lib/studio.mts`: added the `communityPrices:false` default flag and the `STUDIO_FLAG_COMMUNITY_PRICES` environment mapping (two small edits).
-- `src/netlify/functions/studio.mts`: added the import, the three community ops, and pruning in `prune`/`recompute`.
-
-These are the Studio files listed in the ownership.
+None beyond the listed files. `src/netlify/lib/studio.mts` changes are limited to the flag default, the `rewards` settings default and its validation.

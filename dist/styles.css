@@ -350,3 +350,58 @@ body.flag-off-priceScout .price-scout,body.flag-off-priceScout .scout-tray{displ
 body.flag-off-voice [data-personal="voice"]{display:none!important}
 body.flag-off-urgentMessages .family-urgent,body.flag-off-urgentMessages [data-house="urgent-new"]{display:none!important}
 /* === v1.5 platform-banner end === */
+/* === v1.5 community-rewards start === */
+.scout-points{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:var(--mint);font-size:13px;min-width:0}
+.scout-points-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.scout-points-head p,.scout-points.guest p{margin:0;flex:1 1 160px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.scout-points-head small,.scout-points.guest small{color:var(--muted)}
+.scout-points-icon{font-size:22px;line-height:1}
+.scout-points-total{font-size:17px;color:var(--green)}
+.scout-points.guest{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.scout-points .btn,.scout-points summary,.scout-empty .btn,.scout-want .btn,.scout-board .btn{min-height:44px}
+.scout-points summary{display:flex;align-items:center;cursor:pointer}
+.scout-progress{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:8px 0 4px}
+.scout-progress span{display:block;height:100%;background:var(--green2);border-radius:inherit}
+.scout-badges{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
+.scout-badge{white-space:normal}
+.plain-list{margin:4px 0 8px;padding-left:18px}
+.plain-list li{margin:2px 0}
+.scout-empty-community{border-style:solid;border-color:var(--green2);background:var(--mint)}
+.scout-empty-first{border-color:var(--orange)}
+.scout-empty p{margin:4px 0}
+.scout-incentive{font-weight:600;color:var(--text)}
+.scout-steps{list-style:none;margin:8px 0;padding:0;display:grid;gap:6px;counter-reset:step}
+.scout-steps li{display:flex;gap:8px;align-items:flex-start;counter-increment:step}
+.scout-steps li::before{content:counter(step);flex:0 0 22px;height:22px;border-radius:50%;background:var(--green);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
+html[data-theme="dark"] .scout-steps li::before{color:#0d1511}
+.scout-steps span{flex:0 0 auto}
+.scout-login{margin-top:6px;max-width:100%;white-space:normal;text-align:center}
+.scout-wanted .scout-want-list{list-style:none;margin:6px 0 0;padding:0}
+.scout-want{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:8px 0;border-top:1px solid var(--line)}
+.scout-want-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.scout-want-main small{color:var(--muted)}
+.scout-want-count{color:var(--orange);font-weight:600}
+.scout-want-actions{display:flex;flex-wrap:nowrap;gap:6px;min-width:0}
+.scout-want-actions .btn{flex:1 1 0;min-width:0;padding:4px 6px;font-size:13px;white-space:normal;line-height:1.15;text-align:center}
+@media (min-width:700px){.scout-want{grid-template-columns:minmax(0,1fr) auto;align-items:center}.scout-want-actions .btn{flex:0 0 auto}}
+.scout-want-more summary{min-height:44px;display:flex;align-items:center;cursor:pointer}
+.scout-online{color:var(--green2);font-weight:600}
+.scout-community-share{border-width:2px;border-color:var(--green2);background:var(--mint)}
+.scout-community-share.on{border-color:var(--green)}
+.scout-community-share legend{font-weight:700;padding:0 4px}
+.scout-points-pill{font-weight:600}
+.scout-where{display:grid;gap:0}
+.scout-where[hidden],.scout-community-share [hidden]{display:none!important}
+.scout-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.scout-board-list{list-style:none;margin:0;padding:0}
+.scout-board-list li{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 4px;border-top:1px solid var(--line)}
+.scout-board-list li.me{background:var(--mint);border-radius:8px}
+.scout-board-name{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+.scout-board-name small{color:var(--muted)}
+.scout-rank{font-weight:700;text-align:center}
+@media (prefers-reduced-motion:reduce){.scout-progress span{transition:none}}
+.scout-form details>summary{min-height:44px;display:flex;align-items:center;cursor:pointer}
+.modal:has(.scout-board) .modal-footer .btn,.modal:has(.scout-form) .modal-footer .btn{min-height:44px}
+.scout-exact{color:var(--green2);display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.scout-link-report{font-size:12px;padding:0 8px}
+/* === v1.5 community-rewards end === */

@@ -17,7 +17,7 @@ import {memoryStores} from './helpers/accounts.mjs';
 const DAY=86400000,origin='https://test.example',password='synthetic-community-passphrase-42';
 const getStoreFn=memoryStores(),accounts=createAccountsHandler({getStoreFn}),family=createFamilyHandler({getStoreFn});
 let clock=Date.now();const nowFn=()=>clock;
-const envOn:any={STUDIO_ADMINS:'henrynguyen',STUDIO_FLAG_COMMUNITY_PRICES:'true'},envOff:any={STUDIO_ADMINS:'henrynguyen'};
+const envOn:any={STUDIO_ADMINS:'henrynguyen',STUDIO_FLAG_COMMUNITY_PRICES:'true'},envOff:any={STUDIO_ADMINS:'henrynguyen',STUDIO_FLAG_COMMUNITY_PRICES:'false'};
 const community=createCommunityHandler({getStoreFn,env:envOn,nowFn}),communityOff=createCommunityHandler({getStoreFn,env:envOff,nowFn});
 const studio=createStudioHandler({getStoreFn,env:envOn,nowFn,mailer:{configured:()=>false,async send(){}},limits:{all:10000,mutate:10000}});
 const grocery=createGroceryHandler({getStoreFn,now:()=>new Date(clock)});
@@ -52,12 +52,16 @@ const a=await household('annguyen');
 assert.deepEqual(await (await communityOff(req('community','status',{cookie:a.cookie}))).json(),{enabled:false});
 for(const op of ['prices&state=NSW','contribute','report','shop-apply','accept-terms']){const r=await communityOff(req('community',op,{cookie:a.cookie,...(op.startsWith('prices')?{}:{method:'POST',body:{}})}));assert.equal(r.status,404,'flag off '+op);assert.equal((await r.json()).disabled,true)}
 assert.equal((await grocery(req('grocery','prices&state=NSW',{cookie:a.cookie}))).status,200,'Price Scout unaffected');
-// stored Studio setting also works (default is OFF)
+// Owner decision 1 Nov 2026: the flag now defaults to ON (no env, no stored setting).
+resetSettingsCache();
+{const def=createCommunityHandler({getStoreFn,env:{STUDIO_ADMINS:'henrynguyen'},nowFn});const st=await (await def(req('community','status',{cookie:a.cookie}))).json();assert.equal(st.enabled,true,'communityPrices defaults to on');assert.equal((await def(req('community','prices&state=NSW'))).status,200)}
 resetSettingsCache();
 
 // ---- status & sign-in
 let r=await C('status');let s=await r.json();assert.equal(s.enabled,true);assert.equal(s.signedIn,false);assert.deepEqual(s.states,['NSW','QLD']);
-assert.equal((await C('prices&state=NSW')).status,401,'signed-in only for the pilot');
+// Changed by the owner (1 Nov 2026): everyone, including device-only users, can read.
+{const pub=await C('prices&state=NSW');assert.equal(pub.status,200,'public read without an account');assert.match(pub.headers.get('cache-control')||'',/public, max-age=60/)}
+assert.equal((await C('contribute',{method:'POST',body:{consent:true}})).status,401,'contributing still needs an account');
 assert.equal((await C('prices&state=VIC',{cookie:a.cookie})).status,400);
 assert.equal((await C('contribute',{method:'POST',cookie:a.cookie,body:{consent:true},from:'https://evil.example'})).status,403,'origin check');
 
@@ -75,7 +79,8 @@ await terms(a);assert.ok((await cstore.get('contributors/annguyen',{type:'json'}
 assert.equal((await C('contribute',{method:'POST',cookie:a.cookie,body:{consent:false,observation:obs(),branch}})).status,400,'opt-in per observation');
 
 // ---- evidence checks
-for(const [o,code] of [[obs({evidence:{type:'screenshot'}}),'family-only'],[obs({evidence:{type:'bookmark'}}),'family-only'],[obs({evidence:{type:'manual'}}),'family-only'],[obs({price:14,evidence:{ocrPrice:15}}),'ocr-mismatch'],[obs({capturedAt:new Date(clock-8*DAY).toISOString()}),'too-old'],[obs({capturedAt:new Date(clock+DAY).toISOString()}),'future']] as const){r=await share(a,o);assert.equal(r.status,422,code);assert.equal((await r.json()).code,code)}
+// Screenshot/bookmark prices are now shareable as facts (see community-rewards.test); manual entry stays family-only.
+for(const [o,code] of [[obs({evidence:{type:'manual'}}),'family-only'],[obs({price:14,evidence:{type:'screenshot',ocrPrice:15}}),'ocr-mismatch'],[obs({price:14,evidence:{ocrPrice:15}}),'ocr-mismatch'],[obs({capturedAt:new Date(clock-8*DAY).toISOString()}),'too-old'],[obs({capturedAt:new Date(clock+DAY).toISOString()}),'future']] as const){r=await share(a,o);assert.equal(r.status,422,code);assert.equal((await r.json()).code,code)}
 assert.equal((await share(a,obs({price:14,evidence:{ocrPrice:14.01}}),{suburb:'Cabramatta',postcode:'2166'})).status,201,'OCR within $0.01 accepted');
 const dupPhoto=obs();await share(a,dupPhoto);r=await share(a,{...dupPhoto});assert.equal(r.status,409);assert.equal((await r.json()).code,'duplicate','duplicate image hash rejected');
 assert.equal((await share(a,obs(),{suburb:'Melbourne',postcode:'3000'})).status,400,'branch must be in a pilot state');
@@ -167,7 +172,8 @@ assert.equal((await C('prices&state=NSW',{cookie:viewerCookie})).status,200,'vie
 {const u=await accountsStore.get('users/emlow',{type:'json'});u.disabled=true;await accountsStore.setJSON('users/emlow',u)}
 // Studio's disabled-account hook revokes the session itself, so the request is rejected as signed-out (401).
 {const status=(await share(e,obs())).status;assert.ok(status===401||status===403,'disabled account cannot contribute: '+status)}
-assert.equal((await C('prices&state=NSW',{cookie:e.cookie})).status,401,'disabled account session no longer reads community prices');
+// Public read (owner decision): a signed-out/disabled session reads like any device-only user.
+assert.equal((await C('prices&state=NSW',{cookie:e.cookie})).status,200,'disabled account reads only the public data');
 
 // ---- reports → moderation queue
 const gid=(await prices(b)).items.find((x:any)=>x.itemId==='gao-jasmine'&&x.retailer==='coles').groupId;
@@ -221,7 +227,8 @@ assert.equal((await S('community-action',{method:'POST',body:{action:'shop-appro
 assert.equal((await C('shop-price',{method:'POST',cookie:shop.cookie,body:{price:{itemId:'rau-muong',label:'Rau muống bó',price:2.5,unitPrice:null}}})).status,201);
 p=await prices(b);assert.equal(p.shopPrices.length,1);assert.equal(p.shopPrices[0].channel,'shop');assert.equal(p.shopPrices[0].shop.name,'Chợ Việt Synthetic');
 assert.ok(!p.items.some((x:any)=>x.itemId==='rau-muong'&&x.retailer==='viet-grocer'),'shop prices never enter community consensus');
-r=await C('report',{method:'POST',cookie:b.cookie,body:{shop:'chovietshop',priceId:p.shopPrices[0].id,reason:'expired'}});assert.equal(r.status,201);
+assert.ok(!JSON.stringify(p.shopPrices).includes('chovietshop'),'public shop id is opaque, not the shop account');assert.match(p.shopPrices[0].shop.id,/^[a-f0-9]{16}$/);
+r=await C('report',{method:'POST',cookie:b.cookie,body:{shop:p.shopPrices[0].shop.id,priceId:p.shopPrices[0].id,reason:'expired'}});assert.equal(r.status,201);
 mod=await (await S('community')).json();const sr=mod.queue.find((x:any)=>x.kind==='shop-reported');assert.ok(sr);
 assert.equal((await S('community-action',{method:'POST',body:{action:'shop-hide',shop:'chovietshop',priceId:sr.priceId,reason:'Price expired'}})).status,200);
 assert.equal((await prices(b)).shopPrices.length,0);
