@@ -1,10 +1,10 @@
-# FamTray Scout: store listing pack (Chrome Web Store / Edge Add-ons)
+# FamTray Price Check (FamTray So Giá): store listing pack (Chrome Web Store / Edge Add-ons)
 
 Copy the text below into the store forms. Everything here matches what the extension does in v1.7.0 (`extension/`). Please check it again if the extension changes.
 
 ## Name and summary
 
-- **Name:** FamTray Scout
+- **Name:** FamTray So Giá · Price Check (EN listing: FamTray Price Check; VI listing: FamTray So Giá)
 - **Short description / summary (max 132 characters)**
   - EN: `Saves the shelf prices you view on Woolworths, Coles, ALDI, Chemist Warehouse and Amazon AU for your family kitchen app.` (117)
   - VI: `Ghi lại giá kệ bạn xem trên Woolworths, Coles, ALDI, Chemist Warehouse và Amazon AU cho ứng dụng bếp gia đình.` (112)
@@ -15,9 +15,9 @@ Copy the text below into the store forms. Everything here matches what the exten
 
 ### English
 
-FamTray Scout is the price helper for the FamTray / Bếp Gia Đình family kitchen app.
+FamTray Price Check is the price helper for the FamTray / Bếp Gia Đình family kitchen app.
 
-When you open a product or specials page on a supported Australian supermarket site, Scout reads the shelf facts on that page: product name, price, unit price, was-price, promotion, pack size, product id and the store name. It then saves them to your family's kitchen app, where they help compare prices for your shopping list and are shared with Community prices.
+When you open a product or specials page on a supported Australian supermarket site, Price Compare reads the shelf facts on that page: product name, price, unit price, was-price, promotion, pack size, product id and the store name. It then saves them to your family's kitchen app, where they help compare prices for your shopping list and are shared with Community prices.
 
 - Works only on woolworths.com.au, coles.com.au, aldi.com.au, chemistwarehouse.com.au and amazon.com.au.
 - Records price facts only. It never takes images, descriptions, reviews, cookies, account details or anything you type.
@@ -27,21 +27,21 @@ When you open a product or specials page on a supported Australian supermarket s
 
 ### Tiếng Việt
 
-FamTray Scout là trợ lý ghi giá cho ứng dụng bếp gia đình FamTray / Bếp Gia Đình.
+FamTray So Giá là trợ lý ghi giá cho ứng dụng bếp gia đình FamTray / Bếp Gia Đình.
 
-Khi bạn mở trang sản phẩm hoặc trang khuyến mãi trên các siêu thị Úc được hỗ trợ, Scout đọc thông tin giá trên trang đó: tên sản phẩm, giá, giá theo đơn vị, giá cũ, khuyến mãi, quy cách, mã sản phẩm và tên cửa hàng. Sau đó Scout lưu chúng vào ứng dụng bếp của gia đình. Ở đó, giá giúp so giá cho danh sách đi chợ và được chia sẻ với Giá cộng đồng.
+Khi bạn mở trang sản phẩm hoặc trang khuyến mãi trên các siêu thị Úc được hỗ trợ, tiện ích đọc thông tin giá trên trang đó: tên sản phẩm, giá, giá theo đơn vị, giá cũ, khuyến mãi, quy cách, mã sản phẩm và tên cửa hàng. Sau đó tiện ích lưu chúng vào ứng dụng bếp của gia đình. Ở đó, giá giúp so giá cho danh sách đi chợ và được chia sẻ với Giá cộng đồng.
 
 - Chỉ chạy trên woolworths.com.au, coles.com.au, aldi.com.au, chemistwarehouse.com.au và amazon.com.au.
 - Chỉ ghi thông tin giá. Không bao giờ lấy hình ảnh, mô tả, đánh giá, cookie, thông tin tài khoản hay nội dung bạn gõ.
 - Ghép một chạm từ ứng dụng gia đình (Bếp của tôi → Kết nối gia đình → Ghép ngay). Không cần nhập tài khoản vào tiện ích.
-- Chế độ chạy theo lịch là tùy chọn và mặc định tắt. Chủ gia đình và bạn đều phải bật. Khi chạy, Scout mở từng trang một trong cửa sổ riêng theo nhịp đã đặt, tôn trọng robots.txt của từng trang, và chỉ chạy trong khung giờ của bạn, trừ khi chủ nhà bấm "Chạy ngay" cho một lần chạy. Nếu trang hiện màn hình xác minh hoặc chặn truy cập, Scout dừng ngay và tạm dừng 24 giờ. Scout không bao giờ giải hay vượt qua các bước xác minh đó.
+- Chế độ chạy theo lịch là tùy chọn và mặc định tắt. Chủ gia đình và bạn đều phải bật. Khi chạy, tiện ích mở từng trang một trong cửa sổ riêng theo nhịp đã đặt, tôn trọng robots.txt của từng trang, và chỉ chạy trong khung giờ của bạn, trừ khi chủ nhà bấm "Chạy ngay" cho một lần chạy. Nếu trang hiện màn hình xác minh hoặc chặn truy cập, tiện ích dừng ngay và tạm dừng 24 giờ. Tiện ích không bao giờ giải hay vượt qua các bước xác minh đó.
 - Nút Tạm dừng lớn luôn có trong cửa sổ nhỏ của tiện ích.
 
 ## Single purpose statement
 
-EN: FamTray Scout has one purpose: to record the shelf prices of products on five Australian supermarket and pharmacy websites and save them to the user's own family kitchen app for price comparison.
+EN: FamTray Price Check has one purpose: to record the shelf prices of products on five Australian supermarket and pharmacy websites and save them to the user's own family kitchen app for price comparison.
 
-VI: FamTray Scout chỉ có một mục đích: ghi lại giá trên kệ của sản phẩm trên năm trang siêu thị và nhà thuốc ở Úc, rồi lưu vào ứng dụng bếp gia đình của chính người dùng để so giá.
+VI: FamTray So Giá chỉ có một mục đích: ghi lại giá trên kệ của sản phẩm trên năm trang siêu thị và nhà thuốc ở Úc, rồi lưu vào ứng dụng bếp gia đình của chính người dùng để so giá.
 
 ## Permission justifications
 

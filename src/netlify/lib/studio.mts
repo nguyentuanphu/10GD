@@ -5,6 +5,7 @@
 import {randomBytes,randomUUID,createHash,scrypt,timingSafeEqual} from 'node:crypto';
 import {promisify} from 'node:util';
 import {accountStore,editRecord} from './accounts.mjs';
+import {alertRow} from './urgent-report.mjs';
 const derive=promisify(scrypt);
 export const sha256=(x:string)=>createHash('sha256').update(x).digest('hex');
 const REGION={consistency:'strong',region:'ap-southeast-2'} as const;
@@ -78,13 +79,13 @@ export async function pruneLogs(getStoreFn:any,now=Date.now(),budget=2000){const
  for await(const k of listKeys(store,'trash/')){const r=await readJSON(store,k);if(r?.purgeAfter&&Date.parse(r.purgeAfter)<now){await store.delete(k);removed++}}return removed}
 
 // ---------- platform settings ----------
-export const SETTINGS_DEFAULTS={signups:'open',maxFamiliesPerAccount:5,maxMembersPerFamily:20,maxDevicesPerFamily:50,maintenanceMessage:'',flags:{priceScout:true,voice:true,urgentMessages:true,supportRole:false,communityPrices:true,autoScout:false,usageAnalytics:true},priceScoutStates:['NSW','QLD'],rewards:{confirmed:10,specialBonus:5,corroborate:3,gapBonus:5,gapFamilies:3,penalty:20,dailyCap:100,levels:[100,500,1500]} as any,minAppEdition:'',updateNotice:true,minBuild:'',banner:null as any,links:{privacy:'',terms:'',supportEmail:''},checklist:{} as Record<string,boolean>};
+export const SETTINGS_DEFAULTS={signups:'open',maxFamiliesPerAccount:5,maxMembersPerFamily:20,maxDevicesPerFamily:50,maintenanceMessage:'',flags:{priceScout:true,voice:true,urgentMessages:true,supportRole:false,communityPrices:true,autoScout:false,usageAnalytics:true,communityRecipes:true},priceScoutStates:['NSW','QLD'],rewards:{confirmed:10,specialBonus:5,corroborate:3,gapBonus:5,gapFamilies:3,penalty:20,dailyCap:100,levels:[100,500,1500]} as any,minAppEdition:'',updateNotice:true,minBuild:'',banner:null as any,links:{privacy:'',terms:'',supportEmail:''},checklist:{} as Record<string,boolean>};
 const bool=(v:any)=>v===undefined||v===''?undefined:/^(1|true|yes|on)$/i.test(String(v));
 const int=(v:any,min:number,max:number)=>{const n=Number(v);return v===undefined||v===''||!Number.isInteger(n)?undefined:Math.min(max,Math.max(min,n))};
 export function envSettings(env:any=process.env){const o:any={},flags:any={};const s=String(env.STUDIO_SIGNUPS||'').toLowerCase();if(['open','closed','invite-only'].includes(s))o.signups=s;else if(env.ALLOW_ACCOUNT_SIGNUP==='false')o.signups='closed';
  const m:[string,string,number,number][]=[['maxFamiliesPerAccount','STUDIO_MAX_FAMILIES_PER_ACCOUNT',1,100],['maxMembersPerFamily','STUDIO_MAX_MEMBERS_PER_FAMILY',1,100],['maxDevicesPerFamily','STUDIO_MAX_DEVICES_PER_FAMILY',1,500]];for(const [k,e,a,b] of m){const v=int(env[e],a,b);if(v!==undefined)o[k]=v}
  if(env.STUDIO_MAINTENANCE_MESSAGE)o.maintenanceMessage=String(env.STUDIO_MAINTENANCE_MESSAGE).slice(0,300);if(env.STUDIO_MIN_APP_EDITION)o.minAppEdition=String(env.STUDIO_MIN_APP_EDITION).slice(0,60);if(env.STUDIO_PRICE_SCOUT_STATES)o.priceScoutStates=names(env.STUDIO_PRICE_SCOUT_STATES).map(x=>x.toUpperCase());
- for(const [k,e] of [['priceScout','STUDIO_FLAG_PRICE_SCOUT'],['voice','STUDIO_FLAG_VOICE'],['urgentMessages','STUDIO_FLAG_URGENT_MESSAGES'],['supportRole','STUDIO_FLAG_SUPPORT_ROLE'],['communityPrices','STUDIO_FLAG_COMMUNITY_PRICES'],['usageAnalytics','STUDIO_FLAG_USAGE_ANALYTICS']]){const v=bool(env[e]);if(v!==undefined)flags[k]=v}if(Object.keys(flags).length)o.flags=flags;return o}
+ for(const [k,e] of [['priceScout','STUDIO_FLAG_PRICE_SCOUT'],['voice','STUDIO_FLAG_VOICE'],['urgentMessages','STUDIO_FLAG_URGENT_MESSAGES'],['supportRole','STUDIO_FLAG_SUPPORT_ROLE'],['communityPrices','STUDIO_FLAG_COMMUNITY_PRICES'],['usageAnalytics','STUDIO_FLAG_USAGE_ANALYTICS'],['communityRecipes','STUDIO_FLAG_COMMUNITY_RECIPES']]){const v=bool(env[e]);if(v!==undefined)flags[k]=v}if(Object.keys(flags).length)o.flags=flags;return o}
 let settingsCache:{at:number,value:any}|null=null;
 export async function platformSettings(getStoreFn:any,{env=process.env,fresh=false,now=Date.now()}:any={}){
  let stored:any={};if(!fresh&&settingsCache&&now-settingsCache.at<60000)stored=settingsCache.value;else{try{stored=await studioStore(getStoreFn).get('settings/platform',{type:'json'})||{}}catch{stored={}}settingsCache={at:now,value:stored}}
@@ -189,7 +190,7 @@ export async function scanFamily(getStoreFn:any,family:any,{withState=true,photo
  const [sizes,devices,alerts]=await Promise.all([mapLimit(photoKeys.slice(0,photoSample),limit,k=>readSize(root,k,'arrayBuffer')),mapLimit(deviceKeys,limit,k=>readJSON(root,k)),mapLimit(alertKeys.slice(0,300),limit,k=>readJSON(root,k))]);
  out.photos=photoKeys.length;for(const s of sizes){out.photoBytes+=s.bytes;out.photoSampled++}if(out.photoSampled&&out.photos>out.photoSampled)out.photoBytes=Math.round(out.photoBytes/out.photoSampled*out.photos);
  for(const d of devices)if(d)out.devices.push({deviceId:String(d.deviceId||'').slice(-6),platform:platformFromEndpoint(d.subscription?.endpoint),endpoint:maskEndpoint(d.subscription?.endpoint),account:d.accountUsername||null,linked:!!d.accountUsername&&family.members?.[d.accountUsername]?.memberId===d.memberId,language:d.language||'vi',role:d.role||'both',typesOn:Object.values(d.types||{}).filter(Boolean).length,urgentBypass:d.urgentBypass===true,quiet:(d.quietStart||'21:00')+'–'+(d.quietEnd||'07:00')});
- for(const a of alerts)if(a)out.alerts.push({day:String(a.createdAt||'').slice(0,10),pushStatus:a.pushStatus||'unknown',accepted:a.pushAccepted||0,targets:(a.targets||[]).length});
+ for(const a of alerts)if(a)out.alerts.push(alertRow(a));
  const row:any=await state;if(row?.data){try{const st=row.data;out.revision=row.etag?String(row.etag).slice(-8):null;out.stateBytes=Buffer.byteLength(JSON.stringify(st));out.members=(st.members||[]).length;const recipes=Array.isArray(st.recipes)?st.recipes:[];out.recipes={total:recipes.length,family:recipes.filter((r:any)=>r?.custom===true).length,catalog:recipes.filter((r:any)=>r?.custom!==true).length};out.counts={weeks:Object.keys(st.weeks||{}).length,pantry:(st.pantry||[]).length,receipts:(st.receipts||[]).length,errands:(st.errands||[]).length};const p=st.preferences||{};out.preferences={timezone:p.timezone||'Australia/Sydney',currency:p.currency||'AUD',attendanceTime:p.attendanceTime||'10:30',prepReminderTime:p.prepReminderTime||'17:00',shoppingReminderTime:p.shoppingReminderTime||'09:00'}}catch{}}
  for(const o of await obs as any[])if(o)out.observations+=Array.isArray(o)?o.length:Array.isArray(o.observations)?o.observations.length:0;
  return out;

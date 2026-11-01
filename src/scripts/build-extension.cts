@@ -1,9 +1,9 @@
-// Builds the FamTray Scout Chrome/Edge extension (Manifest V3).
+// Builds the FamTray So Giá / Price Compare Chrome/Edge extension (Manifest V3).
 //   node scripts/build-extension.cjs          → dist-extension/ + dist-extension.zip
 //   node scripts/build-extension.cjs --test   → dist-extension-test/ (local test build only)
 // tsc -p tsconfig.extension.json must run first (it writes the compiled .js into
-// dist-extension/). MV3 forbids remote code: the parser config is bundled as DATA in
-// default-config.js and refreshed from the server as JSON only.
+// .compiled/extension/, which this script bundles). MV3 forbids remote code: the parser config is bundled as DATA in
+// the bundled scripts and refreshed from the server as JSON only.
 // The test build ONLY adds *.scout.test hosts (mapped to 127.0.0.1 by the browser
 // test) and allows shorter pacing for fake timing; the production build never does.
 // v1.7 (no-command install): the app address is baked in from SCOUT_SERVER_ORIGIN or,
@@ -16,14 +16,16 @@
 // the pinned `key` (the Web Store refuses it and assigns its own id) is written to
 // dist-extension-store.zip.
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib');
-const test=process.argv.includes('--test'),src='extension',compiled='dist-extension',out=test?'dist-extension-test':'dist-extension';
+const test=process.argv.includes('--test'),src='extension',compiled='.compiled/extension',out=test?'dist-extension-test':'dist-extension';
 const manifest=JSON.parse(fs.readFileSync(src+'/manifest.json','utf8'));
 const config=JSON.parse(fs.readFileSync(src+'/config/scout-config.json','utf8'));
 const scripts=['scout-core.js','scout-parse.js','scout-client.js','ui-common.js','background.js','content.js','runner.js','popup.js','options.js'];
 for(const f of scripts)if(!fs.existsSync(path.join(compiled,f)))throw new Error('Missing compiled extension script '+f+' (run tsc -p tsconfig.extension.json)');
-if(test){fs.rmSync(out,{recursive:true,force:true});fs.mkdirSync(out,{recursive:true});for(const f of scripts)fs.copyFileSync(path.join(compiled,f),path.join(out,f))}
-// Never ship stale files from older builds.
-for(const f of fs.readdirSync(out))if(!scripts.includes(f)&&!fs.statSync(path.join(out,f)).isDirectory())fs.rmSync(path.join(out,f));
+// v1.7.1 (owner: "too many files"): the package is bundled into as few files as Chrome
+// allows — one script per extension context (background worker, content script, the
+// three pages share ui.js), CSS inlined into each page, the parser config and build info
+// embedded in the scripts, one icon file. Always rebuilt from scratch: no stale files.
+fs.rmSync(out,{recursive:true,force:true});fs.mkdirSync(out,{recursive:true});
 const httpsOrigin=(v:any)=>{try{const u=new URL(String(v||'').trim());return u.protocol==='https:'&&!u.username&&!u.password?u.origin:''}catch{return ''}};
 const server=httpsOrigin(process.env.SCOUT_SERVER_ORIGIN)||httpsOrigin(process.env.URL);
 const appOrigins=[...new Set([server,...String(process.env.SCOUT_APP_ORIGINS||'').split(',').map(httpsOrigin)].filter(Boolean))];
@@ -40,10 +42,24 @@ if(test){
  manifest.content_scripts[0].matches.push('http://*.scout.test/*');
  for(const r of hosts)config.retailers[r].hosts.push(r+'.scout.test');
 }
+manifest.content_scripts[0].js=['content.js'];
 fs.writeFileSync(path.join(out,'manifest.json'),JSON.stringify(manifest,null,2));
-fs.writeFileSync(path.join(out,'default-config.js'),"'use strict';\nglobalThis.SCOUT_DEFAULT_CONFIG=Object.freeze("+JSON.stringify(config)+");\n");
-fs.writeFileSync(path.join(out,'build-info.js'),"'use strict';\nglobalThis.SCOUT_BUILD=Object.freeze("+JSON.stringify({test,version:manifest.version,configVersion:config.version,server,appOrigins,testAppHosts:test?TEST_APP_HOSTS:[],keepRunnerOpen:false})+");\n");
-for(const f of fs.readdirSync(src+'/pages'))fs.copyFileSync(path.join(src,'pages',f),path.join(out,f));
+const BUILD_INFO={test,version:manifest.version,configVersion:config.version,server,appOrigins,testAppHosts:test?TEST_APP_HOSTS:[],keepRunnerOpen:false};
+const head="'use strict';\n// "+manifest.name+' '+manifest.version+' (bundled; parser config is data, never code)\n'
+ +'globalThis.SCOUT_BUILD=Object.freeze('+JSON.stringify(BUILD_INFO)+');\n'
+ +'globalThis.SCOUT_DEFAULT_CONFIG=Object.freeze('+JSON.stringify(config)+');\n';
+const js=(f:string)=>fs.readFileSync(path.join(compiled,f),'utf8').replace(/^\s*importScripts\([^)]*\);?\s*$/m,'').replace(/^'use strict';\s*/,'');
+const page=(name:string,f:string)=>`if(location.pathname==='/${name}.html'){\n${js(f)}\n}\n`;
+const bundle=(file:string,parts:string[])=>fs.writeFileSync(path.join(out,file),head+parts.join('\n')+'\n');
+bundle('background.js',[js('scout-core.js'),js('scout-client.js'),js('background.js')]);
+bundle('content.js',[js('scout-core.js'),js('scout-parse.js'),js('content.js')]);
+bundle('ui.js',[js('scout-core.js'),js('scout-parse.js'),js('scout-client.js'),js('ui-common.js'),page('popup','popup.js'),page('options','options.js'),page('runner','runner.js')]);
+const css=fs.readFileSync(path.join(src,'pages','ui.css'),'utf8');
+for(const f of fs.readdirSync(src+'/pages').filter(f=>f.endsWith('.html'))){let html=fs.readFileSync(path.join(src,'pages',f),'utf8');
+ html=html.replace('<link rel="stylesheet" href="ui.css">','<style>\n'+css+'</style>');
+ let first=true;html=html.replace(/<script src="[^"]+"><\/script>\n?/g,()=>{if(!first)return '';first=false;return '<script src="ui.js"></script>\n'});
+ if(html.includes('ui.css')||!html.includes('<script src="ui.js">'))throw new Error('Could not bundle '+f);
+ fs.writeFileSync(path.join(out,f),html)}
 // ---- icons: a simple green lens, drawn as PNG without dependencies ----
 function crc32(buf:Buffer){return zlib.crc32(buf)>>>0}
 function chunk(type:string,data:Buffer){const len=Buffer.alloc(4);len.writeUInt32BE(data.length);const td=Buffer.concat([Buffer.from(type),data]);const c=Buffer.alloc(4);c.writeUInt32BE(crc32(td));return Buffer.concat([len,td,c])}
@@ -52,7 +68,9 @@ function icon(size:number){const raw=Buffer.alloc(size*(size*4+1));const c=size/
   if(d<=r1)px=[31,122,77,255];if(d<=r2)px=[255,255,255,255];if(d<=r3)px=[31,122,77,255];raw.set(px,i)}}
  const ihdr=Buffer.alloc(13);ihdr.writeUInt32BE(size,0);ihdr.writeUInt32BE(size,4);ihdr[8]=8;ihdr[9]=6;ihdr[10]=0;ihdr[11]=0;ihdr[12]=0;
  return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',ihdr),chunk('IDAT',zlib.deflateSync(raw)),chunk('IEND',Buffer.alloc(0))])}
-for(const s of [16,32,48,128])fs.writeFileSync(path.join(out,`icon-${s}.png`),icon(s));
+// One icon file for every size (Chrome scales the 128 px image down for the toolbar).
+fs.writeFileSync(path.join(out,'icon.png'),icon(128));
+const files=fs.readdirSync(out).sort();if(files.length>8)throw new Error('Extension package grew to '+files.length+' files: '+files.join(', '));
 // ---- zip (deflate) for the production build ----
 function zip(dir:string,file:string){const entries:Buffer[]=[],central:Buffer[]=[];let offset=0;
  for(const name of fs.readdirSync(dir).sort()){const data=fs.readFileSync(path.join(dir,name)),comp=zlib.deflateRawSync(data),crc=crc32(data),n=Buffer.from(name);
@@ -72,4 +90,4 @@ if(!test){zip(out,'dist-extension.zip');
  for(const f of fs.readdirSync(out))fs.copyFileSync(path.join(out,f),path.join(store,f));
  const {key:_key,...storeManifest}=manifest;fs.writeFileSync(path.join(store,'manifest.json'),JSON.stringify(storeManifest,null,2));
  zip(store,'dist-extension-store.zip')}
-console.log('FamTray Scout extension built: '+out+(test?' (test build)':' + dist-extension.zip + dist-extension-store.zip')+' · version '+manifest.version+' · config '+config.version+' · app address '+(server||'(none: typed by the user)')+(matches.length?' · connectable: '+matches.join(' '):''));
+console.log('Price Check extension built: '+out+' ('+files.length+' files: '+files.join(' ')+')'+(test?' (test build)':' + dist-extension.zip + dist-extension-store.zip')+' · version '+manifest.version+' · config '+config.version+' · app address '+(server||'(none: typed by the user)')+(matches.length?' · connectable: '+matches.join(' '):''));

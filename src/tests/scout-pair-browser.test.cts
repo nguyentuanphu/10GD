@@ -29,8 +29,9 @@ const sizes: Record<string, { width: number; height: number }> = { narrow: { wid
 async function main() {
   const browser = await chromium.launch();
   try {
-    type Opt = { account?: boolean; role?: string; trusted?: boolean; viewport?: { width: number; height: number }; theme?: string; download?: boolean; posts?: any[]; ua?: string; touch?: number; platform?: string; ext?: string | null; store?: any };
-    async function open({ account = true, role = 'owner', trusted = false, viewport = sizes.mobile, theme = 'light', download = false, posts = [], ua, touch, platform, ext = null, store = null }: Opt = {}) {
+    type Opt = { account?: boolean; role?: string; trusted?: boolean; assigned?: boolean; hash?: string; grantedAt?: string | null; viewport?: { width: number; height: number }; theme?: string; download?: boolean; posts?: any[]; ua?: string; touch?: number; platform?: string; ext?: string | null; store?: any };
+    async function open({ account = true, role = 'owner', trusted = false, assigned, hash = '', grantedAt = null, viewport = sizes.mobile, theme = 'light', download = false, posts = [], ua, touch, platform, ext = null, store = null }: Opt = {}) {
+      const isAssigned = assigned ?? (role === 'owner' || trusted);
       const context = await browser.newContext({ viewport, serviceWorkers: 'block', reducedMotion: 'reduce', hasTouch: viewport.width < 1000, ...(ua ? { userAgent: ua } : {}) });
       await context.addInitScript(({ account, theme }) => { if (sessionStorage.getItem('qa-init')) return; sessionStorage.setItem('qa-init', '1'); localStorage.setItem('bep-theme-mode', theme); if (account) localStorage.setItem('bep-account-present', 'yes'); }, { account, theme });
       // Platform overrides (iPadOS reports a desktop Mac UA; only maxTouchPoints gives it away).
@@ -50,7 +51,7 @@ async function main() {
           const household = { id: 'qa', name: 'QA kitchen', role };
           if (path.includes('/scout')) {
             if (req.method() === 'POST') posts.push({ op, body: req.postDataJSON?.() ?? null });
-            if (op === 'my-devices') { const paired = await page.evaluate(() => (globalThis as any).__paired === true).catch(() => false); await route.fulfill({ json: { trusted, familyRole: role, devices: paired && !devices.some(d => d.id === 'dev-bbbbbbbbbbbb') ? [...devices, { id: 'dev-bbbbbbbbbbbb', name: 'Chrome · máy tính', stores: {}, lastHeartbeat: null, lastRunAt: null, paused: false }] : devices } }); return; }
+            if (op === 'my-devices') { const paired = await page.evaluate(() => (globalThis as any).__paired === true).catch(() => false); if (!isAssigned) { await route.fulfill({ json: { assigned: false, trusted: false, familyRole: null, devices: [] } }); return; } await route.fulfill({ json: { assigned: true, grantedAt, trusted, familyRole: role, devices: paired && !devices.some(d => d.id === 'dev-bbbbbbbbbbbb') ? [...devices, { id: 'dev-bbbbbbbbbbbb', name: 'Chrome · máy tính', stores: {}, lastHeartbeat: null, lastRunAt: null, paused: false }] : devices } }); return; }
             if (op === 'public') { await route.fulfill({ json: { extensionIds: ['mjeoekikdicoojgoppnfibjbfpcfngja'], storeUrl: store?.chrome || null, edgeStoreUrl: store?.edge || null } }); return; }
             if (op === 'pair-code') { await route.fulfill({ status: 201, json: { code: 'QAPX7K2M', expires: new Date(Date.now() + 15 * 60000).toISOString() } }); return; }
             if (op === 'my-revoke') { devices = devices.filter(d => d.id !== req.postDataJSON().deviceId); await route.fulfill({ json: { ok: true } }); return; }
@@ -65,7 +66,7 @@ async function main() {
         try { await route.fulfill({ contentType: mime[extname(file)] || 'application/octet-stream', body: readFileSync(file) }); }
         catch { await route.fulfill({ status: 404, body: 'Not found' }); }
       });
-      await page.goto(origin, { waitUntil: 'domcontentloaded' });
+      await page.goto(origin + '/' + hash, { waitUntil: 'domcontentloaded' });
       await page.waitForFunction(() => (document.querySelector('#main')?.textContent?.length || 0) > 500 && !document.querySelector('#startup-progress'));
       await page.waitForTimeout(300);
       if (await page.evaluate(() => document.querySelector('#modal-title')?.textContent || '')) await page.keyboard.press('Escape');
@@ -227,7 +228,7 @@ async function main() {
       await page.locator('#kitchen-family .scout-pair-card').waitFor();
       // Community prices read by the extension carry a "Scout" label in Price Scout.
       const row = (sources: string[]) => page.evaluate((sources: string[]) => (globalThis as any).scoutCommunityRow({ groupId: 'g', itemId: 'nuoc-mam', label: 'Synthetic fish sauce', retailer: 'woolworths', branchLabel: 'Rockdale 2216', status: 'confirmed', price: 4.2, families: 2, ageDays: 0, sources }), sources);
-      assert.match(await row(['scout']), /class="scout-src-chip"[^>]*>🔎 Scout</, 'Scout label on Scout prices');
+      assert.match(await row(['scout']), /class="scout-src-chip"[^>]*>🔎 Máy So Giá</, 'Scout label on Scout prices');
       assert.doesNotMatch(await row(['shelf-photo']), /scout-src-chip/, 'no Scout label on family photos');
       // v1.7: the capture time shown next to a community price is the capture time itself, in local time.
       const at = new Date(Date.now() - 2 * 3600000).toISOString(), old = new Date(Date.now() - 9 * 86400000).toISOString();
@@ -235,16 +236,92 @@ async function main() {
       const html = await capRow(at);
       assert.match(html, new RegExp(`data-captured="${at.replace(/[.]/g, '\\.')}"`), 'time shown = capture time');
       const local = await page.evaluate((at: string) => { const d = new Date(at); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }, at);
-      assert.match(html, new RegExp('🔎 Scout · 2 giờ trước · T\\d|CN \\d\\d\\/\\d\\d ' + local), 'VI relative + absolute local time: ' + html.match(/scout-captured[^<]*/)?.[0]);
+      assert.match(html, new RegExp('🔎 Máy So Giá · 2 giờ trước · T\\d|CN \\d\\d\\/\\d\\d ' + local), 'VI relative + absolute local time: ' + html.match(/scout-captured[^<]*/)?.[0]);
       assert.ok(html.includes(local), 'local clock time shown');
       assert.match(await capRow(old), /scout-captured scout-old[^>]*>[^<]*· cũ</, 'old prices muted');
       await context.close();
     }
-    for (const opt of [{ role: 'editor', trusted: false }, { account: false }] as Opt[]) {
-      const { page, context } = await open(opt); await kitchen(page); await page.waitForTimeout(800);
-      assert.equal(await page.locator('.scout-pair-card').count(), 0, 'no pair card for ' + JSON.stringify(opt)); await context.close();
+    // v1.7.1 (owner): only accounts assigned in Studio see anything about the extension — not even a "not allowed" note.
+    const EXT_UI = '.scout-pair-card, .scout-found-banner:not(.scout-signin-banner), #settings-price-check, [data-scout-download], .scout-install-steps, a[href*="famtray-scout.zip"]';
+    const extWords = /FamTray So Giá|FamTray Price Check|tiện ích|extension|Ghép máy tính|Pair this computer/i;
+    for (const opt of [{ role: 'editor', trusted: false }, { role: 'owner', assigned: false }, { role: 'editor', trusted: true, assigned: false }, { account: false }] as Opt[]) {
+      const { page, context } = await open({ ...opt, ext: 'ready', viewport: sizes.desktop }); await page.waitForTimeout(1200);
+      assert.equal(await page.locator(EXT_UI).count(), 0, 'Today: no extension UI for ' + JSON.stringify(opt));
+      await kitchen(page); await page.waitForTimeout(800);
+      assert.equal(await page.locator(EXT_UI).count(), 0, 'My kitchen: no extension UI for ' + JSON.stringify(opt));
+      assert.doesNotMatch(await page.locator('.modal').innerText(), extWords, 'My kitchen mentions no extension for ' + JSON.stringify(opt));
+      await page.keyboard.press('Escape'); await page.evaluate(() => (globalThis as any).otherSettingsModal('')); await page.locator('.modal.account-sheet').waitFor(); await page.waitForTimeout(800);
+      assert.equal(await page.locator(EXT_UI).count(), 0, 'Account & settings: no extension entry for ' + JSON.stringify(opt));
+      assert.doesNotMatch(await page.locator('.modal').innerText(), extWords, 'Account & settings mention no extension for ' + JSON.stringify(opt));
+      await page.keyboard.press('Escape');
+      for (const h of ['#pair-extension', '#kitchen-family-pair']) { await page.goto(origin + '/' + h, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(2500); assert.equal(await page.locator(EXT_UI).count(), 0, h + ': nothing for ' + JSON.stringify(opt)); assert.equal(await page.evaluate(() => (globalThis as any).__extMsgs.filter((m: any) => m.msg.type === 'pair').length), 0, 'never pairs: ' + JSON.stringify(opt)); }
+      await context.close();
     }
-    console.log('PASS pair card only for family owners and trusted scouts; never for device-only use');
+    { const { page, context } = await open({ role: 'editor', assigned: true }); await kitchen(page); await page.locator('#kitchen-family .scout-pair-card').waitFor(); await context.close(); }
+    console.log('PASS extension UI only for accounts assigned in Studio (any family role but view-only); unassigned owners/members and device-only use see none of it in Today, My kitchen, Account & settings or the deep links');
+
+    // 2b. One-step pairing (v1.7.1): banner on Today when the installed extension is not paired; the tap is the confirmation.
+    for (const lang of ['vi', 'en']) for (const [name, viewport] of [['desktop', sizes.desktop], ['tablet', sizes.tablet], ['mobile', sizes.mobile]] as const) {
+      const { page, context, errors } = await open({ ext: 'ready', viewport, theme: lang === 'en' ? 'dark' : 'light' }); await setLang(page, lang);
+      const banner = page.locator('#main > .scout-found-banner:not(.scout-granted-notice)'); await banner.waitFor({ timeout: 10000 });
+      assert.match(await banner.innerText(), lang === 'vi' ? /Đã thấy FamTray So Giá trên máy này/ : /Found FamTray Price Check on this computer/);
+      await page.waitForTimeout(1500); assert.equal(await page.evaluate(() => (globalThis as any).__paired === true), false, 'never pairs without the tap');
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'banner: no overflow ' + name);
+      const small = await banner.locator('button').evaluateAll((els: any[]) => els.filter(e => e.getBoundingClientRect().height < 44).length); assert.equal(small, 0, 'banner targets ≥ 44 px');
+      if (lang === 'vi' || name === 'desktop') { mkdirSync('docs/reviews/v1.7.1/rename', { recursive: true }); await page.screenshot({ path: `docs/reviews/v1.7.1/rename/banner-${name}-${viewport.width}x${viewport.height}-${lang}.png` }); }
+      await banner.locator('[data-scout-found-pair]').click();
+      await banner.locator('[data-scout-found-close]').waitFor({ timeout: 10000 });
+      assert.equal(await page.evaluate(() => (globalThis as any).__paired), true, 'one tap paired');
+      assert.equal(await page.evaluate(() => (globalThis as any).__extMsgs.filter((m: any) => m.msg.type === 'pair').length), 1, 'exactly one pair message');
+      assert.deepEqual(errors, []); await context.close();
+      if (name !== 'desktop') break;
+    }
+    { // Already paired: no banner. Dismissed for today: gone after reload, but #pair-extension (from the popup) still asks.
+      const p1 = await open({ ext: 'paired', viewport: sizes.desktop }); await p1.page.waitForTimeout(2000); assert.equal(await p1.page.locator('.scout-found-banner').count(), 0, 'no banner when already paired'); await p1.context.close();
+      const { page, context } = await open({ ext: 'ready', viewport: sizes.desktop });
+      await page.locator('[data-scout-found-later]').click(); assert.equal(await page.locator('.scout-found-banner').count(), 0);
+      await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(2500); assert.equal(await page.locator('.scout-found-banner').count(), 0, 'dismissed for the day');
+      await page.goto(origin + '/#pair-extension', { waitUntil: 'domcontentloaded' });
+      const banner = page.locator('#main > .scout-found-banner:not(.scout-granted-notice)'); await banner.waitFor({ timeout: 10000 });
+      assert.match(await banner.innerText(), /Bấm “Ghép ngay” để xác nhận/, 'asks for the confirming tap');
+      assert.equal(new URL(page.url()).hash, '#today', 'one-shot link cleared');
+      await page.waitForTimeout(1500); assert.equal(await page.evaluate(() => (globalThis as any).__paired === true), false, 'the link alone never pairs');
+      await page.screenshot({ path: 'docs/reviews/v1.7.1/rename/pair-extension-desktop-1280x800-vi.png' });
+      await banner.locator('[data-scout-found-pair]').click(); await banner.locator('[data-scout-found-close]').waitFor();
+      assert.equal(await page.evaluate(() => (globalThis as any).__paired), true);
+      // Avatar sheet entry → My kitchen pairing card; #kitchen-family-pair does the same.
+      await page.evaluate(() => (globalThis as any).otherSettingsModal('')); const entry = page.locator('#settings-price-check'); await entry.waitFor();
+      assert.match(await entry.innerText(), /So Giá trên máy tính/);
+      await entry.locator('[data-scout-open-pair]').click(); await page.locator('.kitchen-hub .scout-pair-card.scout-pair-highlight').waitFor({ timeout: 10000 });
+      await page.keyboard.press('Escape'); await page.goto(origin + '/#kitchen-family-pair', { waitUntil: 'domcontentloaded' }); await page.locator('.kitchen-hub .scout-pair-card').waitFor({ timeout: 25000 });
+      await context.close();
+      // Signed out + #pair-extension: a plain sign-in prompt (no extension wording).
+      const so = await open({ account: false, ext: 'ready', viewport: sizes.desktop, hash: '#pair-extension' }); const sb = so.page.locator('.scout-signin-banner'); await sb.waitFor({ timeout: 10000 });
+      assert.doesNotMatch(await sb.innerText(), extWords); assert.equal(await sb.locator('a[href*="/login"]').count(), 1); await so.context.close();
+    }
+    // (b) one-time notice after Studio assigns the account; (a) the avatar entry on phones: Open on a computer + Copy + Share.
+    for (const [name, viewport, ua] of [['mobile', sizes.mobile, UA.iphone], ['desktop', sizes.desktop, undefined]] as const) {
+      const { page, context, errors } = await open({ grantedAt: '2026-11-01T09:00:00.000Z', viewport, ua });
+      const notice = page.locator('#main > .scout-granted-notice'); await notice.waitFor({ timeout: 10000 });
+      assert.match(await notice.innerText(), /Bạn đã được cấp quyền So Giá.*Cài trên máy tính/s);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'notice: no overflow ' + name);
+      await page.screenshot({ path: `docs/reviews/v1.7.1/rename/granted-notice-${name}-${viewport.width}x${viewport.height}-vi.png` });
+      await notice.locator('[data-scout-granted-open]').click();
+      const entry = page.locator('#settings-price-check'); await entry.waitFor({ timeout: 10000 });
+      if (name === 'mobile') {
+        assert.match(await entry.innerText(), /Mở trên máy tính/); assert.equal(await entry.locator('[data-scout-open-link]').inputValue(), origin + '/');
+        await page.evaluate(() => { (navigator as any).share = (d: any) => { (globalThis as any).__shared = d; return Promise.resolve(); }; });
+        await entry.locator('[data-scout-share]').click(); await page.waitForFunction(() => (globalThis as any).__shared);
+        assert.equal(await page.evaluate(() => (globalThis as any).__shared.url), origin + '/', 'Share sends the app link');
+        assert.equal(await entry.locator('[data-scout-open-pair]').count(), 0, 'no install button on a phone');
+        await entry.scrollIntoViewIfNeeded(); await page.screenshot({ path: 'docs/reviews/v1.7.1/rename/settings-entry-mobile-375x812-vi.png' });
+      } else assert.equal(await entry.locator('[data-scout-open-pair]').count(), 1, 'desktop: install & pair button');
+      await page.keyboard.press('Escape'); await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForTimeout(2500);
+      assert.equal(await page.locator('.scout-granted-notice').count(), 0, 'notice shown only once'); assert.deepEqual(errors, []); await context.close();
+    }
+    { const { page, context } = await open({ grantedAt: '2026-11-01T09:00:00.000Z', assigned: false, viewport: sizes.desktop }); await page.waitForTimeout(2500); assert.equal(await page.locator('.scout-granted-notice').count(), 0, 'assignment removed → no notice'); await context.close(); }
+    console.log('PASS one-time "you can now use Price Check" notice on Today (once, hidden again when the assignment is removed); Account & settings entry: desktop install & pair, phone Open on a computer with Copy + Share');
+    console.log('PASS one-step pairing: banner on Today (VI/EN, 375/820/1280, light/dark), one tap pairs and never without it, hidden when paired, dismissible for the day, #pair-extension asks to confirm, sign-in first when signed out, avatar entry and #kitchen-family-pair open the card');
 
     // 3. Offline: the card says a connection is needed; no request is made.
     {

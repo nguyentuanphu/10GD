@@ -27,7 +27,8 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
  const reg=async(u:string)=>{const r=await accounts(new Request(origin+'/.netlify/functions/accounts?op=register',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json','x-nf-client-connection-ip':'r-'+u},body:JSON.stringify({username:u,name:u,password:'synthetic-studio-scout-42',trust:true})}));assert.equal(r.status,201);return r.headers.get('set-cookie')!.split(';')[0]};
  const henry=await reg('henrynguyen');await reg('alice');await reg('minh');
  const dev=async(op:string,token:string,body?:any)=>(await scout(new Request(origin+'/.netlify/functions/scout?op='+op,{method:body===undefined?'GET':'POST',headers:{Origin:EXT,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:body===undefined?undefined:JSON.stringify(body)}))).json();
- const pair=async(user:string,name:string,suburb:string,postcode:string,stores:any)=>{const {code}=await lib.createPairCode(getStoreFn,user,Date.now(),env);return dev('pair','',{code,name,suburb,postcode,stores,version:'1.6.0'})};
+ const pair=async(user:string,name:string,suburb:string,postcode:string,stores:any)=>{await lib.setExtensionAllowed(getStoreFn,user,true,'henrynguyen',Date.now());// v1.7.1: assigned in Studio
+ const {code}=await lib.createPairCode(getStoreFn,user,Date.now(),env);return dev('pair','',{code,name,suburb,postcode,stores,version:'1.6.0'})};
  const a=await pair('alice','Máy bàn nhà Alice','Hurstville','2220',{woolworths:'Hurstville',coles:'Hurstville'}),m=await pair('minh','Minh laptop','Cabramatta','2166',{woolworths:'Cabramatta',aldi:'Cabramatta'}),h=await pair('henrynguyen','Henry PC','Hurstville','2220',{woolworths:'Hurstville'});
  const now=Date.now();await lib.saveNetwork(getStoreFn,{autoScout:'on',schedule:[{days:[0,1,2,3,4,5,6],start:'00:00',end:'24:00'}],parser:{minSamples:5,minSuccess:0.5}},'henrynguyen',now);
  for(const d of [a,m,h])await lib.editDevice(getStoreFn,d.device.id,(x:any)=>({...x,autoAllowed:d!==m}));
@@ -57,9 +58,9 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
   const {context,page}=await open(size,lang,theme);
   const nav=page.locator('#nav a[href="#scout"]');await nav.waitFor();assert.equal(await nav.getAttribute('aria-current'),'page');assert.equal(await page.locator('#main #scout-main').count(),1,'Scout renders as a normal Studio page inside #main');{// Studio (v1.5 speed-up) quietly prefetches the overview AFTER the first page has rendered; it must never load first.
    const ov=reqLog.indexOf('studio:overview'),sc=reqLog.findIndex(x=>x.startsWith('scout:'));assert.ok(sc>=0,'Scout page loaded its data');assert.ok(ov===-1||ov>sc,'the overview is not loaded behind the Scout page: '+reqLog.join(' '))}
-  assert.match(await nav.innerText(),lang==='en'?/Scout network/:/Mạng Scout/);
+  assert.match(await nav.innerText(),lang==='en'?/Price Check network/:/Mạng So Giá/);
   const body=await page.locator('#scout-main').innerText();
-  for(const want of (lang==='en'?['Máy bàn nhà Alice','Minh laptop','Henry PC','Auto-paused: parser breakage','Blocked — paused 24 h','Signed in: Coles','Coverage (7 days)','Trusted scouts','alice','Device blocked — paused 24 h']:['Máy bàn nhà Alice','Tự dừng: trình đọc lỗi','Bị chặn — tạm dừng 24 giờ','Độ phủ (7 ngày)','Người dò giá tin cậy'])) assert.ok(body.includes(want),size+' '+lang+' missing: '+want);
+  for(const want of (lang==='en'?['Máy bàn nhà Alice','Minh laptop','Henry PC','Auto-paused: parser breakage','Blocked — paused 24 h','Signed in: Coles','Coverage (7 days)','Trusted price checkers','alice','Device blocked — paused 24 h','Accounts allowed to use the extension','Advanced: pairing code','admin · always allowed']:['Máy bàn nhà Alice','Tự dừng: trình đọc lỗi','Bị chặn — tạm dừng 24 giờ','Độ phủ (7 ngày)','Người dò giá tin cậy','Tài khoản được dùng tiện ích','Nâng cao: mã ghép nối'])) assert.ok(body.includes(want),size+' '+lang+' missing: '+want);
   assert.ok(!/netlify|blobs/i.test(body),'no hosting vendor named in UI');
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);if(overflow>1)console.log(await page.evaluate(()=>[...document.querySelectorAll('#scout-main *')].filter((e:any)=>e.getBoundingClientRect().right>innerWidth+1).slice(0,8).map((e:any)=>e.tagName+'.'+e.className+' '+Math.round(e.getBoundingClientRect().right)+' '+(e.textContent||'').slice(0,40))));assert.ok(overflow<=1,`overflow ${overflow} at ${size}`);
   if(size!=='desktop'){const small=await page.evaluate(()=>[...document.querySelectorAll('#scout-main button,#scout-main input,#scout-main a')].filter((e:any)=>{const r=e.getBoundingClientRect();return r.width&&r.height<44&&e.type!=='checkbox'}).map((e:any)=>e.outerHTML.slice(0,60)));assert.deepEqual(small,[],'touch targets '+size)}
@@ -75,6 +76,8 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
    await page.locator(`[data-dev="${m.device.id}"][data-act="allow-auto"]`).click();await page.waitForFunction(()=>document.querySelector('#toast')?.textContent?.includes('Saved'));
    await page.locator('#sc-pause').click();await page.locator('#sc-pause[aria-pressed="true"]').waitFor();
    await page.locator('#sc-pause').click();await page.locator('#sc-pause[aria-pressed="false"]').waitFor();
+   // v1.7.1: the Studio pairing code is an Advanced fallback (collapsed), bound to an assigned account.
+   assert.equal(await page.locator('.sc-advanced').evaluate((d:any)=>d.open),false,'Advanced pairing code collapsed by default');await page.locator('.sc-advanced summary').click();
    await page.locator('#sc-code').click();await page.locator('#scout-main .code').waitFor();assert.match(await page.locator('#scout-main .code').innerText(),/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);await shot(page,'studio-scout-paircode-en-dark-desktop-1280x800');
    await page.locator(`[data-ret="aldi"][data-act="resume"]`).click();await page.locator(`[data-ret="aldi"][data-act="pause"]`).waitFor();
    await page.locator(`[data-dev="${h.device.id}"][data-act="revoke"]`).click();await page.waitForFunction(()=>document.querySelector('#toast')?.textContent?.includes('revoked'));
@@ -99,7 +102,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
    await page.evaluate(()=>{const el=document.querySelector('#sc-rc');if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-10)});await shot(page,'studio-remote-commands-en-dark-desktop-1280x800');
    const acts2=(await listLog(getStoreFn,'audit',{now:Date.now(),limit:200,from:dayKey(Date.now()-86400000)})).items.map((x:any)=>x.action);for(const x of ['scout_command_run_now','scout_command_pace','scout_network'])assert.ok(acts2.includes(x),'audited '+x);
    // language switch re-renders the panel
-   await page.locator('#lang').click();await page.locator('#scout-h1:has-text("Mạng Scout")').waitFor();
+   await page.locator('#lang').click();await page.locator('#scout-h1:has-text("Mạng So Giá")').waitFor();
    // leaving #scout restores Studio's own page
    await page.evaluate(()=>{location.hash='#overview'});await page.waitForFunction(()=>!document.querySelector('#scout-main')&&!!document.querySelector('#main h1'));assert.equal(await page.locator('#nav a[href="#scout"]').getAttribute('aria-current'),null);
    // Studio → Settings shows the Auto Scout platform setting (currently on) and saving it off is audited.

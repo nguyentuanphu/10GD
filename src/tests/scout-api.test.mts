@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {createAccountsHandler} from '../netlify/lib/accounts.mjs';
 import {createScoutHandler,extensionOriginAllowed} from '../netlify/functions/scout.mjs';
 import {createStudioHandler} from '../netlify/functions/studio.mjs';
-import {inWindow,dayKey,validFact,scoutConfig,validateConfig,validateNetworkPatch} from '../netlify/lib/scout.mjs';
+import {inWindow,dayKey,validFact,scoutConfig,validateConfig,validateNetworkPatch,setExtensionAllowed} from '../netlify/lib/scout.mjs';
 import {listLog,resetSettingsCache} from '../netlify/lib/studio.mjs';
 import {memoryStores} from './helpers/accounts.mjs';
 const require=(await import('node:module')).createRequire(import.meta.url);
@@ -44,7 +44,7 @@ assert.equal(extensionOriginAllowed(EXT,{SCOUT_EXTENSION_IDS:'zzz'}),false);asse
 assert.equal(extensionOriginAllowed('https://evil.example',{SCOUT_DEV:'1'}),false);
 const cfg=await scoutConfig(getStoreFn);assert.ok(cfg?.retailers?.woolworths,'bundled config shipped to the server');
 // The extension core agrees with the server's schedule rule.
-const core=require('../dist-extension/scout-core.js');
+const core=require('../.compiled/extension/scout-core.js');
 for(const t of ['2026-11-04T06:29:00+11:00','2026-11-04T06:30:00+11:00','2026-11-04T08:59:00+11:00','2026-11-04T09:00:00+11:00','2026-11-07T07:00:00+11:00','2026-11-08T07:00:00+11:00'])assert.equal(core.inWindow(Date.parse(t),core.DEFAULT_SCHEDULE,'Australia/Sydney'),inWindow(Date.parse(t)),t);
 assert.equal(validFact({name:'X',price:3,currency:'USD'},'woolworths',cfg).ok,false,'non-AUD rejected');
 assert.equal(validFact({name:'X',price:0.01},'woolworths',cfg).ok,false,'implausible price rejected');
@@ -57,6 +57,8 @@ assert.throws(()=>validateConfig({version:'x',retailers:{woolworths:{hosts:[],pa
 
 // ---- accounts
 const henry=await register('henrynguyen'),alice=await register('alice'),bob=await register('bob');
+// v1.7.1: only accounts assigned in Studio may pair/run the extension; these synthetic accounts are assigned.
+for(const u of ['alice','bob'])await setExtensionAllowed(getStoreFn,u,true,'henrynguyen',clock);
 const me=await (await studio(new Request(origin+'/.netlify/functions/studio?op=me',{headers:{Cookie:henry}}))).json();const csrf=me.csrf;assert.ok(csrf);
 const S=(op:string,body?:any)=>call(op,{method:body===undefined?'GET':'POST',body,cookie:henry,csrf}).then(J);
 

@@ -1,4 +1,16 @@
-# FamTray · Bếp Gia Đình · v1.7
+# FamTray · Bếp Gia Đình · v1.7.1
+
+## What's new in v1.7.1
+- **Voice:** one-tap VI │ EN toggle next to every mic; hold-to-talk is the default (tap mode optional); unclear results ("các bạn") ask to repeat instead of adding junk; "5x" asks "trứng (eggs)?"; iPhone fixes for words lost at session restart and after Stop.
+- **On-device "More accurate" speech** available on every iPhone/iPad (warning on older devices, automatic fallback); the Light pack is removed; honest reasons instead of "Not available on this server".
+- **Settings:** "Cài đặt khác" now sits under the avatar's "Tài khoản & cài đặt".
+- **Renamed "Scout" to "So Giá" (Price Check):** the shopping panel, the computer extension ("FamTray So Giá" / "FamTray Price Check"), automatic mode, the Studio "Mạng So Giá" page and the "🔎 Máy So Giá" price source label. Wording only: settings, stored prices and installed extensions keep working unchanged.
+- **So Giá access is assigned in Studio:** Studio → Mạng So Giá → "Tài khoản được dùng tiện ích" lists the accounts allowed to pair and run the extension (Henry always). Being a family owner no longer grants it; the server refuses everyone else (`not_assigned`). Existing trusted price checkers and accounts with paired computers were added automatically (audited). Removing an account stops its computers at once; adding it back re-enables them. Unassigned accounts see nothing about the extension in the app. A newly assigned account gets a one-time notice on Today and a push (if enabled).
+- **One-tap pairing:** with the extension installed, Today shows "Đã thấy FamTray So Giá trên máy này · Ghép ngay"; one tap pairs (never without it). The popup's "Ghép ngay" opens the app (`#pair-extension`) for the same confirming tap. Store names are asked once per supermarket in the popup; the postcode comes from the family. Codes from Studio / My kitchen are now under "Nâng cao / Advanced". "So Giá trên máy tính" in Tài khoản & cài đặt opens the install guide (phones: copy/share the link to open on a computer).
+- **Extension popup** is a fixed 360 px wide (no more narrow column on Windows), one-line title, VI │ EN toggle, small Pause (only when paired), and Pair now / Enter code in the popup. The package is bundled into **8 files** (one script per context, CSS inlined, one icon).
+
+Evidence: `docs/reviews/v1.7.1/voice-settings/review.md`, `docs/reviews/v1.7.1/rename/review.md`.
+
 
 ## What's new in v1.7 (ships together with v1.6 in one deploy)
 - **Usage statistics:** anonymous, on by default with an opt-out in Cài đặt khác; postcode or network (country/state only, no IP stored) location; Studio "Mức sử dụng" tab (DAU/WAU/MAU, minutes, sessions, peak hours, features, retention, inactive families, locations); 13-month retention; audited drill-downs. Studio switch `usageAnalytics`.

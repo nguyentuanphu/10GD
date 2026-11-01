@@ -1,0 +1,34 @@
+# v1.7.1 voice & settings: review record
+
+Branch `agent-aa/voice-settings` (from `v171-base` = production v1.7.0, cdbd22c). Not merged, not pushed, not deployed.
+Responsive QA here is local browser viewport simulation (Chromium 1243 via Playwright). It is **not** physical-device
+testing: no real iPhone or iPad and no Apple speech recogniser were available.
+
+## Henry's report → what changed
+
+| Report | Root cause | Change |
+|---|---|---|
+| VI: "2 miếng salmon" → "các bạn" | The text came from Apple's recogniser. The parser handles "2 miếng salmon", "hai miếng sa mơn" and "2 miếng xa mông" correctly. "các bạn" is what the recogniser returned, and v1.7.0 then turned it into a junk shopping line. | Mic transcripts with nothing recognisable now show **"Chưa nghe rõ, nói lại?"**. That panel offers a one-tap switch to the other language, "say again" and "keep as heard". Typed text is never second-guessed. |
+| EN: "5 eggs" → "5x" | The recogniser wrote "eggs" as "x". v1.7.0 kept a line "5 x" with no amount. | When "x/ex" follows a count, the app asks **"Có phải: trứng (eggs)?"** through the existing did-you-mean, and never adds it silently. "5x chicken" now reads the x as a multiplier. |
+| Voice "getting worse" (iOS) | (1) Safari often ends a session while the last words are still interim. On restart those words were dropped. (2) In the price and recipe sheets, a normal Stop bumped the session id, so the final result that arrives *after* `stop()` was discarded. (3) The price and recipe sheets kept the language from their first opening. | (1) Pending interim text is kept when the session ends (main, price and recipe sheets). (2) `stop()` keeps listening for the final result until `onend`; `stop(true)` still aborts. (3) The sheets read the current language choice every time they open. |
+| One-tap language | The VI/EN choice was hidden in a collapsed "Cài đặt giọng nói" panel or `<details>`. | A segmented **VI │ EN** button sits next to every mic: main, price and recipe. One tap switches language, the choice persists (`bep-voice-lang`), the target is 44 px or more, and the aria-label names both languages. Auto is **not** a third state: it stays a checkbox in Voice settings. While Auto is on, the toggle shows the language Auto picked plus a "Tự động/Auto" caption. Reason: the recogniser listens in one language per session, so a third "Auto" state would hide which language is really used. |
+| "Not available on this server" | `voiceLocalCapability()` blocked `small` on all iOS ('ios-memory'), and offline-downloads mapped every `unavailable` state to the server message. | Owner decision: **all iOS/iPadOS may download "More accurate"**. Only genuine capability blocks remain: WASM, SIMD, worker, mic, AudioWorklet, Cache Storage and reported RAM. An `unavailable` row now shows the pack's own reason. iOS without WebGPU gets a non-blocking warning: "Máy cũ có thể chạy chậm hoặc thiếu bộ nhớ · có thể chậm vài giây mỗi câu". |
+| No Light pack | — | `base` is removed from packs and offers. A stored `local-base` choice falls back to the browser recogniser, and old base files are deleted from the cache. The shared runtime is kept. |
+| Other settings under Account | — | One **"Tài khoản & cài đặt"** sheet opens from the avatar. The account part comes first (signed in: account & security; device-only: Sign in / Create account), then **Cài đặt khác**: appearance, currency, offline ready, downloads, data & backup, usage statistics. The sidebar "Cài đặt khác" link and the More-sheet button are removed. The account menu has one entry: "Tài khoản & cài đặt" (signed in) or "Cài đặt" (device-only). |
+| Hold to talk (owner decision) | — | Hold-to-talk is now the default everywhere (main, price, recipe). An older stored preference is reset once (`bep-voice-ptt-v171`), and a later tap-mode choice is kept. Behaviour: 250 ms minimum (a quick tap shows "Giữ nút để nói — thả ra là gửi"), slide-off stops and sends, holding Space/Enter works, `touch-action:none` with no callout, selection or scroll, and a pressed state with a pulse that respects reduced-motion. Release stops listening, and the main sheet previews about 1.2 s later, once the last words have arrived. |
+
+## On-device "More accurate"
+- WebGPU: when the page has `navigator.gpu` and the worker gets an adapter, transformers.js 4.3.1 is asked for `device:'webgpu'` with the **same pinned q8 files**. ONNX Runtime keeps ops that have no GPU kernel on the CPU. Any failure falls back to `device:'wasm'`. No new files were added, because their sizes and checksums could not be verified offline.
+- Before download on iOS, a confirmation appears from the voice sheet and from Downloads. It states the size and Wi-Fi advice; on devices without WebGPU it adds the "may be slow / out of memory" warning.
+- Failure guard: a busy marker is written before loading and before each decode, then cleared afterwards. A load failure, a worker crash, or a marker left behind by a reload is stored as a failure. The app then switches to the browser recogniser and shows "Thử lại / Try again" and "Gỡ gói / Remove pack". The Downloads row shows the same text.
+- First use shows "Đang nạp gói giọng nói trên máy… lần đầu có thể mất 10–60 giây" while loading and "Đang nhận dạng…" while decoding.
+
+## Honest limits
+- The browser recogniser (Apple's, on iPhone) listens in **one language per session**, so mixed Vietlish is fundamentally weak there. Post-processing can only repair what it returns. Safari on iOS usually returns a single alternative even when `maxAlternatives=5`, so choosing among alternatives helps mainly on Chrome/Android.
+- "More accurate" on older iPhones may be slow or run out of memory. The fallback above was tested with a simulated crash and reload, not on a device.
+- The pack download still holds each model file in memory once for verification, which costs about 2× the 157 MB decoder at peak.
+
+## Verification (local, supporting evidence only; GitHub CI is the release gate)
+- `npm run check`, `npm run typecheck`, `npm test`. The new suite `tests/voice-pipeline` is in the `test` chain. Updated suites: `voice-local`, `offline-downloads`.
+- Browser: `test:voice:browser`, `test:voice-commands:browser`, `test:voice-price:browser`, `test:voice-local:browser`, `test:browser` (startup + kitchen-hub), `test:authenticated-startup`, `test:offline:browser`, `test:usage:browser`, `test:library-guide:browser`.
+- Screenshots in this folder: voice sheet with the toggle at 375×812, 820×1100 and 1280×800 (VI/EN, light/dark); hold hint and hold preview; retry panel at all three sizes; price sheet while holding; iOS download warning and on-device fallback (VI/EN); Account & settings sheet for device-only users at all sizes (VI/EN, light/dark) and for signed-in users at 320/375/820/1280; account menus; the Downloads voice row at all sizes plus a simulated iPhone (375×812) and iPad (MacIntel + touch, 820×1180) without WebGPU.

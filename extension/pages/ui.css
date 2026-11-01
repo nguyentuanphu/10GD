@@ -1,9 +1,10 @@
-/* FamTray Scout extension pages (popup, options, runner). Light/dark, ≥44px targets. */
+/* FamTray So Giá / Price Check extension pages (popup, options, runner). Light/dark, ≥44px targets. */
 :root{--bg:#f7f8f6;--card:#fff;--ink:#17201b;--muted:#56625b;--line:#d6ddd8;--brand:#1f7a4d;--brand-ink:#fff;--danger:#b3261e;--warn-bg:#fff4d6;--warn-ink:#5c4300;--ok-bg:#e3f4ea;--ok-ink:#0f4d2c;--focus:#1a5fd0;color-scheme:light}
 html[data-theme="dark"]{--bg:#111613;--card:#1a211d;--ink:#e8eee9;--muted:#a7b3ab;--line:#33403a;--brand:#4cc38a;--brand-ink:#08130d;--danger:#ff8a80;--warn-bg:#3b3010;--warn-ink:#ffe08a;--ok-bg:#12321f;--ok-ink:#b8f0cc;--focus:#8ab4ff;color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
-body.popup{width:360px;max-width:100vw}
+/* v1.7.1: Chrome sizes the action popup from the document's own width, so it is fixed (max popup 800×600). */
+html.popup,body.popup{width:360px;min-width:360px;max-width:360px;overflow-x:hidden}
 main{padding:12px}
 body.options main{max-width:1100px;margin:0 auto;padding:16px}
 h1{font-size:1.15rem;margin:0}
@@ -52,3 +53,28 @@ legend{font-weight:600;padding:0 4px}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .store-ask{justify-content:space-between;margin-top:6px}
 .store-ask span{flex:1 1 140px;min-width:0;overflow-wrap:anywhere}
+/* v1.7.1 popup: one-line header, VI│EN toggle, compact unpaired state that fits 600 px without scrolling */
+body.popup main{padding:10px 12px}
+body.popup .card{padding:10px 12px;margin-bottom:8px}
+.pop-bar{flex-wrap:nowrap;margin-bottom:8px}
+.pop-title{display:flex;align-items:center;gap:8px;min-width:0;font-size:1.1rem;line-height:1.15}
+.pop-title .logo{font-size:1.4rem}
+.pop-name{display:flex;flex-direction:column;min-width:0;white-space:nowrap}
+.pop-name small{font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.02em}
+.pop-tools{display:flex;align-items:center;gap:6px;flex:none}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg-btn{min-height:44px;min-width:44px;padding:0 10px;border:0;background:var(--card);color:var(--muted);font:inherit;font-weight:700;font-size:.85rem;cursor:pointer}
+.seg-btn+.seg-btn{border-left:1px solid var(--line)}
+.seg-btn[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
+.pop-pause{padding:0 10px;font-size:.85rem}
+.pop-lead{margin:0 0 8px}
+.pop-wide{display:block;width:100%}
+.pop-or{display:flex;align-items:center;gap:8px;margin:10px 0 6px;color:var(--muted);font-size:.85rem}
+.pop-or::before,.pop-or::after{content:"";flex:1;border-top:1px solid var(--line)}
+.pop-code label{margin:0 0 4px}
+.pop-code-row{display:flex;gap:6px}
+.pop-code-row input{flex:1;min-width:0;margin:0!important;text-transform:uppercase;letter-spacing:.08em}
+.pop-code .hint{margin:4px 0 8px}
+.pop-server{font-weight:600;font-size:.9rem}
+.pop-server input{font-size:.9rem}
+body.popup .foot{margin:2px 0 0}

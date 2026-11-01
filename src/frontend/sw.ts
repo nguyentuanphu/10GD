@@ -76,7 +76,7 @@ async function pinArt(paths){
 async function catalogResponse(event,request){
  const cache=await caches.open(PACK_CATALOG),exact=await cache.match(request);if(exact)return exact;
  try{const response=await fetchWithDeadline(request,{credentials:'same-origin'},45000);if(response.ok&&!response.redirected){const copy=response.clone();event.waitUntil((async()=>{for(const old of await cache.keys())if(old.url!==request.url)await cache.delete(old);await cache.put(request,copy)})().catch(()=>{}))}return response}
- catch{return await cache.match(request,{ignoreSearch:true})||new Response('Kho món chưa được tải về máy này.',{status:503})}
+ catch{return await cache.match(request,{ignoreSearch:true})||new Response('Kho món ăn chưa được tải về máy này.',{status:503})}
 }
 async function ocrResponse(event,request){
  const cache=await caches.open(PACK_OCR),hit=await cache.match(request,{ignoreSearch:true});if(hit)return hit;

@@ -157,13 +157,17 @@ async function main() {
       assert.equal(await page.locator('.kitchen-hub #members-form input[name=budget], .kitchen-hub #settings-form input[name=budget]').count(), 1, 'menu preferences usable offline');
       assert.equal(await page.locator('.kitchen-hub [data-personal=invite]').count(), 0, 'no invite offline');
       await page.keyboard.press('Escape');
-      // Other settings holds appearance, currency and data & backup, in that order.
+      // v1.7.1 (owner): Other settings sits under Account in one "Tài khoản & cài đặt" sheet — the account part first,
+      // then appearance, currency, offline, data & backup and usage statistics, in that order.
       await page.evaluate(() => { (globalThis as any).BEP_OFFLINE = false; return otherSettingsModal(); });
       await page.locator('.other-settings').waitFor();
-      assert.equal(await page.locator('#modal-title').innerText(), 'Cài đặt khác');
-      assert.deepEqual(await page.$$eval('.other-settings .kitchen-section', nodes => nodes.map(n => n.id)), ['settings-appearance', 'settings-currency', 'settings-offline-ready', 'settings-offline-downloads', 'settings-data', 'settings-usage']);
+      assert.equal(await page.locator('#modal-title').innerText(), 'Tài khoản & cài đặt');
+      assert.equal(await page.locator('.other-settings.account-sheet #settings-account').count(), 1, 'account part on top');
+      assert.equal(await page.locator('.other-settings #settings-other-title').innerText(), 'Cài đặt khác');
+      assert.ok(await page.evaluate(() => !!(document.querySelector('#settings-account')!.compareDocumentPosition(document.querySelector('#settings-other-title')!) & Node.DOCUMENT_POSITION_FOLLOWING)), 'Other settings sits under the account part');
+      assert.deepEqual(await page.$$eval('.other-settings .kitchen-section', nodes => nodes.map(n => n.id).filter(id => id.startsWith('settings-') && id !== 'settings-account')), ['settings-appearance', 'settings-currency', 'settings-offline-ready', 'settings-offline-downloads', 'settings-data', 'settings-usage']);
       for (const sel of ['#theme-mode-select', '#festival-theme-select', '[data-personal=currency]', '[data-action=export]', '[data-action=import]']) assert.equal(await page.locator('.other-settings ' + sel).count(), 1, sel + ' in Other settings');
-      assert.equal(await page.locator('.other-settings :is([data-personal=invite], #members-form, #settings-form, [data-personal=sign-out])').count(), 0, 'nothing from My kitchen or the account sheet');
+      assert.equal(await page.locator('.other-settings :is([data-personal=invite], #members-form, #settings-form)').count(), 0, 'nothing from My kitchen');
       await page.locator('#theme-mode-select').selectOption('dark');
       assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark', 'theme select still applies');
       await page.locator('#theme-mode-select').selectOption('light');
@@ -284,7 +288,7 @@ async function main() {
       }
       if (shots && account && theme === 'light' && name === 'mobile') {
         await page.locator('[data-ui-more]').click();
-        await page.locator('.more-tools [data-personal=other-settings]').waitFor();
+        await page.locator('.more-tools').waitFor();
         await page.screenshot({ path: `${shotDir}/more-menu-en-375x812.png` });
         await page.keyboard.press('Escape');
       }
@@ -320,17 +324,17 @@ async function main() {
       const head = await page.locator('.account-menu-head').innerText();
       assert.match(head, /Nguyễn An/); assert.match(head, /@qa/); assert.match(head, /QA kitchen · Trưởng nhóm/);
       assert.match(await page.locator('.account-menu').innerText(), /Đổi gia đình/i);
-      assert.deepEqual(await menuItems(page), ['Tài khoản & bảo mật', 'QA kitchenTrưởng nhóm✓', 'Nhà ngoạiChỉnh sửa', 'Dùng riêng trên máy này…', 'Đăng xuất…']);
+      assert.deepEqual(await menuItems(page), ['Tài khoản & cài đặt', 'QA kitchenTrưởng nhóm✓', 'Nhà ngoạiChỉnh sửa', 'Dùng riêng trên máy này…', 'Đăng xuất…']);
       assert.doesNotMatch(await page.locator('.account-menu').innerText(), /Bếp của nhà mình|My kitchen/, 'no My kitchen item in the account menu');
       assert.equal(await page.locator('#account-menu [aria-checked=true]').count(), 1, 'current family is marked');
       for (const h of await page.$$eval('#account-menu [role^=menuitem]', nodes => nodes.map(n => n.getBoundingClientRect().height))) assert.ok(h >= 44, 'menu rows are at least 44px');
       // Keyboard: focus moves into the menu, arrows/Home/End move between items, Escape returns to the avatar.
-      assert.equal(await focusedItem(page), 'Tài khoản & bảo mật');
+      assert.equal(await focusedItem(page), 'Tài khoản & cài đặt');
       await page.keyboard.press('ArrowDown'); assert.equal(await focusedItem(page), 'QA kitchenTrưởng nhóm✓');
       await page.keyboard.press('End'); assert.equal(await focusedItem(page), 'Đăng xuất…');
-      await page.keyboard.press('ArrowDown'); assert.equal(await focusedItem(page), 'Tài khoản & bảo mật', 'arrow wraps around');
+      await page.keyboard.press('ArrowDown'); assert.equal(await focusedItem(page), 'Tài khoản & cài đặt', 'arrow wraps around');
       await page.keyboard.press('ArrowUp'); assert.equal(await focusedItem(page), 'Đăng xuất…');
-      await page.keyboard.press('Home'); assert.equal(await focusedItem(page), 'Tài khoản & bảo mật');
+      await page.keyboard.press('Home'); assert.equal(await focusedItem(page), 'Tài khoản & cài đặt');
       await page.keyboard.press('Escape');
       assert.equal(await page.locator('#account-menu').count(), 0, 'Escape closes the menu');
       assert.equal(await page.evaluate(() => document.activeElement?.classList.contains('top-avatar')), true, 'focus returns to the avatar');
@@ -338,23 +342,24 @@ async function main() {
       // Keyboard open, then click outside closes.
       await page.keyboard.press('Enter');
       await page.locator('#account-menu').waitFor();
-      assert.equal(await focusedItem(page), 'Tài khoản & bảo mật', 'keyboard open focuses the first item');
+      assert.equal(await focusedItem(page), 'Tài khoản & cài đặt', 'keyboard open focuses the first item');
       assert.equal(ops.filter(op => op === 'families').length, 1, 'families are fetched once and reused');
       await page.mouse.click(30, 120);
       assert.equal(await page.locator('#account-menu').count(), 0, 'click outside closes the menu');
       assert.equal(await page.locator('.kitchen-hub').count(), 0);
       // “Account & security” opens its own small sheet (recovery email, password, this device), not My kitchen.
       await avatar.click();
-      await page.getByRole('menuitem', { name: 'Tài khoản & bảo mật', exact: true }).click();
+      await page.getByRole('menuitem', { name: 'Tài khoản & cài đặt', exact: true }).click();
       await page.locator('.account-sheet').waitFor();
       assert.equal(await page.locator('#account-menu').count(), 0, 'menu closes before the sheet opens');
       assert.equal(await page.locator('.kitchen-hub').count(), 0, 'account sheet is not My kitchen');
-      assert.equal(await page.locator('#modal-title').innerText(), 'Tài khoản & bảo mật');
+      assert.equal(await page.locator('#modal-title').innerText(), 'Tài khoản & cài đặt');
       assert.equal(await page.getByRole('dialog').getAttribute('aria-modal'), 'true');
       assert.match(await page.locator('.account-sheet-id').innerText(), /Nguyễn An[\s\S]*@qa[\s\S]*QA kitchen · Trưởng nhóm/);
-      assert.deepEqual(await page.$$eval('.account-sheet .kitchen-section', nodes => nodes.map(n => n.id)), ['security-email', 'security-password', 'security-device']);
+      assert.deepEqual((await page.$$eval('.account-sheet .kitchen-section', nodes => nodes.map(n => n.id))).slice(0, 3), ['security-email', 'security-password', 'security-device'], 'account & security first');
       for (const sel of ['form#account-email', 'a[href^="/login?"][href*="mode=request-reset"]', '[data-personal=device-only]', '[data-personal=sign-out]']) assert.equal(await page.locator('.account-sheet ' + sel).count(), 1, sel + ' in the account sheet');
-      assert.equal(await page.locator('.account-sheet :is(#members-form, #settings-form, [data-personal=invite], #theme-mode-select, [data-action=export])').count(), 0, 'no kitchen or other settings in the account sheet');
+      assert.equal(await page.locator('.account-sheet :is(#members-form, #settings-form, [data-personal=invite])').count(), 0, 'no My kitchen settings in the account sheet');
+      for (const sel of ['#theme-mode-select', '[data-action=export]', '#settings-offline-downloads', '#settings-usage']) assert.equal(await page.locator('.account-sheet ' + sel).count(), 1, sel + ': other settings sit under the account (v1.7.1)');
       await page.waitForFunction(() => /Máy chưa được ghi nhớ/.test(document.querySelector('#account-device-trust')?.textContent || ''));
       await page.keyboard.press('Escape');
       assert.equal(await page.locator('.account-sheet').count(), 0, 'Escape closes the sheet');
@@ -410,7 +415,7 @@ async function main() {
       await single.page.locator('#account-menu').waitFor();
       await single.page.waitForFunction(() => !!(accountSession as any)?.families);
       await single.page.waitForTimeout(100);
-      assert.deepEqual(await menuItems(single.page), ['Tài khoản & bảo mật', 'Dùng riêng trên máy này…', 'Đăng xuất…']);
+      assert.deepEqual(await menuItems(single.page), ['Tài khoản & cài đặt', 'Dùng riêng trên máy này…', 'Đăng xuất…']);
       assert.doesNotMatch(await single.page.locator('.account-menu').innerText(), /Đổi gia đình/i, 'no switch list with one family');
       assert.deepEqual(single.errors, []);
       await single.context.close();
@@ -422,9 +427,9 @@ async function main() {
       await avatar.click();
       await device.page.locator('#account-menu').waitFor();
       assert.match(await device.page.locator('.account-menu-head').innerText(), /Đang dùng trên máy này/);
-      // Signed out: only the real sign-in page and its register tab — never My kitchen.
-      assert.deepEqual(await menuItems(device.page), ['Đăng nhập', 'Tạo tài khoản']);
-      assert.equal(await device.page.locator('.account-menu :is([data-personal=sign-out], [data-personal=device-only], [data-personal=account-security], [data-personal=accounts], [data-personal=settings])').count(), 0);
+      // Signed out: the real sign-in page and its register tab, then (v1.7.1) the settings under the account — never My kitchen.
+      assert.deepEqual(await menuItems(device.page), ['Đăng nhập', 'Tạo tài khoản', 'Cài đặt']);
+      assert.equal(await device.page.locator('.account-menu :is([data-personal=sign-out], [data-personal=device-only], [data-personal=accounts], [data-personal=settings])').count(), 0);
       await Promise.all([device.page.waitForURL(url => url.pathname === '/login' && url.searchParams.get('return') === '/' && !url.searchParams.has('mode')), device.page.getByRole('menuitem', { name: 'Đăng nhập', exact: true }).click()]);
       await device.page.goto(origin, { waitUntil: 'domcontentloaded' });
       await ready(device.page);
@@ -502,26 +507,29 @@ async function main() {
         await page.waitForFunction((h: string) => (0, eval)('view') === h && !!document.querySelector('#main .kitchen-action-dock'), hash);
         assert.equal(await visibleCount(page, 'body', KITCHEN), 1, `${label} #${hash}: one My kitchen entry`);
         assert.equal(await visibleCount(page, 'body', ACCOUNT), 1, `${label} #${hash}: only the avatar for account`);
-        assert.equal(await visibleCount(page, 'body', OTHER), viewport.width >= 1000 ? 1 : 0, `${label} #${hash}: Other settings in the sidebar on desktop only`);
+        assert.equal(await visibleCount(page, 'body', OTHER), 0, `${label} #${hash}: no separate Other settings entry (v1.7.1: under the account)`);
       }
       if (viewport.width < 1000) {
         await page.locator('[data-ui-more]').click();
         await page.locator('.more-tools').waitFor();
-        assert.equal(await visibleCount(page, '.modal', OTHER), 1, `${label}: Other settings once in More`);
+        assert.equal(await visibleCount(page, '.modal', OTHER), 0, `${label}: More no longer repeats Other settings`);
         assert.equal(await visibleCount(page, '.modal', KITCHEN), 0, `${label}: More does not repeat My kitchen`);
-        await page.locator('.more-tools [data-personal=other-settings]').click();
-        await page.locator('.other-settings').waitFor();
         await page.keyboard.press('Escape');
       } else {
-        assert.equal(await page.locator('.sidebar .side-link').count(), 3, 'desktop sidebar: Reminders, Other settings and (v1.7) How to use'); assert.equal(await page.locator('.sidebar .side-link.guide-side-link').count(), 1);
-        assert.deepEqual(await page.$$eval('.sidebar .side-link', nodes => nodes.map(n => n.textContent!.trim())), ['Nhắc nhở', 'Cài đặt khác', '🧭 Hướng dẫn sử dụng']);
+        assert.equal(await page.locator('.sidebar .side-link').count(), 2, 'desktop sidebar: Reminders and (v1.7) How to use'); assert.equal(await page.locator('.sidebar .side-link.guide-side-link').count(), 1);
+        assert.deepEqual(await page.$$eval('.sidebar .side-link', nodes => nodes.map(n => n.textContent!.trim())), ['Nhắc nhở', '🧭 Hướng dẫn sử dụng']);
         await page.locator('.sidebar .side-link[data-section=reminders]').click();
         await page.locator('.kitchen-hub #kitchen-reminders').waitFor();
         await page.keyboard.press('Escape');
-        await page.locator('.sidebar [data-personal=other-settings]').click();
-        await page.locator('.other-settings').waitFor();
-        await page.keyboard.press('Escape');
       }
+      // The one way into Other settings: avatar → "Tài khoản & cài đặt" (signed in) / "Cài đặt" (device-only).
+      await page.locator('.top-avatar').click();
+      await page.locator('#account-menu').waitFor();
+      assert.equal(await visibleCount(page, '#account-menu-root', '[data-personal=account-security]'), 1, `${label}: one settings entry in the account menu`);
+      await page.locator('#account-menu [data-personal=account-security]').click();
+      await page.locator('.other-settings.account-sheet #settings-usage').waitFor();
+      assert.equal(await page.locator('.other-settings #settings-account').count(), 1);
+      await page.keyboard.press('Escape');
       await page.locator('.top-avatar').click();
       await page.locator('#account-menu').waitFor();
       if (account) await page.waitForFunction(() => !!(accountSession as any)?.families);
@@ -537,7 +545,7 @@ async function main() {
       assert.deepEqual(errors, []);
       await context.close();
     }
-    console.log('PASS one visible entry point per destination at 375 and 1280 (My kitchen, account, Other settings)');
+    console.log('PASS one visible entry point per destination at 375 and 1280 (My kitchen; account with Other settings under it)');
   } finally { await browser.close(); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

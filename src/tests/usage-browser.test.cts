@@ -51,7 +51,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
 
  // ---------- 1. active-minute counting (deterministic clock inside the page) ----------
  {const {context,page,errors}=await openApp();
-  const r=await page.evaluate(()=>{const g:any=globalThis,t0=Date.now()+1000;g.usageClear();let hidden=false;Object.defineProperty(document,'visibilityState',{configurable:true,get:()=>hidden?'hidden':'visible'});
+  const r=await page.evaluate(()=>{const g:any=globalThis,noon=new Date();noon.setHours(12,0,0,0);const t0=noon.getTime();/* local noon: the 31-min session gap must not cross local midnight (CI failed when run at 23:31 UTC) */g.usageClear();let hidden=false;Object.defineProperty(document,'visibilityState',{configurable:true,get:()=>hidden?'hidden':'visible'});
    const res:any={};g.usageLastTick=0;g.usageInteract(t0);res.a=g.usageTick(t0+15000);           // visible + recent interaction: 15 s
    hidden=true;res.b=g.usageTick(t0+30000);                                                      // hidden tab: 0
    hidden=false;g.usageLastTick=t0+30000;res.c=g.usageTick(t0+45000);                             // visible, last interaction 45 s ago: 15 s
@@ -124,7 +124,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
   await page.goto(origin+`/privacy.html?lang=${lang}#usage`);await page.waitForSelector(`main[lang="${lang}"] h1`);
   const visible=await page.locator(`main[lang="${lang}"]`).isVisible(),other=await page.locator(`main[lang="${lang==='vi'?'en':'vi'}"]`).isVisible();assert.ok(visible&&!other,'one language shown');
   const body=await page.locator(`main[lang="${lang}"]`).innerText();assert.match(body,lang==='en'?/Updated: 1 Nov 2026/:/Cập nhật: 1\/11\/2026/);
-  for(const w of (lang==='en'?['13 months','country and state','Community','On device','Scout']:['13 tháng','quốc gia và bang','Cộng đồng','Trên máy','Scout']))assert.ok(body.includes(w),'privacy '+lang+' missing '+w);
+  for(const w of (lang==='en'?['13 months','country and state','Community','On device','FamTray Price Check']:['13 tháng','quốc gia và bang','Cộng đồng','Trên máy','FamTray So Giá']))assert.ok(body.includes(w),'privacy '+lang+' missing '+w);
   assert.ok(!/netlify|blobs/i.test(await page.content()),'no hosting vendor named');assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(body),'no invented e-mail');
   await noOverflow(page,'privacy '+size);await shot(page,`privacy-${lang}-${theme}-${size}-${sizes[size].width}x${sizes[size].height}`);
   if(size==='tablet'){await page.locator('[data-set-lang="vi"]').click();assert.equal(await page.locator('main[lang="vi"]').isVisible(),true,'language switch')}

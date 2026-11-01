@@ -4,6 +4,7 @@ import { validDevice, pushKeys, devices, sendPushBatch, pushTypes, deviceBelongs
 import {createAnnouncement,listAnnouncements,updateAnnouncement,getAnnouncement} from '../lib/announcements.mjs';
 import { getStore } from '@netlify/blobs';
 import {recordEvent,recordSync,isFamilySuspended,familyLimits} from '../lib/studio.mjs';
+import {pushDetailOf} from '../lib/urgent-report.mjs';
 const json=(data,status=200,extra={})=>Response.json(data,{status,headers:{'Cache-Control':'no-store',...extra}});
 function validState(s){return s&&s.version===1&&Array.isArray(s.members)&&s.members.length>0&&s.members.length<=12&&Array.isArray(s.recipes)&&s.weeks&&typeof s.weeks==='object'&&Array.isArray(s.pantry)&&s.preferences&&(!s.receipts||Array.isArray(s.receipts))}
 export function createFamilyHandler({getStoreFn=getStore,pushSend=null,reminderThrottleMs=60000}={}){
@@ -38,7 +39,7 @@ return async(request,runtime=undefined)=>{
   if(!created.created){let claimed=false;if(alert?.pushStatus==='pending'&&Date.parse(alert.createdAt)<Date.now()-15000){try{alert=await updateAnnouncement(store,record.id,r=>{if(r.pushStatus!=='pending')return undefined;claimed=true;return{...r,pushStatus:'retrying'}})||alert}catch{}}if(!claimed)return json({saved:true,alert,duplicate:true,push:{reason:alert?.pushReason||alert?.pushStatus||'pending',accepted:alert?.pushAccepted||0}})}
   // Record + index are committed before push. A push failure never turns a saved message into an error.
   const saved=alert,deliver=async()=>{let result;try{result=await sendPushBatch(store,{type:'urgent',title:saved.fromName+' nhắn khẩn',enTitle:'Urgent message from '+saved.fromName,body:saved.message,enBody:saved.message,url:'/#today',tag:'family-alert-'+saved.id},{targets:saved.targets,subject:url.origin,family,...sendOpt})}catch(e){console.warn('Urgent push failed',e?.name);result={accepted:0,failed:0,recipients:0,reason:'delivery_failed'}}
-   let updated=saved;try{updated=await updateAnnouncement(store,record.id,r=>({...r,pushAccepted:result.accepted,pushStatus:result.accepted?'accepted':'not_sent',pushReason:result.reason}))||saved}catch{}try{await pushEvent('urgent',result)}catch{}return{result,updated}};
+   let updated=saved;try{updated=await updateAnnouncement(store,record.id,r=>({...r,pushAccepted:result.accepted,pushStatus:result.accepted?'accepted':'not_sent',pushReason:result.reason,pushAt:new Date().toISOString(),pushDetail:pushDetailOf(result,r.targets)}))||saved}catch{}try{await pushEvent('urgent',result)}catch{}return{result,updated}};
   // v1.7: answer as soon as the message is stored; the push fan-out finishes in the runtime's background (waitUntil).
   // The app shows "sending notification…" until the next alerts refresh reports the push outcome.
   if(typeof runtime?.waitUntil==='function'){runtime.waitUntil(deliver().catch(()=>{}));return json({saved:true,indexed,alert:saved,queued:true,push:{reason:'queued',accepted:0,failed:0,queued:true},...(created.created?{}:{duplicate:true})})}

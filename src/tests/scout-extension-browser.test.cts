@@ -82,6 +82,8 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
  // Account + pairing code (as Studio / My kitchen would create it).
  const reg=await accounts(new Request('https://app.test/.netlify/functions/accounts?op=register',{method:'POST',headers:{Origin:'https://app.test','Content-Type':'application/json','x-nf-client-connection-ip':'e2e'},body:JSON.stringify({username:'scoutfamily',name:'Scout family',password:'synthetic-e2e-passphrase-42',trust:true})}));assert.equal(reg.status,201);
  appCookie=(reg.headers.getSetCookie?.()||[String(reg.headers.get('set-cookie')||'')]).map((c:string)=>c.split(';')[0]).join('; ');assert.ok(appCookie.length>20,'session cookie');
+ // v1.7.1: only accounts assigned in Studio may pair; the family owner is assigned here.
+ await scoutLib.setExtensionAllowed(getStoreFn,'scoutfamily',true,'henrynguyen',Date.now());
  const {code}=await scoutLib.createPairCode(getStoreFn,'scoutfamily',Date.now(),env);
 
  const profile=mkdtempSync(join(tmpdir(),'scout-e2e-'));
@@ -169,7 +171,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
   const card=app.locator('.kitchen-hub .scout-pair-card');
   // 1. Install detection: the card finds the installed extension and offers Pair now.
   await card.locator('[data-scout-state="ready"]').waitFor({timeout:15000});
-  assert.match(await card.innerText(),/Đã cài tiện ích FamTray Scout/);assert.equal(await card.locator('[data-scout-pair-now]').count(),1);
+  assert.match(await card.innerText(),/Đã cài tiện ích FamTray So Giá/);assert.equal(await card.locator('[data-scout-pair-now]').count(),1);
   assert.equal(await card.locator('[data-scout-state="install"]').count(),0,'no install steps once installed');
   // 2. Manual fallback still works: code from the card, typed into the extension's settings.
   await card.locator('.scout-pair-manual summary').click();await card.locator('[data-scout-pair]').click();
@@ -255,16 +257,63 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    await pop3.close();
    console.log('PASS v1.7 remote control in the extension: Run now command → run outside the window, Very fast pace still sequential (≥ 3 s), Stop obeyed within one heartbeat, popup status, live status')}
 
+  // ================= v1.7.1: popup layout, one-step pairing with the real extension, Studio assignment =================
+  {const rdir='docs/reviews/v1.7.1/rename';mkdirSync(rdir,{recursive:true});
+   const unpair=async()=>{const st=await storage(['deviceId']);if(st.deviceId){try{await scoutLib.revokeDevice(getStoreFn,st.deviceId,'test',Date.now())}catch{}}await setStorage({token:'',deviceId:'',device:null,autoEnabled:false,paused:false,notAssigned:false,run:null})};
+   await unpair();
+   // 1. Popup: fixed 360 px width, one-line header, VI│EN toggle, unpaired state fits 600 px (Windows scaling 100 % and 150 %).
+   const pp=await ctx.newPage();const cdp=await ctx.newCDPSession(pp);
+   for(const scale of [1,1.5])for(const [lang,theme] of [['vi','light'],['en','dark'],['en','light'],['vi','dark']] as const){
+    await cdp.send('Emulation.setDeviceMetricsOverride',{width:360,height:600,deviceScaleFactor:scale,mobile:false});await setStorage({lang,theme});
+    await pp.goto(`chrome-extension://${id}/popup.html`);await pp.locator('#pairnow').waitFor();
+    const m=await pp.evaluate(()=>{const de=document.documentElement,b=document.body.getBoundingClientRect(),over=[...document.querySelectorAll('body *')].filter((e:any)=>{const r=e.getBoundingClientRect();return r.width&&(r.right>de.clientWidth+1||r.left<-1)}).map((e:any)=>e.tagName+'.'+e.className);
+     const bottom=(s:string)=>document.querySelector(s)!.getBoundingClientRect().bottom,h1=document.querySelector('.pop-name span:last-child')!.getBoundingClientRect();
+     return{body:b.width,over,scrollH:de.scrollHeight,pair:bottom('#pairnow'),code:bottom('#pc-code'),titleLines:Math.round(h1.height/parseFloat(getComputedStyle(document.querySelector('.pop-name span:last-child')!).lineHeight||'20')),pressed:document.querySelector('.seg-btn[aria-pressed="true"]')!.textContent,pause:!!document.querySelector('#pause'),xScroll:de.scrollWidth>de.clientWidth}});
+    const label=`${lang} ${theme} @${scale}x`;
+    assert.ok(m.body>=340,'popup body ≥ 340 px: '+m.body+' '+label);assert.deepEqual(m.over,[],'nothing overflows horizontally '+label);assert.equal(m.xScroll,false,label);
+    assert.ok(m.pair<=600&&m.code<=600&&m.scrollH<=600,'Pair now + Enter code visible without scrolling at 600 px: '+JSON.stringify(m)+' '+label);
+    assert.equal(m.titleLines,1,'title on one line '+label);assert.equal(m.pressed,lang.toUpperCase(),'toggle shows the current language');assert.equal(m.pause,false,'no Pause while not paired');
+    if(lang+theme==='vilight'||lang+theme==='endark')await pp.screenshot({path:`${rdir}/popup-unpaired-${lang}-${theme}-360x600@${scale}x.png`,clip:{x:0,y:0,width:360,height:600}})}
+   // Language toggle: one tap switches and stays pressed.
+   await setStorage({lang:'vi',theme:'light'});await pp.goto(`chrome-extension://${id}/popup.html`);await pp.locator('.seg-btn[data-lang="en"]').click();await pp.getByText('Not paired yet').waitFor();assert.equal(await pp.locator('.seg-btn[data-lang="en"]').getAttribute('aria-pressed'),'true');assert.equal((await storage(['lang'])).lang,'en');
+   const small=await pp.evaluate(()=>[...document.querySelectorAll('button,input')].filter((e:any)=>e.getBoundingClientRect().height<44).map((e:any)=>e.id||e.textContent.trim()));assert.deepEqual(small,[],'popup targets ≥ 44 px');
+   await cdp.send('Emulation.clearDeviceMetricsOverride');await setStorage({lang:'vi'});
+   // 2. Popup “Ghép ngay” → the app's #pair-extension → the person confirms with one tap → paired. Nothing before the tap.
+   await setStorage({server:APP});await pp.goto(`chrome-extension://${id}/popup.html`);
+   const [pa]=await Promise.all([ctx.waitForEvent('page'),pp.locator('#pairnow').click()]);await pa.waitForLoadState('domcontentloaded');assert.match(pa.url(),/#pair-extension$/,'popup opens the app pairing link');
+   const pb=pa.locator('#main > .scout-found-banner:not(.scout-granted-notice)');await pb.waitFor({timeout:30000});assert.match(await pb.innerText(),/Bấm “Ghép ngay” để xác nhận/);
+   await pa.waitForTimeout(1500);assert.equal((await storage(['token'])).token,'','never pairs before the tap');
+   await pa.setViewportSize({width:1280,height:800});await pa.screenshot({path:`${rdir}/e2e-pair-extension-confirm-1280x800-vi.png`});
+   await pb.locator('[data-scout-found-pair]').click();await pb.locator('[data-scout-found-close]').waitFor({timeout:20000});
+   const ps=await storage(['token','server']);assert.match(ps.token,/^[\w-]{43}$/);assert.equal(ps.server,APP);await pa.close();
+   {const pq=await ctx.newPage();await pq.setViewportSize({width:360,height:600});await pq.goto(`chrome-extension://${id}/popup.html`);await pq.locator('#pause').waitFor();assert.ok((await pq.locator('#pause').boundingBox())!.width<140,'Pause is a small header button');await pq.screenshot({path:`${rdir}/popup-paired-vi-light-360x600.png`});await pq.close()}
+   // 3. Found-on-this-computer banner: install → open the app signed in → banner → one tap → paired; hidden once paired.
+   await unpair();const ap=await ctx.newPage();await ap.setViewportSize({width:1280,height:800});await ap.goto(APP+'/',{waitUntil:'domcontentloaded'});
+   const fb=ap.locator('#main > .scout-found-banner:not(.scout-granted-notice)');await fb.waitFor({timeout:30000});assert.match(await fb.innerText(),/Đã thấy FamTray So Giá trên máy này/);
+   await ap.waitForTimeout(1500);assert.equal((await storage(['token'])).token,'','banner alone never pairs');
+   await fb.locator('[data-scout-found-pair]').click();await fb.locator('[data-scout-found-close]').waitFor({timeout:20000});assert.match((await storage(['token'])).token,/^[\w-]{43}$/,'one tap paired');
+   await ap.reload({waitUntil:'domcontentloaded'});await ap.waitForTimeout(4000);assert.equal(await ap.locator('.scout-found-banner:not(.scout-granted-notice)').count(),0,'no pairing banner when already paired');assert.equal(await ap.locator('.scout-granted-notice').count(),1,'the one-time “you can now use Price Check” notice (assigned in Studio) is a separate notice');
+   // 4. Studio removes the account: the paired computer is refused at once and the popup says why; the app shows nothing.
+   await scoutLib.setExtensionAllowed(getStoreFn,'scoutfamily',false,'henrynguyen',Date.now());await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat()).catch(()=>{});
+   await until(async()=>(await storage(['notAssigned'])).notAssigned===true,10000,'popup learns not_assigned');
+   const pn=await ctx.newPage();await pn.setViewportSize({width:360,height:600});await pn.goto(`chrome-extension://${id}/popup.html`);const na=pn.locator('[data-not-assigned]');await na.waitFor();assert.match(await na.innerText(),/chưa được cấp quyền dùng tiện ích/);
+   await pn.screenshot({path:`${rdir}/popup-not-assigned-vi-light-360x600.png`});await pn.close();
+   await unpair();await ap.reload({waitUntil:'domcontentloaded'});await ap.waitForTimeout(4000);assert.equal(await ap.locator('.scout-found-banner, .scout-pair-card').count(),0,'unassigned: no banner');
+   await ap.evaluate(()=>(globalThis as any).settingsModal('family'));await ap.locator('.kitchen-hub').waitFor();await ap.waitForTimeout(2500);assert.equal(await ap.locator('.scout-pair-card').count(),0,'unassigned: no pairing card');
+   await scoutLib.setExtensionAllowed(getStoreFn,'scoutfamily',true,'henrynguyen',Date.now());await ap.close();await pp.close().catch(()=>{});
+   assert.deepEqual(pageErrors,[]);
+   console.log('PASS v1.7.1 real extension: popup 360 px wide at 100 %/150 % scaling (no overflow, one-line title, VI│EN toggle, Pair now + Enter code without scrolling), popup Pair now → #pair-extension → one confirming tap → paired, found-extension banner → one tap → paired (never before the tap, hidden once paired), Studio removal refuses the device and the popup explains, unassigned account sees nothing')}
+
   // ---------- Chrome Web Store / Edge Add-ons screenshots (1280×800) + promo tile ----------
   if(process.env.SCOUT_STORE_SCREENSHOTS==='1'){const dir='docs/scout-store/screenshots';mkdirSync(dir,{recursive:true});
    const st=await ctx.newPage();await st.setViewportSize({width:1280,height:800});
    const frame=async(lang:string,title:string,lead:string,file:string)=>{await setStorage({lang,theme:'light',lastSemi:{at:Date.now(),count:24,accepted:24,retailer:'woolworths',retailerLabel:'Woolworths',store:'Hurstville',pages:1}});await st.goto(`chrome-extension://${id}/options.html`);await st.waitForSelector('#h-check');
-    await st.evaluate(([title,lead]:string[])=>{document.body.innerHTML=`<div style="display:flex;gap:56px;align-items:center;justify-content:center;height:800px;background:#eef6f1"><div style="max-width:520px"><p style="font-size:64px;margin:0;color:#1f7a4d">◎</p><h1 style="font-size:44px;margin:8px 0">FamTray Scout</h1><p style="font-size:26px;line-height:1.35;margin:0 0 12px">${title}</p><p style="font-size:19px;color:#56625b;line-height:1.5">${lead}</p></div><iframe src="popup.html" title="popup" style="width:360px;height:620px;border:1px solid #d6ddd8;border-radius:14px;box-shadow:0 12px 40px #0002;background:#fff"></iframe></div>`},[title,lead]);await st.waitForTimeout(800);await st.screenshot({path:`${dir}/${file}`})};
+    await st.evaluate(([title,lead,name]:string[])=>{document.body.innerHTML=`<div style="display:flex;gap:56px;align-items:center;justify-content:center;height:800px;background:#eef6f1"><div style="max-width:520px"><p style="font-size:64px;margin:0;color:#1f7a4d">◎</p><h1 style="font-size:44px;margin:8px 0">${name}</h1><p style="font-size:26px;line-height:1.35;margin:0 0 12px">${title}</p><p style="font-size:19px;color:#56625b;line-height:1.5">${lead}</p></div><iframe src="popup.html" title="popup" style="width:360px;height:620px;border:1px solid #d6ddd8;border-radius:14px;box-shadow:0 12px 40px #0002;background:#fff"></iframe></div>`},[title,lead,lang==='vi'?'FamTray So Giá':'FamTray Price Check']);await st.waitForTimeout(800);await st.screenshot({path:`${dir}/${file}`})};
    await frame('vi','Ghi giá kệ siêu thị bạn đang xem cho bếp gia đình.','Chỉ ghi tên, giá, giá theo đơn vị, khuyến mãi và cửa hàng. Không lấy thông tin cá nhân. Tạm dừng bất cứ lúc nào.','1-popup-vi-1280x800.png');
    await frame('en','Saves the shelf prices you view for your family kitchen.','Records name, price, unit price, promotion and store only. No personal data. Pause any time.','2-popup-en-1280x800.png');
    for(const lang of ['vi','en']){await setStorage({lang});await st.goto(`chrome-extension://${id}/options.html`);await st.waitForSelector('#h-check');await st.screenshot({path:`${dir}/${lang==='vi'?3:4}-settings-${lang}-1280x800.png`})}
    await app.setViewportSize({width:1280,height:800});await app.evaluate(()=>document.querySelector('.scout-pair-card')?.scrollIntoView({block:'start'}));await app.screenshot({path:`${dir}/5-pair-now-vi-1280x800.png`});
-   await st.setViewportSize({width:440,height:280});await st.evaluate(()=>{document.body.innerHTML='<div style="width:440px;height:280px;display:flex;align-items:center;gap:18px;padding:24px;box-sizing:border-box;background:#1f7a4d;color:#fff"><span style="font-size:96px;line-height:1">◎</span><div><div style="font:700 34px system-ui">FamTray Scout</div><div style="font:18px/1.35 system-ui;margin-top:6px">Shelf prices for your family kitchen · Giá kệ cho bếp gia đình</div></div></div>'});await st.screenshot({path:`${dir}/promo-small-440x280.png`});await st.close();
+   await st.setViewportSize({width:440,height:280});await st.evaluate(()=>{document.body.innerHTML='<div style="width:440px;height:280px;display:flex;align-items:center;gap:18px;padding:24px;box-sizing:border-box;background:#1f7a4d;color:#fff"><span style="font-size:96px;line-height:1">◎</span><div><div style="font:700 28px system-ui">FamTray Price Check</div><div style="font:600 18px system-ui">FamTray So Giá</div><div style="font:18px/1.35 system-ui;margin-top:6px">Shelf prices for your family kitchen · Giá kệ cho bếp gia đình</div></div></div>'});await st.screenshot({path:`${dir}/promo-small-440x280.png`});await st.close();
    console.log('Store screenshots written to '+dir)}
  }finally{await ctx.close();server.close();rmSync(profile,{recursive:true,force:true})}
 })().catch(e=>{console.error(e);process.exit(1)});

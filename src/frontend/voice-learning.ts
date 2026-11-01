@@ -48,7 +48,7 @@ const beforeVoiceLearnMeal=voiceMealDraft;voiceMealDraft=function(c,s,baseDate,t
 // English food words and how a vi-VN recogniser tends to spell them; each maps to an EXISTING catalog id ('' = no
 // catalog item: shown with a clean bilingual name, never mapped to a wrong ingredient). Same row shape as VOICE_LEXICON.
 const VOICE_VIETLISH=[
- ['salmon','Cá hồi','Salmon','sa mơn','xa mông','sơ mơn','xa mơn','sa môn','sa mông','sam mơn','xá mơn','sơ mông','samon','sammon'],
+ ['salmon','Cá hồi','Salmon','sa mơn','xa mông','sơ mơn','xa mơn','sa môn','sa mông','sam mơn','xá mơn','sơ mông','samon','sammon','xa môn','sà mơn','sam môn','sa mun','xa mun'],
  ['salmon','Phi lê cá hồi','Salmon fillet','phi lê cá hồi','phi lê sa mơn','salmon phi lê'],
  ['tuna','Cá ngừ','Tuna','tuna','tu na','tuy na','tiu na','tu-na','cá ngừ','tuna steak','fresh tuna'],
  ['beef','Thịt bò','Beef','bíp','bíf','bip'],
@@ -70,7 +70,9 @@ const VOICE_VIETLISH=[
 ];
 // Spoken forms that are too ambiguous to map silently: the preview asks "Có phải: … ?" (one tap) instead.
 // [form, ingredient id or '', Vietnamese name, English name]
-const VOICE_VIETLISH_ASK=[['kem','cream','Kem tươi','Cream'],['min','pork','Thịt heo xay','Pork mince'],['mince','pork','Thịt heo xay','Pork mince'],['mins','pork','Thịt heo xay','Pork mince'],['chi','','Phô mai','Cheese'],['bơ','avocado','Quả bơ','Avocado']];
+const VOICE_VIETLISH_ASK=[['kem','cream','Kem tươi','Cream'],['min','pork','Thịt heo xay','Pork mince'],['mince','pork','Thịt heo xay','Pork mince'],['mins','pork','Thịt heo xay','Pork mince'],['chi','','Phô mai','Cheese'],['bơ','avocado','Quả bơ','Avocado'],
+ // v1.7.1: Vietnamese recognisers also write "salmon" as the real word "xa lông" (sofa) — ask, never map silently.
+ ['sa lông','salmon','Cá hồi','Salmon'],['xa lông','salmon','Cá hồi','Salmon'],['sa long','salmon','Cá hồi','Salmon']];
 const VOICE_LEXICON_BASE_LEN=VOICE_LEXICON.length;
 VOICE_LEXICON.push(...VOICE_VIETLISH);voiceLexIndex=null;voiceAltRe2Cache=null;
 // Extra Vietlish units: "1 cục ba tơ" (a block of butter).
@@ -93,7 +95,10 @@ function voiceVietlishAsk(label){const n=normalizeText(String(label||'')).trim()
 // `suggest` = {id, vi, en, score}; the preview offers "Có phải: cá hồi (salmon)?" and a confirmed choice is
 // remembered through the family's learned corrections (VoiceAPI.learn), so it maps directly next time.
 const beforeVietlishItem=voiceItem;voiceItem=function(c,s){return voiceListUnitFix(voiceVietlishItem(c,s),c)};
-function voiceVietlishItem(c,s){const it=beforeVietlishItem(c,s);if(!it||!it.label)return it;
+const VOICE_EGG_X=/^(?:x|ex|xs|x s|exes|x es|x's)$/i;
+function voiceVietlishItem(c,s){let it=beforeVietlishItem(c,s);if(!it||!it.label)return it;
+ // "5x chicken" / "5 x chicken": a multiplier the recogniser wrote as "x" is the count (the line still asks for a unit).
+ {const m=it.qty===null&&/^(\d+(?:[.,]\d+)?)\s*x\s+(\S.*)$/iu.exec(it.label);if(m&&+m[1].replace(',','.')>0&&(it.ingredient||it.names))it={...it,label:m[2],qty:+m[1].replace(',','.'),needsReview:true}}
  if(it.lexKey&&!it.ingredient){const k=+String(it.lexKey).slice(3),e=VOICE_LEXICON[k];if(e&&k>=VOICE_LEXICON_BASE_LEN&&!e[0])return{...it,names:{vi:e[1],en:e[2]},vietlish:true}}
  if(it.lexKey||it.learned||it.names)return it;
  // The v1.5 parser's own fuzzy guess can grab a Vietnamese word inside a Vietlish spelling ("sa mờn" → sả). When the
@@ -103,7 +108,11 @@ function voiceVietlishItem(c,s){const it=beforeVietlishItem(c,s);if(!it||!it.lab
  // item, separate the count so the suggestion keeps it (the line still needs review).
  const lead=it.qty===null&&/^(\d+(?:[.,]\d+)?|[a-z]+)\s+(.+)$/i.exec(it.label);
  if(lead){const n=/^\d/.test(lead[1])?+lead[1].replace(',','.'):VOICE_EN_NUM[lead[1].toLowerCase()];const rest=lead[2];
-  if(Number.isFinite(n)&&n>0){const learned=voiceLearnedLookup(s,'i',rest);if(learned){let unit='';try{unit=VOICE_PIECE_IDS.has(learned.id)?'miếng':voiceCountUnit(rest,learned.id)||''}catch{}return{...it,label:rest,qty:n,unit,ingredient:learned.id,names:null,learned:true,needsReview:!unit}}
+  if(Number.isFinite(n)&&n>0){
+   // v1.7.1: English recognisers write "5 eggs" as "5x" / "5 x" / "5 ex". Never added silently: the line asks
+   // "Có phải: trứng (eggs)?" through the usual did-you-mean, and only right after a count.
+   if(VOICE_EGG_X.test(rest.trim())&&Object.hasOwn(INGREDIENTS,'egg'))return{...it,label:rest,qty:n,unit:'quả',suggest:{id:'egg',vi:'Trứng',en:'Eggs',score:.55,heardAs:'x'},needsReview:true};
+   const learned=voiceLearnedLookup(s,'i',rest);if(learned){let unit='';try{unit=VOICE_PIECE_IDS.has(learned.id)?'miếng':voiceCountUnit(rest,learned.id)||''}catch{}return{...it,label:rest,qty:n,unit,ingredient:learned.id,names:null,learned:true,needsReview:!unit}}
    const g=voiceVietlishAsk(rest)||voiceFuzzyMatch(rest)||voicePhoneticMatch(rest);if(g){let unit='';try{unit=VOICE_PIECE_IDS.has(g.id)?'miếng':g.id?voiceCountUnit(rest,g.id)||'':''}catch{}return{...it,label:rest,qty:n,unit,suggest:g,needsReview:true}}}}
  const sug=voiceVietlishAsk(it.label)||voiceFuzzyMatch(it.label)||voicePhoneticMatch(it.label);if(!sug)return it;return{...it,suggest:sug,needsReview:true}}
 // ---- Spoken lists without "and"/commas, recogniser homophones, phonetic matches (v1.6) ----

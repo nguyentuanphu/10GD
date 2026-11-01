@@ -8,13 +8,24 @@ import {sendPushBatch,devices} from './push.mjs';
 
 const LABEL:any={woolworths:'Woolworths',coles:'Coles',aldi:'ALDI',chemist:'Chemist Warehouse',amazon:'Amazon AU'};
 /** Message text for one Scout event (VI + EN). */
-export function scoutMessage(type:string,d:any){const name=String(d?.name||d?.deviceId||'Scout').slice(0,40),shop=LABEL[d?.retailer]||'';
- if(type==='run_finished')return{title:'FamTray Scout: đã chạy xong',enTitle:'FamTray Scout: run finished',body:`${name}: ${d.pages||0} trang, ${d.prices||0} giá${d.skipped?`, bỏ qua ${d.skipped}`:''}.`,enBody:`${name}: ${d.pages||0} pages, ${d.prices||0} prices${d.skipped?`, ${d.skipped} skipped`:''}.`};
- if(type==='device_blocked')return{title:'FamTray Scout: bị chặn, tạm dừng 24 giờ',enTitle:'FamTray Scout: blocked, paused 24 h',body:`${shop||'Cửa hàng'} hiện trang xác minh/chặn (${d.kind||'?'}). Máy tự dừng; không cần làm gì.`,enBody:`${shop||'A retailer'} showed a check/block (${d.kind||'?'}). The computer paused itself; nothing to do.`};
- if(type==='device_offline')return{title:'FamTray Scout: máy tính không liên lạc',enTitle:'FamTray Scout: computer offline',body:`${name} không liên lạc trong khung giờ chạy. Máy có thể đang ngủ, tắt hoặc Chrome đã đóng.`,enBody:`${name} has been silent during its scout window. It may be asleep, off, or Chrome is closed.`};
- if(type==='parser_breakage')return{title:'FamTray Scout: tự dừng một cửa hàng',enTitle:'FamTray Scout: retailer auto-paused',body:`${shop}: trình đọc giá lỗi nhiều, đã tự dừng. Kiểm tra trong Studio.`,enBody:`${shop}: too many pages could not be read, auto-paused. Check Studio.`};
+export function scoutMessage(type:string,d:any){const name=String(d?.name||d?.deviceId||'FamTray').slice(0,40),shop=LABEL[d?.retailer]||'';
+ if(type==='run_finished')return{title:'FamTray So Giá: đã chạy xong',enTitle:'FamTray Price Check: run finished',body:`${name}: ${d.pages||0} trang, ${d.prices||0} giá${d.skipped?`, bỏ qua ${d.skipped}`:''}.`,enBody:`${name}: ${d.pages||0} pages, ${d.prices||0} prices${d.skipped?`, ${d.skipped} skipped`:''}.`};
+ if(type==='device_blocked')return{title:'FamTray So Giá: bị chặn, tạm dừng 24 giờ',enTitle:'FamTray Price Check: blocked, paused 24 h',body:`${shop||'Cửa hàng'} hiện trang xác minh/chặn (${d.kind||'?'}). Máy tự dừng; không cần làm gì.`,enBody:`${shop||'A retailer'} showed a check/block (${d.kind||'?'}). The computer paused itself; nothing to do.`};
+ if(type==='device_offline')return{title:'FamTray So Giá: máy tính không liên lạc',enTitle:'FamTray Price Check: computer offline',body:`${name} không liên lạc trong khung giờ chạy. Máy có thể đang ngủ, tắt hoặc Chrome đã đóng.`,enBody:`${name} has been silent during its price-check window. It may be asleep, off, or Chrome is closed.`};
+ if(type==='parser_breakage')return{title:'FamTray So Giá: tự dừng một cửa hàng',enTitle:'FamTray Price Check: retailer auto-paused',body:`${shop}: trình đọc giá lỗi nhiều, đã tự dừng. Kiểm tra trong Studio.`,enBody:`${shop}: too many pages could not be read, auto-paused. Check Studio.`};
  return null}
 const admins=(env:any)=>String(env?.STUDIO_ADMINS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
+/** Push to one account's own app devices in each family it belongs to (type 'scout': per-device types and quiet hours apply). */
+export async function notifyAccount(getStoreFn:any,username:string,m:any,{send}:any={}){const accounts=accountStore(getStoreFn),root=getStoreFn({name:'bep-family-data',consistency:'strong',region:'ap-southeast-2'});let sent=0,a:any=null;
+ try{a=await accounts.get('users/'+username,{type:'json'})}catch{}if(!a)return{sent:0};
+ const ids=[...new Set([...Object.keys(membershipIndex(a)||{}),a.lastHouseholdId].filter((x:any)=>/^[a-f0-9-]{36}$/.test(String(x||''))))];
+ for(const id of ids){try{const f=await accounts.get('families/'+id,{type:'json'});if(!f?.members?.[username])continue;const store=scopedStore(root,id,f.members);
+  const mine=(await devices(store)).filter((d:any)=>d.accountUsername===username).map((d:any)=>d.deviceId);if(!mine.length)continue;
+  const r=await sendPushBatch(store,{type:'scout',...m},{deviceIds:mine,...(send?{send}:{})});sent+=r.accepted||0}catch{}}
+ return{sent}}
+/** v1.7.1: Studio assigned this account to the price-check extension → one push to its own devices (if push is on). */
+export const assignedMessage={key:'scout-assigned',tag:'scout-assigned',url:'/#today',title:'Bạn đã được cấp quyền So Giá',enTitle:'You can now use Price Check',body:'Cài trên máy tính: Tài khoản & cài đặt → So Giá trên máy tính.',enBody:'Install on a computer: Account & settings → Price Check on a computer.'};
+export function notifyAssigned(getStoreFn:any,username:string,opts:any={}){return notifyAccount(getStoreFn,username,assignedMessage,opts)}
 /** Sends one Scout event to every Studio owner's own push devices. `send` is injectable for tests. */
 export async function notifyOwners(getStoreFn:any,type:string,data:any,env:any=process.env,{send}:any={}){const m=scoutMessage(type,data);if(!m)return{sent:0};
  const accounts=accountStore(getStoreFn),root=getStoreFn({name:'bep-family-data',consistency:'strong',region:'ap-southeast-2'});let sent=0;

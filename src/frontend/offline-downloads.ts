@@ -60,7 +60,7 @@ function registerBuiltInOfflinePacks(){
  cachePack('sheets','sheets',()=>otr('Hình chi tiết độ nét cao','High-detail dish pictures'),()=>otr('Chỉ cần nếu muốn ảnh lớn sắc nét khi xem chi tiết món offline.','Only needed for sharp large pictures in recipe details offline.'),OFFLINE_CACHES.sheets);
  registerOfflinePack({id:'catalog',large:false,
   label:()=>{const n=offlineManifestCache?.catalogCount||740;return otr(`Kho ${n} món (dữ liệu)`,`${n}-recipe library (data)`)},
-  description:()=>otr('Bộ lọc thư viện, gợi ý thực đơn và món mẫu khi offline. Món của gia đình luôn có sẵn.','Library filters, menu suggestions and sample dishes offline. Family recipes are always available.'),
+  description:()=>otr('Bộ lọc thư viện, gợi ý thực đơn và món mẫu khi offline. Món ăn của gia đình luôn có sẵn.','Library filters, menu suggestions and sample dishes offline. Family recipes are always available.'),
   sizeBytes:async()=>(await offlineManifest()).catalog.transfer,
   status:async()=>{const m=await offlineManifest(),c=await offlineCacheCount(OFFLINE_CACHES.catalog,m.catalog.files);return{state:c.have?'ready':'none',have:c.have,total:1}},
   download:async(onProgress,signal)=>{const m=await offlineManifest();await offlineDownloadFiles(OFFLINE_CACHES.catalog,m.catalog.files,onProgress,signal);if(typeof ensureCatalog==='function')await ensureCatalog().catch(()=>{});return true},
@@ -73,7 +73,7 @@ function registerBuiltInOfflinePacks(){
   download:async(onProgress,signal)=>{const f=offlineOcrFiles(await offlineManifest());if(!f)throw Error('OCR unavailable');await navigator.storage?.persist?.().catch(()=>false);return offlineDownloadFiles(OFFLINE_CACHES.ocr,f.files,onProgress,signal)},
   remove:async()=>{await caches.delete(OFFLINE_CACHES.ocr);return true}});
  registerOfflinePack({id:'price-scout',large:false,builtIn:true,
-  label:()=>otr('Danh mục Price Scout','Price Scout catalog'),
+  label:()=>otr('Danh mục So Giá','Price Check catalog'),
   description:()=>otr('Có sẵn trong ứng dụng; luôn dùng được offline.','Included with the app; always available offline.'),
   sizeBytes:async()=>(await offlineManifest()).priceScout.transfer,
   status:async()=>({state:typeof MASTER_CATALOG!=='undefined'?'builtin':'none'})});
@@ -87,13 +87,16 @@ function offlineStatusText(p,s,job){
  if(job?.running)return otr('Đang tải…','Downloading…')+(job.total?` ${Math.floor(job.done*100/job.total)}%`:'');
  if(job?.queued)return otr('Chờ Wi-Fi','Waiting for Wi-Fi');
  if(job?.error)return otr('Lỗi: ','Error: ')+job.error;
- return {ready:'✓ '+otr('Đã tải','Downloaded'),builtin:'✓ '+otr('Có sẵn','Included'),partial:otr(`Đã tải ${s.have}/${s.total} — bấm Tiếp tục`,`${s.have}/${s.total} downloaded — tap Resume`),none:otr('Chưa tải','Not downloaded'),unavailable:p.placeholder?otr('Sắp có','Coming soon'):otr('Chưa có trên máy chủ này','Not available on this server'),unknown:otr('Chưa kiểm tra được','Status unavailable')}[s?.state||'unknown'];
+ if(s?.busyText)return String(s.busyText);
+ return {ready:'✓ '+otr('Đã tải','Downloaded'),builtin:'✓ '+otr('Có sẵn','Included'),partial:otr(`Đã tải ${s.have}/${s.total} — bấm Tiếp tục`,`${s.have}/${s.total} downloaded — tap Resume`),none:otr('Chưa tải','Not downloaded'),unavailable:p.placeholder?otr('Sắp có','Coming soon'):s?.reasonText?String(s.reasonText):otr('Chưa có trên máy chủ này','Not available on this server'),unknown:otr('Chưa kiểm tra được','Status unavailable')}[s?.state||'unknown'];
 }
+// v1.7.1: a pack may add its own trusted markup under the description (on-device speech: auto-download option + update note).
+function offlineExtra(p,s){try{return String(p.extraHtml(s)||'')}catch{return''}}
 function offlineRowHtml(p){
  const s=offlineStatusCache.get(p.id)||{state:'unknown'},job=offlineJobs.get(p.id),size=p.__size||0,pct=job?.total?Math.floor(job.done*100/job.total):s.total?Math.floor((s.have||0)*100/s.total):(s.state==='ready'||s.state==='builtin'?100:0);
- const canDownload=!p.builtIn&&!p.placeholder&&s.state!=='unavailable'&&s.state!=='ready',canRemove=!p.builtIn&&!p.placeholder&&typeof p.remove==='function'&&(s.state==='ready'||s.state==='partial');
+ const canDownload=!s.busy&&!p.builtIn&&!p.placeholder&&s.state!=='unavailable'&&s.state!=='ready',canRemove=!s.busy&&!p.builtIn&&!p.placeholder&&typeof p.remove==='function'&&(s.state==='ready'||s.state==='partial');
  const action=job?.running?`<button type="button" class="btn small" data-offline-cancel="${p.id}">${otr('Dừng','Stop')}</button>`:canDownload?`<button type="button" class="btn small primary" data-offline-download="${p.id}">${s.state==='partial'||job?.error?otr('Tiếp tục','Resume'):job?.queued?otr('Tải ngay','Download now'):otr('Tải về','Download')}</button>`:'';
- return `<li class="offline-pack" data-pack="${esc(p.id)}" data-state="${esc(job?.running?'running':job?.queued?'queued':s.state)}"><div class="offline-pack-main"><b>${esc(offlineLabel(p))}</b><small>${size?esc(offlineBytes(size))+' · ':''}<span class="offline-pack-status">${esc(offlineStatusText(p,s,job))}</span></small>${offlineDesc(p)?`<small class="hint">${esc(offlineDesc(p))}</small>`:''}<div class="offline-progress" role="progressbar" aria-label="${esc(offlineLabel(p))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"${!job?.running&&s.state!=='partial'?' hidden':''}><span style="width:${pct}%"></span></div></div><div class="offline-pack-actions">${action}${canRemove&&!job?.running?`<button type="button" class="btn small" data-offline-remove="${p.id}">${otr('Xoá','Remove')}</button>`:''}</div></li>`;
+ return `<li class="offline-pack" data-pack="${esc(p.id)}" data-state="${esc(job?.running?'running':job?.queued?'queued':s.state)}"><div class="offline-pack-main"><b>${esc(offlineLabel(p))}</b><small>${size?esc(offlineBytes(size))+' · ':''}<span class="offline-pack-status">${esc(offlineStatusText(p,s,job))}</span></small>${offlineDesc(p)?`<small class="hint">${esc(offlineDesc(p))}</small>`:''}${typeof p.extraHtml==='function'?offlineExtra(p,s):''}${s.failedText?`<small class="offline-pack-warn" role="note">⚠️ ${esc(s.failedText)}</small>`:s.warnText&&s.state!=='unavailable'?`<small class="offline-pack-warn">${esc(s.warnText)}</small>`:''}<div class="offline-progress" role="progressbar" aria-label="${esc(offlineLabel(p))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"${!job?.running&&s.state!=='partial'?' hidden':''}><span style="width:${pct}%"></span></div></div><div class="offline-pack-actions">${action}${canRemove&&!job?.running?`<button type="button" class="btn small" data-offline-remove="${p.id}">${otr('Xoá','Remove')}</button>`:''}</div></li>`;
 }
 async function offlineStorageText(){
  try{offlineStorage=await navigator.storage?.estimate?.()}catch{offlineStorage=null}
@@ -105,13 +108,13 @@ function offlineDownloadsBody(){
  const packs=offlineVisiblePacks();
  return `<div class="offline-downloads"><label class="offline-wifi"><input type="checkbox" id="offline-wifi-only" ${offlineWifiOnly()?'checked':''}><span><b>${otr('Chỉ tải khi có Wi-Fi','Download on Wi-Fi only')}</b><small class="hint" id="offline-connection">${esc(offlineConnectionLabel())}</small></span></label><ul class="offline-pack-list">${packs.map(offlineRowHtml).join('')}</ul><p class="hint offline-storage" id="offline-storage" role="status">${otr('Đang kiểm tra dung lượng…','Checking storage…')}</p></div>`;
 }
-// The on-device speech packs (voice-local.js registers 'voice-local-base' / 'voice-local-small') take the voice slot;
+// The on-device speech packs (voice-local.js registers 'voice-local-small' (v1.7.1: the Light pack is retired)) take the voice slot;
 // the "coming soon" placeholder only shows when no voice pack is registered.
 function offlineVisiblePacks(){const all=[...offlinePacks.values()],voice=all.filter(p=>/^voice(?:-|$)/.test(p.id)),list=all.filter(p=>!voice.includes(p));list.splice(Math.min(4,list.length),0,...(voice.length?voice:[offlineVoicePlaceholder()]));return list}
 function offlineReadyBody(){
  const r=offlineReadiness,item=(ok,label,action='')=>`<li class="offline-ready-item ${ok===true?'ok':ok===false?'missing':'pending'}">${action&&ok===false?`<button type="button" class="offline-ready-fix" data-offline-fix="${action}">`:'<span>'}<span aria-hidden="true">${ok===true?'✓':ok===false?'✗':'…'}</span> ${esc(label)}${action&&ok===false?` <small>${otr('— bấm để tải','— tap to download')}</small></button>`:'</span>'}</li>`;
  if(!r)return `<p class="hint">${otr('Đang kiểm tra…','Checking…')}</p>`;
- return `<ul class="offline-ready-list" aria-label="${otr('Sẵn sàng offline','Offline ready')}">${item(r.app,otr('Ứng dụng mở được khi offline','App opens offline'))}${item(true,otr('Thực đơn tuần này','This week’s menu'))}${item(true,otr('Danh sách đi chợ','Shopping list'))}${item(true,otr('Giá đã lưu','Saved prices'))}${item(r.weekArt,otr('Hình món tuần này','This week’s dish pictures'),'week-art')}${item(r.art,otr('Toàn bộ hình món','All dish pictures'),'art')}${item(r.catalog,offlineLabel(offlinePacks.get('catalog')||{id:'catalog',label:'Kho món'}),'catalog')}</ul>`;
+ return `<ul class="offline-ready-list" aria-label="${otr('Sẵn sàng offline','Offline ready')}">${item(r.app,otr('Ứng dụng mở được khi offline','App opens offline'))}${item(true,otr('Thực đơn tuần này','This week’s menu'))}${item(true,otr('Danh sách đi chợ','Shopping list'))}${item(true,otr('Giá đã lưu','Saved prices'))}${item(r.weekArt,otr('Hình món ăn tuần này','This week’s dish pictures'),'week-art')}${item(r.art,otr('Toàn bộ hình món ăn','All dish pictures'),'art')}${item(r.catalog,offlineLabel(offlinePacks.get('catalog')||{id:'catalog',label:'Kho món ăn'}),'catalog')}</ul>`;
 }
 // Paths of artwork cells for this week's menu, the family's own recipes and the week's ingredients.
 function offlineWeekArtPaths(){
@@ -160,6 +163,8 @@ async function offlineMayDownload(p,{now=false}={}){
 async function offlineStartDownload(id,{now=false}={}){
  const p=offlinePacks.get(id);if(!p||typeof p.download!=='function'||offlineJobs.get(id)?.running)return;
  if(!p.__size)p.__size=await offlineSize(p);
+ // A pack may ask first (on-device speech on iPhone/iPad: size, Wi-Fi, older devices may be slow). Not asked again for a queued resume.
+ if(typeof p.beforeDownload==='function'&&!offlineQueue().includes(id)){let ok=false;try{ok=await p.beforeDownload()}catch{}if(!ok)return}
  if(!await offlineMayDownload(p,{now}))return;
  offlineSetQueue(offlineQueue().filter(x=>x!==id));
  const controller=new AbortController(),job={running:true,done:0,total:p.__size||0,controller};offlineJobs.set(id,job);offlineUpdateRow(id);
@@ -174,7 +179,7 @@ function offlineUpdateIndicator(){
  const status=$('#network-status');if(!status)return;const r=offlineReadiness;if(!r)return;
  const allArt=r.art||r.weekArt,full=r.app!==false&&allArt&&r.catalog;
  status.dataset.offlineReady=full?'full':'partial';
- const parts=[otr('Thực đơn','Menu')+' ✓',otr('Đi chợ','Shopping')+' ✓',otr('Giá','Prices')+' ✓',otr('Hình món','Pictures')+(allArt?' ✓':' ✗'),otr('Kho món','Library')+(r.catalog?' ✓':' ✗')];
+ const parts=[otr('Thực đơn','Menu')+' ✓',otr('Đi chợ','Shopping')+' ✓',otr('Giá','Prices')+' ✓',otr('Hình món ăn','Pictures')+(allArt?' ✓':' ✗'),otr('Kho món ăn','Library')+(r.catalog?' ✓':' ✗')];
  const base=status.title.split(' · '+otr('Sẵn sàng offline','Offline ready'))[0];
  status.title=base+' · '+otr('Sẵn sàng offline','Offline ready')+': '+parts.join(' · ');
 }
@@ -190,7 +195,7 @@ document.addEventListener('click',event=>{
  if(t.dataset.offlineDownload){const job=offlineJobs.get(t.dataset.offlineDownload);offlineStartDownload(t.dataset.offlineDownload,{now:!!job?.queued})}
  else if(t.dataset.offlineRemove)offlineRemove(t.dataset.offlineRemove);
  else if(t.dataset.offlineCancel)offlineJobs.get(t.dataset.offlineCancel)?.controller?.abort();
- else if(t.dataset.offlineFix==='week-art'){if(offlinePinWeekArt(true))toast(otr('Đang lưu hình món tuần này…','Saving this week’s pictures…'));else toast(otr('Cần mạng để lưu hình món.','Pictures need a connection to save.'),true);setTimeout(offlineRefreshUi,2500)}
+ else if(t.dataset.offlineFix==='week-art'){if(offlinePinWeekArt(true))toast(otr('Đang lưu hình món ăn tuần này…','Saving this week’s pictures…'));else toast(otr('Cần mạng để lưu hình món ăn.','Pictures need a connection to save.'),true);setTimeout(offlineRefreshUi,2500)}
  else offlineStartDownload(t.dataset.offlineFix);
 });
 document.addEventListener('change',event=>{if(event.target?.id==='offline-wifi-only'){offlineSet(OFFLINE_WIFI_KEY,event.target.checked?'1':'0');if(!event.target.checked)for(const id of offlineQueue())offlineStartDownload(id,{now:true})}});
@@ -208,8 +213,8 @@ function offlineCatalogForView(){if(typeof view==='undefined'||view!=='recipes'|
 function offlineWithCatalog(name){
  const base=globalThis[name];if(typeof base!=='function'||base.__withCatalog)return;
  const wrapped=function(...args){if(typeof ensureCatalog!=='function'||typeof catalogLoaded!=='function'||catalogLoaded())return base.apply(this,args);
-  const self=this,slow=setTimeout(()=>toast(otr('Đang tải kho món…','Loading the recipe library…')),400);
-  return ensureCatalog().catch(()=>{if(!offlineCatalogNoticeShown){offlineCatalogNoticeShown=true;toast(otr('Kho món chưa tải về máy — đang dùng các món đã có trên máy.','The recipe library is not downloaded — using the recipes on this device.'))}}).then(()=>{clearTimeout(slow);return base.apply(self,args)})};
+  const self=this,slow=setTimeout(()=>toast(otr('Đang tải kho món ăn…','Loading the recipe library…')),400);
+  return ensureCatalog().catch(()=>{if(!offlineCatalogNoticeShown){offlineCatalogNoticeShown=true;toast(otr('Kho món ăn chưa tải về máy — đang dùng các món đã có trên máy.','The recipe library is not downloaded — using the recipes on this device.'))}}).then(()=>{clearTimeout(slow);return base.apply(self,args)})};
  wrapped.__withCatalog=true;globalThis[name]=wrapped;
 }
 for(const name of ['familyGeneratePreview','familyEditMeal','editMeal','setupShowPreview','familyRecipeEditor'])offlineWithCatalog(name);
@@ -222,7 +227,7 @@ function ocrOfflineReady(){return offlineStatusCache.get('ocr')?.state==='ready'
 globalThis.ocrOfflineReady=ocrOfflineReady;
 if(typeof loadOCR==='function'){const cdnLoadOCR=loadOCR;let selfHosted=null;
  loadOCR=function(){if(window.Tesseract)return Promise.resolve();if(!selfHosted)selfHosted=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=OCR_BASE+'tesseract.min.js';script.onload=()=>{offlinePatchTesseract();resolve()};script.onerror=()=>{selfHosted=null;script.remove();reject(Error('self-hosted OCR missing'))};document.head.append(script)});
-  return selfHosted.catch(()=>offlineOnline()?cdnLoadOCR():Promise.reject(Error(otr('Bộ đọc chữ chưa được tải về máy. Vào Cài đặt khác → Tải về để dùng offline.','The text reader is not downloaded. Open Other settings → Downloads for offline use.'))))}}
+  return selfHosted.catch(()=>offlineOnline()?cdnLoadOCR():Promise.reject(Error(otr('Bộ đọc chữ chưa được tải về máy. Vào Tài khoản & cài đặt (ảnh đại diện góc trên) → Tải về để dùng offline.','The text reader is not downloaded. Open Account & settings (top-right avatar) → Downloads for offline use.'))))}}
 function offlinePatchTesseract(){const T=window.Tesseract;if(!T||T.__selfHosted)return;const base=T.createWorker.bind(T),abs=p=>new URL(OCR_BASE+p,document.baseURI).href;
  T.createWorker=(langs,oem=1,options={},config)=>base(langs,oem,{workerPath:abs('worker.min.js'),corePath:abs('core'),langPath:abs('lang'),workerBlobURL:false,cacheMethod:'none',gzip:true,...options},config);T.__selfHosted=true}
 async function offlineInitOcrStatus(){const p=offlinePacks.get('ocr');if(p)await offlinePackStatus(p)}

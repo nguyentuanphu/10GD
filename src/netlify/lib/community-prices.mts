@@ -217,7 +217,7 @@ async function sanityValues(getStoreFn:any,shard:any,clean:any,householdId:strin
  return vals;
 }
 async function verifyReceipt(getStoreFn:any,householdId:string,members:any,clean:any){
- try{const fam=scopedStore(getStoreFn({name:'bep-family-data',consistency:'strong',region:'ap-southeast-2'}),householdId,members);const st=await fam.get('state',{type:'json'});const r=(st?.receipts||[]).find((x:any)=>x?.id===clean.evidence.receiptId);if(!r||(r.currency||'AUD')!=='AUD')return false;const line=(r.items||[]).find((l:any)=>String(l?.id)===clean.evidence.lineId);return!!line&&Math.abs(Math.abs(+line.total)-clean.price)<=RULES.ocrTolerance+1e-9&&r.date>=dayKey(Date.parse(clean.capturedAt)-RULES.captureMaxDays*DAY)}catch{return false}
+ try{const fam=scopedStore(getStoreFn({name:'bep-family-data',consistency:'strong',region:'ap-southeast-2'}),householdId,members);const st=await fam.get('state',{type:'json'});const r=(st?.receipts||[]).find((x:any)=>x?.id===clean.evidence.receiptId);if(!r||(r.currency||'AUD')!=='AUD'||r.refund===true)return false;const line=(r.items||[]).find((l:any)=>String(l?.id)===clean.evidence.lineId);return!!line&&Math.abs(Math.abs(+line.total)-clean.price)<=RULES.ocrTolerance+1e-9&&r.date>=dayKey(Date.parse(clean.capturedAt)-RULES.captureMaxDays*DAY)&&r}catch{return false}
 }
 
 /** Contribute one observation. Returns {status:'accepted'|'held', id, photoRequested, ...}. */
@@ -228,7 +228,10 @@ export async function contribute(getStoreFn:any,{context,observation,branch,ipHa
  let who=await contributor(store,username);
  if(!who?.termsAcceptedAt)fail('Cần đồng ý điều khoản chia sẻ giá trước.','Please accept the sharing terms first.',428,{code:'terms'});
  const clean=cleanContribution(observation,branch,{now,states});
- if(clean.evidence.type==='receipt'&&!await verifyReceipt(getStoreFn,household.id,household.members,clean))fail('Không tìm thấy dòng hóa đơn đã xác nhận khớp giá này.','No confirmed receipt line matches this price.',422,{code:'receipt-unconfirmed'});
+ // v1.7.1: the verified receipt (read from the family's own saved data, never from the client) carries a salted
+ // hash of its printed transaction; a receipt saved twice by one family can never count twice.
+ const receipt:any=clean.evidence.type==='receipt'?await verifyReceipt(getStoreFn,household.id,household.members,clean):null;
+ if(clean.evidence.type==='receipt'&&!receipt)fail('Không tìm thấy dòng hóa đơn đã xác nhận khớp giá này.','No confirmed receipt line matches this price.',422,{code:'receipt-unconfirmed'});
  // Rate limits (per account 30/day, per IP hash 60/day). Keys expire by day.
  const d=dayKey(now);
  if(!await bump(store,`rate/${d}/acct-${sha(username).slice(0,24)}`,RULES.accountDaily,now))fail('Bạn đã chia sẻ đủ 30 giá hôm nay.','You have shared 30 prices today, the daily limit.',429);
@@ -236,7 +239,7 @@ export async function contribute(getStoreFn:any,{context,observation,branch,ipHa
  // Duplicate evidence → rejected. onlyIfNew makes the check atomic under concurrency.
  const id='cp-'+now.toString(36)+'-'+randomBytes(5).toString('hex');
  // Bookmark captures carry no image, so the same family+item+store+price+day counts as one capture.
- const fingerprint=clean.evidence.imageHash?'img:'+clean.evidence.imageHash:clean.evidence.type==='bookmark'?['bm',household.id,clean.itemId,clean.retailer,clean.branchId,clean.price,clean.observedAt].join(':'):'rcpt:'+household.id+':'+clean.evidence.receiptId+':'+clean.evidence.lineId;
+ const fingerprint=clean.evidence.imageHash?'img:'+clean.evidence.imageHash:clean.evidence.type==='bookmark'?['bm',household.id,clean.itemId,clean.retailer,clean.branchId,clean.price,clean.observedAt].join(':'):typeof receipt?.receiptKey==='string'&&/^[a-f0-9]{16,64}$/.test(receipt.receiptKey)?['rcptk',household.id,receipt.receiptKey,clean.itemId,clean.price].join(':'):'rcpt:'+household.id+':'+clean.evidence.receiptId+':'+clean.evidence.lineId;
  const dedupe=await store.setJSON('dedupe/'+sha(fingerprint),{id,at:new Date(now).toISOString()},{onlyIfNew:true});
  if(dedupe?.modified===false)fail('Ảnh/hóa đơn này đã được chia sẻ trước đó.','This photo or receipt line was already shared.',409,{code:'duplicate'});
  // Conflict-of-interest signals (flag for moderation; never auto-ban).
@@ -482,6 +485,10 @@ async function addEntry(store:any,account:string,entry:any,cfg:any,now:number){
   doc.entries.push({...entry,points,requested:entry.points,state:entry.state||doc.state||null,at:new Date(now).toISOString(),day});
   if(entry.state)doc.state=entry.state;return true});
 }
+/** v1.7.1 community recipes: a small fixed award for an APPROVED shared recipe (idempotent per recipe id,
+ *  respects the daily cap). Pending/rejected recipes never earn points. */
+export const RECIPE_AWARD_POINTS=5;
+export async function awardRecipePoints(getStoreFn:any,{account,recipeId,label,now,rewards}:any){const cfg=rewardConfig(rewards);memo.clear();return addEntry(communityStore(getStoreFn),account,{id:'award:recipe:'+recipeId,type:'recipe',points:RECIPE_AWARD_POINTS,capped:true,label:text(label,80)||null,ref:recipeId},cfg,now)}
 export function badgesOf(doc:any){
  const revoked=new Set((doc?.entries||[]).filter((e:any)=>e.type==='revoke').map((e:any)=>e.ref)),live=(doc?.entries||[]).filter((e:any)=>AWARD_TYPES.includes(e.type)&&!revoked.has(e.id)),out:any[]=[];
  if(live.filter((e:any)=>e.promo==='half-price').length>=3)out.push({id:'half-price',icon:'🏷️',vi:'Săn deal 1/2 giá',en:'Half-price hunter'});

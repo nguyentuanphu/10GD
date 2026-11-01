@@ -146,7 +146,7 @@ async function main() {
   assert.ok(counters.pack>packsBefore);
   await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();
   await page.screenshot({path:evidence+'/authenticated-worker.png',fullPage:true});
-  await page.locator('.top-avatar').click();await page.getByRole('menuitem',{name:'Tài khoản & bảo mật',exact:true}).click();await page.locator('.account-sheet #account-email-address').waitFor();await page.locator('#account-email-address').fill('existing-browser@example.test');await page.locator('#account-email-password').fill('synthetic-startup-passphrase-only');await page.locator('#account-email button').click();await page.getByText('Đã lưu email khôi phục. Không cần xác minh khi đăng ký.',{exact:true}).waitFor();await page.keyboard.press('Escape');
+  await page.locator('.top-avatar').click();await page.getByRole('menuitem',{name:'Tài khoản & cài đặt',exact:true}).click();await page.locator('.account-sheet #account-email-address').waitFor();await page.locator('#account-email-address').fill('existing-browser@example.test');await page.locator('#account-email-password').fill('synthetic-startup-passphrase-only');await page.locator('#account-email button').click();await page.getByText('Đã lưu email khôi phục. Không cần xác minh khi đăng ký.',{exact:true}).waitFor();await page.keyboard.press('Escape');
   await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();
   assert.equal(await page.evaluate(()=>localStorage.getItem('qa-preserved')),'keep-family-data');
   assert.deepEqual(errors,[]);

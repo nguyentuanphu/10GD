@@ -5,6 +5,7 @@ import {createAuthMailer,digestToken,newMailToken,validEmail} from '../lib/auth-
 import {sendPushBatch,pushKeys} from '../lib/push.mjs';
 import {moderationData,moderationPhoto,moderate,pruneCommunity,pilotConfig,rewardsAdmin,rewardsLedger,productAdmin} from '../lib/community-prices.mjs';
 import {studioStore,familyDataStore,studioRoles,roleFor,maskEmail,writeAudit,listLog,countLog,dailyLog,pruneLogs,platformSettings,validateSettingsPatch,saveSettings,activeBanner,verifyPassword,csrfFor,newRecoveryCode,newEpoch,listFamilies,readIndex,invalidateIndex,scanFamily,overview,invalidateOverview,storageProbe,familyFlags,familyLimits,sha256,dayKey,recordEvent,mapLimit,readAheadStores,inviteRef,safeInvites,inviteRows,withTimeout,PARALLEL,TRASH_RETENTION_DAYS} from '../lib/studio.mjs';
+import {urgentList,urgentFamily} from '../lib/urgent-report.mjs';
 
 const DAY=86400000;
 const json=(data:any,status=200,headers:any={})=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
@@ -145,6 +146,9 @@ export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=(
    }
    if(op==='messages'&&isRead){const [o,ix]=await Promise.all([overview(getStoreFn,{now}),index(url,now)]),names=new Map(ix.families.rows.map((f:any)=>[f.id,f.name])),days=Array.from({length:14},(_,i)=>dayKey(now-(13-i)*DAY));const rows=Object.entries(o.perFamily||{}).map(([id,p]:any)=>{const per=days.map(d=>(p.alertRows||[]).filter((a:any)=>a.day===d).length);return{id,name:names.get(id)||'—',total:(p.alertRows||[]).length,failed:(p.alertRows||[]).filter((a:any)=>a.pushStatus==='not_sent').length,days:per}}).filter(r=>r.total).sort((a,b)=>b.total-a.total);return json({days,rows,computedAt:o.computedAt})}
 
+   // v1.7.1 urgent delivery reasons: metadata list for every read role; one family's drill-down (names, devices now) is owner-only and audited.
+   if(op==='urgent'&&isRead){const [o,ix]=await Promise.all([overview(getStoreFn,{now,fresh:owner&&q('fresh')==='1'}),index(url,now)]);return json(urgentList(o,new Map(ix.families.rows.map((f:any)=>[f.id,f.name])),{now,failedOnly:q('status')==='failed',familyId:validId(q('family'))?q('family'):'',page:+q('page')||1,size:+q('size')||25}))}
+   if(op==='urgent-family'&&isRead){ownerOnly();const f=await family(q('id')),r=await urgentFamily(data(),f,{now});await audit('view_urgent_family',{type:'family',id:f.id},{details:{rows:r.rows.length}});return json(r)}
    if(op==='settings'&&isRead){const s=await platformSettings(getStoreFn,{env,fresh:true,now});return json({values:s.values,sources:s.sources,updatedAt:s.stored.updatedAt||null})}
    if(op==='settings-save'&&method==='POST'){const patch=validateSettingsPatch(body.patch||{});delete patch.banner;if(patch.minBuild!==undefined||patch.updateNotice!==undefined)ownerOnly();await saveSettings(getStoreFn,patch);await audit('save_settings',null,{details:{keys:Object.keys(patch),...(patch.rewards?{rewards:patch.rewards}:{})}});const s=await platformSettings(getStoreFn,{env,fresh:true,now});return json({values:s.values,sources:s.sources})}
    if(op==='banner-save'&&method==='POST'){const patch=validateSettingsPatch({banner:body.banner??null});await saveSettings(getStoreFn,patch);await audit(patch.banner?'save_banner':'clear_banner',null,{details:patch.banner?{severity:patch.banner.severity,audience:patch.banner.audience,start:patch.banner.start,end:patch.banner.end}:null});return json({banner:patch.banner})}

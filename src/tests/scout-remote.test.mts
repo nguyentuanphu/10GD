@@ -30,6 +30,8 @@ const J=async(r:Response)=>({status:r.status,data:await r.json(),headers:r.heade
 const dev=(op:string,token:string,body?:any)=>call(op,{method:body===undefined?'GET':'POST',body,token,from:EXT}).then(J);
 async function register(username:string){const r=await accounts(new Request(origin+'/.netlify/functions/accounts?op=register',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json','x-nf-client-connection-ip':'r'+(ip++)},body:JSON.stringify({username,name:username,password,trust:true})}));assert.equal(r.status,201);return String(r.headers.get('set-cookie')).split(';')[0]}
 const henry=await register('henrynguyen'),alice=await register('alice'),sam=await register('sam');
+// v1.7.1: only accounts assigned in Studio may pair/run the extension; these synthetic accounts are assigned.
+for(const u of ['alice','sam'])await lib.setExtensionAllowed(getStoreFn,u,true,'henrynguyen',clock);
 const csrf=(await (await studio(new Request(origin+'/.netlify/functions/studio?op=me',{headers:{Cookie:henry}}))).json()).csrf;
 const S=(op:string,body?:any,cookie=henry,c=csrf)=>call(op,{method:body===undefined?'GET':'POST',body,cookie,csrf:c}).then(J);
 const audits=async()=>(await listLog(getStoreFn,'audit',{now:clock,limit:200,from:lib.dayKey(clock-86400000)})).items.map((x:any)=>x.action);

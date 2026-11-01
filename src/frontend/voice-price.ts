@@ -308,7 +308,7 @@ function vpSetLangPref(lang){try{localStorage.setItem('bep-voice-lang',lang);loc
 const vpOnline=()=>navigator.onLine&&!globalThis.BEP_OFFLINE;
 // createVoiceTake({lang:()=>'vi-VN', keep:boolean (restart after browser pauses), onFinal(text), onInterim(text), onState(mode)})
 function createVoiceTake(o){
- let rec=null,keep=false,sid=0,restarts=0;
+ let rec=null,keep=false,sid=0,restarts=0,pending='';
  const take={listening:false,
   start(){
    if(!vpOnline()&&!vpRecognizerOffline()){o.onState('offline');return false}
@@ -318,17 +318,54 @@ function createVoiceTake(o){
    take.stop(true);keep=true;restarts=0;const my=++sid;
    const launch=()=>{if(my!==sid||!keep)return;let r;try{r=rec=new Ctor()}catch{keep=false;o.onState('unsupported');return}
     r.lang=o.lang();r.continuous=true;r.interimResults=true;r.maxAlternatives=5;
-    r.onresult=e=>{if(my!==sid)return;let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const res=e.results[i];if(!res)continue;const text=typeof pickBestVoiceAlt==='function'?pickBestVoiceAlt(res):(res[0]?.transcript||'');if(res.isFinal){restarts=0;o.onFinal(String(text||'').trim())}else interim+=text}if(o.onInterim)o.onInterim(interim)};
+    r.onresult=e=>{if(my!==sid)return;let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const res=e.results[i];if(!res)continue;const text=typeof pickBestVoiceAlt==='function'?pickBestVoiceAlt(res):(res[0]?.transcript||'');if(res.isFinal){restarts=0;pending='';o.onFinal(String(text||'').trim())}else interim+=text}pending=interim.trim();if(o.onInterim)o.onInterim(interim)};
     r.onerror=e=>{if(my!==sid)return;if(e&&['not-allowed','service-not-allowed','audio-capture'].includes(e.error)){keep=false;o.onState('blocked')}};
-    r.onend=()=>{if(my!==sid)return;rec=null;if(keep&&o.keep&&restarts++<30){setTimeout(launch,200);return}keep=false;take.listening=false;o.onState('stopped')};
+    r.onend=()=>{if(my!==sid)return;rec=null;
+     // iOS Safari often ends a session without marking the last words final: keep them instead of dropping them.
+     if(pending){const t=pending;pending='';try{o.onFinal(t)}catch{}}if(keep&&o.keep&&restarts++<30){setTimeout(launch,200);return}keep=false;take.listening=false;o.onState('stopped')};
     try{r.start()}catch{}
     take.listening=true;o.onState('listening')};
    launch();return true},
-  stop(silent){keep=false;sid++;const r=rec;rec=null;if(r){try{r.stop()}catch{try{r.abort()}catch{}}}const was=take.listening;take.listening=false;if(!silent||was)o.onState(silent?'paused':'stopped')},
+  // stop(): the recogniser still delivers its last (final) words after stop() — keep listening for them until onend.
+  // stop(true) (pause/abort/restart) drops anything late.
+  stop(silent){keep=false;const r=rec;if(silent){sid++;rec=null;pending=''}if(r){try{silent?r.abort():r.stop()}catch{try{r.abort()}catch{}}}const was=take.listening;take.listening=false;if(!silent||was)o.onState(silent?'paused':'stopped')},
   restart(){if(take.listening){take.stop(true);take.start()}}
  };
  return take;
 }
+// ---------- v1.7.1: one-tap language toggle (VI ⇄ EN) ----------
+// The browser recogniser listens in ONE language per session, so the toggle shows the language it really listens in.
+// One tap switches to the other language and remembers it on this device. "Tự động" (follow the app language) is
+// not a third state — it stays a checkbox in Voice settings; while it is on, the toggle shows the language it chose.
+function voiceLangToggleHtml(attr,lang,{auto=false,id=''}={}){const T=(vi,en)=>typeof tr==='function'?tr(vi,en):vi,en=String(lang||'').startsWith('en'),other=en?'vi-VN':'en-AU',name=l=>String(l).startsWith('en')?'English':'Tiếng Việt';
+ return`<button type="button" class="voice-lang-toggle" ${id?`id="${id}" `:''}${attr}="${other}" data-lang-current="${en?'en-AU':'vi-VN'}" aria-label="${T('Ngôn ngữ nói','Spoken language')}: ${name(lang)}${auto?' ('+T('tự động','automatic')+')':''}. ${T('Chạm để đổi sang','Tap to switch to')} ${name(other)}"><span class="vlt-seg${en?'':' on'}" aria-hidden="true">VI</span><span class="vlt-seg${en?' on':''}" aria-hidden="true">EN</span>${auto?`<small class="vlt-auto" aria-hidden="true">${T('Tự động','Auto')}</small>`:''}</button>`}
+function voiceLangToggleRefresh(attr,lang,auto=false){if(typeof document==='undefined')return;for(const b of document.querySelectorAll(`.voice-lang-toggle[${attr}]`)){const t=document.createElement('div');t.innerHTML=voiceLangToggleHtml(attr,lang,{auto,id:b.id});const n=t.firstElementChild;if(n){const had=document.activeElement===b;b.replaceWith(n);if(had)n.focus()}}}
+
+// ---------- v1.7.1: hold to talk (default everywhere) ----------
+// Owner decision: hold the mic button to talk, release to stop and send. Tap-to-toggle stays an option in Voice
+// settings. A stored choice from before v1.7.1 is reset once to hold; a later explicit choice is kept.
+const VOICE_HOLD_KEY='bep-voice-ptt',VOICE_HOLD_MIGRATED='bep-voice-ptt-v171',VOICE_HOLD_MIN_MS=250;
+function voiceHoldMode(){try{if(localStorage.getItem(VOICE_HOLD_MIGRATED)!=='1'){localStorage.removeItem(VOICE_HOLD_KEY);localStorage.setItem(VOICE_HOLD_MIGRATED,'1')}return localStorage.getItem(VOICE_HOLD_KEY)!=='0'}catch{return true}}
+function voiceSetHoldMode(on){try{localStorage.setItem(VOICE_HOLD_MIGRATED,'1');localStorage.setItem(VOICE_HOLD_KEY,on?'1':'0')}catch{}}
+// Handlers per sheet: {down(), up() (stop and send), cancel() (a too-short tap)}.
+const VOICE_HOLD_HANDLERS={};let voiceHold=null;
+function voiceHoldHint(el,show){const T=(vi,en)=>typeof tr==='function'?tr(vi,en):vi;let h=el?.parentElement?.querySelector?.('.voice-hold-hint');if(!show){if(h)h.hidden=true;return}if(!h&&el){el.insertAdjacentHTML('afterend','<p class="voice-hold-hint" role="status"></p>');h=el.nextElementSibling}if(h){h.textContent=T('Giữ nút để nói — thả ra là gửi.','Hold the button to talk — release to send.');h.hidden=false;clearTimeout(h.__t);h.__t=setTimeout(()=>{h.hidden=true},4000)}}
+function voiceHoldStart(el,byKey){const name=el?.dataset?.holdMic,hd=VOICE_HOLD_HANDLERS[name];if(!hd||voiceHold)return;voiceHold={el,name,at:Date.now(),byKey:!!byKey};el.classList.add('holding');el.setAttribute('aria-pressed','true');voiceHoldHint(el,false);try{hd.down()}catch(e){console.warn('hold',e)}}
+function voiceHoldEnd(reason){const h=voiceHold;if(!h)return;voiceHold=null;const hd=VOICE_HOLD_HANDLERS[h.name];h.el.classList.remove('holding');h.el.setAttribute('aria-pressed','false');const short=Date.now()-h.at<VOICE_HOLD_MIN_MS&&reason!=='slide';try{if(short){hd?.cancel?.();voiceHoldHint(h.el,true)}else hd?.up?.(reason)}catch(e){console.warn('hold',e)}if(h.byKey&&document.body.contains(h.el))h.el.focus()}
+if(typeof document!=='undefined'){
+ const holdEl=t=>t?.closest?.('[data-hold-mic]');
+ document.addEventListener('pointerdown',e=>{const b=holdEl(e.target);if(!b||e.button>0||b.disabled)return;e.preventDefault();voiceHoldStart(b,false)});
+ // Sliding the finger off the button stops and sends (touch pointers stay captured, so test the position).
+ document.addEventListener('pointermove',e=>{if(!voiceHold||voiceHold.byKey)return;const r=voiceHold.el.getBoundingClientRect(),m=24;if(e.clientX<r.left-m||e.clientX>r.right+m||e.clientY<r.top-m||e.clientY>r.bottom+m)voiceHoldEnd('slide')});
+ for(const type of['pointerup','pointercancel'])document.addEventListener(type,()=>{if(voiceHold&&!voiceHold.byKey)voiceHoldEnd(type==='pointercancel'?'slide':'release')});
+ document.addEventListener('click',e=>{if(holdEl(e.target)){e.preventDefault();e.stopImmediatePropagation()}},true);
+ for(const type of['contextmenu','selectstart'])document.addEventListener(type,e=>{if(holdEl(e.target))e.preventDefault()});
+ document.addEventListener('touchmove',e=>{if(voiceHold&&!voiceHold.byKey)e.preventDefault()},{passive:false});
+ document.addEventListener('keydown',e=>{if(e.key!==' '&&e.key!=='Enter')return;const b=holdEl(e.target);if(!b&&!voiceHold?.byKey)return;e.preventDefault();if(!e.repeat&&!voiceHold&&b)voiceHoldStart(b,true)});
+ document.addEventListener('keyup',e=>{if(e.key!==' '&&e.key!=='Enter')return;if(!voiceHold?.byKey)return;e.preventDefault();voiceHoldEnd('release')});
+ addEventListener?.('blur',()=>{if(voiceHold)voiceHoldEnd('release')});
+}
+globalThis.voiceLangToggleHtml=voiceLangToggleHtml;globalThis.voiceLangToggleRefresh=voiceLangToggleRefresh;globalThis.voiceHoldMode=voiceHoldMode;globalThis.voiceSetHoldMode=voiceSetHoldMode;globalThis.VOICE_HOLD_HANDLERS=VOICE_HOLD_HANDLERS;globalThis.voiceHoldEnd=voiceHoldEnd;
 const VoiceTakeLang={defaultLang:vpDefaultLang,setPref:vpSetLangPref,name:l=>String(l).startsWith('en')?'English':'Tiếng Việt',online:()=>vpOnline()||vpRecognizerOffline(),supported:()=>!!vpRecognizerCtor()};
 globalThis.createVoiceTake=createVoiceTake;globalThis.VoiceTakeLang=VoiceTakeLang;
 
@@ -337,7 +374,9 @@ const vpT=(vi,en)=>typeof tr==='function'?tr(vi,en):vi;
 const vpEsc=s=>typeof esc==='function'?esc(s):String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 let vpState={rows:[],text:'',want:null,lang:null,take:null,current:null};
 // Auto by default (no choice needed); the Tiếng Việt / English override sits in a collapsed "Cài đặt giọng nói".
-function vpLangToggle(attr,lang){const auto=vpLangPrefs().auto;return`<details class="voice-settings vt-lang-settings"><summary>${vpT('Cài đặt giọng nói','Voice settings')} · ${auto?vpT('Tự động','Auto'):VoiceTakeLang.name(lang)}</summary><p class="hint">${vpT('Tự động: không cần chọn — nói lẫn Việt – Anh vẫn hiểu. Chỉ chọn khi muốn ép một ngôn ngữ.','Auto: no need to choose — mixed Vietnamese and English is understood. Pick one only to force a language.')}</p><div class="voice-lang vt-lang" role="group" aria-label="${vpT('Ngôn ngữ đang nói','Language you speak')}"><span class="voice-lang-icon" aria-hidden="true">🎙</span>${['vi-VN','en-AU'].map(l=>`<button type="button" class="voice-lang-btn" ${attr}="${l}" aria-pressed="${!auto&&l===lang}" lang="${l.slice(0,2)}" data-user-content>${VoiceTakeLang.name(l)}</button>`).join('')}</div></details>`}
+// v1.7.1: one tap switches VI ⇄ EN (no hidden select). Auto stays in the main Voice settings.
+function vpLangToggle(attr,lang){return voiceLangToggleHtml(attr,lang,{auto:vpLangPrefs().auto})}
+function vpMicHtml(id,vpAttr,label){const hold=voiceHoldMode(),T=vpT;return hold?`<button type="button" class="btn primary voice-hold-btn" id="${id}" data-hold-mic="${vpAttr}" aria-pressed="false" aria-describedby="${id}-how">🎙 ${T('Giữ để nói','Hold to talk')}</button><span class="sr-only" id="${id}-how">${T('Giữ nút để nói, thả ra để dừng. Hoặc giữ phím Cách.','Hold to talk, release to stop. Or hold the Space key.')}</span>`:`<button type="button" class="btn primary" id="${id}" data-${vpAttr}="mic" aria-pressed="false">🎙 ${label}</button>`}
 globalThis.voiceTakeLangToggle=vpLangToggle;
 const vpMoney=n=>n==null?'—':(typeof aud==='function'?aud(n,'AUD'):'$'+(+n).toFixed(2));
 function vpRetailerName(id){const r=globalThis.PriceScout?.RETAILERS?.[id];return r?(voiceUiLang()==='en'?r.name:(r.vi||r.name)):''}
@@ -364,18 +403,17 @@ function vpRenderRows(){const box=document.getElementById('vp-rows');if(!box)ret
 function vpParseNow(){const box=document.getElementById('vp-text');if(box)vpState.text=box.value;const res=parsePriceUtterance(vpState.text,{learned:vpLearned(),stores:voiceAppState()?.stores||[],want:vpState.want});vpState.rows=res.rows;vpRenderRows()}
 function vpSetMode(mode){const live=document.getElementById('vp-live'),st=document.getElementById('vp-state'),mic=document.getElementById('vp-mic');if(live)live.dataset.mode=mode==='listening'?'listening':'stopped';
  if(st)st.textContent=mode==='listening'?vpT('Đang nghe…','Listening…'):mode==='offline'?vpT('Đang offline — hãy gõ giá vào ô bên dưới.','Offline — type the price below.'):mode==='unsupported'?vpT('Trình duyệt chưa hỗ trợ mic trực tiếp — dùng mic bàn phím hoặc gõ.','Speech recognition is unsupported — use keyboard dictation or type.'):mode==='blocked'?vpT('Mic đang bị chặn — cho phép mic hoặc gõ.','Microphone blocked — allow it or type.'):vpT('Đã dừng','Stopped');
- if(mic){mic.textContent=mode==='listening'?'⏹ '+vpT('Dừng','Stop'):'🎙 '+vpT('Bắt đầu nói','Start speaking');mic.setAttribute('aria-pressed',String(mode==='listening'))}
+ if(mic){if(mic.hasAttribute('data-hold-mic'))mic.textContent=mode==='listening'?'🎙 '+vpT('Đang nghe — thả ra để dừng','Listening — release to stop'):'🎙 '+vpT('Giữ để nói','Hold to talk');else{mic.textContent=mode==='listening'?'⏹ '+vpT('Dừng','Stop'):'🎙 '+vpT('Bắt đầu nói','Start speaking');mic.setAttribute('aria-pressed',String(mode==='listening'))}}
  if(mode==='stopped'&&vpState.text.trim())vpParseNow()}
 function voicePriceOpen(want=null,keepRows=false){
  if(typeof scoutViewer==='function'&&scoutViewer())return;
  if(!keepRows){vpState.rows=[];vpState.text=''}
- vpState.want=want||null;vpState.lang=vpState.lang||vpDefaultLang();
+ vpState.want=want||null;vpState.lang=vpDefaultLang();
  const wantName=want?vpItemName(want):'';
- modal(vpT('🎙 Nói giá','🎙 Say a price'),`<div class="vp-sheet"><p class="hint">${wantName?vpT(`Đang săn giá: <b>${vpEsc(wantName)}</b>. Chỉ cần nói giá và cửa hàng.`,`Hunting a price for <b>${vpEsc(wantName)}</b>. Just say the price and the store.`):vpT('Ví dụ: “Rau muống hai đô rưỡi một bó, chợ Cabramatta”. Nói nhiều giá liền cũng được.','e.g. “eggs twelve pack six dollars fifty at Aldi Bankstown”. Several prices in one go is fine.')}</p>
- ${vpLangToggle('data-vp-lang',vpState.lang)}
+ modal(vpT('🎙 Nói giá','🎙 Say a price'),`<div class="vp-sheet"><p class="hint">${wantName?vpT(`Đang so giá: <b>${vpEsc(wantName)}</b>. Chỉ cần nói giá và cửa hàng.`,`Hunting a price for <b>${vpEsc(wantName)}</b>. Just say the price and the store.`):vpT('Ví dụ: “Rau muống hai đô rưỡi một bó, chợ Cabramatta”. Nói nhiều giá liền cũng được.','e.g. “eggs twelve pack six dollars fifty at Aldi Bankstown”. Several prices in one go is fine.')}</p>
  <div class="voice-live vp-live" id="vp-live" data-mode="stopped"><span class="voice-dot" aria-hidden="true"></span><b id="vp-state" aria-live="polite">${vpT('Đã dừng','Stopped')}</b></div>
  <div class="field"><label for="vp-text">${vpT('Lời nói (sửa hoặc gõ được)','What you said (edit or type)')}</label><textarea class="input" id="vp-text" rows="3" maxlength="2000" placeholder="${vpT('thịt ba chỉ mười bốn đô chín mươi chín một ký ở Woolworths','pork belly fourteen ninety nine a kilo at Woolworths')}">${vpEsc(vpState.text)}</textarea></div>
- <div class="vp-controls"><button type="button" class="btn primary" id="vp-mic" data-vp="mic" aria-pressed="false">🎙 ${vpT('Bắt đầu nói','Start speaking')}</button><button type="button" class="btn" data-vp="read">🔎 ${vpT('Đọc giá','Read prices')}</button></div>
+ <div class="vp-controls">${vpLangToggle('data-vp-lang',vpState.lang)}${vpMicHtml('vp-mic','vp',vpT('Bắt đầu nói','Start speaking'))}<button type="button" class="btn" data-vp="read">🔎 ${vpT('Đọc giá','Read prices')}</button></div>
  <div id="vp-rows" aria-live="polite"></div>
  <p class="hint vp-family-note">👪 ${vpT('Giá nói bằng giọng chỉ lưu cho gia đình, không chia sẻ cộng đồng. Muốn chia sẻ, hãy dùng ảnh kệ giá hoặc ảnh màn hình.','Spoken prices stay with your family and are not shared with the community. To share, use a shelf-tag photo or a screenshot.')}</p></div>`,`<button class="btn" data-action="close-modal">${vpT('Đóng','Close')}</button>`,true);
  vpState.take?.stop(true);
@@ -383,7 +421,7 @@ function voicePriceOpen(want=null,keepRows=false){
   onInterim:t=>{const box=document.getElementById('vp-text');if(box&&t)box.value=(vpState.text?vpState.text+', ':'')+t},
   onFinal:t=>{const box=document.getElementById('vp-text');if(!box){vpState.take?.stop(true);return}if(!t)return;vpState.text=(vpState.text?vpState.text+', ':'')+t;box.value=vpState.text;vpParseNow()}});
  vpRenderRows();
- if(!vpOnline()&&!vpRecognizerOffline())vpSetMode('offline');else if(!keepRows&&vpRecognizerCtor())vpState.take.start();
+ if(!vpOnline()&&!vpRecognizerOffline())vpSetMode('offline');else if(!keepRows&&vpRecognizerCtor()&&!voiceHoldMode())vpState.take.start();
 }
 // Called by Price Scout after a voice price is saved: learn label → item, then return to the remaining rows.
 function voicePriceSaved(o){
@@ -394,7 +432,7 @@ function voicePriceSaved(o){
 }
 if(typeof document!=='undefined'){
  document.addEventListener('click',e=>{
-  const l=e.target.closest?.('[data-vp-lang]');if(l){vpState.lang=l.dataset.vpLang;vpSetLangPref(vpState.lang);document.querySelectorAll('[data-vp-lang]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.vpLang===vpState.lang)));vpState.take?.restart();return}
+  const l=e.target.closest?.('[data-vp-lang]');if(l){vpState.lang=l.dataset.vpLang;vpSetLangPref(vpState.lang);voiceLangToggleRefresh('data-vp-lang',vpState.lang,false);vpState.take?.restart();return}
   const b=e.target.closest?.('[data-vp]');if(!b)return;
   switch(b.dataset.vp){
    case'mic':if(vpState.take?.listening)vpState.take.stop();else vpState.take?.start();break;
@@ -405,4 +443,5 @@ if(typeof document!=='undefined'){
  });
  document.addEventListener('input',e=>{if(e.target?.id==='vp-text')vpState.text=e.target.value});
 }
+VOICE_HOLD_HANDLERS.vp={down:()=>{vpState.take?.start()},up:()=>{vpState.take?.stop()},cancel:()=>{vpState.take?.stop(true);vpSetMode('stopped')}};
 globalThis.voicePriceOpen=voicePriceOpen;globalThis.voicePriceSaved=voicePriceSaved;

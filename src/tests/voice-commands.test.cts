@@ -25,6 +25,7 @@ t('mark bought VI/EN',()=>{for(const s of['đánh dấu đã mua trứng','đã 
 t('remove VI/EN (destructive)',()=>{for(const s of['xoá hành lá','bỏ hành lá ra khỏi danh sách','không cần mua hành lá nữa','remove spring onions from the list','take spring onions off the list',"we don't need spring onions anymore"]){const k=one(s,'remove');assert.equal(k.items[0].ingredient,'scallion',s);assert.equal(k.destructive,true)}
  assert.equal(cmds('bò hai ký').cards.length,0,'“bò” (beef) is not “bỏ” (remove)')});
 t('change planned meal VI/EN with date and meal',()=>{let k=one('tối thứ Ba đổi thành phở bò','meal');assert.equal(k.date,'2026-11-03');assert.equal(k.mealType,'dinner');assert.equal(k.dish,'phở bò');assert.ok(k.candidates.length);
+ k=one('tối thứ Ba đổi thành món ăn phở bò','meal');assert.equal(k.dish,'phở bò','“món ăn” is accepted like “món”');assert.ok(k.candidates.length);
  k=one('change Tuesday dinner to beef pho','meal');assert.equal(k.date,'2026-11-03');assert.equal(k.mealType,'dinner');assert.ok(k.candidates.length);
  k=one('trưa mai nấu canh chua cá thay','meal');assert.equal(k.date,'2026-11-03');assert.equal(k.mealType,'lunch');assert.equal(k.candidates[0],'own-soup');
  k=one('tối chủ nhật đổi sang món gì lạ chưa có','meal');assert.equal(k.date,'2026-11-08');assert.equal(k.needsRecipe,true,'unknown dish asks to pick or quick-create');
@@ -52,6 +53,7 @@ t('pantry counts, never invented',()=>{let k=one('tủ còn hai hộp trứng','
 t('urgent message prefilled, confirmation required',()=>{let k=one('nhắn cả nhà mua thêm đá','urgent');assert.equal(k.message,'Mua thêm đá');
  k=one('tell everyone to buy more ice','urgent');assert.equal(k.message,'Buy more ice');
  k=one('nhắn cả nhà là về sớm, nhớ mang ô','urgent');assert.equal(k.message,'Về sớm, nhớ mang ô','the rest of the sentence stays in the message')});
+t('the price feature by name: new words and the old ones (v1.7.1 rename)',()=>{for(const said of ['mở so giá','so giá','xem so sánh giá','scout','price scout','open price check','price compare','show the price scout panel'])assert.equal(one(said,'answer').q,'price-check',said)});
 t('questions',()=>{let k=one('hôm nay nấu gì','answer');assert.deepEqual([k.q,k.date,k.mealType],['today',TODAY,null]);
  k=one("what's for dinner",'answer');assert.deepEqual([k.q,k.mealType],['today','dinner']);k=one('tối mai ăn gì vậy','answer');assert.deepEqual([k.date,k.mealType],['2026-11-03','dinner']);
  for(const s of['còn thiếu gì','còn phải mua gì','what do I still need',"what's left to buy"])assert.equal(one(s,'answer').q,'missing',s);
@@ -105,7 +107,7 @@ t('where is X cheapest (Price Scout data, else no price yet)',()=>{run(`globalTh
  const q=(lang:string,obs='OBS')=>J(run(`voiceCheapest({ingredient:'waterSpinach',label:'rau muống'},{catalog:CAT,observations:${obs},PS:PriceScout,today:'${TODAY}',lang:'${lang}'})`));
  const vi=q('vi');assert.equal(vi.best.retailer,'viet-grocer','$8/kg beats $14/kg and $20/kg; the stale ALDI price is ignored');assert.match(vi.text,/^Rau muống rẻ nhất: Chợ Việt \$8\.00\/kg, giá ghi ngày 28\/10\. Tiếp theo: /);
  assert.match(q('en').text,/^Cheapest Water spinach: Vietnamese grocer \$8\.00\/kg/);
- assert.equal(q('vi','[]').text,'Chưa có giá cho Rau muống. Lưu giá trong So giá để so sánh.');
+ assert.equal(q('vi','[]').text,'Chưa có giá cho Rau muống. Lưu giá trong So Giá để so sánh.');
  assert.match(J(run(`voiceCheapest({ingredient:'',label:'quả sầu riêng'},{catalog:CAT,observations:OBS,PS:PriceScout,today:'${TODAY}',lang:'en'})`)).text,/^No price yet for quả sầu riêng/)});
 t('recogniser registry validates plug-ins',()=>{assert.throws(()=>run('registerVoiceRecognizer({id:"x"})'));assert.throws(()=>run('registerVoiceRecognizer({id:"browser",label:"b",start(){},stop(){}})'));const off=run('registerVoiceRecognizer({id:"ondevice",label:"On device",start(){},stop(){},offline:true})');assert.deepEqual(J(run('voiceRecognizerList()')).map((r:any)=>r.id),['browser','ondevice']);off();assert.deepEqual(J(run('voiceRecognizerList()')).map((r:any)=>r.id),['browser']);
  for(const k of['parseVoiceInput','parseCommands','learn','forget','lookupLearned','regionalCanon','matchMember','confirmWord','cheapest','registerVoiceRecognizer'])assert.equal(typeof run('VoiceAPI.'+k),'function','VoiceAPI.'+k)});

@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {chromium} from 'playwright';
-const C=require('../dist-extension/scout-core.js');
+const C=require('../.compiled/extension/scout-core.js');
 const config=JSON.parse(readFileSync('extension/config/scout-config.json','utf8'));
 
 // ---------- unit price ----------
@@ -69,7 +69,7 @@ assert.equal(C.storeMatches('Your store: Hurstville','Hurstville'),true);assert.
  const browser=await chromium.launch(),page=await browser.newPage();
  const fixtures:any={'https://www.woolworths.com.au/shop/productdetails/123456/squid-brand-fish-sauce':'woolworths-product.html','https://www.woolworths.com.au/shop/browse/specials/half-price':'woolworths-specials.html','https://www.coles.com.au/search/products?q=sauce':'coles-search.html','https://www.aldi.com.au/special-buys':'aldi-specials.html','https://www.chemistwarehouse.com.au/buy/98765/vitamin-c-500mg-120-tablets':'chemist-product.html','https://www.amazon.com.au/s?k=laundry':'amazon-search.html','https://www.woolworths.com.au/shop/search/products?searchTerm=challenge':'challenge.html','https://www.woolworths.com.au/shop/browse/empty':'empty.html'};
  await page.route('**/*',(route:any)=>{const u=route.request().url(),f=fixtures[u];if(f)return route.fulfill({status:200,contentType:'text/html; charset=utf-8',body:readFileSync('src/tests/fixtures/scout/'+f,'utf8')});return route.fulfill({status:204,body:''})});
- async function parse(url:string){await page.goto(url);await page.addScriptTag({path:'dist-extension/scout-core.js'});await page.addScriptTag({path:'dist-extension/scout-parse.js'});return page.evaluate(([cfg,href]:any)=>(globalThis as any).ScoutParse.extract(document,href,cfg,{status:200,today:'2026-11-04'}),[config,url])}
+ async function parse(url:string){await page.goto(url);await page.addScriptTag({path:'.compiled/extension/scout-core.js'});await page.addScriptTag({path:'.compiled/extension/scout-parse.js'});return page.evaluate(([cfg,href]:any)=>(globalThis as any).ScoutParse.extract(document,href,cfg,{status:200,today:'2026-11-04'}),[config,url])}
  // JSON-LD product
  let r:any=await parse('https://www.woolworths.com.au/shop/productdetails/123456/squid-brand-fish-sauce');
  assert.equal(r.retailer,'woolworths');assert.equal(r.pageType,'product');assert.equal(r.method,'json-ld');assert.equal(r.storeLabel,'Hurstville');assert.equal(r.signedIn,false);assert.equal(r.facts.length,1);

@@ -115,7 +115,9 @@ const meta=await cstore.get('photo-meta/'+held.id,{type:'json'});assert.ok(Date.
 // ---- receipts: confirmed line required; trust ≥0.7 receipt confirms alone
 const d=await household('dungle');await terms(d);
 const today=new Date(clock).toISOString().slice(0,10);
-const stateDoc={version:1,members:[{id:'m-d',name:'Dung'}],weeks:{},pantry:[],preferences:{currency:'AUD'},recipes:[{id:'r1',name:'Family recipe',custom:true}],receipts:[{id:'rc-1',store:'Coles Cabramatta',date:today,currency:'AUD',total:20,items:[{id:'l1',label:'Jasmine rice',total:14.5,ingredient:'rice',quantity:5000},{id:'l2',label:'Fish sauce',total:5.5}]}]};
+const stateDoc={version:1,members:[{id:'m-d',name:'Dung'}],weeks:{},pantry:[],preferences:{currency:'AUD'},recipes:[{id:'r1',name:'Family recipe',custom:true}],receipts:[{id:'rc-1',store:'Coles Cabramatta',date:today,currency:'AUD',total:20,items:[{id:'l1',label:'Jasmine rice',total:14.5,ingredient:'rice',quantity:5000},{id:'l2',label:'Fish sauce',total:5.5}]},
+ // v1.7.1: the same paper receipt saved twice by this family (same salted receipt key) and a refund receipt
+ {id:'rc-2',store:'ALDI Wolli Creek',date:today,currency:'AUD',total:4.99,receiptKey:'0123456789abcdef0123456789abcdef',items:[{id:'l1',label:'Burrata 150g',total:4.99}]},{id:'rc-3',store:'ALDI Wolli Creek',date:today,currency:'AUD',total:4.99,receiptKey:'0123456789abcdef0123456789abcdef',items:[{id:'l9',label:'Burrata 150g',total:4.99}]},{id:'rc-r',store:'ALDI Wolli Creek',date:today,currency:'AUD',total:-4.99,refund:true,items:[{id:'l1',label:'Burrata 150g',total:-4.99}]}]};
 assert.equal((await family(req('family','state',{method:'PUT',cookie:d.cookie,body:{state:stateDoc,etag:null}}))).status,200);
 const rcpt=(extra:any={})=>({...obs({retailer:'woolworths',price:14.5,unitPrice:2.9,...extra}),evidence:{type:'receipt',receiptId:'rc-1',lineId:'l1',...(extra.evidence||{})}});
 r=await share(d,rcpt({price:13,unitPrice:2.6}));assert.equal(r.status,422);assert.equal((await r.json()).code,'receipt-unconfirmed');
@@ -124,6 +126,10 @@ r=await share(d,rcpt());assert.equal(r.status,201);assert.equal((await r.json())
 assert.equal((await share(d,rcpt())).status,409,'same receipt line cannot be shared twice');
 {const x=await cstore.get('contributors/dungle',{type:'json'});x.trust=0.75;await cstore.setJSON('contributors/dungle',x)}
 r=await share(d,{...obs({itemId:'nuoc-mam',label:'Fish sauce',retailer:'woolworths',price:5.5,unitPrice:null,unitBasis:null,packQty:null,packUnit:null}),evidence:{type:'receipt',receiptId:'rc-1',lineId:'l2'}});assert.equal(r.status,201);assert.equal((await r.json()).group.status,'confirmed','one receipt from trust ≥0.7 confirms');
+// v1.7.1 server-side: a receipt saved twice by one family never counts twice; refunds are never shared.
+r=await share(d,rcpt({price:4.99,unitPrice:null,unitBasis:null,packQty:null,packUnit:null,evidence:{receiptId:'rc-2',lineId:'l1'}}));assert.equal(r.status,201,'first copy of the receipt shares');
+r=await share(d,rcpt({price:4.99,unitPrice:null,unitBasis:null,packQty:null,packUnit:null,evidence:{receiptId:'rc-3',lineId:'l9'}}));assert.equal(r.status,409,'second saved copy of the same receipt is a duplicate');assert.equal((await r.json()).code,'duplicate');
+r=await share(d,rcpt({price:4.99,unitPrice:null,unitBasis:null,packQty:null,packUnit:null,evidence:{receiptId:'rc-r',lineId:'l1'}}));assert.equal(r.status,422,'refund lines are never shared');
 
 // ---- low trust: accepted but never counted
 const e=await household('emlow'),f=await household('phuongf');await terms(e);await terms(f);

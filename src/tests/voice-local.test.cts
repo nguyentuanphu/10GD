@@ -7,34 +7,40 @@ const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const webcrypto=require('node:crypto').webcrypto;
 let count=0;const tests:any[]=[];const t=(name:string,fn:any)=>tests.push([name,fn]);
 function fakeCaches(){const stores=new Map<string,Map<string,any>>();return{stores,async open(name:string){if(!stores.has(name))stores.set(name,new Map());const m=stores.get(name)!;return{async match(u:any){const r=m.get(String(u?.url||u));return r?r.clone():undefined},async put(u:any,res:any){m.set(String(u?.url||u),res)},async delete(u:any){return m.delete(String(u?.url||u))}}}}}
-function ctx(extra:any={}){const c=vm.createContext({console,Intl,Date,Math,URL,TextEncoder,Response,Blob,crypto:webcrypto,btoa,atob,setTimeout,clearTimeout,queueMicrotask,structuredClone,...extra});vm.runInContext(fs.readFileSync('dist/voice-local.js','utf8'),c);return c}
+function ctx(extra:any={}){const c=vm.createContext({console,Intl,Date,Math,URL,TextEncoder,Response,Blob,crypto:webcrypto,btoa,atob,setTimeout,clearTimeout,queueMicrotask,structuredClone,AbortController,DOMException,...extra});vm.runInContext(fs.readFileSync('dist/voice-local.js','utf8'),c);return c}
 const run=(c:any,src:string)=>vm.runInContext(src,c);
 const J=(c:any,src:string)=>JSON.parse(vm.runInContext('JSON.stringify('+src+')',c));
 
 t('packs list exact pinned sizes and stay off by default',()=>{const c=ctx({localStorage:{getItem:()=>null,setItem(){},removeItem(){}}});
- assert.equal(run(c,"voiceLocalPackBytes('base')"),23201314+53693315+2243+3832+339+2480466+282682);
+ assert.deepEqual(J(c,"Object.keys(VOICE_LOCAL_PACKS)"),['small'],'v1.7.1: only "More accurate" is offered — the Light pack is retired');assert.equal(run(c,"voiceLocalPackBytes('base')"),0);
  assert.equal(run(c,"voiceLocalPackBytes('small')"),92326160+156750845+2227+3893+339+2480466+282683);
  assert.equal(run(c,"voiceLocalBytes(voiceLocalRuntimeFiles('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36',false))"),586230+53057+26861777);
  assert.equal(run(c,"voiceLocalBytes(voiceLocalRuntimeFiles('Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',false))"),586230+24381+14264838,'Safari < 26 without WebGPU uses the plain runtime');
  assert.equal(run(c,"voiceLocalIsOldSafari('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',false)"),false);
  assert.equal(run(c,"voiceLocalChoice()"),'','no recognizer chosen by default');
- const urls=run(c,"voiceLocalPackFiles('base').map(f=>f.url)");
- for(const u of urls)assert.match(u,/^https:\/\/huggingface\.co\/onnx-community\/whisper-base\/resolve\/1846881b6b3a3024392c1eea3ad983695bc23925\//,'pinned revision');
+ const urls=run(c,"voiceLocalPackFiles('small').map(f=>f.url)");
+ for(const u of urls)assert.match(u,/^https:\/\/huggingface\.co\/onnx-community\/whisper-small\/resolve\/36050c46d777d46dc4b5f43f6d90574fc38f8732\//,'pinned revision');
  assert.equal(run(c,"VOICE_LOCAL_TF.url"),'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1/dist/transformers.min.js','pinned exact library version');
  assert.ok(run(c,"voiceLocalPackFiles('small').filter(f=>f.url.endsWith('.onnx')).every(f=>/^[a-f0-9]{64}$/.test(f.sha256))"),'model weights carry sha256');
  assert.equal(run(c,"voiceLocalFormatBytes(79664191,'en')"),'79.7 MB');assert.equal(run(c,"voiceLocalFormatBytes(251846613,'vi')"),'252 MB');
 });
 t('capability check and per-pack limits',()=>{const c=ctx();const cap=(f:any)=>{c.__f=f;return JSON.parse(run(c,'JSON.stringify(voiceLocalCapability(__f))'))};
  const good={wasm:true,simd:true,worker:true,mic:true,audioWorklet:true,caches:true,memoryGB:8,ua:'Chrome/141',touchPoints:0};
- let r=cap(good);assert.equal(r.ok,true);assert.equal(r.packs.base.ok,true);assert.equal(r.packs.small.ok,true);
- r=cap({...good,simd:false});assert.equal(r.ok,false);assert.deepEqual(r.reasons,['simd']);assert.equal(r.packs.base.ok,false);
- r=cap({...good,memoryGB:2});assert.equal(r.packs.base.ok,true);assert.equal(r.packs.small.ok,false);assert.deepEqual(r.packs.small.reasons,['memory']);
- r=cap({...good,memoryGB:1});assert.equal(r.packs.base.ok,false);
- r=cap({...good,memoryGB:undefined,ua:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) Version/18.5 Mobile/15E148 Safari/604.1'});assert.equal(r.packs.base.ok,true);assert.equal(r.packs.small.ok,false);assert.deepEqual(r.packs.small.reasons,['ios-memory']);
- r=cap({...good,memoryGB:undefined,ua:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Version/18.5 Safari/605.1.15',touchPoints:5});assert.equal(r.ios,true,'iPadOS desktop UA is still iOS');
+ let r=cap(good);assert.equal(r.ok,true);assert.equal(r.packs.small.ok,true);assert.equal(r.packs.base,undefined,'no Light pack offered');
+ r=cap({...good,simd:false});assert.equal(r.ok,false);assert.deepEqual(r.reasons,['simd']);assert.equal(r.packs.small.ok,false);
+ r=cap({...good,memoryGB:2});assert.equal(r.packs.small.ok,false);assert.deepEqual(r.packs.small.reasons,['memory']);
+ // v1.7.1 owner decision: every iPhone/iPad may download "More accurate" (no 'ios-memory' block).
+ const IOS18='Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) Version/18.5 Mobile/15E148 Safari/604.1',IOS26='Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) Version/26.0 Mobile/15E148 Safari/604.1';
+ r=cap({...good,memoryGB:undefined,ua:IOS18});assert.equal(r.packs.small.ok,true,'older iOS without WebGPU is allowed');assert.deepEqual(r.packs.small.reasons,[]);assert.equal(r.packs.small.warn,'ios-slow','…with a non-blocking warning');
+ r=cap({...good,memoryGB:undefined,ua:IOS26,gpu:true});assert.equal(r.packs.small.ok,true);assert.equal(r.packs.small.warn,'ios');assert.equal(r.gpu,true);
+ r=cap({...good,memoryGB:undefined,ua:'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Version/18.5 Safari/605.1.15',touchPoints:5});assert.equal(r.ios,true,'iPadOS desktop UA is still iOS');assert.equal(r.packs.small.ok,true);
  r=cap({...good,memoryGB:undefined});assert.equal(r.packs.small.ok,true);assert.equal(r.packs.small.warn,'memory-unknown');
  r=cap({...good,audioWorklet:false,mic:false});assert.deepEqual(r.reasons,['mic','audio']);
- assert.match(run(c,"voiceLocalReasonText('ios-memory')"),/iPhone\/iPad/);
+ r=cap({...good,ua:IOS18,worker:false});assert.equal(r.packs.small.ok,false,'genuine capability blocks still apply on iOS');assert.deepEqual(r.packs.small.reasons,['worker']);
+ assert.match(run(c,"voiceLocalWarnText('ios-slow')"),/slow|chậm/i);assert.equal(run(c,"voiceLocalReasonText('ios-memory')"),'ios-memory','the old iOS block reason is gone');
+ assert.match(run(c,"voiceLocalReasonText('memory')"),/memory|bộ nhớ/i);
+ c.__cap=cap({...good,memoryGB:undefined,ua:IOS18});assert.match(run(c,"voiceLocalDownloadWarning('small',__cap,'vi')"),/\d{3} MB.*Wi-Fi.*(chậm|slow)/s,'iOS download warning: size, Wi-Fi, may be slow');
+ assert.equal(run(c,"voiceLocalDownloadWarning('small',{ios:false,packs:{small:{ok:true}}},'vi')"),'','no extra warning off iOS');
 });
 t('language hint, hallucination clean-up, downmix and resampling',()=>{const c=ctx();
  assert.equal(run(c,"voiceLocalWhisperLang('vi-VN','toggle')"),'vietnamese');assert.equal(run(c,"voiceLocalWhisperLang('en-AU','toggle')"),'english');assert.equal(run(c,"voiceLocalWhisperLang('vi-VN','auto')"),null);
@@ -63,19 +69,19 @@ t('registers recognizers and offline packs only when the hooks exist',async()=>{
  assert.equal(run(c,'voiceLocalRegisterHooks()'),0,'standalone: nothing to register, no error');
  // v1.6 integration: R's registry returns an unregister function; only DOWNLOADED + usable packs become recognisers
  // (so the shared selector never offers one that cannot start). Offline packs register at once.
- run(c,"globalThis.__recs=[];globalThis.__packs=[];globalThis.registerVoiceRecognizer=r=>{__recs.push(r);return()=>{__recs.splice(__recs.indexOf(r),1)}};globalThis.registerOfflinePack=p=>__packs.push(p);voiceLocalProbe=async()=>({ok:true,packs:{base:{ok:true},small:{ok:true}}})");
- assert.equal(run(c,'voiceLocalRegisterHooks()'),2);assert.equal(run(c,'voiceLocalRegisterHooks()'),0,'idempotent');
+ run(c,"globalThis.__recs=[];globalThis.__packs=[];globalThis.registerVoiceRecognizer=r=>{__recs.push(r);return()=>{__recs.splice(__recs.indexOf(r),1)}};globalThis.registerOfflinePack=p=>__packs.push(p);voiceLocalProbe=async()=>({ok:true,packs:{small:{ok:true}}})");
+ assert.equal(run(c,'voiceLocalRegisterHooks()'),1,'one offline pack (More accurate)');assert.equal(run(c,'voiceLocalRegisterHooks()'),0,'idempotent');
  await run(c,'voiceLocalSyncRecognizers()');assert.equal(run(c,'__recs.length'),0,'nothing downloaded: no recogniser offered');
- run(c,"voiceLocalStatus=async id=>id==='base'?'ready':'none'");assert.equal(await run(c,'voiceLocalSyncRecognizers()'),1);await run(c,'voiceLocalSyncRecognizers()');
+ run(c,"voiceLocalStatus=async id=>id==='small'?'ready':'none'");assert.equal(await run(c,'voiceLocalSyncRecognizers()'),1);await run(c,'voiceLocalSyncRecognizers()');
  const recs=run(c,'__recs'),packs=run(c,'__packs');
- assert.deepEqual([...recs].map((r:any)=>r.id),['local-base'],'ready pack registered once');
+ assert.deepEqual([...recs].map((r:any)=>r.id),['local-small'],'ready pack registered once');
  for(const r of recs){assert.equal(typeof r.start,'function');assert.equal(typeof r.stop,'function');assert.equal(typeof r.abort,'function');assert.ok(r.label);assert.equal(r.offline,true,'works offline');assert.equal(r.flushOnStop,true)}
  // onResult(text, final) from the engine is delivered in R's shape onResult(text, {isFinal}).
  run(c,"globalThis.__got=[];voiceLocalRecognizer=id=>({id:'local-'+id,label:'x',start:async(lang,onResult)=>{onResult('một',false);onResult('một ký',true)},stop(){},abort(){}})");
- await run(c,"voiceLocalAdapter('base').start('vi-VN',(t,i)=>__got.push([t,i.isFinal]),()=>{})");assert.deepEqual(JSON.parse(JSON.stringify(run(c,'__got'))),[['một',false],['một ký',true]]);
+ await run(c,"voiceLocalAdapter('small').start('vi-VN',(t,i)=>__got.push([t,i.isFinal]),()=>{})");assert.deepEqual(JSON.parse(JSON.stringify(run(c,'__got'))),[['một',false],['một ký',true]]);
  run(c,"voiceLocalStatus=async()=>'none'");await run(c,'voiceLocalSyncRecognizers()');assert.equal(run(c,'__recs.length'),0,'removed pack is unregistered');
- assert.deepEqual([...packs].map((p:any)=>p.id),['voice-local-base','voice-local-small']);
- assert.equal(packs[0].sizeBytes,79664191+27501064,'pack size includes the shared runtime');
+ assert.deepEqual([...packs].map((p:any)=>p.id),['voice-local-small']);
+ assert.equal(packs[0].sizeBytes,251846613+27501064,'pack size includes the shared runtime');
  for(const p of packs){assert.equal(typeof p.download,'function');assert.equal(typeof p.remove,'function');assert.equal((await p.status()).state,'none')}
 });
 t('download → verify → cache, integrity failure, status and remove (fake files)',async()=>{
@@ -85,38 +91,42 @@ t('download → verify → cache, integrity failure, status and remove (fake fil
  const hex=async(s:string)=>Buffer.from(await webcrypto.subtle.digest('SHA-256',bytes(s))).toString('hex'),b64=async(s:string)=>Buffer.from(await webcrypto.subtle.digest('SHA-256',bytes(s))).toString('base64');
  // Shrink the pinned files to synthetic content so the test needs no download.
  c.__m=await hex('model-bytes');c.__tf=await b64('tf-module');c.__mjs=await b64('ort-mjs');c.__wasm=await b64('ort-wasm');
- run(c,"VOICE_LOCAL_PACKS.base.files=[{path:'onnx/encoder_model_quantized.onnx',size:11,sha256:__m},{path:'config.json',size:2}];VOICE_LOCAL_TF.size=9;VOICE_LOCAL_TF.sha256b64=__tf;VOICE_LOCAL_ORT.asyncify[0].size=7;VOICE_LOCAL_ORT.asyncify[0].sha256b64=__mjs;VOICE_LOCAL_ORT.asyncify[1].size=8;VOICE_LOCAL_ORT.asyncify[1].sha256b64=__wasm");
+ run(c,"VOICE_LOCAL_PACKS.small.files=[{path:'onnx/encoder_model_quantized.onnx',size:11,sha256:__m},{path:'config.json',size:2}];VOICE_LOCAL_TF.size=9;VOICE_LOCAL_TF.sha256b64=__tf;VOICE_LOCAL_ORT.asyncify[0].size=7;VOICE_LOCAL_ORT.asyncify[0].sha256b64=__mjs;VOICE_LOCAL_ORT.asyncify[1].size=8;VOICE_LOCAL_ORT.asyncify[1].sha256b64=__wasm");
  const body:any={'transformers.min.js':'tf-module','asyncify.mjs':'ort-mjs','asyncify.wasm':'ort-wasm','encoder_model_quantized.onnx':'model-bytes','config.json':'{}'};
  c.__fetch=async(u:string)=>{fetched.push(u);const k=Object.keys(body).find(k=>u.endsWith(k));return k?new Response(body[k]):new Response('',{status:404})};
  const progress:number[]=[];c.__p=(f:number)=>progress.push(f);
- assert.equal(await run(c,"voiceLocalStatus('base')"),'none');
- assert.equal(await run(c,"voiceLocalDownload('base',__p,{fetchFn:__fetch})"),'ready');
+ assert.equal(await run(c,"voiceLocalStatus('small')"),'none');
+ assert.equal(await run(c,"voiceLocalDownload('small',__p,{fetchFn:__fetch})"),'ready');
  assert.equal(fetched.length,5);assert.ok(fetched.every(u=>/^https:\/\/(cdn\.jsdelivr\.net|huggingface\.co)\//.test(u)),'only the pinned hosts are contacted');
  assert.equal(progress.at(-1),1);assert.ok(progress.every((p,i)=>i===0||p>=progress[i-1]),'progress is monotonic');
- assert.equal(await run(c,"voiceLocalStatus('base')"),'ready');
+ assert.equal(await run(c,"voiceLocalStatus('small')"),'ready');
  const cached=[...caches.stores.get('bep-voice-models-v1')!.keys()];assert.ok(cached.includes('https://kitchen.test/voice-local-worker.js'),'worker copy kept for offline start');
- assert.equal(await run(c,"voiceLocalStatus('small')"),'none','shared runtime alone does not count as the other pack');
+ // v1.7.1: a Light (whisper-base) pack downloaded earlier is removed from the cache; the shared runtime stays.
+ const oldUrl='https://huggingface.co/onnx-community/whisper-base/resolve/1846881b6b3a3024392c1eea3ad983695bc23925/onnx/encoder_model_quantized.onnx';
+ await (await caches.open('bep-voice-models-v1')).put(oldUrl,new Response('old'));c.caches.has=async(n:string)=>caches.stores.has(n);
+ assert.equal(await run(c,'voiceLocalCleanRetired()'),1);assert.equal(caches.stores.get('bep-voice-models-v1')!.has(oldUrl),false,'retired Light files removed');
+ assert.equal(await run(c,"voiceLocalStatus('small')"),'ready','More accurate untouched by the clean-up');
  // A second download is a no-op (all present).
- fetched.length=0;await run(c,"voiceLocalDownload('base',null,{fetchFn:__fetch})");assert.equal(fetched.length,0);
- run(c,"voiceLocalSetChoice=function(v){globalThis.__choice=v};voiceLocalChoice=()=>'base'");
- assert.equal(await run(c,"voiceLocalRemove('base')"),'none');assert.equal(await run(c,"voiceLocalStatus('base')"),'none');assert.equal(run(c,'__choice'),'','removing the chosen pack switches back to the browser recogniser');
+ fetched.length=0;await run(c,"voiceLocalDownload('small',null,{fetchFn:__fetch})");assert.equal(fetched.length,0);
+ run(c,"voiceLocalSetChoice=function(v){globalThis.__choice=v};voiceLocalChoice=()=>'small'");
+ assert.equal(await run(c,"voiceLocalRemove('small')"),'none');assert.equal(await run(c,"voiceLocalStatus('small')"),'none');assert.equal(run(c,'__choice'),'','removing the chosen pack switches back to the browser recogniser');
  assert.equal(caches.stores.get('bep-voice-models-v1')!.size,0,'runtime removed when no pack is left');
  // Integrity: tampered weights are rejected and not cached.
  body['encoder_model_quantized.onnx']='model-byteZ';
- await assert.rejects(()=>run(c,"voiceLocalDownload('base',null,{fetchFn:__fetch})"),(e:any)=>e.code==='integrity');
- assert.equal(await caches.open('bep-voice-models-v1').then((x:any)=>x.match(run(c,"voiceLocalPackFiles('base')[0].url"))),undefined);
+ await assert.rejects(()=>run(c,"voiceLocalDownload('small',null,{fetchFn:__fetch})"),(e:any)=>e.code==='integrity');
+ assert.equal(await caches.open('bep-voice-models-v1').then((x:any)=>x.match(run(c,"voiceLocalPackFiles('small')[0].url"))),undefined);
  // Not enough storage.
  run(c,"navigator.storage.estimate=async()=>({quota:10,usage:9})");body['encoder_model_quantized.onnx']='model-bytes';
- await assert.rejects(()=>run(c,"voiceLocalDownload('base',null,{fetchFn:__fetch})"),(e:any)=>e.code==='quota');
+ await assert.rejects(()=>run(c,"voiceLocalDownload('small',null,{fetchFn:__fetch})"),(e:any)=>e.code==='quota');
 });
 t('recognizer: segments to text with the language hint, stop/abort, fallback when unavailable',async()=>{
  const c=ctx({localStorage:{getItem:()=>null,setItem(){},removeItem(){}}});
  const calls:any[]=[];let onFrame:any=null,stopped=0;
- c.__deps={probe:async()=>({packs:{base:{ok:true},small:{ok:false}}}),status:async()=>'ready',langMode:()=>'toggle',segmenter:{partialMs:99999},
+ c.__deps={probe:async()=>({packs:{small:{ok:true}}}),status:async()=>'ready',langMode:()=>'toggle',segmenter:{partialMs:99999},
   ensure:async()=>({transcribe:async(audio:any,lang:any,final:boolean)=>{calls.push({n:audio.length,lang,final});return{text:final?' hai ký thịt ba chỉ ':'hai'}}}),
   record:async(cb:any)=>{onFrame=cb;return{stop(){stopped++}}}};
  const results:any[]=[],ends:any[]=[];c.__r=(t:string,f:boolean)=>results.push([t,f]);c.__e=(i:any)=>ends.push(i.reason);
- const rec=run(c,"voiceLocalRecognizer('base',__deps)");assert.equal(rec.id,'local-base');assert.equal(await rec.available(),true);
+ const rec=run(c,"voiceLocalRecognizer('small',__deps)");assert.equal(rec.id,'local-small');assert.equal(await rec.available(),true);
  const ctl=await rec.start('vi-VN',c.__r,c.__e);
  const frame=(a:number)=>{const f=new Float32Array(160);for(let i=0;i<160;i++)f[i]=a*Math.sin(i/3);return f};
  for(let i=0;i<20;i++)onFrame(frame(0.001));for(let i=0;i<80;i++)onFrame(frame(0.2));for(let i=0;i<90;i++)onFrame(frame(0.001));
@@ -125,14 +135,14 @@ t('recognizer: segments to text with the language hint, stop/abort, fallback whe
  for(let i=0;i<40;i++)onFrame(frame(0.2));await ctl.stop(false);await new Promise(r=>setTimeout(r,10));
  assert.equal(stopped,1);assert.equal(results.length,2,'stop flushes the last words');assert.deepEqual(ends,['stopped']);
  // Auto language → no hint.
- c.__deps.langMode=()=>'auto';const r2=run(c,"voiceLocalRecognizer('base',__deps)");const ctl2=await r2.start('en-AU',c.__r,c.__e);for(let i=0;i<40;i++)onFrame(frame(0.2));await ctl2.stop(true);
+ c.__deps.langMode=()=>'auto';const r2=run(c,"voiceLocalRecognizer('small',__deps)");const ctl2=await r2.start('en-AU',c.__r,c.__e);for(let i=0;i<40;i++)onFrame(frame(0.2));await ctl2.stop(true);
  assert.equal(ends.at(-1),'aborted');
- const r3=run(c,"voiceLocalRecognizer('base',__deps)");const ctl3=await r3.start('en-AU',c.__r,c.__e);for(let i=0;i<40;i++)onFrame(frame(0.2));for(let i=0;i<90;i++)onFrame(frame(0.001));await new Promise(r=>setTimeout(r,10));assert.equal(calls.at(-1).lang,null);await ctl3.stop(true);
+ const r3=run(c,"voiceLocalRecognizer('small',__deps)");const ctl3=await r3.start('en-AU',c.__r,c.__e);for(let i=0;i<40;i++)onFrame(frame(0.2));for(let i=0;i<90;i++)onFrame(frame(0.001));await new Promise(r=>setTimeout(r,10));assert.equal(calls.at(-1).lang,null);await ctl3.stop(true);
  // Unavailable → caller falls back; engine failure reports an error end.
- c.__deps.status=async()=>'none';assert.equal(await run(c,"voiceLocalRecognizer('base',__deps)").available(),false);
- c.__deps.status=async()=>'ready';c.__deps.probe=async()=>({packs:{base:{ok:false},small:{ok:false}}});assert.equal(await run(c,"voiceLocalRecognizer('base',__deps)").available(),false);
+ c.__deps.status=async()=>'none';assert.equal(await run(c,"voiceLocalRecognizer('small',__deps)").available(),false);
+ c.__deps.status=async()=>'ready';c.__deps.probe=async()=>({packs:{small:{ok:false}}});assert.equal(await run(c,"voiceLocalRecognizer('small',__deps)").available(),false);
  c.__deps.ensure=async()=>{throw Object.assign(new Error('boom'),{code:'load'})};
- await assert.rejects(()=>run(c,"voiceLocalRecognizer('base',__deps)").start('vi-VN',c.__r,c.__e));assert.equal(ends.at(-1),'error');
+ await assert.rejects(()=>run(c,"voiceLocalRecognizer('small',__deps)").start('vi-VN',c.__r,c.__e));assert.equal(ends.at(-1),'error');
 });
 t('worker protocol with a fake engine (handler + client over a fake Worker)',async()=>{
  const w=vm.createContext({console,Date,Math,URL,Float32Array,Promise,setTimeout});vm.runInContext(fs.readFileSync('dist/voice-local-worker.js','utf8'),w);
@@ -144,7 +154,7 @@ t('worker protocol with a fake engine (handler + client over a fake Worker)',asy
  await h({type:'hello',id:2,v:9});assert.equal(posted.pop().code,'version');
  await h({type:'transcribe',id:3,v:1,audio:new Float32Array(16000),language:'vietnamese'});assert.equal(posted.pop().code,'not-loaded');
  await h({type:'load',id:4,v:1,pack:{id:'base',model:'onnx-community/whisper-base',revision:'x'},runtime:{},cacheName:'bep-voice-models-v1'});
- assert.deepEqual(posted.splice(0),[{type:'progress',id:4,status:'progress',file:'onnx/encoder_model_quantized.onnx',progress:50},{type:'loaded',id:4,ms:0}]);
+ assert.deepEqual(posted.splice(0),[{type:'progress',id:4,status:'progress',file:'onnx/encoder_model_quantized.onnx',progress:50},{type:'loaded',id:4,ms:0,device:'wasm'}]);
  const a=h({type:'transcribe',id:5,v:1,audio:new Float32Array(32000),language:'vietnamese',final:true}),b=h({type:'transcribe',id:6,v:1,audio:new Float32Array(8000),language:null,final:false});await Promise.all([a,b]);
  assert.deepEqual(posted.splice(0).map((m:any)=>[m.type,m.id,m.text,m.seconds]),[['result',5,'len=32000 lang=vietnamese final=true',2],['result',6,'len=8000 lang=null final=false',0.5]],'serial, in order');
  await h({type:'transcribe',id:7,v:1,audio:[1,2,3]});assert.equal(posted.pop().code,'audio');
@@ -168,5 +178,38 @@ t('worker real engine refuses a tampered runtime and never fetches the network',
  await assert.rejects(()=>w.voiceLocalTransformersEngine({pack:{},runtime:{module:{url:'https://cdn.jsdelivr.net/x.js',sha256b64:'x'}},cacheName:'bep-voice-models-v1',progress(){}}),(e:any)=>e.code==='not-downloaded');
  (await caches.open('bep-voice-models-v1')).put('https://cdn.jsdelivr.net/x.js',new Response('export const env={}'));
  await assert.rejects(()=>w.voiceLocalTransformersEngine({pack:{},runtime:{module:{url:'https://cdn.jsdelivr.net/x.js',sha256b64:'not-the-hash'}},cacheName:'bep-voice-models-v1',progress(){}}),(e:any)=>e.code==='integrity');
+});
+// v1.7.1: when "More accurate" cannot load, crashes while recognising, or the page reloads mid-way (iOS memory), the
+// device remembers it, switches back to the browser recogniser and offers Try again / Remove pack.
+t('failure guard: load failure, crash during recognition and reload mid-load fall back to the browser recogniser',async()=>{
+ const store=new Map<string,string>();const ls={getItem:(k:string)=>store.has(k)?store.get(k)!:null,setItem:(k:string,v:string)=>{store.set(k,String(v))},removeItem:(k:string)=>{store.delete(k)}};
+ const c=ctx({localStorage:ls});const notes:string[]=[];
+ const base={probe:async()=>({packs:{small:{ok:true}}}),status:async()=>'ready',langMode:()=>'toggle',segmenter:{partialMs:99999},note:(k:string)=>notes.push(k),record:async()=>({stop(){}})};
+ // 1. Load failure.
+ run(c,"voiceLocalSetChoice('small')");assert.equal(run(c,'voiceLocalChoice()'),'small');
+ c.__deps={...base,ensure:async()=>{throw Object.assign(Error('oom'),{code:'crash'})}};const ends:any[]=[];c.__e=(i:any)=>ends.push(i.reason);c.__r=()=>{};
+ await assert.rejects(()=>run(c,"voiceLocalRecognizer('small',__deps)").start('vi-VN',c.__r,c.__e));
+ assert.equal(ends.at(-1),'error');assert.equal(run(c,'voiceLocalChoice()'),'','falls back to the browser recogniser');
+ assert.equal(J(c,'voiceLocalFailed("small")').stage,'load');assert.match(run(c,'voiceLocalFailText(voiceLocalFailed())'),/trình duyệt/);assert.ok(notes.includes('loading'),'loading is shown');
+ assert.match(run(c,'voiceLocalFailureHtml(voiceLocalFailed())'),/data-vl-retry="small"[\s\S]*data-vl-remove="small"/,'Try again + Remove pack');
+ // Status in Downloads carries the failure text.
+ c.__st=await run(c,"(async()=>{voiceLocalProbe=async()=>({packs:{small:{ok:true,warn:'ios-slow'}}});voiceLocalCap=null;return voiceLocalPackStatus('small')})()");
+ assert.equal(c.__st.failed,'load');assert.match(c.__st.failedText,/trình duyệt/);assert.match(c.__st.warnText,/chậm/);
+ run(c,'voiceLocalClearFailed()');assert.equal(run(c,'voiceLocalFailed()'),null);
+ // 2. Crash during recognition (the worker dies → transcribe rejects).
+ run(c,"voiceLocalSetChoice('small')");let onFrame:any=null;
+ c.__deps={...base,ensure:async()=>({transcribe:async()=>{throw Object.assign(Error('worker crashed'),{code:'crash'})}}),record:async(cb:any)=>{onFrame=cb;return{stop(){}}}};
+ const ctl=await run(c,"voiceLocalRecognizer('small',__deps)").start('vi-VN',c.__r,c.__e);
+ const frame=(a:number)=>{const f=new Float32Array(1600);for(let i=0;i<f.length;i++)f[i]=a*Math.sin(i/5);return f};
+ for(let i=0;i<20;i++)onFrame(frame(0.2));for(let i=0;i<12;i++)onFrame(frame(0.001));await new Promise(r=>setTimeout(r,10));await ctl.stop(true);
+ assert.equal(J(c,'voiceLocalFailed()').stage,'run');assert.equal(run(c,'voiceLocalChoice()'),'');assert.equal(store.has('bep-voice-local-busy'),false);
+ assert.ok(notes.includes('recognizing'),'“Đang nhận dạng…” while a sentence is decoded');
+ run(c,'voiceLocalClearFailed()');
+ // 3. The page died while loading (iOS reloads a tab that runs out of memory): the busy marker turns into a failure.
+ run(c,"voiceLocalSetChoice('small')");store.set('bep-voice-local-busy',JSON.stringify({pack:'small',stage:'load',at:1}));
+ assert.equal(J(c,'voiceLocalCheckCrash()').stage,'reload-load');assert.equal(run(c,'voiceLocalChoice()'),'');assert.match(run(c,'voiceLocalFailText(voiceLocalFailed())'),/tải lại/);
+ assert.equal(run(c,'voiceLocalCheckCrash()'),null,'checked once');
+ // A stored choice of the retired Light pack falls back to the browser recogniser.
+ store.set('bep-voice-recognizer','local-base');assert.equal(run(c,'voiceLocalChoice()'),'');assert.equal(store.has('bep-voice-recognizer'),false);
 });
 (async()=>{for(const [name,fn] of tests){try{await fn();count++}catch(e:any){e.message=name+': '+e.message;throw e}}console.log(`voice-local: ${count} checks passed (stub engine, no model download).`)})().catch(e=>{console.error(e);process.exit(1)});

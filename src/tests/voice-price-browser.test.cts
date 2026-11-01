@@ -21,17 +21,17 @@ const RECIPE_EN='Recipe for beef stir fry for 2 people. Ingredients: 300g beef, 
 async function main(){
  mkdirSync(out,{recursive:true});
  const browser=await chromium.launch();let shots=0;
- async function open({viewport=sizes.mobile as {width:number,height:number},lang='vi',theme='light',offline=false}={}){
+ async function open({viewport=sizes.mobile as {width:number,height:number},lang='vi',theme='light',offline=false,hold=false}={}){
   const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any});
-  await context.addInitScript(({lang,theme,scout})=>{const w=window as any;
-   if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');localStorage.removeItem('bep-voice-lang');localStorage.removeItem('bep-voice-auto');localStorage.setItem('guest/bep-price-scout-v1',JSON.stringify(scout))}
+  await context.addInitScript(({lang,theme,scout,hold})=>{const w=window as any;
+   if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-voice-ptt-v171','1');localStorage.setItem('bep-voice-ptt',hold?'1':'0');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');localStorage.removeItem('bep-voice-lang');localStorage.removeItem('bep-voice-auto');localStorage.setItem('guest/bep-price-scout-v1',JSON.stringify(scout))}
    w.__recs=[];class FakeRec{lang='';n=0;started=false;ended=false;continuous=false;onresult:any;onend:any;onerror:any;constructor(){w.__recs.push(this)}start(){this.started=true}stop(){this.end()}abort(){this.end()}end(){if(this.ended)return;this.ended=true;setTimeout(()=>this.onend&&this.onend(),0)}}
    w.SpeechRecognition=FakeRec;w.webkitSpeechRecognition=FakeRec;
    w.__live=()=>w.__recs.filter((r:any)=>r.started&&!r.ended).pop();
    w.__say=(text:string)=>{const r=w.__live();if(!r)throw Error('no live recogniser');const alt:any=[{transcript:text,confidence:.9}];alt.isFinal=true;const results:any=[];results[r.n]=alt;r.onresult({resultIndex:r.n,results});r.n++};
    // the browser ends a recognition session after a pause; the dictation wrapper must restart it
    w.__pauseEnd=()=>{const r=w.__live();if(r){r.ended=true;r.onend&&r.onend()}};
-  },{lang,theme,scout:SCOUT});
+  },{lang,theme,scout:SCOUT,hold});
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route(origin+'/**',async route=>{const url=new URL(route.request().url()),path=url.pathname;
    if(path.startsWith('/.netlify/')){await route.fulfill({status:401,json:{error:'no'}});return}
@@ -50,13 +50,14 @@ async function main(){
   assert.ok(overflow<=1,label+': horizontal overflow '+overflow+'px');
   const small=await page.evaluate((sel:string)=>[...document.querySelectorAll(sel)].filter((e:any)=>e.offsetParent&&e.getBoundingClientRect().height<43.5).map((e:any)=>(e.textContent||e.className||'').trim().slice(0,30)),sel);
   assert.deepEqual(small,[],label+': touch targets under 44px');
-  const clipped=await page.evaluate(()=>[...document.querySelectorAll('.voice-lang-btn,.vp-row-actions .btn,.vp-controls .btn')].filter((e:any)=>e.offsetParent&&e.scrollWidth>e.clientWidth+1).map((e:any)=>e.textContent));
+  const clipped=await page.evaluate(()=>[...document.querySelectorAll('.voice-lang-toggle,.vp-row-actions .btn,.vp-controls .btn')].filter((e:any)=>e.offsetParent&&e.scrollWidth>e.clientWidth+1).map((e:any)=>e.textContent));
   assert.deepEqual(clipped,[],label+': clipped labels');
   const shownSr=await page.evaluate(()=>[...document.querySelectorAll('.vp-sheet .sr-only,.vr-sheet .sr-only,.price-scout .sr-only')].filter((e:any)=>e.getBoundingClientRect().width>1).length);
   assert.equal(shownSr,0,label+': screen-reader-only text is visually hidden');
  }
- const PRICE_TARGETS='.vt-lang-settings > summary,.vp-controls .btn,.vp-row-actions .btn,.vt-lang .voice-lang-btn,.scout-voice-btn';
- const RECIPE_TARGETS='.vt-lang-settings > summary,.vp-controls .btn,.vt-lang .voice-lang-btn,.vr-ing .input,.vr-del,.vr-entry-btn,.vr-steps textarea';
+ // v1.7.1: the language is a one-tap toggle next to the mic (no collapsed select); sections 1–6 choose tap mode, 7 tests hold.
+ const PRICE_TARGETS='.voice-lang-toggle,.vp-controls .btn,.vp-row-actions .btn,.scout-voice-btn';
+ const RECIPE_TARGETS='.voice-lang-toggle,.vp-controls .btn,.vr-ing .input,.vr-del,.vr-entry-btn,.vr-steps textarea';
  const shot=async(page:any,name:string)=>{await page.screenshot({path:`${out}/${name}.png`,fullPage:false});shots++};
  const scrollModal=(page:any,sel:string)=>page.evaluate((sel:string)=>document.querySelector(sel)?.scrollIntoView({block:'start'}),sel);
  try{
@@ -113,12 +114,16 @@ async function main(){
   // 3. Language toggle restarts recognition in the chosen language and remembers it (same convention as voice input).
   {const {page,context}=await open({lang:'en'});await page.evaluate('voicePriceOpen()');
    assert.deepEqual(await recLangs(page),['en-AU']);
-   // v1.6: Auto by default — the override sits in the collapsed "Cài đặt giọng nói", nothing to pick before speaking.
-   assert.equal(await page.locator('.vt-lang [data-vp-lang="vi-VN"]').isVisible(),false,'no language choice shown before speaking');assert.match(await page.locator('.vt-lang-settings > summary').innerText(),/Auto/);
-   await page.locator('.vt-lang-settings > summary').click();await page.locator('.vt-lang [data-vp-lang="vi-VN"]').click();await page.waitForTimeout(50);
+   // v1.7.1: one visible VI/EN toggle next to the mic; one tap switches and restarts recognition.
+   const tg=page.locator('.vp-controls .voice-lang-toggle');assert.equal(await tg.isVisible(),true);assert.equal(await tg.getAttribute('data-lang-current'),'en-AU');assert.match(await tg.innerText(),/Auto/);
+   assert.equal(await page.locator('.vp-sheet select, .vt-lang-settings').count(),0,'no select / hidden panel');
+   await tg.click();await page.waitForTimeout(50);
    const st=await page.evaluate(()=>(window as any).__recs.map((r:any)=>[r.lang,r.ended]));assert.deepEqual(st,[['en-AU',true],['vi-VN',false]]);
    assert.deepEqual(await page.evaluate(()=>[localStorage.getItem('bep-voice-lang'),localStorage.getItem('bep-voice-auto')]),['vi-VN','0']);
-   assert.equal(await page.locator('[data-vp-lang="vi-VN"]').getAttribute('aria-pressed'),'true');await context.close()}
+   assert.equal(await page.locator('.vp-controls .voice-lang-toggle').getAttribute('data-lang-current'),'vi-VN');
+   await page.evaluate('closeModal();voiceRecipeOpen()');assert.equal(await page.locator('.vr-sheet .voice-lang-toggle').getAttribute('data-lang-current'),'vi-VN','the recipe sheet follows the same choice');
+   await page.locator('.vr-sheet .voice-lang-toggle').click();assert.equal(await page.locator('.vr-sheet .voice-lang-toggle').getAttribute('data-lang-current'),'en-AU');assert.equal(await page.evaluate(()=>localStorage.getItem('bep-voice-lang')),'en-AU');
+   await context.close()}
   // 4. Offline: no recogniser is started; typing still works and rows still open the confirm sheet.
   for(const[lang,theme]of[['en','light'],['vi','dark']]as const){const {page,context,errors}=await open({lang,theme,offline:true});
    await page.evaluate('voicePriceOpen()');assert.equal((await recLangs(page)).length,0,'offline: no recognition');
@@ -185,7 +190,22 @@ async function main(){
    await page.fill('#vr-text','Món trứng chiên, cho hai người. Nguyên liệu: ba quả trứng, hành lá, nước mắm. Đập trứng ra tô rồi đánh đều, sau đó chiên vàng.');
    await page.locator('[data-vr="review"]').click();assert.equal(await page.inputValue('#vr-title'),'Trứng chiên');assert.equal(await page.locator('.vr-steps textarea').count(),3);
    assert.equal((await recLangs(page)).length,0);assert.deepEqual(errors,[]);await context.close()}
+ // 7. v1.7.1 hold to talk (default) in the price and recipe sheets: no auto-start, hold listens, release stops and
+  //    keeps the last words (a normal stop no longer drops the final result), a quick tap only hints.
+  {const {page,context,errors}=await open({lang:'vi',hold:true});await page.evaluate('voicePriceOpen()');
+   assert.equal((await recLangs(page)).length,0,'hold mode: the price sheet does not start listening by itself');
+   const mic=page.locator('#vp-mic');assert.equal(await mic.getAttribute('data-hold-mic'),'vp');assert.match(await mic.innerText(),/Giữ để nói/);
+   await page.evaluate(()=>{const w=window as any;const P=w.SpeechRecognition.prototype;P.stop=function(){if(this.ended)return;const r=this;setTimeout(()=>{const alt:any=[{transcript:'rau muống hai đô rưỡi một bó',confidence:.9}];alt.isFinal=true;const res:any=[];res[r.n]=alt;r.onresult&&r.onresult({resultIndex:r.n,results:res});r.n++;r.end()},20)}});
+   const b=await mic.boundingBox();if(!b)throw Error('no box');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.waitForTimeout(300);
+   assert.equal(await page.evaluate(()=>!!(window as any).__live()),true,'held: listening');assert.match(await mic.innerText(),/thả ra/);
+   await check(page,'price hold',PRICE_TARGETS);await page.screenshot({path:'docs/reviews/v1.7.1/voice-settings/price-hold-vi-light-mobile.jpg',type:'jpeg',quality:70});
+   await page.mouse.up();await page.waitForSelector('.vp-row',{timeout:2000});assert.match(await page.locator('.vp-row').first().innerText(),/Rau muống/,'the words delivered after stop() are kept');
+   {const b2=await mic.boundingBox();if(!b2)throw Error('no box');await page.mouse.move(b2.x+b2.width/2,b2.y+b2.height/2)}await page.mouse.down();await page.waitForTimeout(50);await page.mouse.up();await page.waitForTimeout(80);assert.match(await page.locator('.vp-sheet .voice-hold-hint').innerText(),/Giữ nút để nói/,'quick tap → hint');
+   await page.evaluate('closeModal();voiceRecipeOpen()');const vr=page.locator('#vr-mic');assert.equal(await vr.getAttribute('data-hold-mic'),'vr');
+   const n=(await recLangs(page)).length;const rb=await vr.boundingBox();if(!rb)throw Error('no box');await page.mouse.move(rb.x+rb.width/2,rb.y+rb.height/2);await page.mouse.down();await page.waitForTimeout(300);
+   assert.equal((await recLangs(page)).length,n+1,'recipe: hold starts a take');await page.mouse.up();await page.waitForTimeout(150);assert.match(await page.inputValue('#vr-text'),/rau muống/,'recipe: last words kept on release');
+   assert.deepEqual(errors,[]);await context.close()}
  }finally{await browser.close()}
- console.log(`PASS voice price + recipe dictation browser QA (${shots} screenshots in ${out})`);
+ console.log(`PASS voice price + recipe dictation browser QA (incl. v1.7.1 VI/EN toggle and hold to talk) (${shots} screenshots in ${out})`);
 }
 main().catch(e=>{console.error(e);process.exit(1)});
