@@ -718,7 +718,11 @@ html[data-theme="dark"] .scout-pair-card .scout-pair-big{color:#a8e0c2}
 .voice-local-tip .btn{min-height:44px}
 .vt-lang-settings{margin:8px 0}
 .vt-lang-settings .voice-lang{margin:4px 0 10px}
-.voice-item .voice-suggest{flex-basis:100%}
+.voice-item .voice-suggest,.voice-suggest.btn.small{min-height:44px;flex-basis:100%;grid-column:1/-1;justify-self:start;width:auto;max-width:100%;font-size:14px}
+.setup-notice{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;font-size:14px;color:var(--text)}
+.setup-notice p{margin:0;min-width:0;flex:1 1 260px}
+.setup-notice .btn{min-height:44px;font-size:14px}
+html[data-theme="dark"] .setup-notice{background:var(--surface,#1d2a24);border-color:var(--line)}
 /* === v1.6 voice-integration end === */
 /* === v1.6 offline-downloads start === */
 /* Lists show per-cell thumbnails; detail views layer the full painted sheet on top of the cell. */

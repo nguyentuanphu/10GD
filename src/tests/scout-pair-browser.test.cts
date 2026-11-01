@@ -81,7 +81,9 @@ async function main() {
         await card.locator('[data-scout-code]').waitFor();
         assert.equal(await card.locator('[data-scout-code]').innerText(), 'QAPX-7K2M', 'code shown in two groups of four');
         assert.match(await card.locator('[data-scout-left]').innerText(), /^1[45]:\d\d$/, 'expiry countdown');
-        const first = await card.locator('[data-scout-left]').innerText(); await page.waitForTimeout(1200);
+        const first = await card.locator('[data-scout-left]').innerText();
+        // The countdown ticks once a second; wait for the next tick (bounded) instead of a fixed sleep, which raced on slow CI runners.
+        await card.locator('[data-scout-left]').filter({ hasNotText: first }).waitFor({ timeout: 5000 }).catch(() => {});
         assert.notEqual(await card.locator('[data-scout-left]').innerText(), first, 'countdown ticks');
         assert.match(await card.innerText(), new RegExp(origin.replace(/\./g, '\\.')), 'app address shown for the extension');
         await card.locator('.scout-pair-steps summary').click();

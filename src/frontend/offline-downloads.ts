@@ -105,7 +105,9 @@ function offlineDownloadsBody(){
  const packs=offlineVisiblePacks();
  return `<div class="offline-downloads"><label class="offline-wifi"><input type="checkbox" id="offline-wifi-only" ${offlineWifiOnly()?'checked':''}><span><b>${otr('Chỉ tải khi có Wi-Fi','Download on Wi-Fi only')}</b><small class="hint" id="offline-connection">${esc(offlineConnectionLabel())}</small></span></label><ul class="offline-pack-list">${packs.map(offlineRowHtml).join('')}</ul><p class="hint offline-storage" id="offline-storage" role="status">${otr('Đang kiểm tra dung lượng…','Checking storage…')}</p></div>`;
 }
-function offlineVisiblePacks(){const list=[...offlinePacks.values()];if(!offlinePacks.has('voice'))list.splice(Math.min(4,list.length),0,offlineVoicePlaceholder());return list}
+// The on-device speech packs (voice-local.js registers 'voice-local-base' / 'voice-local-small') take the voice slot;
+// the "coming soon" placeholder only shows when no voice pack is registered.
+function offlineVisiblePacks(){const all=[...offlinePacks.values()],voice=all.filter(p=>/^voice(?:-|$)/.test(p.id)),list=all.filter(p=>!voice.includes(p));list.splice(Math.min(4,list.length),0,...(voice.length?voice:[offlineVoicePlaceholder()]));return list}
 function offlineReadyBody(){
  const r=offlineReadiness,item=(ok,label,action='')=>`<li class="offline-ready-item ${ok===true?'ok':ok===false?'missing':'pending'}">${action&&ok===false?`<button type="button" class="offline-ready-fix" data-offline-fix="${action}">`:'<span>'}<span aria-hidden="true">${ok===true?'✓':ok===false?'✗':'…'}</span> ${esc(label)}${action&&ok===false?` <small>${otr('— bấm để tải','— tap to download')}</small></button>`:'</span>'}</li>`;
  if(!r)return `<p class="hint">${otr('Đang kiểm tra…','Checking…')}</p>`;

@@ -300,6 +300,10 @@ async function main() {
       const ops: string[] = [];
       const { page, context, errors } = await open({ families: 2, name: 'Nguyễn An', ops });
       await ready(page);
+      // A new family kitchen shows an inline setup notice once the account check finishes, never a startup modal over
+      // the header (that modal used to open ~1 s after first paint and swallow the avatar tap: the old flake).
+      await page.locator('#setup-notice [data-personal=setup]').waitFor();
+      assert.equal(await page.locator('.modal').count(), 0, 'no modal opens on its own at startup');
       const avatar = page.locator('.top-avatar');
       assert.equal((await avatar.innerText()).trim(), 'N', 'avatar shows the display name initial');
       assert.equal(await avatar.getAttribute('aria-haspopup'), 'menu');

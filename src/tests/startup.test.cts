@@ -22,7 +22,9 @@ async function main() {
         const path = new URL(route.request().url()).pathname;
         if (path.startsWith('/.netlify/')) {
           const op = new URL(route.request().url()).searchParams.get('op');
-          if (path.includes('/accounts') && op === 'families') { await route.fulfill({json:{families:[],account:{username:'qa',name:'QA'}}}); return; }
+          // The families answer matches the status answer (same household). Before v1.6 a startup "new kitchen" modal hid that
+          // this mock disagreed with status: opening My kitchen then reloaded to ?connect=1 (household changed).
+          if (path.includes('/accounts') && op === 'families') { const household = account && !noHousehold ? { id: 'qa', name: 'QA kitchen', role: 'owner' } : null; await route.fulfill({json:{families:household?[household]:[],account:{username:'qa',name:'QA'},household}}); return; }
           const status = { configured: true, connected: true, mode: account ? 'account' : 'legacy', ...(account ? { account: { username: 'qa', name: 'QA' }, household: noHousehold ? null : { id: 'qa', name: 'QA kitchen', role: 'owner' } } : {}) };
           await route.fulfill({ json: op === 'status' ? status : op === 'state' ? { state: null, etag: null } : { announcements: [], devices: [] } });
           return;
