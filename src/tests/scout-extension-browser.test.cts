@@ -238,7 +238,8 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    const v0=visits.length;await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());
    await until(async()=>(await storage(['run'])).run,15000,'run started by the Run now command');
    await until(async()=>((await scoutLib.getDevice(getStoreFn,devId)).commands||[]).find((c:any)=>c.id===cmd.id)?.status==='done',15000,'command acknowledged');
-   await until(async()=>visits.slice(v0).filter(v=>v.host==='woolworths.scout.test').length>=2||(await storage(['lastRun'])).lastRun,40000,'two pages at the fast pace');
+   try{await until(async()=>visits.slice(v0).filter(v=>v.host==='woolworths.scout.test').length>=2||(await storage(['lastRun'])).lastRun,40000,'two pages at the fast pace')}
+   catch(e:any){const st=await storage(['run','lastRun','paused','pausedUntil','autoEnabled']).catch(()=>({}));let why='';try{why=await sw.evaluate(()=>(globalThis as any).scoutDebug.canStart())}catch{}throw new Error(e.message+' · state '+JSON.stringify(st)+' · canStart '+why+' · visits '+JSON.stringify(visits.slice(v0).map((v:any)=>v.host+(v.path||v.url||''))))}
    {const early=(await storage(['lastRun'])).lastRun;assert.equal(early,null,'run ended before two pages: '+JSON.stringify(early)+' tasks '+JSON.stringify((await scoutLib.listTasks(getStoreFn,scoutLib.dayKey(Date.now()))).map((t:any)=>[t.status,t.url.slice(-30),t.leasedBy===devId])))}
    const pop3=await ctx.newPage();await pop3.setViewportSize({width:375,height:700});await pop3.goto(`chrome-extension://${id}/popup.html`);await pop3.locator('[data-run-status]').waitFor();assert.match(await pop3.locator('[data-run-status]').innerText(),/Đang chạy · \d+\/150 trang/);assert.equal(await pop3.locator('#stoprun').count(),1);
    // Studio: Stop → obeyed within one heartbeat.
