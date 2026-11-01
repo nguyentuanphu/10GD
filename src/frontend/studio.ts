@@ -307,7 +307,7 @@ async function familyDetail(id:string){try{const d=await api('family',{id}),f=d.
 // The navigation is built once per language; route changes only move aria-current.
 let navLang='';
 function shell(){document.documentElement.lang=lang;document.title='Studio · FamTray · Bếp Gia Đình';const cur=(location.hash||'#overview').slice(1),nav=$('#nav');
- if(navLang!==lang||!nav.children.length){nav.innerHTML=Object.entries(pages).map(([k,p]:any)=>`<a href="#${k}"><span aria-hidden="true">${p.icon}</span>${esc(lang==='en'?p.en:p.vi)}</a>`).join('');navLang=lang}
+ if(navLang!==lang||nav.children.length!==Object.keys(pages).length){nav.innerHTML=Object.entries(pages).map(([k,p]:any)=>`<a href="#${k}"><span aria-hidden="true">${p.icon}</span>${esc(lang==='en'?p.en:p.vi)}</a>`).join('');navLang=lang}
  $$('a',nav).forEach((a:any)=>a.getAttribute('href')==='#'+cur?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
  $('#lang').textContent=lang==='en'?'Tiếng Việt':'English';$('#lang').setAttribute('aria-label',lang==='en'?'Chuyển sang tiếng Việt':'Switch to English');
  $('#theme').textContent=({auto:T('Giao diện: tự động','Theme: auto'),light:T('Giao diện: sáng','Theme: light'),dark:T('Giao diện: tối','Theme: dark')} as any)[themePref];

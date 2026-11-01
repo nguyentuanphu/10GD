@@ -163,7 +163,8 @@ async function main(){
    for(const [size,lang,theme] of [['narrow','vi','light'],['mobile','vi','light'],['tablet','vi','light'],['desktop','vi','light'],['mobile','en','dark'],['tablet','en','dark'],['desktop','en','dark'],['desktop','vi','dark']]){
     const {context,page,errors}=await studio(size,lang,theme);
     const nav=page.locator('#nav a[href="#voice"]');await nav.waitFor();assert.equal(await nav.getAttribute('aria-current'),'page');assert.match(await nav.innerText(),lang==='en'?/Voice/:/Giọng nói/);
-    assert.equal(await page.locator('#main').isHidden(),true);
+    // v1.6 integration: a normal Studio page in the panel registry, rendered inside #main (like the Scout network page).
+    assert.equal(await page.locator('#main #voice-main').count(),1,'Voice renders inside Studio main');assert.equal(await page.locator('#nav a[href="#voice"]').count(),1,'one nav link');assert.equal(await page.locator('#nav a[href="#scout"]').count(),1,'Scout link still present');
     const body=await page.locator('#voice-main').innerText();
     for(const want of lang==='en'?['Unrecognised · Vietnamese','Unrecognised · English','Top corrections','Recognisers','rau răm','galangal','vietnameseMint','On device · Light','Export synonym suggestions (JSON)']:['Từ không nhận ra · Tiếng Việt','Sửa nhiều nhất','Cách nhận giọng nói','lá lốt','Trên máy · Chính xác hơn','Xuất gợi ý từ đồng nghĩa (JSON)'])assert.ok(body.includes(want),`${size} ${lang}: missing ${want}`);
     assert.ok(!/netlify|blobs/i.test(body));assert.ok(!body.includes('synthetic'),'no transcripts shown');

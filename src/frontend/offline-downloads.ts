@@ -82,7 +82,7 @@ let offlineManifestCache=null;
 // Voice placeholder until the on-device recognizer registers its own pack (same id).
 function offlineVoicePlaceholder(){return{id:'voice',large:true,placeholder:true,label:()=>otr('Giọng nói không cần mạng','Offline voice'),description:()=>otr('Nhận dạng giọng nói ngay trên máy, không cần mạng.','Speech recognition on this device, without a connection.'),sizeBytes:0,status:async()=>({state:'unavailable'})}}
 
-async function offlinePackStatus(p){try{const s=await p.status();offlineStatusCache.set(p.id,s);return s}catch{const s={state:'unknown'};offlineStatusCache.set(p.id,s);return s}}
+async function offlinePackStatus(p){try{const r=await p.status(),s=typeof r==='string'?{state:r}:r;offlineStatusCache.set(p.id,s);return s}catch{const s={state:'unknown'};offlineStatusCache.set(p.id,s);return s}}
 function offlineStatusText(p,s,job){
  if(job?.running)return otr('Đang tải…','Downloading…')+(job.total?` ${Math.floor(job.done*100/job.total)}%`:'');
  if(job?.queued)return otr('Chờ Wi-Fi','Waiting for Wi-Fi');

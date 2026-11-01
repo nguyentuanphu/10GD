@@ -76,7 +76,7 @@ t('registers recognizers and offline packs only when the hooks exist',async()=>{
  run(c,"voiceLocalStatus=async()=>'none'");await run(c,'voiceLocalSyncRecognizers()');assert.equal(run(c,'__recs.length'),0,'removed pack is unregistered');
  assert.deepEqual([...packs].map((p:any)=>p.id),['voice-local-base','voice-local-small']);
  assert.equal(packs[0].sizeBytes,79664191+27501064,'pack size includes the shared runtime');
- for(const p of packs){assert.equal(typeof p.download,'function');assert.equal(typeof p.remove,'function');assert.equal(await p.status(),'none')}
+ for(const p of packs){assert.equal(typeof p.download,'function');assert.equal(typeof p.remove,'function');assert.equal((await p.status()).state,'none')}
 });
 t('download → verify → cache, integrity failure, status and remove (fake files)',async()=>{
  const caches=fakeCaches(),fetched:string[]=[];

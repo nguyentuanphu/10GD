@@ -34,13 +34,17 @@ const css=`#voice-main .vs-grid{display:grid;grid-template-columns:repeat(auto-f
 #voice-main .note{border-left:4px solid var(--accent);padding:8px 12px;background:var(--panel);border-radius:8px;margin:0 0 12px}`;
 const style=document.createElement('style');style.textContent=css;document.head.appendChild(style);
 
-const host=document.createElement('main');host.id='voice-main';host.className='main';host.tabIndex=-1;host.hidden=true;host.setAttribute('aria-labelledby','voice-h1');
-$('#main').after(host);
-function navLink(){const nav=$('#nav');if(!nav||!nav.children.length)return;let a=$('a[href="#voice"]',nav);const on=location.hash==='#voice';
+// Since the v1.5 Studio panel registry (window.studioPages), this is a normal Studio page rendered inside #main,
+// like the Scout network page; older studio.js without the registry gets its own <main> and nav link.
+const registry=(window as any).studioPages;
+let host:any;
+if(registry){host=document.createElement('div');host.id='voice-main'}
+else{host=document.createElement('main');host.id='voice-main';host.className='main';host.tabIndex=-1;host.hidden=true;host.setAttribute('aria-labelledby','voice-h1');$('#main').after(host)}
+function navLink(){if(registry)return;const nav=$('#nav');if(!nav||!nav.children.length)return;let a=$('a[href="#voice"]',nav);const on=location.hash==='#voice';
  if(!a){a=document.createElement('a');a.href='#voice';nav.appendChild(a)}
  const label=`<span aria-hidden="true">🎙</span>${esc(T('Giọng nói','Voice'))}`;if(a.innerHTML!==label)a.innerHTML=label;
  if(on){a.setAttribute('aria-current','page');for(const x of nav.querySelectorAll('a[aria-current]'))if(x!==a)x.removeAttribute('aria-current')}else a.removeAttribute('aria-current')}
-new MutationObserver(navLink).observe($('#nav'),{childList:true,subtree:true,characterData:true});
+if(!registry)new MutationObserver(navLink).observe($('#nav'),{childList:true,subtree:true,characterData:true});
 
 async function handle(r:Response){let d:any={};try{d=await r.json()}catch{}if(!r.ok){throw new Error(lang()==='en'?d.errorEn||d.error||'Request failed':d.error||d.errorEn||'Lỗi')}return d}
 const get=(op:string)=>fetch(`${API}?op=${op}&days=${days}`,{credentials:'same-origin',headers:{Accept:'application/json'}}).then(handle);
@@ -80,6 +84,7 @@ function wire(){
 }
 async function load(){error='';try{data=await get('studio-overview')}catch(e:any){data=null;error=e.message}render()}
 let shown=false;
+if(registry){registry.voice={vi:'Giọng nói',en:'Voice',icon:'🎙',async render(el:any){el.innerHTML='';el.appendChild(host);render();await load()}};return}
 async function show(focus=false){const on=location.hash==='#voice';host.hidden=!on;if(on)$('#main').hidden=true;else if(shown)$('#main').hidden=!![...document.querySelectorAll('main.main[id$="-main"]')].some((m:any)=>m!==host&&!m.hidden);shown=on;navLink();if(on){render();await load();if(focus)$('#voice-h1',host)?.focus?.()}}
 addEventListener('hashchange',()=>show(true));
 document.getElementById('lang')?.addEventListener('click',()=>setTimeout(()=>{if(location.hash==='#voice')render();navLink()},0));

@@ -37,14 +37,14 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
  await dev('block',h.token,{retailer:'woolworths',kind:'challenge',url:'https://www.woolworths.com.au/shop/search/products?searchTerm=x'});
  await lib.setTrusted(getStoreFn,'alice',true,'henrynguyen',now);
 
- const browser=await chromium.launch();const posts:any[]=[],studioOps:string[]=[];
+ const browser=await chromium.launch();const posts:any[]=[],studioOps:string[]=[],reqLog:string[]=[];
  async function open(size:string,lang:string,theme:string){
   const context=await browser.newContext({viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme as any,hasTouch:size!=='desktop'});
   await context.addInitScript(({lang,theme}:any)=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});
   await context.addCookies([{name:henry.split('=')[0],value:henry.split('=').slice(1).join('='),domain:'kitchen.test',path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
-  studioOps.length=0;const page=await context.newPage();page.on('dialog',(d:any)=>d.accept(d.type()==='prompt'?'QA: thiết bị thử nghiệm':undefined));
+  studioOps.length=0;reqLog.length=0;const page=await context.newPage();page.on('dialog',(d:any)=>d.accept(d.type()==='prompt'?'QA: thiết bị thử nghiệm':undefined));
   await page.route(origin+'/**',async(route:any)=>{const req=route.request(),url=new URL(req.url());const fn=url.pathname.match(/^\/\.netlify\/functions\/(\w+)/);
-   if(fn&&handlers[fn[1]]){const hdr=await req.allHeaders();if(req.method()==='POST'&&fn[1]==='scout')posts.push({op:url.searchParams.get('op'),body:JSON.parse(req.postData()||'{}')});if(fn[1]==='studio')studioOps.push(url.searchParams.get('op')||'');
+   if(fn&&handlers[fn[1]]){const hdr=await req.allHeaders();if(req.method()==='POST'&&fn[1]==='scout')posts.push({op:url.searchParams.get('op'),body:JSON.parse(req.postData()||'{}')});if(fn[1]==='studio')studioOps.push(url.searchParams.get('op')||'');reqLog.push(fn[1]+':'+(url.searchParams.get('op')||''));
     const r=await handlers[fn[1]](new Request(url.href,{method:req.method(),headers:hdr,body:['GET','HEAD'].includes(req.method())?undefined:req.postDataBuffer()}));
     return route.fulfill({status:r.status,headers:Object.fromEntries(r.headers),body:Buffer.from(await r.arrayBuffer())})}
    const file='dist'+(url.pathname==='/'?'/index.html':url.pathname);if(existsSync(file))return route.fulfill({status:200,contentType:mime[extname(file)]||'application/octet-stream',body:readFileSync(file)});return route.fulfill({status:404,body:''})});
@@ -54,7 +54,8 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
  const shot=async(page:any,name:string)=>{await page.waitForTimeout(80);await page.screenshot({path:`${out}/${name}.png`})};
  for(const [size,lang,theme] of [['narrow','vi','light'],['mobile','vi','light'],['tablet','vi','light'],['desktop','vi','light'],['mobile','en','dark'],['tablet','en','dark'],['desktop','en','dark']]){
   const {context,page}=await open(size,lang,theme);
-  const nav=page.locator('#nav a[href="#scout"]');await nav.waitFor();assert.equal(await nav.getAttribute('aria-current'),'page');assert.equal(await page.locator('#main #scout-main').count(),1,'Scout renders as a normal Studio page inside #main');assert.equal(studioOps.includes('overview'),false,'the overview is not loaded behind the Scout page');
+  const nav=page.locator('#nav a[href="#scout"]');await nav.waitFor();assert.equal(await nav.getAttribute('aria-current'),'page');assert.equal(await page.locator('#main #scout-main').count(),1,'Scout renders as a normal Studio page inside #main');{// Studio (v1.5 speed-up) quietly prefetches the overview AFTER the first page has rendered; it must never load first.
+   const ov=reqLog.indexOf('studio:overview'),sc=reqLog.findIndex(x=>x.startsWith('scout:'));assert.ok(sc>=0,'Scout page loaded its data');assert.ok(ov===-1||ov>sc,'the overview is not loaded behind the Scout page: '+reqLog.join(' '))}
   assert.match(await nav.innerText(),lang==='en'?/Scout network/:/Mạng Scout/);
   const body=await page.locator('#scout-main').innerText();
   for(const want of (lang==='en'?['Máy bàn nhà Alice','Minh laptop','Henry PC','Auto-paused: parser breakage','Blocked — paused 24 h','Signed in: Coles','Coverage (7 days)','Trusted scouts','alice','Device blocked — paused 24 h']:['Máy bàn nhà Alice','Tự dừng: trình đọc lỗi','Bị chặn — tạm dừng 24 giờ','Độ phủ (7 ngày)','Người dò giá tin cậy'])) assert.ok(body.includes(want),size+' '+lang+' missing: '+want);

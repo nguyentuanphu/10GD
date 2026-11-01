@@ -126,6 +126,9 @@ function voiceLocalRuntime(){return voiceLocalRuntimeFiles(typeof navigator!=='u
 async function voiceLocalOpenCache(){return caches.open(VOICE_LOCAL_CACHE)}
 async function voiceLocalPresent(files){if(typeof caches!=='object')return files.map(()=>false);const c=await voiceLocalOpenCache();return Promise.all(files.map(async f=>!!(await c.match(f.url))))}
 async function voiceLocalStatus(id){const rt=voiceLocalRuntime(),own=voiceLocalPackFiles(id);try{const have=await voiceLocalPresent([...rt,...own]),mine=have.slice(rt.length);return have.every(Boolean)?'ready':mine.some(Boolean)?'partial':'none'}catch{return'none'}}
+// Pack status in the offline-downloads shape (file counts let that screen show "3/7 downloaded — Resume").
+async function voiceLocalPackStatus(id){let cap=null;try{cap=voiceLocalCap||await voiceLocalProbe()}catch{}if(cap&&cap.packs&&cap.packs[id]&&!cap.packs[id].ok)return{state:'unavailable'};
+ const files=[...voiceLocalRuntime(),...voiceLocalPackFiles(id)];let have=0;try{have=(await voiceLocalPresent(files)).filter(Boolean).length}catch{}const state=await voiceLocalStatus(id);return{state,have,total:files.length}}
 function voiceLocalHex(buf){return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('')}
 function voiceLocalB64(buf){let s='';const a=new Uint8Array(buf);for(let i=0;i<a.length;i+=32768)s+=String.fromCharCode.apply(null,a.subarray(i,i+32768));return btoa(s)}
 async function voiceLocalVerify(f,buf){if(!f.sha256&&!f.sha256b64)return true;if(!globalThis.crypto?.subtle)return true;const d=await crypto.subtle.digest('SHA-256',buf);return f.sha256?voiceLocalHex(d)===f.sha256:voiceLocalB64(d)===f.sha256b64}
@@ -262,7 +265,16 @@ function voiceLocalRegisterHooks(){
  let n=0;
  if(typeof registerVoiceRecognizer==='function'&&!voiceLocalRegisterHooks.voice){voiceLocalRegisterHooks.voice=true;voiceLocalSyncRecognizers().catch(()=>{})}
  if(typeof registerOfflinePack==='function'&&!voiceLocalRegisterHooks.packs){voiceLocalRegisterHooks.packs=true;
-  for(const p of Object.values(VOICE_LOCAL_PACKS)){try{registerOfflinePack({id:'voice-local-'+p.id,label:vlT('Nhận giọng nói trên máy · ','On-device speech · ')+vlT(p.vi,p.en),sizeBytes:voiceLocalPackBytes(p.id)+voiceLocalBytes(voiceLocalRuntime()),status:()=>voiceLocalStatus(p.id),download:onProgress=>voiceLocalDownload(p.id,onProgress),remove:()=>voiceLocalRemove(p.id)});n++}catch{}}}
+  // Downloads for offline use (offline-downloads.js): status() → {state:'ready'|'partial'|'none'|'unavailable', have, total};
+  // download(onProgress(doneBytes,totalBytes), signal); its Wi-Fi-only rule applies there. The voice sheet's pack rows
+  // and this row share the same Cache Storage, and both re-sync the recogniser selector afterwards.
+  for(const p of Object.values(VOICE_LOCAL_PACKS)){try{registerOfflinePack({id:'voice-local-'+p.id,large:true,
+   label:()=>vlT('Nhận giọng nói trên máy · ','On-device speech · ')+vlT(p.vi,p.en),
+   description:()=>vlT('Hiểu Vietlish (nói lẫn Việt – Anh) tốt hơn; âm thanh không rời khỏi máy, dùng được khi mất mạng.','Understands Vietlish (mixed Vietnamese–English) better; audio never leaves this device and it works offline.'),
+   sizeBytes:voiceLocalPackBytes(p.id)+voiceLocalBytes(voiceLocalRuntime()),
+   status:()=>voiceLocalPackStatus(p.id),
+   download:async(onProgress,signal)=>{await voiceLocalDownload(p.id,(f,loaded,total)=>{try{onProgress&&onProgress(loaded,total)}catch{}},{signal});if(!voiceLocalChoice())voiceLocalSetChoice(p.id);await voiceLocalSyncRecognizers().catch(()=>{});voiceLocalRenderSettings().catch(()=>{});return true},
+   remove:async()=>{await voiceLocalRemove(p.id);await voiceLocalSyncRecognizers().catch(()=>{});voiceLocalRenderSettings().catch(()=>{});return true}});n++}catch{}}}
  return n;
 }
 
