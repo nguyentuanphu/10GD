@@ -36,8 +36,8 @@ function scoutBasket(){
  const match=label=>PS.matchCatalog(label,cat,1)[0];
  const w=currentWeek(),[start,end]=shopDates(),items=[];
  for(const r of shopping(state,w,start,end)){if(r.skip||r.bought||!shoppingHasAmount(r))continue;const name=INGREDIENTS[r.id][0],item=byIngredient.get(r.id)||(match(name)?.score>=0.6?match(name).item:null);const unit=INGREDIENTS[r.id][1]==='quả'?'each':INGREDIENTS[r.id][1];
-  items.push({key:'ing:'+r.id,ingredient:r.id,label:name,itemId:item?.id||null,...(r.qty>0?{qty:r.qty,unit}:{qty:r.purchase?.amount||1,unit:'pack'})})}
- for(const e of w.extras||[]){if(e.done)continue;const m=match(e.name),q=String(e.qty||'').match(/(\d+(?:[.,]\d+)?)\s*(kg|g|ml|l|cuộn|roll|gói|pack|hộp|chai|cái|quả)?/i);let qty=1,unit='pack';if(q){qty=+q[1].replace(',','.');const u=(q[2]||'').toLowerCase();unit=u==='kg'||u==='g'||u==='ml'||u==='l'?u:u==='quả'||u==='cái'?'each':u==='cuộn'||u==='roll'?'roll':'pack'}
+  items.push({key:'ing:'+r.id,ingredient:r.id,label:name,itemId:item?.id||null,...(r.qty>0?{qty:r.qty,unit}:(typeof unitScoutQuantity==='function'&&r.purchase?(({qty,unit})=>({qty,unit}))(unitScoutQuantity(r.purchase.amount+' '+r.purchase.unit)):{qty:r.purchase?.amount||1,unit:'pack'}))})}
+ for(const e of w.extras||[]){if(e.done)continue;const m=match(e.name),q=String(e.qty||'').match(/(\d+(?:[.,]\d+)?)\s*(kg|g|ml|l|cuộn|roll|gói|pack|hộp|chai|cái|quả)?/i);let qty=1,unit='pack';if(typeof unitScoutQuantity==='function'){({qty,unit}=unitScoutQuantity(e.qty))}else if(q){qty=+q[1].replace(',','.');const u=(q[2]||'').toLowerCase();unit=u==='kg'||u==='g'||u==='ml'||u==='l'?u:u==='quả'||u==='cái'?'each':u==='cuộn'||u==='roll'?'roll':'pack'}
   items.push({key:'extra:'+e.id,label:e.name,itemId:m?.score>=0.6?m.item.id:null,qty:qty>0?qty:1,unit})}
  return items;
 }
