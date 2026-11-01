@@ -14,14 +14,18 @@
     "test:browser": "node tests/startup.test.cjs && node tests/kitchen-hub.test.cjs",
     "test:authenticated-startup": "node tests/authenticated-startup.test.cjs",
     "test:email": "node tests/email-recovery.test.mjs",
-    "test:all": "npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup && npm run test:artwork:browser && npm run test:price-scout:browser && npm run test:catalog:browser && npm run test:community:browser && npm run test:banner:browser",
+    "test:all": "npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup && npm run test:artwork:browser && npm run test:price-scout:browser && npm run test:catalog:browser && npm run test:community:browser && npm run test:banner:browser && npm run test:scout && npm run test:scout:browser && npm run test:scout-studio:browser",
     "artwork:audit": "npm run build && node scripts/artwork-audit.cjs",
     "test:artwork:browser": "node tests/artwork-browser.test.cjs",
     "test:price-scout:browser": "node tests/price-scout-browser.test.cjs",
     "test:catalog:browser": "node tests/catalog-browser.test.cjs",
     "audit:contrast": "npm run build && node scripts/contrast-audit.cjs",
     "test:community:browser": "node tests/community-browser.test.cjs",
-    "test:banner:browser": "node tests/platform-banner-browser.test.cjs"
+    "test:banner:browser": "node tests/platform-banner-browser.test.cjs",
+    "build:extension": "npm run build && tsc -p tsconfig.extension.json && node scripts/build-extension.cjs && node scripts/build-extension.cjs --test",
+    "test:scout": "npm run build:extension && node tests/scout-api.test.mjs && node tests/scout-parse.test.cjs",
+    "test:scout:browser": "npm run build:extension && node tests/scout-extension-browser.test.cjs",
+    "test:scout-studio:browser": "node tests/scout-studio-browser.test.cjs"
   },
   "dependencies": {
     "@netlify/blobs": "10.5.0",
