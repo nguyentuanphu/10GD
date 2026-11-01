@@ -55,3 +55,33 @@ html[data-festival="tet"]:not([data-theme="dark"]){--green:#9e2a2b;--green2:#b83
 .ingredient-sheet-4,.dish-sheet-2{background-repeat:no-repeat;background-size:400% 400%;background-position:var(--art-x) var(--art-y)}.ingredient-sheet-4{background-image:url(artwork/ingredients-v4.webp)}.dish-sheet-2{background-image:url(artwork/dishes-v2.webp)}
 /* Keep recipe summaries and meal actions readable in both themes. */
 .recipe-detail-hero{background:var(--cream);color:var(--text)}.recipe-detail-hero small{color:var(--muted)}html[data-theme="dark"] .recipe-card .btn.soft{background:var(--mint);color:var(--text);border-color:var(--line)}
+
+/* === v1.5 notifications start === */
+details.family-urgent{padding:0;overflow:hidden}
+details.family-urgent>summary.urgent-summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:12px 15px;cursor:pointer;border-radius:inherit}
+details.family-urgent>summary.urgent-summary::-webkit-details-marker{display:none}
+details.family-urgent>summary.urgent-summary::after{content:"";flex:0 0 auto;width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin:0 4px 4px;opacity:.7;transition:transform .18s ease}
+details.family-urgent[open]>summary.urgent-summary::after{transform:rotate(-135deg);margin-bottom:-4px}
+details.family-urgent>summary.urgent-summary:focus-visible{outline:3px solid #a34e34;outline-offset:-3px}
+.urgent-summary-title{display:inline-flex;align-items:center;gap:8px;min-width:0;font-size:17px}
+.urgent-summary-title svg{width:20px;height:20px;flex:0 0 auto;color:#a34e34}
+.urgent-count{margin-left:auto;flex:0 0 auto;border-radius:999px;background:#a34e34;color:#fff;font-size:13px;font-weight:700;padding:4px 10px;white-space:nowrap}
+.urgent-count-none{margin-left:auto;color:var(--muted);font-size:12px;white-space:nowrap}
+details.family-urgent>:not(summary){margin-left:15px;margin-right:15px}
+details.family-urgent>:last-child{margin-bottom:14px}
+details.family-urgent .list-heading{flex-wrap:wrap}
+details.family-urgent .urgent-viewer select{min-height:44px;max-width:100%}
+details.family-urgent .btn,.simple-screen details.family-urgent .btn,details.family-urgent a.btn{min-height:44px}
+.urgent-message p[data-user-content]{overflow-wrap:anywhere}
+.push-guidance{font-size:14px;line-height:1.45}
+@media (max-width:380px){.urgent-summary-title{font-size:15px}.urgent-count{font-size:12px;padding:3px 8px}}
+html[data-theme="dark"] .family-urgent{background:#22201b;border-color:#4a3a2c;color:var(--text)}
+html[data-theme="dark"] .urgent-summary-title svg{color:#f0a37c}
+html[data-theme="dark"] .urgent-count{background:#c4613f;color:#fff}
+html[data-theme="dark"] details.family-urgent>summary.urgent-summary:focus-visible{outline-color:#f0a37c}
+html[data-theme="dark"] .family-urgent .urgent-message{border-color:#3a3328;color:var(--text)}
+html[data-theme="dark"] .family-urgent .urgent-button{background:#c4613f;border-color:#c4613f;color:#fff}
+html[data-theme="dark"] .family-urgent .urgent-message small{color:var(--muted)}
+html[data-theme="dark"] .push-guidance{background:#2a2219;color:var(--text);border-color:#4a3a2c}
+@media (prefers-reduced-motion:reduce){details.family-urgent>summary.urgent-summary::after{transition:none}}
+/* === v1.5 notifications end === */
