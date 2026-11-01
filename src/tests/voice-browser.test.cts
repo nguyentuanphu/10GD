@@ -123,7 +123,7 @@ async function main(){
   // 6. Responsive screenshots: sheet with the toggle and a bilingual preview, VI/EN × light/dark × 3 sizes.
   for(const[size,viewport]of Object.entries(sizes))for(const lang of['vi','en'])for(const theme of['light','dark']){
    const {page,context,errors}=await open({viewport,lang,theme});const tag=`${lang}-${theme}-${size}`;
-   await page.evaluate((t:string)=>(window as any).__say(t),MIXED);await check(page,'sheet '+tag);if(theme==='light'||size==='mobile')await shot(page,'voice-sheet-'+tag);
+   await page.evaluate((t:string)=>(window as any).__say(t),MIXED);await check(page,'sheet '+tag);await shot(page,'voice-sheet-'+tag);
    await page.evaluate('previewVoice()');await page.waitForSelector('.voice-item');await check(page,'preview '+tag);
    const first=(await labels(page))[0][0];assert.equal(first,lang==='en'?'Pork belly':'Thịt ba chỉ');
    assert.deepEqual(errors,[]);await context.close()}

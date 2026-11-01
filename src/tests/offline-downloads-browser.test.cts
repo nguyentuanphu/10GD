@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 import { chromium } from 'playwright';
-const root = path.resolve('dist'), shots = 'docs/reviews/v1.6/offline';
+const root = path.resolve('dist'), shots = 'docs/reviews/v1.6/offline', v171 = 'docs/reviews/v1.7.1/voice-settings';
 const mime: Record<string, string> = { '.js': 'application/javascript', '.css': 'text/css', '.html': 'text/html', '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.gz': 'application/gzip' };
 declare const state: any, currentWeek: any, sydneyDate: any;
 const served: string[] = [];
@@ -106,13 +106,17 @@ async function main() {
       await page.locator('.offline-pack[data-pack="art"] .offline-pack-status').waitFor();
       await page.waitForFunction(() => document.querySelectorAll('.offline-pack').length >= 6 && /MB|KB/.test(document.querySelector('#offline-storage')?.textContent || ''), null, { timeout: 15000 });
       const info = await page.evaluate(() => ({ rows: [...document.querySelectorAll('.offline-pack')].map(r => (r as HTMLElement).dataset.pack), wifi: (document.getElementById('offline-wifi-only') as HTMLInputElement).checked, overflow: document.documentElement.scrollWidth > innerWidth || [...document.querySelectorAll('.offline-pack')].some(r => r.scrollWidth > r.clientWidth + 1), small: [...document.querySelectorAll('.offline-pack-actions .btn')].map(b => b.getBoundingClientRect()).filter(r => r.width && (r.height < 44 || r.width < 44)).length, text: document.querySelector('#settings-offline-downloads')!.textContent }));
-      // v1.6 integration: the on-device speech packs (Light / More accurate) fill the voice slot instead of the placeholder.
-      assert.deepEqual(info.rows, ['art', 'sheets', 'catalog', 'ocr', 'voice-local-base', 'voice-local-small', 'price-scout']);
+      // v1.7.1: only the on-device "More accurate" pack fills the voice slot (the Light pack is retired).
+      assert.deepEqual(info.rows, ['art', 'sheets', 'catalog', 'ocr', 'voice-local-small', 'price-scout']);
       assert.equal(info.wifi, true, 'Wi-Fi only is on by default'); assert.equal(info.overflow, false, 'no horizontal overflow'); assert.equal(info.small, 0, 'buttons ≥44px');
-      assert.match(info.text!, lang === 'vi' ? /Tải về để dùng offline[\s\S]*Chỉ tải khi có Wi-Fi[\s\S]*Toàn bộ hình món ăn[\s\S]*Kho 740 món[\s\S]*Đọc hoá đơn\/giá bằng camera[\s\S]*Nhận giọng nói trên máy · Nhẹ[\s\S]*Nhận giọng nói trên máy · Chính xác hơn/ : /Downloads for offline use[\s\S]*Download on Wi-Fi only[\s\S]*All dish pictures[\s\S]*740-recipe library[\s\S]*Read receipts & prices with the camera[\s\S]*On-device speech · Light[\s\S]*On-device speech · More accurate/);
-      assert.doesNotMatch(info.text!, /Netlify|Blobs/i);
+      assert.match(info.text!, lang === 'vi' ? /Tải về để dùng offline[\s\S]*Chỉ tải khi có Wi-Fi[\s\S]*Toàn bộ hình món ăn[\s\S]*Kho 740 món[\s\S]*Đọc hoá đơn\/giá bằng camera[\s\S]*Nhận giọng nói trên máy · Chính xác hơn/ : /Downloads for offline use[\s\S]*Download on Wi-Fi only[\s\S]*All dish pictures[\s\S]*740-recipe library[\s\S]*Read receipts & prices with the camera[\s\S]*On-device speech · More accurate/);
+      assert.doesNotMatch(info.text!, /Netlify|Blobs/i);assert.doesNotMatch(info.text!, /Nhẹ|· Light|Not available on this server|Chưa có trên máy chủ này/);
+      // v1.7.1 evidence: the Account & settings sheet (account part on top, Other settings under it) and the voice row.
+      fs.mkdirSync(v171, { recursive: true });
+      await page.locator('#settings-account').scrollIntoViewIfNeeded(); await page.screenshot({ path: `${v171}/account-settings-${lang}-${theme}-${vw}x${vh}.jpg`, type: 'jpeg', quality: 70 });
       await page.locator('#settings-offline-downloads').scrollIntoViewIfNeeded();
       await page.screenshot({ path: `${shots}/downloads-${vw}-${lang}-${theme}.png` });
+      if (theme === 'light' || vw === 375) { await page.locator('.offline-pack[data-pack="voice-local-small"]').scrollIntoViewIfNeeded(); await page.screenshot({ path: `${v171}/downloads-voice-row-${lang}-${theme}-${vw}x${vh}.jpg`, type: 'jpeg', quality: 70 }); }
       if (vw === 1280 && lang === 'en' && theme === 'light') {
         // Desktop counts as unmetered: the full picture pack downloads with progress, then reads as ready; Remove frees it.
         await page.locator('[data-offline-download="art"]').click();
@@ -141,6 +145,35 @@ async function main() {
       await context.close();
     }
     console.log('PASS Downloads screen at 375/820/1280, VI/EN, light/dark: rows, Wi-Fi default, no overflow, 44px targets; real download, offline use and remove');
+    // ---- v1.7.1: iPhone / iPad (MacIntel + touch) — "More accurate" is offered with an honest warning, never
+    //      "Not available on this server"; downloading asks first (size, Wi-Fi, may be slow). No WebGPU = older iOS path.
+    for (const dev of [
+      { name: 'ipad', viewport: { width: 820, height: 1180 }, ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15', platform: 'MacIntel', touch: 5 },
+      { name: 'iphone', viewport: { width: 375, height: 812 }, ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', platform: 'iPhone', touch: 5 }]) for (const lang of ['vi', 'en']) {
+      const context = await browser.newContext({ viewport: dev.viewport, userAgent: dev.ua, hasTouch: true, reducedMotion: 'reduce', serviceWorkers: 'allow' });
+      await context.addInitScript(([l, p, t]) => { localStorage.setItem('guest/bep-language', l as string); Object.defineProperty(Navigator.prototype, 'platform', { get: () => p }); Object.defineProperty(Navigator.prototype, 'maxTouchPoints', { get: () => t }); Object.defineProperty(Navigator.prototype, 'gpu', { get: () => undefined }); }, [lang, dev.platform, dev.touch]);
+      const page = await context.newPage(); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+      await page.goto(origin + '/', { waitUntil: 'domcontentloaded' }); await page.waitForFunction(() => (window as any).BEP_STARTUP?.ready, null, { timeout: 60000 });
+      await page.evaluate(() => (window as any).otherSettingsModal('offline-downloads'));
+      const row = page.locator('.offline-pack[data-pack="voice-local-small"]');
+      await page.waitForFunction(() => /chậm|slow/i.test(document.querySelector('.offline-pack[data-pack="voice-local-small"]')?.textContent || ''), null, { timeout: 15000 });
+      const text = await row.innerText();
+      assert.doesNotMatch(text, /Not available on this server|Chưa có trên máy chủ này|iPhone\/iPad giới hạn|limits web page memory/, `${dev.name} ${lang}: no misleading block`);
+      assert.match(text, lang === 'vi' ? /Chính xác hơn[\s\S]*Máy cũ có thể chạy chậm/ : /More accurate[\s\S]*Older devices may be slow/);
+      assert.equal(await row.locator('[data-offline-download="voice-local-small"]').count(), 1, `${dev.name}: download offered`);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${dev.name}: no overflow`);
+      await row.scrollIntoViewIfNeeded(); await page.screenshot({ path: `${v171}/downloads-voice-row-${dev.name}-${lang}-${dev.viewport.width}x${dev.viewport.height}.jpg`, type: 'jpeg', quality: 70 });
+      await row.locator('[data-offline-download="voice-local-small"]').click(); await page.locator('#confirm-root').waitFor();
+      assert.match(await page.locator('#confirm-body').innerText(), lang === 'vi' ? /MB[\s\S]*Wi-Fi[\s\S]*chậm/ : /MB[\s\S]*Wi-Fi[\s\S]*slow/);
+      await page.locator('#confirm-root [data-confirm="no"]').click(); await page.waitForTimeout(150);
+      assert.notEqual(await row.getAttribute('data-state'), 'running', 'declined: not downloading');
+      // A genuine block still explains itself (here: no Web Worker) instead of blaming the server.
+      await page.evaluate(() => { (0, eval)("voiceLocalCap=voiceLocalCapability({wasm:true,simd:true,worker:false,mic:true,audioWorklet:true,caches:true,ua:navigator.userAgent,touchPoints:5})"); (window as any).closeModal(); (window as any).otherSettingsModal('offline-downloads'); });
+      await page.waitForFunction(() => /Web Worker/.test(document.querySelector('.offline-pack[data-pack="voice-local-small"]')?.textContent || ''), null, { timeout: 15000 });
+      assert.deepEqual(errors, []);
+      await context.close();
+    }
+    console.log('PASS iPhone/iPad (simulated UA, no WebGPU): More accurate offered with a slow-device warning and a confirm before download; genuine blocks show their own reason');
   } finally { await browser.close(); server.close(); }
 }
 main().catch(error => { console.error(error); process.exit(1); });
