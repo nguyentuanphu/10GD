@@ -7,6 +7,7 @@ for(const directory of ['.compiled/netlify/lib','netlify/lib'])for(const suffix 
 const loginCode=readFileSync('dist/login.js','utf8').replace(/\/\/# sourceMappingURL=.*$/gm,'').replace(/<\/script/gi,'<\\/script');
 if(!loginCode.trim())throw new Error('Login client is missing');
 writeFileSync('.compiled/netlify/lib/login-client.mjs','export const loginClient = '+JSON.stringify(loginCode)+';\n');
+writeFileSync('.compiled/netlify/lib/scout-config.mjs','export const scoutDefaultConfig = '+JSON.stringify(JSON.parse(readFileSync('extension/config/scout-config.json','utf8')))+';\n');// FamTray Scout bundled parser config (data only)
 // Keep public/backend/test paths stable so existing URLs and test fixtures continue working.
 for (const [from, to] of [['netlify', 'netlify'], ['tests', 'tests'], ['scripts', 'scripts']]) {
   mkdirSync(to, { recursive: true });

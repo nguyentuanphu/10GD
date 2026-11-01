@@ -21,3 +21,8 @@ tests/**/*.mjs
 tests/**/*.map
 
 dist/startup-scripts.json
+
+# FamTray Scout extension build output (generated).
+dist-extension/
+dist-extension-test/
+dist-extension.zip

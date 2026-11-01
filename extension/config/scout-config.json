@@ -1,0 +1,125 @@
+{
+  "version": "2026-11-01.1",
+  "note": "Data only (selectors and regex strings). Modelled on typical retailer markup; NOT verified against the live sites. The owner must test and the server can ship a corrected version (scout?op=config).",
+  "limits": { "maxFactsPerPage": 200 },
+  "promo": [
+    { "type": "half-price", "re": "(1\\/2|½|half)\\s*price" },
+    { "type": "multibuy", "re": "\\b\\d+\\s*for\\s*\\$\\d" },
+    { "type": "price-drop", "re": "prices?\\s*dropped|low\\s*price|down\\s*down|price\\s*drop" },
+    { "type": "special-buy", "re": "special\\s*buys?" },
+    { "type": "clearance", "re": "clearance" },
+    { "type": "deal", "re": "\\bdeal\\b|limited\\s*time" },
+    { "type": "special", "re": "\\bspecial\\b|\\bsave\\s*\\$|\\bwas\\s*\\$" }
+  ],
+  "challenge": {
+    "title": ["access denied", "just a moment", "attention required", "robot check", "pardon our interruption", "are you a robot", "verify you are human", "security check", "request blocked", "too many requests", "captcha"],
+    "text": ["enter the characters you see", "verify you are a human", "unusual traffic", "press & hold", "press and hold", "complete the security check", "enable javascript and cookies to continue", "automated access", "sorry, we just need to make sure"],
+    "selectors": ["iframe[src*=\"captcha\"]", "#px-captcha", "form[action*=\"validateCaptcha\"]", "#challenge-form", "#cf-challenge-running", "div.g-recaptcha", "iframe[src*=\"hcaptcha\"]"]
+  },
+  "retailers": {
+    "woolworths": {
+      "label": "Woolworths",
+      "hosts": ["www.woolworths.com.au", "woolworths.com.au"],
+      "pageTypes": [
+        { "type": "product", "path": "^/shop/productdetails/\\d+" },
+        { "type": "specials", "path": "^/shop/browse/specials" },
+        { "type": "search", "path": "^/shop/search" },
+        { "type": "list", "path": "^/shop/browse" }
+      ],
+      "productIdFromUrl": "/productdetails/(\\d+)",
+      "searchUrl": "https://www.woolworths.com.au/shop/search/products?searchTerm={q}",
+      "specials": ["https://www.woolworths.com.au/shop/browse/specials/half-price"],
+      "store": ["[data-testid='store-name']", ".fulfilment-store-name", ".header-store-name"],
+      "signedIn": { "selectors": ["[data-testid='account-signed-in']", ".coreHeader-accountName"], "text": ["Sign out", "Everyday Rewards card"] },
+      "selectors": {
+        "default": {
+          "single": { "name": "h1.shelfProductTile-title, h1[data-testid='product-title'], h1", "price": "[data-testid='product-price'], .price-dollars, .shelfProductTile-price", "wasPrice": "[data-testid='was-price'], .price-was", "unitPrice": "[data-testid='unit-price'], .shelfProductTile-cupPrice, .price-per-cup", "promo": "[data-testid='promo-badge'], .product-tile-label", "promoEnd": "[data-testid='offer-ends'], .promo-end" },
+          "tile": { "root": "wc-product-tile, [data-testid='product-tile'], .product-tile-v2, article.product-tile", "name": ".product-title-link, [data-testid='product-title'], .product-tile-title", "link": "a[href*='/productdetails/']", "price": ".primary, [data-testid='product-price'], .product-tile-price", "wasPrice": ".was-price, [data-testid='was-price'], .price-was", "unitPrice": ".price-per-cup, [data-testid='unit-price'], .unit-price", "promo": ".product-tile-label, [data-testid='promo-badge']", "promoEnd": ".promo-end, [data-testid='offer-ends']" }
+        }
+      }
+    },
+    "coles": {
+      "label": "Coles",
+      "hosts": ["www.coles.com.au", "coles.com.au"],
+      "pageTypes": [
+        { "type": "product", "path": "^/product/" },
+        { "type": "specials", "path": "^/on-special|^/half-price-specials|^/down-down" },
+        { "type": "search", "path": "^/search" },
+        { "type": "list", "path": "^/browse" }
+      ],
+      "productIdFromUrl": "-(\\d{5,9})(?:[/?#]|$)",
+      "searchUrl": "https://www.coles.com.au/search/products?q={q}",
+      "specials": ["https://www.coles.com.au/on-special"],
+      "store": ["[data-testid='store-selector-label']", "[data-testid='selected-store-name']", ".store-name"],
+      "signedIn": { "selectors": ["[data-testid='account-menu-signed-in']"], "text": ["Sign out", "Flybuys number"] },
+      "selectors": {
+        "default": {
+          "single": { "name": "h1[data-testid='product-title'], h1.product__title, h1", "price": "[data-testid='pricing'] .price__value, .price__value", "wasPrice": ".price__was", "unitPrice": ".price__calculation_method, [data-testid='product-pricing-unit']", "promo": "[data-testid='product-badge'], .badge-label", "promoEnd": "[data-testid='promo-end-date'], .price__end-date" },
+          "tile": { "root": "section[data-testid='product-tile'], .product-tile, [data-testid='product-tile']", "name": ".product__title, [data-testid='product-title']", "link": "a.product__link, a[href*='/product/']", "price": ".price__value, [data-testid='product-pricing'] .price", "wasPrice": ".price__was", "unitPrice": ".price__calculation_method, [data-testid='product-pricing-unit']", "promo": ".badge-label, [data-testid='product-badge']", "promoEnd": ".price__end-date, [data-testid='promo-end-date']" }
+        }
+      }
+    },
+    "aldi": {
+      "label": "ALDI",
+      "hosts": ["www.aldi.com.au", "aldi.com.au"],
+      "pageTypes": [
+        { "type": "product", "path": "^/product/" },
+        { "type": "specials", "path": "^/special-buys|^/specials" },
+        { "type": "search", "path": "^/results" },
+        { "type": "list", "path": "^/products" }
+      ],
+      "productIdFromUrl": "-(\\d{6,16})(?:[/?#]|$)",
+      "searchUrl": "https://www.aldi.com.au/results?q={q}",
+      "specials": ["https://www.aldi.com.au/special-buys"],
+      "store": ["[data-test='store-name']", ".store-selector__name"],
+      "signedIn": { "selectors": [], "text": ["Sign out"] },
+      "selectors": {
+        "default": {
+          "single": { "name": "h1.product-details__title, h1", "price": ".base-price__regular, .product-details__price", "wasPrice": ".base-price__was", "unitPrice": ".base-price__comparison-price", "promo": ".product-details__badge", "promoEnd": ".product-details__offer-end" },
+          "tile": { "root": ".product-tile, [data-test='product-tile']", "name": ".product-tile__name, [data-test='product-tile__name']", "link": "a.product-tile__link, a[href*='/product/']", "price": ".base-price__regular, .product-tile__price", "wasPrice": ".base-price__was", "unitPrice": ".base-price__comparison-price", "promo": ".product-tile__badge", "promoEnd": ".product-tile__offer-end" }
+        }
+      }
+    },
+    "chemist": {
+      "label": "Chemist Warehouse",
+      "hosts": ["www.chemistwarehouse.com.au", "chemistwarehouse.com.au"],
+      "pageTypes": [
+        { "type": "product", "path": "^/buy/\\d+" },
+        { "type": "specials", "path": "^/catalogue|^/shop-online/\\d+/.*(sale|offers)" },
+        { "type": "search", "path": "^/search" },
+        { "type": "list", "path": "^/shop-online" }
+      ],
+      "productIdFromUrl": "/buy/(\\d+)",
+      "searchUrl": "https://www.chemistwarehouse.com.au/search?searchtext={q}",
+      "specials": ["https://www.chemistwarehouse.com.au/catalogue"],
+      "store": [".store-name", "[data-testid='preferred-store']"],
+      "signedIn": { "selectors": [], "text": ["Sign out", "My Account"] },
+      "selectors": {
+        "default": {
+          "single": { "name": "h1.product-name, h1", "price": ".product__price, .Price", "wasPrice": ".product__rrp, .retailPrice", "unitPrice": ".product__unit-price", "promo": ".product__badge", "promoEnd": ".product__offer-end" },
+          "tile": { "root": ".product-list-container .product__container, .product-grid__item, [data-testid='product-card']", "name": ".product__title, .product-name", "link": "a[href*='/buy/']", "price": ".product__price, .Price", "wasPrice": ".product__rrp, .retailPrice", "unitPrice": ".product__unit-price", "promo": ".product__badge", "promoEnd": ".product__offer-end" }
+        }
+      }
+    },
+    "amazon": {
+      "label": "Amazon AU",
+      "hosts": ["www.amazon.com.au", "amazon.com.au"],
+      "pageTypes": [
+        { "type": "product", "path": "/dp/[A-Z0-9]{10}|/gp/product/[A-Z0-9]{10}" },
+        { "type": "specials", "path": "^/deals|^/gp/goldbox" },
+        { "type": "search", "path": "^/s\\b|^/s\\?" }
+      ],
+      "productIdFromUrl": "/(?:dp|gp/product)/([A-Z0-9]{10})",
+      "searchUrl": "https://www.amazon.com.au/s?k={q}",
+      "specials": [],
+      "store": [],
+      "signedIn": { "selectors": [], "text": ["Hello, Sign out"] },
+      "selectors": {
+        "default": {
+          "single": { "name": "#productTitle", "price": "#corePrice_feature_div .a-offscreen, .a-price .a-offscreen", "wasPrice": ".basisPrice .a-offscreen, .a-text-price .a-offscreen", "unitPrice": ".pricePerUnit, #corePrice_feature_div .a-size-mini", "promo": "#dealBadge_feature_div, .dealBadge", "promoEnd": "#dealBadge_feature_div .a-color-secondary" },
+          "tile": { "root": "div[data-component-type='s-search-result']", "idAttr": "data-asin", "name": "h2 span, h2 a span", "link": "h2 a, a.a-link-normal[href*='/dp/']", "price": ".a-price:not(.a-text-price) .a-offscreen", "wasPrice": ".a-price.a-text-price .a-offscreen", "unitPrice": ".a-price + .a-size-base, .a-size-base.a-color-secondary", "promo": ".a-badge-text, .s-coupon-highlight-color" }
+        }
+      }
+    }
+  }
+}

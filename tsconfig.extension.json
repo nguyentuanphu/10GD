@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "preserve",
+    "moduleDetection": "legacy",
+    "lib": ["ES2022", "DOM"],
+    "rootDir": "extension/src",
+    "outDir": "dist-extension",
+    "noCheck": true,
+    "sourceMap": false,
+    "types": []
+  },
+  "include": ["extension/src/*.ts"]
+}
