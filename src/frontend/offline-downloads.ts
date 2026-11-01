@@ -87,13 +87,13 @@ function offlineStatusText(p,s,job){
  if(job?.running)return otr('Đang tải…','Downloading…')+(job.total?` ${Math.floor(job.done*100/job.total)}%`:'');
  if(job?.queued)return otr('Chờ Wi-Fi','Waiting for Wi-Fi');
  if(job?.error)return otr('Lỗi: ','Error: ')+job.error;
- return {ready:'✓ '+otr('Đã tải','Downloaded'),builtin:'✓ '+otr('Có sẵn','Included'),partial:otr(`Đã tải ${s.have}/${s.total} — bấm Tiếp tục`,`${s.have}/${s.total} downloaded — tap Resume`),none:otr('Chưa tải','Not downloaded'),unavailable:p.placeholder?otr('Sắp có','Coming soon'):otr('Chưa có trên máy chủ này','Not available on this server'),unknown:otr('Chưa kiểm tra được','Status unavailable')}[s?.state||'unknown'];
+ return {ready:'✓ '+otr('Đã tải','Downloaded'),builtin:'✓ '+otr('Có sẵn','Included'),partial:otr(`Đã tải ${s.have}/${s.total} — bấm Tiếp tục`,`${s.have}/${s.total} downloaded — tap Resume`),none:otr('Chưa tải','Not downloaded'),unavailable:p.placeholder?otr('Sắp có','Coming soon'):s?.reasonText?String(s.reasonText):otr('Chưa có trên máy chủ này','Not available on this server'),unknown:otr('Chưa kiểm tra được','Status unavailable')}[s?.state||'unknown'];
 }
 function offlineRowHtml(p){
  const s=offlineStatusCache.get(p.id)||{state:'unknown'},job=offlineJobs.get(p.id),size=p.__size||0,pct=job?.total?Math.floor(job.done*100/job.total):s.total?Math.floor((s.have||0)*100/s.total):(s.state==='ready'||s.state==='builtin'?100:0);
  const canDownload=!p.builtIn&&!p.placeholder&&s.state!=='unavailable'&&s.state!=='ready',canRemove=!p.builtIn&&!p.placeholder&&typeof p.remove==='function'&&(s.state==='ready'||s.state==='partial');
  const action=job?.running?`<button type="button" class="btn small" data-offline-cancel="${p.id}">${otr('Dừng','Stop')}</button>`:canDownload?`<button type="button" class="btn small primary" data-offline-download="${p.id}">${s.state==='partial'||job?.error?otr('Tiếp tục','Resume'):job?.queued?otr('Tải ngay','Download now'):otr('Tải về','Download')}</button>`:'';
- return `<li class="offline-pack" data-pack="${esc(p.id)}" data-state="${esc(job?.running?'running':job?.queued?'queued':s.state)}"><div class="offline-pack-main"><b>${esc(offlineLabel(p))}</b><small>${size?esc(offlineBytes(size))+' · ':''}<span class="offline-pack-status">${esc(offlineStatusText(p,s,job))}</span></small>${offlineDesc(p)?`<small class="hint">${esc(offlineDesc(p))}</small>`:''}<div class="offline-progress" role="progressbar" aria-label="${esc(offlineLabel(p))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"${!job?.running&&s.state!=='partial'?' hidden':''}><span style="width:${pct}%"></span></div></div><div class="offline-pack-actions">${action}${canRemove&&!job?.running?`<button type="button" class="btn small" data-offline-remove="${p.id}">${otr('Xoá','Remove')}</button>`:''}</div></li>`;
+ return `<li class="offline-pack" data-pack="${esc(p.id)}" data-state="${esc(job?.running?'running':job?.queued?'queued':s.state)}"><div class="offline-pack-main"><b>${esc(offlineLabel(p))}</b><small>${size?esc(offlineBytes(size))+' · ':''}<span class="offline-pack-status">${esc(offlineStatusText(p,s,job))}</span></small>${offlineDesc(p)?`<small class="hint">${esc(offlineDesc(p))}</small>`:''}${s.failedText?`<small class="offline-pack-warn" role="note">⚠️ ${esc(s.failedText)}</small>`:s.warnText&&s.state!=='unavailable'?`<small class="offline-pack-warn">${esc(s.warnText)}</small>`:''}<div class="offline-progress" role="progressbar" aria-label="${esc(offlineLabel(p))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"${!job?.running&&s.state!=='partial'?' hidden':''}><span style="width:${pct}%"></span></div></div><div class="offline-pack-actions">${action}${canRemove&&!job?.running?`<button type="button" class="btn small" data-offline-remove="${p.id}">${otr('Xoá','Remove')}</button>`:''}</div></li>`;
 }
 async function offlineStorageText(){
  try{offlineStorage=await navigator.storage?.estimate?.()}catch{offlineStorage=null}
@@ -105,7 +105,7 @@ function offlineDownloadsBody(){
  const packs=offlineVisiblePacks();
  return `<div class="offline-downloads"><label class="offline-wifi"><input type="checkbox" id="offline-wifi-only" ${offlineWifiOnly()?'checked':''}><span><b>${otr('Chỉ tải khi có Wi-Fi','Download on Wi-Fi only')}</b><small class="hint" id="offline-connection">${esc(offlineConnectionLabel())}</small></span></label><ul class="offline-pack-list">${packs.map(offlineRowHtml).join('')}</ul><p class="hint offline-storage" id="offline-storage" role="status">${otr('Đang kiểm tra dung lượng…','Checking storage…')}</p></div>`;
 }
-// The on-device speech packs (voice-local.js registers 'voice-local-base' / 'voice-local-small') take the voice slot;
+// The on-device speech packs (voice-local.js registers 'voice-local-small' (v1.7.1: the Light pack is retired)) take the voice slot;
 // the "coming soon" placeholder only shows when no voice pack is registered.
 function offlineVisiblePacks(){const all=[...offlinePacks.values()],voice=all.filter(p=>/^voice(?:-|$)/.test(p.id)),list=all.filter(p=>!voice.includes(p));list.splice(Math.min(4,list.length),0,...(voice.length?voice:[offlineVoicePlaceholder()]));return list}
 function offlineReadyBody(){
@@ -160,6 +160,8 @@ async function offlineMayDownload(p,{now=false}={}){
 async function offlineStartDownload(id,{now=false}={}){
  const p=offlinePacks.get(id);if(!p||typeof p.download!=='function'||offlineJobs.get(id)?.running)return;
  if(!p.__size)p.__size=await offlineSize(p);
+ // A pack may ask first (on-device speech on iPhone/iPad: size, Wi-Fi, older devices may be slow). Not asked again for a queued resume.
+ if(typeof p.beforeDownload==='function'&&!offlineQueue().includes(id)){let ok=false;try{ok=await p.beforeDownload()}catch{}if(!ok)return}
  if(!await offlineMayDownload(p,{now}))return;
  offlineSetQueue(offlineQueue().filter(x=>x!==id));
  const controller=new AbortController(),job={running:true,done:0,total:p.__size||0,controller};offlineJobs.set(id,job);offlineUpdateRow(id);
@@ -222,7 +224,7 @@ function ocrOfflineReady(){return offlineStatusCache.get('ocr')?.state==='ready'
 globalThis.ocrOfflineReady=ocrOfflineReady;
 if(typeof loadOCR==='function'){const cdnLoadOCR=loadOCR;let selfHosted=null;
  loadOCR=function(){if(window.Tesseract)return Promise.resolve();if(!selfHosted)selfHosted=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=OCR_BASE+'tesseract.min.js';script.onload=()=>{offlinePatchTesseract();resolve()};script.onerror=()=>{selfHosted=null;script.remove();reject(Error('self-hosted OCR missing'))};document.head.append(script)});
-  return selfHosted.catch(()=>offlineOnline()?cdnLoadOCR():Promise.reject(Error(otr('Bộ đọc chữ chưa được tải về máy. Vào Cài đặt khác → Tải về để dùng offline.','The text reader is not downloaded. Open Other settings → Downloads for offline use.'))))}}
+  return selfHosted.catch(()=>offlineOnline()?cdnLoadOCR():Promise.reject(Error(otr('Bộ đọc chữ chưa được tải về máy. Vào Tài khoản & cài đặt (ảnh đại diện góc trên) → Tải về để dùng offline.','The text reader is not downloaded. Open Account & settings (top-right avatar) → Downloads for offline use.'))))}}
 function offlinePatchTesseract(){const T=window.Tesseract;if(!T||T.__selfHosted)return;const base=T.createWorker.bind(T),abs=p=>new URL(OCR_BASE+p,document.baseURI).href;
  T.createWorker=(langs,oem=1,options={},config)=>base(langs,oem,{workerPath:abs('worker.min.js'),corePath:abs('core'),langPath:abs('lang'),workerBlobURL:false,cacheMethod:'none',gzip:true,...options},config);T.__selfHosted=true}
 async function offlineInitOcrStatus(){const p=offlinePacks.get('ocr');if(p)await offlinePackStatus(p)}

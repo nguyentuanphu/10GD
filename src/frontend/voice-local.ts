@@ -33,11 +33,12 @@ const VOICE_LOCAL_ORT={
 const VOICE_LOCAL_JSON=['config.json','generation_config.json','preprocessor_config.json','tokenizer.json','tokenizer_config.json'];
 // Exact byte sizes from the pinned Hugging Face revisions; sha256 is the LFS object id.
 const VOICE_LOCAL_PACKS={
- base:{id:'base',vi:'Nhẹ',en:'Light',model:'onnx-community/whisper-base',revision:'1846881b6b3a3024392c1eea3ad983695bc23925',minMemoryGB:2,
-  files:[{path:'onnx/encoder_model_quantized.onnx',size:23201314,sha256:'5862993336bf33acd23736071aae2b32261d3b1b2f37780194460d4ef974dd46'},{path:'onnx/decoder_model_merged_quantized.onnx',size:53693315,sha256:'fa3ef9902734ce5ae6f9ef2bdb2ba9a6c4b5785b09f4f420ce036573dc9d090b'},{path:'config.json',size:2243},{path:'generation_config.json',size:3832},{path:'preprocessor_config.json',size:339},{path:'tokenizer.json',size:2480466},{path:'tokenizer_config.json',size:282682}]},
  small:{id:'small',vi:'Chính xác hơn',en:'More accurate',model:'onnx-community/whisper-small',revision:'36050c46d777d46dc4b5f43f6d90574fc38f8732',minMemoryGB:4,
   files:[{path:'onnx/encoder_model_quantized.onnx',size:92326160,sha256:'a43a83f3c5361cd591cfa7c36f14b43cf7cb22f47a415cc14a8d557be800fa92'},{path:'onnx/decoder_model_merged_quantized.onnx',size:156750845,sha256:'ec07c3cbb64172c39791e26ee870a65ac22b458c36722bfe2776b3dbf741e0c9'},{path:'config.json',size:2227},{path:'generation_config.json',size:3893},{path:'preprocessor_config.json',size:339},{path:'tokenizer.json',size:2480466},{path:'tokenizer_config.json',size:282683}]}
 };
+// v1.7.1: the Light (whisper-base) pack is retired — only "More accurate" is offered. Its files are listed so a copy
+// downloaded before is removed from Cache Storage (79.7 MB) and a stored choice of it falls back to the browser recogniser.
+const VOICE_LOCAL_RETIRED={base:{model:'onnx-community/whisper-base',revision:'1846881b6b3a3024392c1eea3ad983695bc23925',paths:['onnx/encoder_model_quantized.onnx','onnx/decoder_model_merged_quantized.onnx','config.json','generation_config.json','preprocessor_config.json','tokenizer.json','tokenizer_config.json']}};
 const VOICE_LOCAL_SIMD_PROBE=[0,97,115,109,1,0,0,0,1,5,1,96,0,1,123,3,2,1,0,10,10,1,8,0,65,0,253,15,253,98,11];
 
 function vlT(vi,en){return typeof tr==='function'?tr(vi,en):vi}
@@ -59,22 +60,27 @@ function voiceLocalCapability(f){
  if(!f.mic)reasons.push('mic');
  if(!f.audioWorklet)reasons.push('audio');
  if(!f.caches)reasons.push('storage');
- const ok=!reasons.length,mem=typeof f.memoryGB==='number'&&f.memoryGB>0?f.memoryGB:null,ios=voiceLocalIsIOS(f.ua,f.touchPoints);
+ const ok=!reasons.length,mem=typeof f.memoryGB==='number'&&f.memoryGB>0?f.memoryGB:null,ios=voiceLocalIsIOS(f.ua,f.touchPoints),gpu=!!f.gpu;
  const packs={};
+ // v1.7.1 (owner decision): every iPhone/iPad may download "More accurate". iOS never reports its memory; without
+ // WebGPU the model runs on the CPU (WASM), so a non-blocking warning is shown before download instead of a block.
  for(const p of Object.values(VOICE_LOCAL_PACKS)){
   const why=[];
   if(!ok)why.push(...reasons);
   if(mem!==null&&mem<p.minMemoryGB)why.push('memory');
-  if(p.id==='small'&&ios)why.push('ios-memory');
-  packs[p.id]={ok:!why.length,reasons:why,warn:p.id==='small'&&mem===null&&!ios?'memory-unknown':''};
+  packs[p.id]={ok:!why.length,reasons:why,warn:ios?(gpu?'ios':'ios-slow'):mem===null?'memory-unknown':''};
  }
- return{ok,reasons,memoryGB:mem,ios,packs};
+ return{ok,reasons,memoryGB:mem,ios,gpu,packs};
 }
-function voiceLocalReasonText(r){return({wasm:vlT('Trình duyệt không chạy được WebAssembly.','This browser cannot run WebAssembly.'),simd:vlT('Trình duyệt thiếu WebAssembly SIMD.','This browser lacks WebAssembly SIMD.'),worker:vlT('Trình duyệt không hỗ trợ Web Worker.','This browser has no Web Worker support.'),mic:vlT('Không truy cập được micro.','No microphone access.'),audio:vlT('Trình duyệt thiếu AudioWorklet để thu âm.','This browser lacks AudioWorklet for recording.'),storage:vlT('Không có bộ nhớ đệm (Cache Storage) để lưu gói.','No Cache Storage to keep the pack.'),memory:vlT('Máy có ít bộ nhớ (RAM) cho gói này.','Not enough memory (RAM) for this pack.'),'ios-memory':vlT('iPhone/iPad giới hạn bộ nhớ cho trang web — dùng gói Nhẹ.','iPhone/iPad limits web page memory — use the Light pack.')})[r]||r}
+function voiceLocalReasonText(r){return({wasm:vlT('Trình duyệt không chạy được WebAssembly.','This browser cannot run WebAssembly.'),simd:vlT('Trình duyệt thiếu WebAssembly SIMD.','This browser lacks WebAssembly SIMD.'),worker:vlT('Trình duyệt không hỗ trợ Web Worker.','This browser has no Web Worker support.'),mic:vlT('Không truy cập được micro.','No microphone access.'),audio:vlT('Trình duyệt thiếu AudioWorklet để thu âm.','This browser lacks AudioWorklet for recording.'),storage:vlT('Không có bộ nhớ đệm (Cache Storage) để lưu gói.','No Cache Storage to keep the pack.'),memory:vlT('Máy không đủ bộ nhớ (RAM) cho gói này.','Not enough memory (RAM) on this device for this pack.')})[r]||r}
+// Non-blocking notes shown next to the pack and in the download warning.
+function voiceLocalWarnText(w){return({'ios-slow':vlT('Máy cũ có thể chạy chậm hoặc thiếu bộ nhớ · có thể chậm vài giây mỗi câu.','Older devices may be slow or run out of memory · may take a few seconds per sentence.'),ios:vlT('Chạy bằng WebGPU trên iPhone/iPad · lần đầu cần vài giây để nạp.','Runs with WebGPU on iPhone/iPad · the first start takes a few seconds to load.'),'memory-unknown':vlT('Cần khoảng 1 GB RAM trống; máy yếu có thể chậm.','Needs about 1 GB of free memory; slower devices may struggle.')})[w]||''}
+// The confirmation shown before a download on iPhone/iPad (size, Wi-Fi, speed on older devices).
+function voiceLocalDownloadWarning(id,cap,lang){const c=cap?.packs?.[id];if(!c||!c.ok||!cap.ios)return'';const size=voiceLocalFormatBytes(voiceLocalPackBytes(id)+voiceLocalBytes(voiceLocalRuntime()),lang);return vlT(`Gói “Chính xác hơn” khoảng ${size}. Nên tải qua Wi-Fi.`,`The “More accurate” pack is about ${size}. Use Wi-Fi.`)+' '+(c.warn==='ios-slow'?voiceLocalWarnText('ios-slow')+' '+vlT('Nếu máy không chạy nổi, app tự quay về nhận giọng nói của trình duyệt.','If the device cannot run it, the app falls back to browser speech recognition.'):voiceLocalWarnText('ios'))}
 async function voiceLocalProbe(){
  let simd=false;const wasm=typeof WebAssembly==='object';
  try{simd=wasm&&WebAssembly.validate(new Uint8Array(VOICE_LOCAL_SIMD_PROBE))}catch{}
- return voiceLocalCapability({wasm,simd,worker:typeof Worker==='function',mic:!!navigator.mediaDevices?.getUserMedia,audioWorklet:typeof AudioWorkletNode==='function',caches:typeof caches==='object'&&!!caches,memoryGB:navigator.deviceMemory,ua:navigator.userAgent,touchPoints:navigator.maxTouchPoints});
+ return voiceLocalCapability({wasm,simd,worker:typeof Worker==='function',mic:!!navigator.mediaDevices?.getUserMedia,audioWorklet:typeof AudioWorkletNode==='function',caches:typeof caches==='object'&&!!caches,memoryGB:navigator.deviceMemory,ua:navigator.userAgent,touchPoints:navigator.maxTouchPoints,gpu:!!navigator.gpu});
 }
 // Whisper language from the VI/EN toggle ('vi-VN' | 'en-AU') or automatic detection.
 function voiceLocalWhisperLang(recLang,mode){if(mode==='auto')return null;return String(recLang||'').startsWith('en')?'english':'vietnamese'}
@@ -127,8 +133,8 @@ async function voiceLocalOpenCache(){return caches.open(VOICE_LOCAL_CACHE)}
 async function voiceLocalPresent(files){if(typeof caches!=='object')return files.map(()=>false);const c=await voiceLocalOpenCache();return Promise.all(files.map(async f=>!!(await c.match(f.url))))}
 async function voiceLocalStatus(id){const rt=voiceLocalRuntime(),own=voiceLocalPackFiles(id);try{const have=await voiceLocalPresent([...rt,...own]),mine=have.slice(rt.length);return have.every(Boolean)?'ready':mine.some(Boolean)?'partial':'none'}catch{return'none'}}
 // Pack status in the offline-downloads shape (file counts let that screen show "3/7 downloaded — Resume").
-async function voiceLocalPackStatus(id){let cap=null;try{cap=voiceLocalCap||await voiceLocalProbe()}catch{}if(cap&&cap.packs&&cap.packs[id]&&!cap.packs[id].ok)return{state:'unavailable'};
- const files=[...voiceLocalRuntime(),...voiceLocalPackFiles(id)];let have=0;try{have=(await voiceLocalPresent(files)).filter(Boolean).length}catch{}const state=await voiceLocalStatus(id);return{state,have,total:files.length}}
+async function voiceLocalPackStatus(id){let cap=null;try{cap=voiceLocalCap||await voiceLocalProbe()}catch{}if(cap&&cap.packs&&cap.packs[id]&&!cap.packs[id].ok)return{state:'unavailable',reasons:cap.packs[id].reasons.slice(),reasonText:cap.packs[id].reasons.map(voiceLocalReasonText).join(' ')};
+ const files=[...voiceLocalRuntime(),...voiceLocalPackFiles(id)];let have=0;try{have=(await voiceLocalPresent(files)).filter(Boolean).length}catch{}const state=await voiceLocalStatus(id),warn=cap?.packs?.[id]?.warn||'',failed=voiceLocalFailed(id);return{state,have,total:files.length,...(warn?{warn,warnText:voiceLocalWarnText(warn)}:{}),...(failed?{failed:failed.stage,failedText:voiceLocalFailText(failed)}:{})}}
 function voiceLocalHex(buf){return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('')}
 function voiceLocalB64(buf){let s='';const a=new Uint8Array(buf);for(let i=0;i<a.length;i+=32768)s+=String.fromCharCode.apply(null,a.subarray(i,i+32768));return btoa(s)}
 async function voiceLocalVerify(f,buf){if(!f.sha256&&!f.sha256b64)return true;if(!globalThis.crypto?.subtle)return true;const d=await crypto.subtle.digest('SHA-256',buf);return f.sha256?voiceLocalHex(d)===f.sha256:voiceLocalB64(d)===f.sha256b64}
@@ -170,12 +176,26 @@ async function voiceLocalRemove(id){const c=await voiceLocalOpenCache();for(cons
 // ONE selection for every voice feature: `bep-voice-recognizer` ('browser' | 'local-base' | 'local-small'), the key the
 // voice sheet's recogniser selector (voice-commands.js) reads. The older on-device key `bep-voice-local` is migrated once.
 const VOICE_REC_KEY='bep-voice-recognizer';
-function voiceLocalMigrateChoice(){try{const old=localStorage.getItem('bep-voice-local');if(old===null)return;localStorage.removeItem('bep-voice-local');if(VOICE_LOCAL_PACKS[old]&&!localStorage.getItem(VOICE_REC_KEY))localStorage.setItem(VOICE_REC_KEY,'local-'+old)}catch{}}
+function voiceLocalMigrateChoice(){try{const cur=localStorage.getItem(VOICE_REC_KEY)||'';if(/^local-/.test(cur)&&!VOICE_LOCAL_PACKS[cur.slice(6)])localStorage.removeItem(VOICE_REC_KEY)}catch{}try{const old=localStorage.getItem('bep-voice-local');if(old===null)return;localStorage.removeItem('bep-voice-local');if(VOICE_LOCAL_PACKS[old]&&!localStorage.getItem(VOICE_REC_KEY))localStorage.setItem(VOICE_REC_KEY,'local-'+old)}catch{}}
 function voiceLocalChoice(){voiceLocalMigrateChoice();try{const v=(localStorage.getItem(VOICE_REC_KEY)||'').replace(/^local-/,'');return VOICE_LOCAL_PACKS[v]&&localStorage.getItem(VOICE_REC_KEY)==='local-'+v?v:''}catch{return''}}
 function voiceLocalSetChoice(v){try{if(v)localStorage.setItem(VOICE_REC_KEY,'local-'+v);else if(/^local-/.test(localStorage.getItem(VOICE_REC_KEY)||''))localStorage.removeItem(VOICE_REC_KEY)}catch{}}
 // Language: the app-wide Auto mode (default) lets Whisper detect the language and follow Vietnamese/English
 // code-switching ("1 ký salmon, 2kg tuna"); a Tiếng Việt / English override in Cài đặt giọng nói forces one language.
 function voiceLocalLangMode(){if(typeof voiceLangPrefs==='function'){try{return voiceLangPrefs().auto?'auto':'toggle'}catch{}}try{return localStorage.getItem('bep-voice-local-lang')==='toggle'?'toggle':'auto'}catch{return'auto'}}
+
+// ---------- failure guard (v1.7.1) ----------
+// Loading Whisper "More accurate" can exhaust memory on older iPhones: the worker crashes or iOS reloads the page.
+// A marker is written before loading/recognising and cleared after; a marker left behind at start-up means the last
+// attempt never finished. Either way the app switches back to the browser recogniser and says so, offering
+// "Thử lại / Try again" and "Gỡ gói / Remove pack". Stored per device only.
+const VOICE_LOCAL_FAIL_KEY='bep-voice-local-fail',VOICE_LOCAL_BUSY_KEY='bep-voice-local-busy';
+function voiceLocalFailed(id){try{const f=JSON.parse(localStorage.getItem(VOICE_LOCAL_FAIL_KEY)||'null');return f&&(!id||f.pack===id)?f:null}catch{return null}}
+function voiceLocalMarkFailed(id,stage,code){try{localStorage.setItem(VOICE_LOCAL_FAIL_KEY,JSON.stringify({pack:id,stage,code:String(code||''),at:Date.now()}));localStorage.removeItem(VOICE_LOCAL_BUSY_KEY)}catch{}if(voiceLocalChoice()===id)voiceLocalSetChoice('');try{voiceLocalEngine?.dispose()}catch{}voiceLocalEngine=null}
+function voiceLocalClearFailed(){try{localStorage.removeItem(VOICE_LOCAL_FAIL_KEY)}catch{}}
+function voiceLocalBusy(id,stage){try{if(stage)localStorage.setItem(VOICE_LOCAL_BUSY_KEY,JSON.stringify({pack:id,stage,at:Date.now()}));else localStorage.removeItem(VOICE_LOCAL_BUSY_KEY)}catch{}}
+// At start-up: a busy marker left by a page that died while loading/recognising becomes a failure.
+function voiceLocalCheckCrash(){try{const b=JSON.parse(localStorage.getItem(VOICE_LOCAL_BUSY_KEY)||'null');if(!b)return null;localStorage.removeItem(VOICE_LOCAL_BUSY_KEY);if(!VOICE_LOCAL_PACKS[b.pack])return null;voiceLocalMarkFailed(b.pack,b.stage==='load'?'reload-load':'reload-run','reload');return voiceLocalFailed(b.pack)}catch{return null}}
+function voiceLocalFailText(f){const why=f.stage==='reload-load'||f.stage==='reload-run'?vlT('Trang bị tải lại khi đang chạy gói trên máy (có thể máy thiếu bộ nhớ).','The page reloaded while the on-device pack was running (the device may be short of memory).'):f.stage==='load'?vlT('Không nạp được gói trên máy.','The on-device pack could not load.'):vlT('Nhận giọng nói trên máy bị lỗi.','On-device recognition failed.');return why+' '+vlT('Đang dùng nhận giọng nói của trình duyệt.','Using browser speech recognition.')}
 
 // ---------- engine (worker) + recorder ----------
 let voiceLocalEngine=null,voiceLocalActive=null,voiceLocalLastUsed='';
@@ -187,13 +207,19 @@ async function voiceLocalWorker(){
 async function voiceLocalEnsureEngine(id,onProgress){
  if(voiceLocalEngine&&voiceLocalEngine.pack===id)return voiceLocalEngine;
  voiceLocalEngine?.dispose();voiceLocalEngine=null;
+ voiceLocalBusy(id,'load');
+ try{
  const client=voiceLocalClient(await voiceLocalWorker());
  const hello=await client.hello();if(hello.v!==VOICE_LOCAL_PROTOCOL){client.dispose();throw Object.assign(Error('worker version'),{code:'version'})}
  const rt=voiceLocalRuntime();
- await client.load(VOICE_LOCAL_PACKS[id],{module:rt.find(f=>f.role==='module'),mjs:rt.find(f=>f.role==='mjs').url,wasm:rt.find(f=>f.role==='wasm').url,threads:typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated?Math.min(4,navigator.hardwareConcurrency||1):1},onProgress);
+ await client.load(VOICE_LOCAL_PACKS[id],{module:rt.find(f=>f.role==='module'),mjs:rt.find(f=>f.role==='mjs').url,wasm:rt.find(f=>f.role==='wasm').url,threads:typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated?Math.min(4,navigator.hardwareConcurrency||1):1,gpu:voiceLocalHasGpu()},onProgress).catch(e=>{try{client.dispose()}catch{}throw e});
+ voiceLocalBusy(id,'');
  voiceLocalEngine={pack:id,dispose:()=>client.dispose(),transcribe:client.transcribe,client};
  return voiceLocalEngine;
+ }catch(e){voiceLocalBusy(id,'');throw e}
 }
+// Visible progress for the slow first use: "Đang nạp…" while the model loads, "Đang nhận dạng…" while a sentence is decoded.
+function voiceLocalNote(kind){if(typeof document==='undefined')return;const text=kind==='loading'?vlT('Đang nạp gói giọng nói trên máy… lần đầu có thể mất 10–60 giây.','Loading the on-device speech pack… the first time can take 10–60 seconds.'):kind==='recognizing'?vlT('Đang nhận dạng…','Recognising…'):kind==='listening'?vlT('Đang nghe trên máy (không gửi âm thanh).','Listening on this device (no audio sent).'):'';for(const el of [document.getElementById('voice-status'),document.getElementById('vp-status')])if(el&&text)el.textContent=text;const live=document.getElementById('voice-live')||document.getElementById('vp-live');if(live){if(kind==='loading'||kind==='recognizing')live.dataset.local=kind;else delete live.dataset.local}}
 const VOICE_LOCAL_WORKLET=`class BepCapture extends AudioWorkletProcessor{process(inputs){const i=inputs[0];if(i&&i.length&&i[0].length){const chans=i.map(c=>c.slice(0));this.port.postMessage(chans,chans.map(c=>c.buffer))}return true}}registerProcessor('bep-capture',BepCapture)`;
 async function voiceLocalRecorder(onFrame){
  const stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
@@ -213,18 +239,19 @@ function voiceLocalRecognizer(id,deps={}){
   async available(){const cap=await (deps.probe||voiceLocalProbe)();return cap.packs[id].ok&&(await (deps.status||voiceLocalStatus)(id))==='ready'},
   async start(lang,onResult,onEnd){
    if(voiceLocalActive)await voiceLocalActive.stop(true);
-   const ensure=deps.ensure||voiceLocalEnsureEngine,record=deps.record||voiceLocalRecorder,mode=deps.langMode?deps.langMode():voiceLocalLangMode();
+   const ensure=deps.ensure||voiceLocalEnsureEngine,record=deps.record||voiceLocalRecorder,mode=deps.langMode?deps.langMode():voiceLocalLangMode(),note=deps.note||voiceLocalNote;
    const language=voiceLocalWhisperLang(lang,lang==='auto'?'auto':mode);
    let ended=false,busy=false,queue=[],rec=null,engine=null,stopping=false;
    const seg=voiceLocalSegmenter(deps.segmenter||{});
    const finish=info=>{if(ended)return;ended=true;if(voiceLocalActive===self)voiceLocalActive=null;try{onEnd&&onEnd(info||{})}catch{}};
    const pump=async()=>{if(busy||!engine)return;const next=queue.find(q=>q.type==='final')||queue[queue.length-1];if(!next){if(stopping)finish({reason:'stopped'});return}
     queue=queue.filter(q=>q!==next&&(next.type==='final'?true:q.type==='final'));busy=true;
-    try{const r=await engine.transcribe(next.audio,language,next.type==='final');const text=voiceLocalCleanText(r.text);if(text&&!ended)onResult(text,next.type==='final')}catch(e){if(e.code!=='stopped'){finish({reason:'error',error:e});return}}finally{busy=false}
+    if(next.type==='final')note('recognizing');voiceLocalBusy(id,'run');
+    try{const r=await engine.transcribe(next.audio,language,next.type==='final');voiceLocalBusy(id,'');const text=voiceLocalCleanText(r.text);if(text&&!ended)onResult(text,next.type==='final');if(next.type==='final'&&!stopping)note('listening')}catch(e){voiceLocalBusy(id,'');if(e.code!=='stopped'){voiceLocalMarkFailed(id,'run',e.code);finish({reason:'error',error:e});return}}finally{busy=false}
     pump()};
    const self={stop:async(abort)=>{if(ended)return;stopping=true;rec?.stop();rec=null;if(abort){queue=[];finish({reason:'aborted'});return}for(const ev of seg.flush())queue.push(ev);queue=queue.filter(q=>q.type==='final');if(!busy)pump()}};
    voiceLocalActive=self;voiceLocalLastUsed='local-'+id;
-   try{engine=await ensure(id);if(ended)return self;rec=await record(frame=>{if(ended||stopping)return;for(const ev of seg.push(frame)){if(ev.type==='partial'&&busy)continue;queue.push(ev)}pump()})}catch(e){finish({reason:'error',error:e});throw e}
+   try{note('loading');try{engine=await ensure(id)}catch(e){voiceLocalMarkFailed(id,'load',e?.code);throw e}if(ended)return self;note('listening');rec=await record(frame=>{if(ended||stopping)return;for(const ev of seg.push(frame)){if(ev.type==='partial'&&busy)continue;queue.push(ev)}pump()})}catch(e){finish({reason:'error',error:e});throw e}
    return self},
   async stop(){await voiceLocalActive?.stop(false)},
   async abort(){await voiceLocalActive?.stop(true)}
@@ -232,8 +259,8 @@ function voiceLocalRecognizer(id,deps={}){
 }
 
 // ---------- manual benchmark (opt-in; run from the browser console or scripts/voice-bench) ----------
-// await voiceLocalBenchmark('base',{seconds:8})  → speak for 8 s; or pass {audio:Float32Array(16 kHz mono)}.
-async function voiceLocalBenchmark(id='base',{seconds=8,audio=null,language='vietnamese'}={}){
+// await voiceLocalBenchmark('small',{seconds:8})  → speak for 8 s; or pass {audio:Float32Array(16 kHz mono)}.
+async function voiceLocalBenchmark(id='small',{seconds=8,audio=null,language='vietnamese'}={}){
  if((await voiceLocalStatus(id))!=='ready')throw Error('Download the pack first (voice sheet → Voice settings).');
  voiceLocalEngine?.dispose();voiceLocalEngine=null;
  const t0=performance.now();const eng=await voiceLocalEnsureEngine(id);const loadMs=Math.round(performance.now()-t0);
@@ -251,7 +278,10 @@ async function voiceLocalBenchmark(id='base',{seconds=8,audio=null,language='vie
 const voiceLocalUnregister={};
 function voiceLocalAdapter(id){const r=voiceLocalRecognizer(id);return{id:r.id,label:r.label,offline:true,flushOnStop:true,local:true,
  // R's contract: onResult(text,{isFinal}); this recogniser reports (text, final:boolean).
- start:(lang,onResult,onEnd)=>r.start(lang,(text,final)=>onResult(text,{isFinal:!!final}),onEnd),stop:()=>r.stop(),abort:()=>r.abort()}}
+ start:(lang,onResult,onEnd)=>r.start(lang,(text,final)=>onResult(text,{isFinal:!!final}),info=>{if(info&&info.reason==='error'&&voiceLocalFailed(id))voiceLocalShowFailure();return onEnd&&onEnd(info)}),stop:()=>r.stop(),abort:()=>r.abort()}}
+// The fallback message with one-tap "Thử lại" (choose the pack again) and "Gỡ gói" (free the space).
+function voiceLocalFailureHtml(f){return`<div class="vl-fail" id="vl-fail" role="alert"><p>${vlEsc(voiceLocalFailText(f))}</p><div class="toolbar"><button type="button" class="btn small" data-vl-retry="${vlEsc(f.pack)}">${vlT('Thử lại','Try again')}</button><button type="button" class="btn small" data-vl-remove="${vlEsc(f.pack)}">${vlT('Gỡ gói','Remove pack')}</button></div></div>`}
+function voiceLocalShowFailure(){if(typeof document==='undefined')return;const f=voiceLocalFailed();if(!f)return;document.getElementById('vl-fail')?.remove();const anchor=document.getElementById('voice-status')||document.getElementById('vp-live');if(anchor)anchor.insertAdjacentHTML('afterend',voiceLocalFailureHtml(f));voiceLocalSyncRecognizers().catch(()=>{})}
 async function voiceLocalSyncRecognizers(){
  if(typeof registerVoiceRecognizer!=='function')return 0;let n=0;
  let cap=null;try{cap=voiceLocalCap||await voiceLocalProbe();voiceLocalCap=cap}catch{}
@@ -273,7 +303,8 @@ function voiceLocalRegisterHooks(){
    description:()=>vlT('Hiểu Vietlish (nói lẫn Việt – Anh) tốt hơn; âm thanh không rời khỏi máy, dùng được khi mất mạng.','Understands Vietlish (mixed Vietnamese–English) better; audio never leaves this device and it works offline.'),
    sizeBytes:voiceLocalPackBytes(p.id)+voiceLocalBytes(voiceLocalRuntime()),
    status:()=>voiceLocalPackStatus(p.id),
-   download:async(onProgress,signal)=>{await voiceLocalDownload(p.id,(f,loaded,total)=>{try{onProgress&&onProgress(loaded,total)}catch{}},{signal});if(!voiceLocalChoice())voiceLocalSetChoice(p.id);await voiceLocalSyncRecognizers().catch(()=>{});voiceLocalRenderSettings().catch(()=>{});return true},
+   beforeDownload:async()=>{const w=voiceLocalDownloadWarning(p.id,voiceLocalCap||await voiceLocalProbe(),typeof appLanguage!=='undefined'?appLanguage:'vi');if(!w)return true;return typeof confirmDialog==='function'?!!(await confirmDialog({title:vlT('Tải gói giọng nói trên máy?','Download on-device speech?'),body:w,confirmLabel:vlT('Tải về','Download'),cancelLabel:vlT('Để sau','Not now')})):confirm(w)},
+   download:async(onProgress,signal)=>{await voiceLocalDownload(p.id,(f,loaded,total)=>{try{onProgress&&onProgress(loaded,total)}catch{}},{signal});voiceLocalClearFailed();if(!voiceLocalChoice())voiceLocalSetChoice(p.id);await voiceLocalSyncRecognizers().catch(()=>{});voiceLocalRenderSettings().catch(()=>{});return true},
    remove:async()=>{await voiceLocalRemove(p.id);await voiceLocalSyncRecognizers().catch(()=>{});voiceLocalRenderSettings().catch(()=>{});return true}});n++}catch{}}}
  return n;
 }
@@ -293,7 +324,7 @@ function voiceLocalSettingsHtml(cap,statuses){
   const title=`<b>${vlEsc(vlT(p.vi,p.en))}</b> <small>· Whisper ${p.id} · ${size(voiceLocalPackBytes(p.id))}${shared&&ready&&choice===p.id?' · '+vlT('đang dùng','in use'):''}</small>`;
   return`<div class="vl-pack" data-vl-pack="${p.id}">${shared?`<p class="vl-pack-title">${title}</p>`:`<label class="vl-choice"><input type="radio" name="vl-choice" value="${p.id}" ${choice===p.id&&ready?'checked':''} ${ready&&c.ok?'':'disabled'}><span>${title}</span></label>`}
   <div class="vl-pack-row"><span class="vl-state" data-state="${st}">${ready?vlT('Đã tải','Downloaded'):st==='partial'?vlT('Tải dở','Partly downloaded'):vlT('Chưa tải','Not downloaded')}</span>${ready?`<button type="button" class="btn small" data-vl-remove="${p.id}">${vlT('Xoá gói','Remove pack')}</button>`:`<button type="button" class="btn small" data-vl-download="${p.id}" ${c.ok?'':'disabled'}>${vlT('Tải','Download')} ${size(voiceLocalPackBytes(p.id))}</button>`}</div>
-  <progress class="vl-progress" max="1" value="0" hidden aria-label="${vlT('Tiến độ tải','Download progress')}"></progress>${c.ok?c.warn?`<small class="vl-note">${vlT('Cần khoảng 1 GB RAM trống; máy yếu có thể chậm.','Needs about 1 GB of free memory; slower devices may struggle.')}</small>`:'':`<small class="vl-note">${c.reasons.map(voiceLocalReasonText).map(vlEsc).join(' ')}</small>`}</div>`}).join('');
+  <progress class="vl-progress" max="1" value="0" hidden aria-label="${vlT('Tiến độ tải','Download progress')}"></progress>${c.ok?c.warn?`<small class="vl-note">${vlEsc(voiceLocalWarnText(c.warn))}</small>`:'':`<small class="vl-note">${c.reasons.map(voiceLocalReasonText).map(vlEsc).join(' ')}</small>`}</div>`}).join('');
  return`${shared?'':`<summary>${vlT('Cài đặt giọng nói','Voice settings')}</summary>`}
  <fieldset class="vl-group"><legend>${shared?vlT('Nhận giọng nói trên máy (tải về)','On-device speech (download)'):vlT('Nhận giọng nói','Speech recognition')}</legend>
  ${shared?`<p class="hint">${vlT('Đang dùng','In use')}: <b>${vlEsc(choice?vlT('Trên máy · ','On device · ')+vlT(VOICE_LOCAL_PACKS[choice].vi,VOICE_LOCAL_PACKS[choice].en):vlT('Của trình duyệt (cần mạng)','Browser (needs internet)'))}</b>. ${vlT('Tải gói nâng cao để hiểu Vietlish (nói lẫn Việt – Anh) tốt hơn và dùng khi mất mạng.','Download an advanced pack to understand Vietlish (mixed Vietnamese–English) better and to work offline.')}</p>`:`<label class="vl-choice"><input type="radio" name="vl-choice" value="" ${choice?'':'checked'}><span><b>${vlT('Của trình duyệt','Browser')}</b> <small>· ${vlT('mặc định, cần mạng','default, needs internet')}</small></span></label>`}
@@ -325,12 +356,13 @@ function voiceLocalMountSettings(){
   box=document.createElement('details');box.id='voice-local-settings';box.className='voice-local';
   box.innerHTML=voiceLocalSettingsHtml(voiceLocalCap,{});anchor.after(box);
  }
+ if(voiceLocalFailed())voiceLocalShowFailure();
  (voiceLocalShared()?voiceLocalSyncRecognizers().catch(()=>{}):Promise.resolve()).then(()=>voiceLocalRenderSettings()).then(voiceLocalMaybeTip).catch(()=>{});
 }
 // One gentle, one-time tip in Auto mode while the browser recogniser is in use and this device could run the pack.
 async function voiceLocalMaybeTip(){
  try{if(localStorage.getItem('bep-voice-local-tip'))return}catch{return}
- if(!voiceLocalShared()||voiceLocalChoice()||voiceLocalLangMode()!=='auto'||!voiceLocalCap?.packs?.base?.ok)return;
+ if(!voiceLocalShared()||voiceLocalChoice()||voiceLocalLangMode()!=='auto'||!voiceLocalCap?.packs?.small?.ok)return;
  const status=document.getElementById('voice-status');if(!status||document.getElementById('voice-local-tip'))return;
  try{localStorage.setItem('bep-voice-local-tip','1')}catch{}
  status.insertAdjacentHTML('afterend',`<p class="hint voice-local-tip" id="voice-local-tip"><span>💡 ${vlT('Tải giọng nói nâng cao để hiểu Vietlish tốt hơn','Download advanced voice to understand Vietlish better')}</span> <button type="button" class="btn small" data-vl-tip>${vlT('Xem gói tải','See downloads')}</button></p>`);
@@ -356,8 +388,9 @@ async function voiceLocalStartInSheet(auto){
   return true}
  catch(e){if(typeof voiceSetUi==='function')voiceSetUi('stopped',vlT('Không mở được nhận giọng nói trên máy — dùng của trình duyệt.','Could not start on-device recognition — using the browser recogniser.'));return false}
 }
+async function voiceLocalCleanRetired(){if(typeof caches!=='object'||!caches)return 0;let n=0;try{if(!(await caches.has(VOICE_LOCAL_CACHE)))return 0;const c=await voiceLocalOpenCache();for(const r of Object.values(VOICE_LOCAL_RETIRED))for(const path of r.paths)if(await c.delete(voiceLocalModelUrl(r,path)))n++}catch{}return n}
 function voiceLocalInstall(){
- voiceLocalMigrateChoice();voiceLocalRegisterHooks();
+ voiceLocalMigrateChoice();voiceLocalCheckCrash();voiceLocalCleanRetired().catch(()=>{});voiceLocalRegisterHooks();
  if(typeof addEventListener==='function')addEventListener('bep-voice-registry',()=>{voiceLocalRegisterHooks();voiceLocalSyncRecognizers().catch(()=>{})});
  document.addEventListener('bep-voice-settings-mounted',()=>voiceLocalMountSettings());
  if(typeof voiceModal==='function'&&!voiceModal.__vl){const prev=voiceModal;voiceModal=function(...a){voiceLocalLastUsed='';const out=prev.apply(this,a);voiceLocalMountSettings();return out};voiceModal.__vl=true}
@@ -366,14 +399,16 @@ function voiceLocalInstall(){
  document.addEventListener('change',e=>{const t=e.target;if(!t)return;
   if(t.name==='vl-choice'){voiceLocalSetChoice(t.value);if(typeof stopVoice==='function')stopVoice();if(typeof voiceSetUi==='function')voiceSetUi('stopped',t.value?vlT('Đã chọn nhận giọng nói trên máy. Bấm để nói.','On-device recognition selected. Tap to speak.'):vlT('Đã chọn nhận giọng nói của trình duyệt.','Browser recognition selected.'))}
   if(t.id==='vl-lang-auto'){try{localStorage.setItem('bep-voice-local-lang',t.checked?'auto':'toggle')}catch{}}});
- document.addEventListener('click',e=>{const t=e.target?.closest?.('[data-vl-tip]');if(!t)return;e.preventDefault();const panel=document.getElementById('voice-settings');if(panel)panel.open=true;document.getElementById('voice-local-tip')?.remove();const row=document.querySelector('#voice-local-settings [data-vl-pack="base"]');row?.scrollIntoView?.({block:'nearest'});row?.querySelector('button')?.focus()});
+ document.addEventListener('click',e=>{const t=e.target?.closest?.('[data-vl-tip]');if(!t)return;e.preventDefault();const panel=document.getElementById('voice-settings');if(panel)panel.open=true;document.getElementById('voice-local-tip')?.remove();const row=document.querySelector('#voice-local-settings [data-vl-pack="small"]');row?.scrollIntoView?.({block:'nearest'});row?.querySelector('button')?.focus()});
+ document.addEventListener('click',async e=>{const b=e.target?.closest?.('[data-vl-retry]');if(!b)return;e.preventDefault();const id=b.dataset.vlRetry;voiceLocalClearFailed();document.getElementById('vl-fail')?.remove();if(!VOICE_LOCAL_PACKS[id])return;await voiceLocalSyncRecognizers().catch(()=>{});voiceLocalSetChoice(id);voiceLocalRenderSettings().catch(()=>{});typeof toast==='function'&&toast(vlT('Sẽ thử lại nhận giọng nói trên máy ở lần nói tới.','On-device recognition will be tried again next time you speak.'))});
  document.addEventListener('click',async e=>{const b=e.target?.closest?.('[data-vl-download],[data-vl-remove]');if(!b)return;e.preventDefault();
   const id=b.dataset.vlDownload||b.dataset.vlRemove,row=b.closest('.vl-pack');
-  if(b.dataset.vlRemove){await voiceLocalRemove(id);await voiceLocalSyncRecognizers().catch(()=>{});typeof toast==='function'&&toast(vlT('Đã xoá gói nhận giọng nói.','Speech pack removed.'));return voiceLocalRenderSettings()}
+  if(b.dataset.vlRemove){voiceLocalClearFailed();document.getElementById('vl-fail')?.remove();await voiceLocalRemove(id);await voiceLocalSyncRecognizers().catch(()=>{});typeof toast==='function'&&toast(vlT('Đã xoá gói nhận giọng nói.','Speech pack removed.'));return voiceLocalRenderSettings()}
   if(!navigator.onLine||globalThis.BEP_OFFLINE){typeof toast==='function'&&toast(vlT('Tải gói cần kết nối mạng.','Downloading the pack needs an internet connection.'),true);return}
+  {const warnText=voiceLocalDownloadWarning(id,voiceLocalCap||await voiceLocalProbe(),typeof appLanguage!=='undefined'?appLanguage:'vi');if(warnText&&!(typeof confirmDialog==='function'?await confirmDialog({title:vlT('Tải gói giọng nói trên máy?','Download on-device speech?'),body:warnText,confirmLabel:vlT('Tải về','Download'),cancelLabel:vlT('Để sau','Not now')}):confirm(warnText)))return}
   if(voiceLocalOnCellular()&&!confirm(vlT('Bạn đang dùng dữ liệu di động. Tải ','You are on mobile data. Download ')+voiceLocalFormatBytes(voiceLocalPackBytes(id),typeof appLanguage!=='undefined'?appLanguage:'vi')+'?'))return;
   const bar=row?.querySelector('.vl-progress');b.disabled=true;if(bar)bar.hidden=false;
-  try{await voiceLocalDownload(id,f=>{if(bar)bar.value=f});voiceLocalSetChoice(id);await voiceLocalSyncRecognizers().catch(()=>{});typeof toast==='function'&&toast(vlT('Đã tải xong. Đang dùng nhận giọng nói trên máy.','Downloaded. Using on-device recognition.'))}
+  try{await voiceLocalDownload(id,f=>{if(bar)bar.value=f});voiceLocalClearFailed();voiceLocalSetChoice(id);await voiceLocalSyncRecognizers().catch(()=>{});typeof toast==='function'&&toast(vlT('Đã tải xong. Đang dùng nhận giọng nói trên máy.','Downloaded. Using on-device recognition.'))}
   catch(err){typeof toast==='function'&&toast(err?.message||vlT('Tải gói bị lỗi.','Pack download failed.'),true)}
   voiceLocalRenderSettings()});
 }

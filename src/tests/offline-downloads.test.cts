@@ -84,6 +84,13 @@ const read=(f:string)=>fs.readFileSync('dist/'+f,'utf8');
  assert.equal((await status('price-scout')).state,'builtin');
  // The OCR pack downloads exactly one core variant for this device.
  const ocr=vm.runInContext('offlineOcrFiles',c)(manifest);assert.equal(ocr.files.length,2);assert.equal(ocr.bytes,manifest.ocr.common.bytes+(ocr.files[1][0].includes('simd')?20:21));
+ // v1.7.1: an 'unavailable' pack shows its own reason, never the misleading "Not available on this server".
+ const st=(p:any,s:any)=>vm.runInContext('offlineStatusText',c)(p,s,null);
+ assert.equal(st({id:'voice-local-small'},{state:'unavailable',reasonText:'Not enough memory (RAM) on this device for this pack.'}),'Not enough memory (RAM) on this device for this pack.');
+ assert.equal(st({id:'x'},{state:'unavailable'}),'Not available on this server','server packs without a reason keep the old text');
+ // A pack's beforeDownload warning (on-device speech on iPhone/iPad) can cancel before anything is fetched.
+ let warned=0;vm.runInContext('registerOfflinePack',c)({id:'voice-warn',label:'Voice warn',sizeBytes:5,beforeDownload:async()=>{warned++;return false},status:async()=>({state:'none'}),download:async()=>{throw Error('must not download')}});
+ await start('voice-warn',{now:true});assert.equal(warned,1);assert.ok(!vm.runInContext('offlineJobs',c).get('voice-warn')?.error,'declined: no download, no error');
  console.log('PASS downloads manager: connection heuristics, Wi-Fi-only queue + resume, ask-once on unknown, resumable/retry, remove, storage estimate, pack registration');
 }
 })().catch(e=>{console.error(e);process.exit(1)});

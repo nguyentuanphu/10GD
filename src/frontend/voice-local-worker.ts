@@ -2,7 +2,7 @@
 // Web Worker for on-device speech recognition (see voice-local.ts).
 // Protocol v1 — every request carries {id, v:1}; every reply echoes the id:
 //   {type:'hello'}                                   → {type:'hello', v}
-//   {type:'load', pack:{id,model,revision}, runtime:{module:{url,sha256b64},mjs,wasm,threads}, cacheName}
+//   {type:'load', pack:{id,model,revision}, runtime:{module:{url,sha256b64},mjs,wasm,threads,gpu}, cacheName}
 //                                                    → {type:'progress', ...}* then {type:'loaded', ms}
 //   {type:'transcribe', audio:Float32Array(16 kHz mono), language:'vietnamese'|'english'|null, final}
 //                                                    → {type:'result', text, final, ms, seconds}
@@ -25,7 +25,7 @@ function voiceLocalWorkerHandler({createEngine,post,now=()=>Date.now()}){
   if(m.type==='load'){
    const t=now();
    loading=(async()=>{try{engine?.dispose?.()}catch{}engine=null;engine=await createEngine({pack:m.pack,runtime:m.runtime,cacheName:m.cacheName,progress:p=>post({type:'progress',id,status:p?.status||'',file:p?.file||'',progress:typeof p?.progress==='number'?p.progress:null})});return engine})();
-   return loading.then(()=>post({type:'loaded',id,ms:now()-t}),e=>{engine=null;fail(id,e?.code||'load',e?.message)});
+   return loading.then(e=>post({type:'loaded',id,ms:now()-t,device:e?.device||'wasm'}),e=>{engine=null;fail(id,e?.code||'load',e?.message)});
   }
   if(m.type==='transcribe'){
    chain=chain.then(async()=>{
@@ -62,9 +62,16 @@ async function voiceLocalTransformersEngine({pack,runtime,cacheName,progress}){
  // Some loaders ask for `resolve/main/`; serve the pinned revision that was downloaded.
  const pin=(u:string)=>u.replace('/'+pack.model+'/resolve/main/','/'+pack.model+'/resolve/'+pack.revision+'/');
  env.fetch=async input=>{const u=pin(typeof input==='string'?input:input?.url||String(input));return (await cache.match(u))||new Response('',{status:404,statusText:'Not in pack'})};
- const asr=await pipeline('automatic-speech-recognition',pack.model,{revision:pack.revision,dtype:{encoder_model:'q8',decoder_model_merged:'q8'},device:'wasm',progress_callback:progress});
+ // WebGPU (iOS/iPadOS 26+, desktop Chrome/Edge) when the page found a GPU adapter: transformers.js 4.3.1 takes
+ // device:'webgpu' with the same pinned q8 files (no extra downloads; ONNX Runtime keeps ops without a GPU kernel on
+ // the CPU). Any WebGPU failure falls back to the proven WASM path.
+ const opts=(device:string)=>({revision:pack.revision,dtype:{encoder_model:'q8',decoder_model_merged:'q8'},device,progress_callback:progress});
+ let asr=null,device='wasm';
+ if(runtime.gpu&&(self as any).navigator?.gpu){try{const adapter=await (self as any).navigator.gpu.requestAdapter();if(adapter){asr=await pipeline('automatic-speech-recognition',pack.model,opts('webgpu'));device='webgpu'}}catch{asr=null}}
+ if(!asr)asr=await pipeline('automatic-speech-recognition',pack.model,opts('wasm'));
  return{
   async transcribe(audio,{language,final}){const out=await asr(audio,{language:language||null,task:'transcribe',chunk_length_s:30,stride_length_s:5,return_timestamps:false,max_new_tokens:Math.min(final?224:96,16+Math.ceil(audio.length/16000*12)),no_repeat_ngram_size:4});return Array.isArray(out)?out.map(o=>o.text).join(' '):out?.text||''},
+  device,
   dispose(){try{asr.dispose?.()}catch{}}
  };
 }
