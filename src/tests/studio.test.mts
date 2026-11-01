@@ -113,7 +113,7 @@ assert.equal(await getStoreFn({name:'bep-accounts'}).get('families/'+henryFam.id
 
 // ---- banner public endpoint + settings env override
 assert.equal((await P('banner-save',{banner:{vi:'Bảo trì tối nay',en:'Maintenance tonight',severity:'warning',audience:'all'}})).status,200);
-const pub=await studio(new Request(origin+'/.netlify/functions/studio?op=banner'));assert.equal(pub.status,200);assert.match(pub.headers.get('cache-control')!,/public, max-age=60/);const pj=await pub.json();assert.equal(pj.banner.en,'Maintenance tonight');assert.equal(pj.banner.severity,'warning');
+const pub=await studio(new Request(origin+'/.netlify/functions/studio?op=banner'));assert.equal(pub.status,200);assert.match(pub.headers.get('cache-control')!,/public, max-age=60/);const pj=await pub.json();assert.equal(pj.banner.en,'Maintenance tonight');assert.equal(pj.banner.severity,'warning');assert.ok(Array.isArray(pj.priceScoutStates),'public banner tells the app which Price Scout states are on');
 const offPub=await off(new Request(origin+'/.netlify/functions/studio?op=banner'));assert.equal(offPub.status,200,'banner works even when studio disabled');
 assert.equal((await P('banner-save',{banner:{vi:'x',en:'y',end:new Date(Date.now()-1000).toISOString()}})).status,200);resetSettingsCache();assert.equal((await (await studio(new Request(origin+'/.netlify/functions/studio?op=banner'))).json()).banner,null,'expired banner hidden');
 assert.equal((await P('settings-save',{patch:{signups:'invite-only',maxMembersPerFamily:8,flags:{voice:false}}})).status,200);

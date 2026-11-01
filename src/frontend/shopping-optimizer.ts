@@ -23,7 +23,13 @@ const BASIS={per_kg:{dim:'mass',per:1000},per_100g:{dim:'mass',per:100},per_L:{d
 const UNITS={g:['mass',1],gram:['mass',1],grams:['mass',1],kg:['mass',1000],kilo:['mass',1000],ml:['vol',1],l:['vol',1000],litre:['vol',1000],liter:['vol',1000],litres:['vol',1000],each:['each',1],ea:['each',1],'quả':['each',1],qua:['each',1],pc:['each',1],pcs:['each',1],bunch:['each',1],wash:['wash',1],washes:['wash',1],roll:['roll',1],rolls:['roll',1],sheet:['sheet',1],sheets:['sheet',1]};
 const COUNT_DIMS=['each','wash','roll','sheet'];
 const FRESH_DAYS=21,STALE_DAYS=35;
+// Studio decides which states Price Scout serves (public banner `priceScoutStates`); NSW+QLD until it has answered.
+// The array is updated in place so every reader sees the change; the last answer is cached for offline use.
 const SUPPORTED_STATES=['NSW','QLD'];
+const ALL_STATES=['NSW','QLD','VIC','SA','WA','TAS','ACT','NT'];
+try{const cached=JSON.parse(localStorage.getItem('bep-scout-states')||'null');if(Array.isArray(cached))SUPPORTED_STATES.splice(0,SUPPORTED_STATES.length,...cached.filter(s=>ALL_STATES.includes(s)))}catch{}
+function setSupportedStates(list){if(!Array.isArray(list))return false;const next=ALL_STATES.filter(s=>list.includes(s));if(next.join()===SUPPORTED_STATES.join())return false;SUPPORTED_STATES.splice(0,SUPPORTED_STATES.length,...next);try{localStorage.setItem('bep-scout-states',JSON.stringify(next))}catch{}return true}
+function unsupportedMessage(){const join=(and:string)=>SUPPORTED_STATES.length>1?SUPPORTED_STATES.slice(0,-1).join(', ')+' '+and+' '+SUPPORTED_STATES[SUPPORTED_STATES.length-1]:SUPPORTED_STATES[0];return SUPPORTED_STATES.length?{vi:'Rất tiếc! Khu vực của bạn hiện chưa được hỗ trợ. Hệ thống hiện chỉ tối ưu giá cho '+join('và')+'. Chúng tôi sẽ sớm mở rộng sang các khu vực khác!',en:'Sorry! Your area isn’t supported yet. Price Scout currently optimises prices for '+join('and')+' only. We’ll expand to other areas soon!'}:{vi:'So giá đang tạm dừng ở mọi khu vực. Danh sách đi chợ vẫn dùng bình thường.',en:'Price Scout is paused in every area for now. Your shopping list still works as usual.'}}
 const UNSUPPORTED={vi:'Rất tiếc! Khu vực của bạn hiện chưa được hỗ trợ. Hệ thống hiện chỉ tối ưu giá cho NSW và QLD. Chúng tôi sẽ sớm mở rộng sang các khu vực khác!',en:'Sorry! Your area isn’t supported yet. Price Scout currently optimises prices for NSW and QLD only. We’ll expand to other areas soon!'};
 
 const round=(n,d=2)=>Math.round(n*10**d)/10**d;
@@ -50,7 +56,7 @@ function postcodeState(input){
  else if(n>=800&&n<=999)state='NT';
  if(!state)return{valid:false,postcode:s,state:null,supported:false};
  const supported=SUPPORTED_STATES.includes(state);
- return{valid:true,postcode:s,state,supported,message:supported?null:UNSUPPORTED};
+ return{valid:true,postcode:s,state,supported,message:supported?null:unsupportedMessage()};
 }
 // The price week starts on Wednesday (Woolworths/Coles specials run Wed→Tue).
 function cycleId(date=sydneyToday()){const dow=new Date(date+'T00:00:00Z').getUTCDay();return addDays(date,-((dow-3+7)%7))}
@@ -420,6 +426,6 @@ function receiptObservations(receipts,catalog,{ingredientUnit=null,state=null}={
  return out;
 }
 
-const api={RETAILERS,RETAILER_IDS,CATEGORIES,SAFETY,SOURCES,PROMOS,BASIS,FRESH_DAYS,STALE_DAYS,SUPPORTED_STATES,UNSUPPORTED,norm,sydneyToday,addDays,dayDiff,postcodeState,cycleId,cycleEnd,nextSpecialBuyDays,defaultDealEnd,unitPriceOf,convertUnitPrice,basisMultiplier,detectRetailer,retailerFromHost,matchCatalog,parsePriceText,extractProductPage,bookmarkletSource,captureToDraft,validObservation,freshness,itemUnitPrice,bestPrice,allowedChannel,optimizeBasket,routeOrder,tripsFromReceipts,detectPersona,receiptObservations,VISIBILITY,EVIDENCE,CONFIDENCE,computeConfidence,makeEvidence,withProvenance,validProvenance,priceSanity,sourceMix,canShareToCommunity,communityObservations,shopObservations,COMMUNITY_SHAREABLE};
+const api={setSupportedStates,unsupportedMessage,ALL_STATES,RETAILERS,RETAILER_IDS,CATEGORIES,SAFETY,SOURCES,PROMOS,BASIS,FRESH_DAYS,STALE_DAYS,SUPPORTED_STATES,UNSUPPORTED,norm,sydneyToday,addDays,dayDiff,postcodeState,cycleId,cycleEnd,nextSpecialBuyDays,defaultDealEnd,unitPriceOf,convertUnitPrice,basisMultiplier,detectRetailer,retailerFromHost,matchCatalog,parsePriceText,extractProductPage,bookmarkletSource,captureToDraft,validObservation,freshness,itemUnitPrice,bestPrice,allowedChannel,optimizeBasket,routeOrder,tripsFromReceipts,detectPersona,receiptObservations,VISIBILITY,EVIDENCE,CONFIDENCE,computeConfidence,makeEvidence,withProvenance,validProvenance,priceSanity,sourceMix,canShareToCommunity,communityObservations,shopObservations,COMMUNITY_SHAREABLE};
 root.PriceScout=api;
 })(globalThis);

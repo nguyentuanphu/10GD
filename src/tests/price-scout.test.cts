@@ -196,3 +196,18 @@ const prefs=(x:any={})=>({catalog,today,state:'NSW',...x});
  assert.equal(P.withProvenance({...own[0],source:'screenshot'},{ocrPrice:12,evidenceType:'shelf-photo'}).evidence.type,'shelf-photo');
  assert.equal(P.validObservation(P.withProvenance({...own[0],source:'screenshot'},{ocrPrice:12,evidenceType:'shelf-photo'})),true,'shelf-photo observations are still valid family observations');
  console.log('PASS community pilot: own-family first, then confirmed community, then shop; pending as hints; source mix; branch filter; shareable evidence');}
+
+// ---- Supported states follow Studio (owner report, 1 Nov 2026: unticking every state in Studio left Price Scout on) ----
+{assert.deepEqual(plain(P.SUPPORTED_STATES),['NSW','QLD'],'default before Studio answers');
+ assert.equal(P.postcodeState('2205').supported,true);
+ assert.equal(P.setSupportedStates([]),true,'an empty Studio list is applied, not treated as missing');
+ assert.equal(P.postcodeState('2205').supported,false,'NSW off when no state is ticked');
+ assert.match(P.postcodeState('2205').message.en,/paused in every area/);
+ P.setSupportedStates(['QLD']);
+ assert.equal(P.postcodeState('2205').supported,false);assert.equal(P.postcodeState('4000').supported,true);
+ assert.match(P.postcodeState('2205').message.vi,/QLD/);
+ assert.equal(P.setSupportedStates(['QLD']),false,'no change reported when the list is the same');
+ P.setSupportedStates(['VIC','NSW','XX']);assert.deepEqual(plain(P.SUPPORTED_STATES),['NSW','VIC'],'unknown states dropped, canonical order');
+ assert.equal(P.setSupportedStates(null),false,'a missing list leaves the current states');
+ P.setSupportedStates(['NSW','QLD']);
+ console.log('PASS Price Scout supported states follow the Studio setting (incl. none ticked)');}
