@@ -904,3 +904,48 @@ html[data-theme="dark"] .guide-dot.active{background:var(--accent-ink)}
 html[data-theme="dark"] :is(.guide-card-close,.guide-tour .btn,.guide-side-link,.more-guide):focus-visible{outline-color:var(--accent-ink,#9fd3b4)}
 @media (prefers-reduced-motion:reduce){.guide-step.from-right,.guide-step.from-left{animation:none}.guide-dot{transition:none}}
 /* === v1.7 library-guide end === */
+/* === v1.7 easy-scout start === */
+.scout-pair-card .callout{margin:8px 0;font-size:13px;line-height:1.45}
+.scout-pair-card .callout.ok{background:var(--mint);border-color:#cfe0c8;color:var(--green)}
+.scout-pair-card .scout-pair-now{min-height:52px;font-size:16px;padding:10px 22px}
+.scout-pair-card .scout-store-btn{min-height:48px;text-decoration:none}
+.scout-pair-card .chip.scout-this-pc{display:inline-block;padding:1px 8px;margin-left:4px;font-size:11px;vertical-align:middle}
+.scout-install-steps{list-style:none;margin:8px 0;padding:0;display:grid;gap:8px}
+.scout-install-steps li{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--white);min-width:0}
+.scout-step-art svg{display:block;width:72px;height:48px}
+.scout-step-text{min-width:0;overflow-wrap:anywhere;font-size:13px;line-height:1.45}
+.scout-step-n{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-right:4px;border-radius:50%;background:var(--green);color:#fff;font-size:12px}
+.scout-step-art .a-frame{fill:var(--paper);stroke:var(--muted);stroke-width:2}
+.scout-step-art .a-field{fill:var(--mint);stroke:var(--green2);stroke-width:2}
+.scout-step-art .a-accent{fill:var(--green2)}
+.scout-step-art .a-knob{fill:#fff}
+.scout-step-art .a-ink{fill:none;stroke:var(--green);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.scout-step-art .a-soft{fill:none;stroke:var(--line);stroke-width:4;stroke-linecap:round}
+.scout-copy-row{display:flex;gap:6px;margin-top:6px;min-width:0}
+.scout-copy-row .input{flex:1 1 auto;min-width:0;min-height:44px;font:13px ui-monospace,Menlo,Consolas,monospace}
+.scout-copy-row .btn{flex:0 0 auto}
+.scout-pair-alt{margin:8px 0}
+.scout-pair-file{position:relative;cursor:pointer;display:inline-flex;align-items:center}
+.scout-pair-file:focus-within{outline:3px solid var(--green2);outline-offset:2px}
+.scout-wait{display:flex;align-items:center;gap:8px}
+.scout-wait-dot{flex:0 0 auto;width:10px;height:10px;border-radius:50%;background:var(--green2);animation:scout-wait 1.4s ease-in-out infinite}
+@keyframes scout-wait{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.scout-wait-dot{animation:none;opacity:.8}}
+.scout-pair-manual,.scout-pair-tips{margin:10px 0 4px}.scout-pair-manual summary,.scout-pair-tips summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
+@media (max-width:420px){.scout-install-steps li{grid-template-columns:56px minmax(0,1fr)}.scout-step-art svg{width:56px;height:38px}}
+html[data-theme="dark"] .scout-pair-card .callout.ok{background:#223a30;border-color:#3a5a4a;color:#cfeedd}
+html[data-theme="dark"] .scout-install-steps li{background:#111a16;border-color:#3a4c43}
+html[data-theme="dark"] .scout-step-art .a-frame{fill:#1d2a24;stroke:#8fa79a}
+html[data-theme="dark"] .scout-step-art .a-field{fill:#223a30;stroke:#6fc49a}
+html[data-theme="dark"] .scout-step-art .a-accent{fill:#4cae80}
+html[data-theme="dark"] .scout-step-art .a-ink{stroke:#a8e0c2}
+html[data-theme="dark"] .scout-step-art .a-soft{stroke:#3a4c43}
+html[data-theme="dark"] .scout-step-n{background:#4cae80;color:#08130d}
+html[data-theme="dark"] .scout-copy-row .input{background:#111a16;color:#e8f2ec;border-color:#3a4c43}
+/* capture time next to referenced prices; > 7 days muted "cũ / old" */
+.scout-captured{white-space:normal;overflow-wrap:anywhere}
+.scout-old,.scout-captured.scout-old{color:var(--muted);opacity:.8;font-style:italic}
+.scout-stop-time{display:block;color:var(--muted);font-size:12px}
+html[data-theme="dark"] .scout-old{color:#a7b3ab}
+.scout-tips{margin:4px 0 8px;padding-left:1.2em;font-size:13px;line-height:1.5}.scout-tips li{margin:4px 0;overflow-wrap:anywhere}
+/* === v1.7 easy-scout end === */

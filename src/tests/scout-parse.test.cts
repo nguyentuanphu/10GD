@@ -54,7 +54,10 @@ assert.deepEqual(C.detectChallenge({status:500,title:'Error'}),{kind:'unusual'})
 assert.equal(C.detectChallenge({status:200,title:'Half Price Specials | Woolworths',text:'Prices'}),null);
 // ---------- pacing clamp ----------
 for(const r of [0,0.3,0.99,1]){const d=C.pacing(r);assert.ok(d>=20000&&d<=40000,'production pacing 20–40 s')}
-assert.equal(C.pacing(0,{minMs:10,maxMs:20},false),20000,'override ignored in production builds');
+assert.equal(C.pacing(0,{minMs:10,maxMs:20},false),3000,'production builds clamp to the 3 s floor');
+assert.equal(C.pacing(1,{minMs:500000,maxMs:900000},false),120000,'production builds clamp to 120 s');
+assert.equal(C.pacing(0,{minMs:8000,maxMs:15000},false),8000,'Fast preset honoured');assert.equal(C.pacing(1,{minMs:8000,maxMs:15000},false),15000);
+{const v=new Set([0.1,0.5,0.9].map(r=>C.pacing(r,{minMs:3000,maxMs:6000},false)));assert.equal(v.size,3,'still jittered');for(const d of v)assert.ok(d>=3000&&d<=6000)}
 assert.equal(C.pacing(0,{minMs:10,maxMs:20},true),10,'test builds may shorten');
 // ---------- schedule ----------
 assert.equal(C.validSchedule(C.DEFAULT_SCHEDULE),true);assert.equal(C.validSchedule([{days:[9],start:'06:30',end:'07:00'}]),false);

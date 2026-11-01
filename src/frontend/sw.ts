@@ -114,6 +114,8 @@ self.addEventListener('fetch',event=>{
  if(event.request.method!=='GET'||url.origin!==self.location.origin)return;
  // Downloads made by the Offline downloads screen go straight to the network; the page stores them itself.
  if(event.request.headers?.get?.('x-bep-download')==='1')return;
+ // The FamTray Scout zip (and any other file under /downloads/) is never cached by the worker.
+ if(url.pathname.startsWith('/downloads/'))return;
  if(url.pathname==='/startup-scripts.json'){
   event.respondWith((async()=>{
    const cache=await caches.open(CACHE),fresh=url.searchParams.has('fresh'),cached=fresh?null:await cache.match(PACK);

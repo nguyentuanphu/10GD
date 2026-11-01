@@ -30,5 +30,12 @@ async function robotsAllowed(url:string){const u=new URL(url),st=await get(['rob
  if(!entry){let txt='',status=0;try{const r=await fetch(u.origin+'/robots.txt',{credentials:'omit',cache:'no-store',redirect:'follow'});status=r.status;txt=r.ok?(await r.text()).slice(0,500000):''}catch{status=0}
   entry={at:Date.now(),status,txt:status>=500||status===0?'User-agent: *\nDisallow: /':txt};cache[u.host]=entry;await set({robotsCache:cache})}
  return root.ScoutCore.robotsAllows(entry.txt,u.pathname+u.search)}
-root.ScoutClient={BUILD,DEFAULTS,get,set,api,lang,refreshConfig,config,robotsAllowed,serverOk};
+// App pages allowed to talk to the extension (onMessageExternal). Chrome already limits
+// callers to `externally_connectable`; this second, explicit check uses the origins baked
+// in at build time (production: the app's https origin only; test build: localhost-style
+// test hosts on any port). Everything else is refused.
+function appOriginAllowed(origin:any){let u:URL;try{u=new URL(String(origin||''))}catch{return false}if(u.origin!==String(origin))return false;
+ if((BUILD.appOrigins||[]).includes(u.origin))return true;
+ return !!BUILD.test&&u.protocol==='http:'&&(BUILD.testAppHosts||[]).includes(u.hostname)}
+root.ScoutClient={BUILD,DEFAULTS,get,set,api,lang,refreshConfig,config,robotsAllowed,serverOk,appOriginAllowed};
 })(globalThis);
