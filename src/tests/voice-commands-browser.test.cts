@@ -15,6 +15,8 @@ async function main(){
  mkdirSync(out,{recursive:true});
  const browser=await chromium.launch();
  async function open({viewport=sizes.mobile,lang='vi',theme='light',prefs={} as Record<string,string>,voices=['vi-VN','en-AU']}={}){
+  // v1.7.1: hold-to-talk is the default; sections that test commands choose tap mode explicitly (section 5 tests hold).
+  if(!('bep-voice-ptt' in prefs))prefs={'bep-voice-ptt-v171':'1','bep-voice-ptt':'0',...prefs};
   const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any});
   await context.addInitScript(({lang,theme,prefs,voices})=>{const w=window as any;
    if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');localStorage.setItem('bep-voice-slow','1');for(const[k,v]of Object.entries(prefs))localStorage.setItem(k,v as string)}
@@ -118,7 +120,7 @@ async function main(){
   // 5. Push-to-talk: no autostart; hold = listen, release = stop (pointer and Space); meter on while listening, released after; noise hint.
   {const {page,context,errors}=await open({lang:'vi',prefs:{'bep-voice-ptt':'1','bep-voice-meter':'1'}});
    assert.equal(await page.evaluate(()=>(window as any).__recs.length),0,'push-to-talk does not start the mic on open');
-   const btn=page.locator('#voice-continue');assert.equal(await btn.getAttribute('data-vc-ptt'),'');assert.match(await btn.innerText(),/Giữ để nói/);
+   const btn=page.locator('#voice-continue');assert.equal(await btn.getAttribute('data-hold-mic'),'main');assert.match(await btn.innerText(),/Giữ để nói/);
    await page.evaluate(()=>{(globalThis as any).VoiceAPI.meterTiming={loudMs:300,quietMs:600,loud:.16,quiet:.02,heardGraceMs:100};(window as any).__amp=.5});
    const box=await btn.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();
    await page.waitForFunction(()=>!!(window as any).__live());assert.equal(await btn.isVisible(),true,'the held button stays visible');assert.match(await btn.innerText(),/thả ra để dừng/);assert.equal(await btn.getAttribute('aria-pressed'),'true');

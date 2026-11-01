@@ -281,7 +281,7 @@ function voiceLocalAdapter(id){const r=voiceLocalRecognizer(id);return{id:r.id,l
  start:(lang,onResult,onEnd)=>r.start(lang,(text,final)=>onResult(text,{isFinal:!!final}),info=>{if(info&&info.reason==='error'&&voiceLocalFailed(id))voiceLocalShowFailure();return onEnd&&onEnd(info)}),stop:()=>r.stop(),abort:()=>r.abort()}}
 // The fallback message with one-tap "Thử lại" (choose the pack again) and "Gỡ gói" (free the space).
 function voiceLocalFailureHtml(f){return`<div class="vl-fail" id="vl-fail" role="alert"><p>${vlEsc(voiceLocalFailText(f))}</p><div class="toolbar"><button type="button" class="btn small" data-vl-retry="${vlEsc(f.pack)}">${vlT('Thử lại','Try again')}</button><button type="button" class="btn small" data-vl-remove="${vlEsc(f.pack)}">${vlT('Gỡ gói','Remove pack')}</button></div></div>`}
-function voiceLocalShowFailure(){if(typeof document==='undefined')return;const f=voiceLocalFailed();if(!f)return;document.getElementById('vl-fail')?.remove();const anchor=document.getElementById('voice-status')||document.getElementById('vp-live');if(anchor)anchor.insertAdjacentHTML('afterend',voiceLocalFailureHtml(f));voiceLocalSyncRecognizers().catch(()=>{})}
+function voiceLocalShowFailure(){if(typeof document==='undefined')return;const f=voiceLocalFailed();if(!f)return;document.getElementById('vl-fail')?.remove();const anchor=document.getElementById('voice-live')||document.getElementById('vp-live');if(anchor)anchor.insertAdjacentHTML('afterend',voiceLocalFailureHtml(f));voiceLocalSyncRecognizers().catch(()=>{})}
 async function voiceLocalSyncRecognizers(){
  if(typeof registerVoiceRecognizer!=='function')return 0;let n=0;
  let cap=null;try{cap=voiceLocalCap||await voiceLocalProbe();voiceLocalCap=cap}catch{}

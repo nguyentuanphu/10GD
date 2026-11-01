@@ -27,7 +27,7 @@ async function main(){
  async function open({viewport=sizes.mobile,lang='vi',theme='light',slowWorker=false}={} as any){
   const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme,hasTouch:viewport.width<1000});
   await context.addInitScript(({lang,theme})=>{const w=window as any;
-   if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');localStorage.setItem('bep-voice-slow','1')}
+   if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');localStorage.setItem('bep-voice-slow','1');localStorage.setItem('bep-voice-ptt-v171','1');localStorage.setItem('bep-voice-ptt','0')}
    w.__recs=[];class FakeRec{lang='';started=false;ended=false;onresult:any;onend:any;onerror:any;constructor(){w.__recs.push(this)}start(){this.started=true}stop(){this.end()}abort(){this.end()}end(){if(this.ended)return;this.ended=true;setTimeout(()=>this.onend&&this.onend(),0)}}
    w.SpeechRecognition=FakeRec;w.webkitSpeechRecognition=FakeRec;
    Object.defineProperty(navigator,'deviceMemory',{get:()=>8});
@@ -64,26 +64,27 @@ async function main(){
   for(const [size,lang,theme] of [['mobile','vi','light'],['tablet','vi','light'],['desktop','vi','light'],['mobile','en','dark'],['tablet','en','dark'],['desktop','en','dark'],['mobile','vi','dark'],['mobile','en','light']]){
    const {page,context,errors}=await open({viewport:sizes[size],lang,theme});await openSheet(page);await expand(page);
    const t=await page.locator('#voice-settings').innerText();
-   if(lang==='vi'){for(const want of ['Cài đặt giọng nói','Của trình duyệt','Nhẹ','Chính xác hơn','79,7 MB','252 MB','Chưa tải','Giúp cải thiện nhận giọng nói (chỉ gửi chữ, không gửi âm thanh)'])assert.ok(t.includes(want),size+' vi missing '+want)}
-   else{for(const want of ['Voice settings','Browser','Light','More accurate','79.7 MB','252 MB','Not downloaded','Help improve voice recognition (sends text only, never audio)'])assert.ok(t.includes(want),size+' en missing '+want)}
+   if(lang==='vi'){for(const want of ['Cài đặt giọng nói','Của trình duyệt','Chính xác hơn','252 MB','Chưa tải','Giúp cải thiện nhận giọng nói (chỉ gửi chữ, không gửi âm thanh)'])assert.ok(t.includes(want),size+' vi missing '+want)}
+   else{for(const want of ['Voice settings','Browser','More accurate','252 MB','Not downloaded','Help improve voice recognition (sends text only, never audio)'])assert.ok(t.includes(want),size+' en missing '+want)}
+   assert.ok(!/Nhẹ|\bLight\b|79[.,]7 MB|whisper-base|Whisper base/.test(t),size+': v1.7.1 offers only More accurate (no Light pack)');assert.equal(await page.locator('[data-vl-pack]').count(),1);
    assert.equal(await active(page),'browser','browser recogniser by default');assert.equal(await page.locator('input[name=vl-choice]').count(),0,'no duplicate recogniser chooser');
    assert.equal(await page.locator('#voice-stats-consent').isChecked(),false,'consent off by default');
-   assert.equal(await page.locator('[data-vl-download="base"]').isDisabled(),false);
+   assert.equal(await page.locator('[data-vl-download="small"]').isDisabled(),false);
    await check(page,`${size} ${lang} ${theme}`);await shot(page,`settings-${lang}-${theme}-${size}-${sizes[size].width}x${sizes[size].height}`);
    assert.deepEqual(errors,[]);await context.close();
   }
   // 2. Download (synthetic pinned files) → choose → recognise with the REAL worker + fake engine + stub mic.
   {const {page,context,errors}=await open({});await openSheet(page);await expand(page);
    await page.evaluate(({m1,m2,tf,mjs,wasm})=>{const w:any=globalThis;const P=(0,eval)('VOICE_LOCAL_PACKS'),TF=(0,eval)('VOICE_LOCAL_TF'),ORT=(0,eval)('VOICE_LOCAL_ORT');
-    P.base.files=[{path:'onnx/encoder_model_quantized.onnx',size:17,sha256:m1},{path:'onnx/decoder_model_merged_quantized.onnx',size:17,sha256:m2},{path:'config.json',size:2}];TF.size=19;TF.sha256b64=tf;ORT.asyncify[0].size=7;ORT.asyncify[0].sha256b64=mjs;ORT.asyncify[1].size=8;ORT.asyncify[1].sha256b64=wasm;
+    P.small.files=[{path:'onnx/encoder_model_quantized.onnx',size:17,sha256:m1},{path:'onnx/decoder_model_merged_quantized.onnx',size:17,sha256:m2},{path:'config.json',size:2}];TF.size=19;TF.sha256b64=tf;ORT.asyncify[0].size=7;ORT.asyncify[0].sha256b64=mjs;ORT.asyncify[1].size=8;ORT.asyncify[1].sha256b64=wasm;
     w.__frames=0;(0,eval)(`voiceLocalRecorder=async function(onFrame){let i=0;const t=setInterval(()=>{const a=i<30?0.2:0.001,f=new Float32Array(1600);for(let k=0;k<1600;k++)f[k]=a*Math.sin(k/3);onFrame(f);i++;globalThis.__frames++;if(i>60)clearInterval(t)},5);return{stop(){clearInterval(t)}}}`)},
     {m1:hex(fakeFiles['encoder_model_quantized.onnx']),m2:hex(fakeFiles['decoder_model_merged_quantized.onnx']),tf:b64(fakeFiles['transformers.min.js']),mjs:b64(fakeFiles['asyncify.mjs']),wasm:b64(fakeFiles['asyncify.wasm'])});
    await page.evaluate('voiceLocalRenderSettings()');await page.waitForTimeout(80);
-   await page.locator('[data-vl-download="base"]').click();
-   await page.waitForFunction(()=>document.querySelector('[data-vl-pack="base"] .vl-state')?.getAttribute('data-state')==='ready',null,{timeout:8000});
-   await page.waitForFunction(()=>(document.querySelector('#voice-recognizer') as any)?.value==='local-base',null,{timeout:4000});
-   assert.equal(await active(page),'local-base','downloaded pack becomes the recogniser, shown in the shared selector');
-   assert.equal(await page.evaluate(()=>localStorage.getItem('bep-voice-recognizer')),'local-base');
+   await page.locator('[data-vl-download="small"]').click();
+   await page.waitForFunction(()=>document.querySelector('[data-vl-pack="small"] .vl-state')?.getAttribute('data-state')==='ready',null,{timeout:8000});
+   await page.waitForFunction(()=>(document.querySelector('#voice-recognizer') as any)?.value==='local-small',null,{timeout:4000});
+   assert.equal(await active(page),'local-small','downloaded pack becomes the recogniser, shown in the shared selector');
+   assert.equal(await page.evaluate(()=>localStorage.getItem('bep-voice-recognizer')),'local-small');
    assert.equal(external.length,6,'pinned files only: '+external.join(' '));
    await shot(page,'settings-vi-light-mobile-downloaded-375x812');
    const before=external.length,recsBefore=await page.evaluate(()=>(window as any).__recs.length);
@@ -91,7 +92,7 @@ async function main(){
    await page.waitForFunction(()=>/hai ký thịt ba chỉ/.test((document.querySelector('#voice-text') as any)?.value||''),null,{timeout:8000});
    assert.equal(external.length,before,'recognition makes no network request to model hosts');
    assert.equal(await page.evaluate(()=>(window as any).__recs.length),recsBefore,'browser recogniser not started');
-   assert.equal(await page.evaluate('voiceStatsRecognizer()'),'local-base');
+   assert.equal(await page.evaluate('voiceStatsRecognizer()'),'local-small');
    await page.locator('#voice-stop').click().catch(()=>{});
    // English toggle → English hint to Whisper.
    await page.evaluate('closeModal();voiceModal()');await expand(page);await page.locator('.voice-lang-btn[data-voice-lang="en-AU"]').click();
@@ -113,13 +114,13 @@ async function main(){
    assert.equal(posts.length,1);assert.equal(posts[0].op,'submit');const sent=posts[0].body;
    assert.ok(member.length>=2,'seed has a member name');assert.ok(!JSON.stringify(sent).includes(member),'member name stripped: '+sent.transcript);
    assert.ok(!/0412/.test(JSON.stringify(sent)),'phone stripped');assert.match(sent.transcript,/\[tên\]/);assert.match(sent.transcript,/\[số\]/);
-   assert.equal(sent.recognizer,'local-base','recogniser used in this sheet session');assert.equal(sent.lang,'en','the EN toggle chosen earlier is remembered');assert.ok(sent.unrecognised.every((u:string)=>!u.includes(member)));
+   assert.equal(sent.recognizer,'local-small','recogniser used in this sheet session');assert.equal(sent.lang,'en','the EN toggle chosen earlier is remembered');assert.ok(sent.unrecognised.every((u:string)=>!u.includes(member)));
    assert.ok(sent.transcript.length<=300);assert.ok(!Object.keys(sent).some(k=>/audio|wav|pcm/i.test(k)));assert.match(posts[0].headers['x-voice-stats-device'],/^[A-Za-z0-9_-]{32}$/);
    // 5. Opt-out deletes.
    await page.evaluate('closeModal();voiceModal()');await expand(page);await page.locator('#voice-stats-consent').uncheck();for(let i=0;i<40&&posts.length<2;i++)await page.waitForTimeout(50);
    assert.equal(posts[1]?.op,'forget');await page.waitForFunction(()=>localStorage.getItem('bep-voice-stats-device')===null,null,{timeout:3000});
    // 6. Remove pack → back to browser recognition.
-   await page.locator('[data-vl-remove="base"]').click();await page.waitForFunction(()=>document.querySelector('[data-vl-pack="base"] .vl-state')?.getAttribute('data-state')==='none');
+   await page.locator('[data-vl-remove="small"]').click();await page.waitForFunction(()=>document.querySelector('[data-vl-pack="small"] .vl-state')?.getAttribute('data-state')==='none');
    await page.waitForFunction(()=>(globalThis as any).VoiceAPI.activeRecognizer()==='browser');assert.equal(await page.evaluate(()=>localStorage.getItem('bep-voice-recognizer')),null);
    const n=await page.evaluate(()=>(window as any).__recs.length);await page.evaluate('closeModal();voiceModal()');await page.waitForTimeout(100);assert.equal(await page.evaluate(()=>(window as any).__recs.length),n+1,'browser recogniser used again');
    assert.deepEqual(errors,[]);await context.close();
@@ -128,14 +129,32 @@ async function main(){
   {const {page,context,errors}=await open({lang:'en'});
    await page.evaluate(()=>{(0,eval)("voiceLocalCap=null;voiceLocalProbe=async()=>voiceLocalCapability({wasm:true,simd:false,worker:true,mic:true,audioWorklet:true,caches:true,memoryGB:4,ua:navigator.userAgent})")});
    await openSheet(page);await expand(page);await page.waitForFunction(()=>/SIMD/.test(document.querySelector('#voice-local-settings')!.textContent||''));
-   assert.equal(await page.locator('[data-vl-download="base"]').isDisabled(),true);assert.match(await page.locator('#voice-local-settings').innerText(),/Using browser speech recognition/);
+   assert.equal(await page.locator('[data-vl-download="small"]').isDisabled(),true);assert.match(await page.locator('#voice-local-settings').innerText(),/Using browser speech recognition/);
    // A chosen pack that is not available falls back to the browser recogniser.
-   await page.evaluate(()=>localStorage.setItem('bep-voice-local','base'));const n=await page.evaluate(()=>(window as any).__recs.length);await page.evaluate('closeModal();voiceModal()');await page.waitForFunction((n:number)=>(window as any).__recs.length>n,n);
+   await page.evaluate(()=>localStorage.setItem('bep-voice-local','small'));const n=await page.evaluate(()=>(window as any).__recs.length);await page.evaluate('closeModal();voiceModal()');await page.waitForFunction((n:number)=>(window as any).__recs.length>n,n);
    await page.waitForFunction(()=>localStorage.getItem('bep-voice-recognizer')===null,null,{timeout:3000});
    assert.equal(await page.evaluate(()=>localStorage.getItem('bep-voice-local')),null,'unavailable choice is cleared (legacy key migrated, shared key cleared)');
    await page.evaluate('closeModal();voiceModal()');await expand(page);await shot(page,'settings-en-light-mobile-unsupported-375x812');
    assert.deepEqual(errors,[]);await context.close();
   }
+  // 7b. v1.7.1 iPhone/iPad: "More accurate" is offered (no iOS block); a clear warning comes first (size, Wi-Fi, may be
+  //     slow on older devices); a failed load is remembered and falls back with Try again / Remove pack.
+  for(const lang of ['vi','en']){const {page,context,errors}=await open({lang});
+   await page.evaluate(()=>{(0,eval)("voiceLocalCap=null;voiceLocalProbe=async()=>voiceLocalCapability({wasm:true,simd:true,worker:true,mic:true,audioWorklet:true,caches:true,ua:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1',touchPoints:5,gpu:false})")});
+   await openSheet(page);await expand(page);await page.waitForFunction(()=>/chậm|slow/i.test(document.querySelector('#voice-local-settings')!.textContent||''));
+   assert.equal(await page.locator('[data-vl-download="small"]').isDisabled(),false,'iPhone without WebGPU may download');
+   await page.locator('[data-vl-download="small"]').click();await page.locator('#confirm-root').waitFor();
+   assert.match(await page.locator('#confirm-body').innerText(),lang==='vi'?/MB[\s\S]*Wi-Fi[\s\S]*chậm/:/MB[\s\S]*Wi-Fi[\s\S]*slow/);
+   await page.screenshot({path:`docs/reviews/v1.7.1/voice-settings/ios-download-warning-${lang}-light-375x812.jpg`,type:'jpeg',quality:70});shots++;
+   const ext=external.length;await page.locator('#confirm-root [data-confirm="no"]').click();await page.waitForTimeout(150);assert.equal(external.length,ext,'declined: nothing downloaded');
+   // A load that failed earlier (or a reload mid-load) → fallback notice with one-tap actions.
+   await page.evaluate(()=>{localStorage.setItem('bep-voice-local-busy',JSON.stringify({pack:'small',stage:'load',at:1}));(0,eval)('voiceLocalCheckCrash()')});
+   await page.evaluate('closeModal();voiceModal()');const fail=page.locator('#vl-fail');await fail.waitFor();
+   assert.match(await fail.innerText(),lang==='vi'?/tải lại[\s\S]*trình duyệt[\s\S]*Thử lại[\s\S]*Gỡ gói/:/reloaded[\s\S]*browser[\s\S]*Try again[\s\S]*Remove pack/);
+   for(const b of await fail.locator('.btn').all())assert.ok(((await b.boundingBox())?.height||0)>=43.5,'fallback buttons ≥44px');
+   await page.screenshot({path:`docs/reviews/v1.7.1/voice-settings/ondevice-fallback-${lang}-light-375x812.jpg`,type:'jpeg',quality:70});shots++;
+   await fail.locator('[data-vl-retry]').click();await page.waitForTimeout(100);assert.equal(await page.locator('#vl-fail').count(),0);assert.equal(await page.evaluate(()=>localStorage.getItem('bep-voice-local-fail')),null,'Try again clears the failure');
+   assert.deepEqual(errors,[]);await context.close()}
   // ---------------- Part B: Studio panel ----------------
   {const {memoryStores}=await import('./helpers/accounts.mjs');
    const {createAccountsHandler}=await import('../netlify/lib/accounts.mjs');

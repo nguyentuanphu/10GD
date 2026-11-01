@@ -951,12 +951,11 @@ html[data-theme="dark"] .scout-old{color:#a7b3ab}
 /* === v1.7 easy-scout end === */
 /* === v1.7.1 voice-settings start === */
 /* One-tap spoken-language toggle (VI ⇄ EN) next to every mic button. */
-.voice-lang-toggle{display:inline-flex;align-items:center;gap:2px;min-height:44px;min-width:88px;padding:4px;border:1.5px solid var(--line);border-radius:999px;background:var(--paper,#fff);color:var(--text);font:inherit;font-weight:700;cursor:pointer;position:relative;flex:0 0 auto}
+.voice-lang-toggle{align-self:flex-start;width:auto;max-width:100%;display:inline-flex;align-items:center;gap:2px;min-height:44px;min-width:88px;padding:4px;border:1.5px solid var(--line);border-radius:999px;background:var(--paper,#fff);color:var(--text);font:inherit;font-weight:700;cursor:pointer;position:relative;flex:0 0 auto}
 .voice-lang-toggle .vlt-seg{display:inline-flex;align-items:center;justify-content:center;min-width:38px;min-height:34px;padding:0 8px;border-radius:999px;color:var(--muted);letter-spacing:.02em}
 .voice-lang-toggle .vlt-seg.on{background:var(--green,#2f7d57);color:#fff}
-.voice-lang-toggle .vlt-auto{position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
+.voice-lang-toggle .vlt-auto{margin:0 10px 0 6px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
 .voice-lang-toggle:focus-visible{outline:3px solid var(--orange,#e07a2f);outline-offset:2px}
-.voice-controls:has(.vlt-auto),.vp-controls:has(.vlt-auto){padding-bottom:14px}
 .voice-controls,.vp-controls{align-items:center}
 html[data-theme="dark"] .voice-lang-toggle{background:#111a16;border-color:#3a4c43;color:#e8f2ec}
 html[data-theme="dark"] .voice-lang-toggle .vlt-seg{color:#a7b3ab}
