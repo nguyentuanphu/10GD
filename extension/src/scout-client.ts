@@ -6,7 +6,7 @@ declare const chrome:any;
 (function scoutClient(root:any){
 'use strict';
 const BUILD=root.SCOUT_BUILD||{test:false,version:'0.0.0',configVersion:root.SCOUT_DEFAULT_CONFIG?.version||null,server:''};
-const DEFAULTS={server:BUILD.server||'',token:'',deviceId:'',device:null,lang:'',theme:'auto',
+const DEFAULTS={server:BUILD.server||'',token:'',deviceId:'',device:null,notAssigned:false,lang:'',theme:'auto',
  autoEnabled:false,semiEnabled:true,paused:false,semiSites:{woolworths:true,coles:true,aldi:true,chemist:true,amazon:true},
  lastRun:null,lastSemi:null,blockedEvents:[],warnings:{signedIn:{},storesSeen:{},storeMismatch:{}},onboarding:{profile:false,rewards:false,store:false},
  config:null,robotsCache:{},run:null,pendingSemi:[],testPacing:null};

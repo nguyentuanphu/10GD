@@ -257,6 +257,53 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    await pop3.close();
    console.log('PASS v1.7 remote control in the extension: Run now command → run outside the window, Very fast pace still sequential (≥ 3 s), Stop obeyed within one heartbeat, popup status, live status')}
 
+  // ================= v1.7.1: popup layout, one-step pairing with the real extension, Studio assignment =================
+  {const rdir='docs/reviews/v1.7.1/rename';mkdirSync(rdir,{recursive:true});
+   const unpair=async()=>{const st=await storage(['deviceId']);if(st.deviceId){try{await scoutLib.revokeDevice(getStoreFn,st.deviceId,'test',Date.now())}catch{}}await setStorage({token:'',deviceId:'',device:null,autoEnabled:false,paused:false,notAssigned:false,run:null})};
+   await unpair();
+   // 1. Popup: fixed 360 px width, one-line header, VI│EN toggle, unpaired state fits 600 px (Windows scaling 100 % and 150 %).
+   const pp=await ctx.newPage();const cdp=await ctx.newCDPSession(pp);
+   for(const scale of [1,1.5])for(const [lang,theme] of [['vi','light'],['en','dark'],['en','light'],['vi','dark']] as const){
+    await cdp.send('Emulation.setDeviceMetricsOverride',{width:360,height:600,deviceScaleFactor:scale,mobile:false});await setStorage({lang,theme});
+    await pp.goto(`chrome-extension://${id}/popup.html`);await pp.locator('#pairnow').waitFor();
+    const m=await pp.evaluate(()=>{const de=document.documentElement,b=document.body.getBoundingClientRect(),over=[...document.querySelectorAll('body *')].filter((e:any)=>{const r=e.getBoundingClientRect();return r.width&&(r.right>de.clientWidth+1||r.left<-1)}).map((e:any)=>e.tagName+'.'+e.className);
+     const bottom=(s:string)=>document.querySelector(s)!.getBoundingClientRect().bottom,h1=document.querySelector('.pop-name span:last-child')!.getBoundingClientRect();
+     return{body:b.width,over,scrollH:de.scrollHeight,pair:bottom('#pairnow'),code:bottom('#pc-code'),titleLines:Math.round(h1.height/parseFloat(getComputedStyle(document.querySelector('.pop-name span:last-child')!).lineHeight||'20')),pressed:document.querySelector('.seg-btn[aria-pressed="true"]')!.textContent,pause:!!document.querySelector('#pause'),xScroll:de.scrollWidth>de.clientWidth}});
+    const label=`${lang} ${theme} @${scale}x`;
+    assert.ok(m.body>=340,'popup body ≥ 340 px: '+m.body+' '+label);assert.deepEqual(m.over,[],'nothing overflows horizontally '+label);assert.equal(m.xScroll,false,label);
+    assert.ok(m.pair<=600&&m.code<=600&&m.scrollH<=600,'Pair now + Enter code visible without scrolling at 600 px: '+JSON.stringify(m)+' '+label);
+    assert.equal(m.titleLines,1,'title on one line '+label);assert.equal(m.pressed,lang.toUpperCase(),'toggle shows the current language');assert.equal(m.pause,false,'no Pause while not paired');
+    if(lang+theme==='vilight'||lang+theme==='endark')await pp.screenshot({path:`${rdir}/popup-unpaired-${lang}-${theme}-360x600@${scale}x.png`,clip:{x:0,y:0,width:360,height:600}})}
+   // Language toggle: one tap switches and stays pressed.
+   await setStorage({lang:'vi',theme:'light'});await pp.goto(`chrome-extension://${id}/popup.html`);await pp.locator('.seg-btn[data-lang="en"]').click();await pp.getByText('Not paired yet').waitFor();assert.equal(await pp.locator('.seg-btn[data-lang="en"]').getAttribute('aria-pressed'),'true');assert.equal((await storage(['lang'])).lang,'en');
+   const small=await pp.evaluate(()=>[...document.querySelectorAll('button,input')].filter((e:any)=>e.getBoundingClientRect().height<44).map((e:any)=>e.id||e.textContent.trim()));assert.deepEqual(small,[],'popup targets ≥ 44 px');
+   await cdp.send('Emulation.clearDeviceMetricsOverride');await setStorage({lang:'vi'});
+   // 2. Popup “Ghép ngay” → the app's #pair-extension → the person confirms with one tap → paired. Nothing before the tap.
+   await setStorage({server:APP});await pp.goto(`chrome-extension://${id}/popup.html`);
+   const [pa]=await Promise.all([ctx.waitForEvent('page'),pp.locator('#pairnow').click()]);await pa.waitForLoadState('domcontentloaded');assert.match(pa.url(),/#pair-extension$/,'popup opens the app pairing link');
+   const pb=pa.locator('#main > .scout-found-banner:not(.scout-granted-notice)');await pb.waitFor({timeout:30000});assert.match(await pb.innerText(),/Bấm “Ghép ngay” để xác nhận/);
+   await pa.waitForTimeout(1500);assert.equal((await storage(['token'])).token,'','never pairs before the tap');
+   await pa.setViewportSize({width:1280,height:800});await pa.screenshot({path:`${rdir}/e2e-pair-extension-confirm-1280x800-vi.png`});
+   await pb.locator('[data-scout-found-pair]').click();await pb.locator('[data-scout-found-close]').waitFor({timeout:20000});
+   const ps=await storage(['token','server']);assert.match(ps.token,/^[\w-]{43}$/);assert.equal(ps.server,APP);await pa.close();
+   {const pq=await ctx.newPage();await pq.setViewportSize({width:360,height:600});await pq.goto(`chrome-extension://${id}/popup.html`);await pq.locator('#pause').waitFor();assert.ok((await pq.locator('#pause').boundingBox())!.width<140,'Pause is a small header button');await pq.screenshot({path:`${rdir}/popup-paired-vi-light-360x600.png`});await pq.close()}
+   // 3. Found-on-this-computer banner: install → open the app signed in → banner → one tap → paired; hidden once paired.
+   await unpair();const ap=await ctx.newPage();await ap.setViewportSize({width:1280,height:800});await ap.goto(APP+'/',{waitUntil:'domcontentloaded'});
+   const fb=ap.locator('#main > .scout-found-banner:not(.scout-granted-notice)');await fb.waitFor({timeout:30000});assert.match(await fb.innerText(),/Đã thấy FamTray So Giá trên máy này/);
+   await ap.waitForTimeout(1500);assert.equal((await storage(['token'])).token,'','banner alone never pairs');
+   await fb.locator('[data-scout-found-pair]').click();await fb.locator('[data-scout-found-close]').waitFor({timeout:20000});assert.match((await storage(['token'])).token,/^[\w-]{43}$/,'one tap paired');
+   await ap.reload({waitUntil:'domcontentloaded'});await ap.waitForTimeout(4000);assert.equal(await ap.locator('.scout-found-banner:not(.scout-granted-notice)').count(),0,'no pairing banner when already paired');assert.equal(await ap.locator('.scout-granted-notice').count(),1,'the one-time “you can now use Price Check” notice (assigned in Studio) is a separate notice');
+   // 4. Studio removes the account: the paired computer is refused at once and the popup says why; the app shows nothing.
+   await scoutLib.setExtensionAllowed(getStoreFn,'scoutfamily',false,'henrynguyen',Date.now());await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat()).catch(()=>{});
+   await until(async()=>(await storage(['notAssigned'])).notAssigned===true,10000,'popup learns not_assigned');
+   const pn=await ctx.newPage();await pn.setViewportSize({width:360,height:600});await pn.goto(`chrome-extension://${id}/popup.html`);const na=pn.locator('[data-not-assigned]');await na.waitFor();assert.match(await na.innerText(),/chưa được cấp quyền dùng tiện ích/);
+   await pn.screenshot({path:`${rdir}/popup-not-assigned-vi-light-360x600.png`});await pn.close();
+   await unpair();await ap.reload({waitUntil:'domcontentloaded'});await ap.waitForTimeout(4000);assert.equal(await ap.locator('.scout-found-banner, .scout-pair-card').count(),0,'unassigned: no banner');
+   await ap.evaluate(()=>(globalThis as any).settingsModal('family'));await ap.locator('.kitchen-hub').waitFor();await ap.waitForTimeout(2500);assert.equal(await ap.locator('.scout-pair-card').count(),0,'unassigned: no pairing card');
+   await scoutLib.setExtensionAllowed(getStoreFn,'scoutfamily',true,'henrynguyen',Date.now());await ap.close();await pp.close().catch(()=>{});
+   assert.deepEqual(pageErrors,[]);
+   console.log('PASS v1.7.1 real extension: popup 360 px wide at 100 %/150 % scaling (no overflow, one-line title, VI│EN toggle, Pair now + Enter code without scrolling), popup Pair now → #pair-extension → one confirming tap → paired, found-extension banner → one tap → paired (never before the tap, hidden once paired), Studio removal refuses the device and the popup explains, unassigned account sees nothing')}
+
   // ---------- Chrome Web Store / Edge Add-ons screenshots (1280×800) + promo tile ----------
   if(process.env.SCOUT_STORE_SCREENSHOTS==='1'){const dir='docs/scout-store/screenshots';mkdirSync(dir,{recursive:true});
    const st=await ctx.newPage();await st.setViewportSize({width:1280,height:800});
