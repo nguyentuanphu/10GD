@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="same-origin">
+<title>Quyền riêng tư & điều khoản · FamTray · Bếp Gia Đình</title>
+<link rel="icon" href="family-logo.png" type="image/png">
+<!-- v1.7 privacy & terms page. Final wording approved for release review on 1 Nov 2026.
+     TODO(Henry, optional): if an operator contact outside the app is required, add it in the
+     "Liên hệ / Contact" sections below. Do not invent an e-mail, company or domain. -->
+<script>(function(){var t='auto',l='';try{t=localStorage.getItem('bep-theme-mode')||'auto';for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&/bep-language$/.test(k)){l=localStorage.getItem(k);if(k.indexOf('guest/')===0)break}}}catch(e){}var q=/[?&]lang=(vi|en)/.exec(location.search);if(q)l=q[1];if(l!=='en'&&l!=='vi')l=String(navigator.language||'').toLowerCase().indexOf('vi')===0?'vi':(l||'vi');var d=document.documentElement;d.dataset.theme=t==='dark'||t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.dataset.lang=l;d.lang=l})()</script>
+<style>
+:root{--bg:#f6f5f0;--panel:#fff;--line:#e2e1d8;--text:#22332b;--muted:#5f6a62;--brand:#174e3c;--accent:#b8643a;--focus:#c87649;color-scheme:light}
+html[data-theme="dark"]{--bg:#111714;--panel:#18211c;--line:#2f3b34;--text:#e6ece8;--muted:#a7b3ab;--brand:#8fd1ae;--accent:#e39a6f;--focus:#e39a6f;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,'Segoe UI',Roboto,'Be Vietnam Pro',sans-serif;-webkit-text-size-adjust:100%}
+a{color:var(--brand);text-underline-offset:2px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.wrap{max-width:820px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
+header.top{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding:8px 0 4px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--brand);text-decoration:none;min-height:44px}
+.brand img{width:32px;height:32px;border-radius:8px}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.btn{min-height:44px;min-width:44px;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.btn[aria-pressed="true"]{border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand);font-weight:600}
+h1{font-size:clamp(1.5rem,4.5vw,2rem);line-height:1.25;margin:16px 0 4px}
+h2{font-size:1.2rem;margin:0 0 8px;line-height:1.35}
+h3{font-size:1rem;margin:14px 0 6px}
+.updated{display:inline-block;font-weight:600;color:var(--accent);margin:0 0 8px}
+.lead{color:var(--muted);margin:0 0 16px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0;overflow-wrap:anywhere}
+section:target{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand)}
+ul{padding-left:1.2em;margin:6px 0}li{margin:4px 0}
+nav.toc ul{list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+nav.toc a{display:inline-flex;align-items:center;min-height:44px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--panel);text-decoration:none}
+code{font:600 .92em ui-monospace,Menlo,Consolas,monospace;overflow-wrap:anywhere}
+.muted{color:var(--muted)}
+html[data-lang="vi"] [lang="en"].doc,html[data-lang="en"] [lang="vi"].doc{display:none}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+ <a class="brand" href="/"><img src="family-logo.png" alt=""><span>FamTray · Bếp Gia Đình</span></a>
+ <div class="tools" role="group" aria-label="Ngôn ngữ · Language">
+  <button class="btn" type="button" data-set-lang="vi" lang="vi">Tiếng Việt</button>
+  <button class="btn" type="button" data-set-lang="en" lang="en">English</button>
+ </div>
+</header>
+
+<main class="doc" lang="vi" id="vi">
+ <h1>Quyền riêng tư &amp; điều khoản</h1>
+ <p class="updated">Cập nhật: 1/11/2026</p>
+ <p class="lead">Trang này nói rõ ứng dụng lưu gì, vì sao, ai xem được, và bạn tắt hoặc xoá ra sao. Đây là bản chính thức, thay cho các bản nháp trước đây.</p>
+ <nav class="toc" aria-label="Mục lục"><ul>
+  <li><a href="#family">Dữ liệu gia đình</a></li><li><a href="#community">Giá cộng đồng</a></li><li><a href="#voice">Giọng nói</a></li><li><a href="#usage">Thống kê sử dụng</a></li><li><a href="#scout">Tiện ích Scout</a></li><li><a href="#contact">Liên hệ</a></li>
+ </ul></nav>
+
+ <section id="family" aria-labelledby="vi-family"><h2 id="vi-family">1. Dữ liệu gia đình</h2>
+  <h3>Chỉ dùng trên máy này (không tài khoản)</h3>
+  <ul><li>Món ăn, thực đơn, danh sách đi chợ, tủ thực phẩm, chi tiêu, giá và cài đặt được lưu trong trình duyệt của máy này. Không có gì được đồng bộ.</li>
+  <li>Dữ liệu trên máy không bao giờ tự gộp vào một gia đình trực tuyến; bạn tự chọn khi kết nối.</li></ul>
+  <h3>Có tài khoản và gia đình (Đồng bộ gia đình)</h3>
+  <ul><li><b>Tài khoản:</b> tên đăng nhập, tên hiển thị, email nếu bạn thêm (để khôi phục), mật khẩu đã băm (không lưu mật khẩu gốc), các phiên đăng nhập và thiết bị tin cậy.</li>
+  <li><b>Gia đình:</b> tên gia đình, thành viên và vai trò (chủ / sửa / xem), lời mời đang chờ.</li>
+  <li><b>Dữ liệu bếp:</b> món ăn gia đình tự viết, thực đơn, danh sách đi chợ, tủ thực phẩm, hoá đơn và chi tiêu, giá gia đình đã lưu, nhắc nhở và cài đặt — để mọi thành viên thấy cùng một dữ liệu trên các máy.</li>
+  <li><b>Thông báo:</b> địa chỉ nhận thông báo của trình duyệt cho từng máy đã bật nhắc nhở.</li>
+  <li>Dữ liệu trực tuyến được lưu tại máy chủ ở Úc. Chỉ thành viên gia đình (theo vai trò) xem được nội dung. Người vận hành ứng dụng chỉ xem số liệu tổng hợp và thông tin tài khoản cần để hỗ trợ; mọi thao tác hỗ trợ được ghi vào nhật ký kiểm tra.</li>
+  <li>Bạn có thể xuất sao lưu bất cứ lúc nào (Cài đặt khác → Dữ liệu &amp; sao lưu). Món ăn gia đình tự viết không bao giờ bị thay bằng món mẫu.</li></ul>
+ </section>
+
+ <section id="community" aria-labelledby="vi-community"><h2 id="vi-community">2. Giá cộng đồng (Price Scout)</h2>
+  <ul><li><b>Chia sẻ công khai:</b> chỉ dữ kiện giá — món, giá, quy cách, cửa hàng và chi nhánh, khuyến mãi, thời điểm thấy giá và dấu vân ảnh (để tránh gửi trùng). Mọi người chỉ thấy “Cộng đồng”; tên bạn và gia đình không bao giờ hiển thị. Biệt danh chỉ hiện trên bảng xếp hạng nếu bạn tự bật.</li>
+  <li><b>Không chia sẻ:</b> ảnh chụp màn hình, ảnh và mô tả của cửa hàng. Ảnh kệ giá chỉ được gửi khi giá cần kiểm duyệt và bạn đồng ý; ảnh được xoá sau khi duyệt hoặc trong vòng 14 ngày.</li>
+  <li><b>Chỉ đăng giá thật:</b> giá bạn thật sự thấy (kệ giá, hoá đơn, app/website cửa hàng), đúng và còn hiệu lực. Không đăng giá sai, giá bịa, hoặc giá để quảng cáo cho cửa hàng mình hay hạ uy tín cửa hàng khác.</li>
+  <li><b>Kiểm duyệt:</b> giá có thể được giữ lại để duyệt, bị ẩn hoặc gỡ. Để chống lạm dụng, máy chủ giữ mã băm của địa chỉ mạng (không phải địa chỉ gốc) và số lần gửi; tài khoản đăng giá sai có thể bị giới hạn.</li>
+  <li><b>Điểm và huy hiệu:</b> không có giá trị tiền mặt, không cần mua gì, có thể bị thu hồi nếu giá sai.</li>
+  <li>Giá cộng đồng chỉ để tham khảo, không phải giá niêm yết đảm bảo. Bạn có thể ngừng chia sẻ bất cứ lúc nào và nhờ hỗ trợ gỡ giá đã chia sẻ.</li></ul>
+ </section>
+
+ <section id="voice" aria-labelledby="vi-voice"><h2 id="vi-voice">3. Giọng nói</h2>
+  <ul><li><b>Trên máy:</b> khi dùng gói nhận giọng nói trên máy, âm thanh không rời khỏi máy và dùng được khi mất mạng.</li>
+  <li><b>Nhận giọng nói của trình duyệt:</b> trình duyệt có thể gửi âm thanh tới dịch vụ nhận giọng nói của nhà sản xuất trình duyệt theo chính sách của họ. Ứng dụng chỉ nhận lại chữ.</li>
+  <li><b>Thống kê giọng nói (tắt mặc định):</b> nếu bạn bật “Giúp cải thiện nhận giọng nói”, sau mỗi lần xác nhận ứng dụng gửi: thời điểm, ngôn ngữ, cách nhận giọng nói, câu chữ đã lược bỏ (tối đa 300 ký tự — đã bỏ tên thành viên, email, số điện thoại, số dài và đường link), các từ không nhận ra, các lần bạn sửa (cụm từ → mã món/nguyên liệu), số món, và mã băm gia đình (không phải mã gia đình). Không bao giờ gửi âm thanh. Lưu tối đa 90 ngày; tắt là xoá dữ liệu đã gửi từ máy này.</li></ul>
+ </section>
+
+ <section id="usage" aria-labelledby="vi-usage"><h2 id="vi-usage">4. Thống kê sử dụng ẩn danh</h2>
+  <p><b>Bật mặc định, tắt được:</b> Cài đặt khác → Thống kê sử dụng → “Gửi thống kê sử dụng ẩn danh”. Giúp biết app được dùng bao lâu, lúc nào và tính năng nào hữu ích.</p>
+  <h3>Gửi những gì</h3>
+  <ul><li>Mã cài đặt ngẫu nhiên của máy này (máy chủ chỉ lưu mã băm của nó).</li>
+  <li>Theo từng ngày: số giây dùng thật (chỉ khi trang đang hiển thị và có thao tác trong 60 giây gần nhất), số phiên (phiên mới sau 30 phút không dùng), số giây theo từng giờ trong ngày, và số lần mở các tính năng trong một danh sách cố định: Hôm nay, Thực đơn tuần, Đi chợ, Kho món ăn, Tủ thực phẩm, Sửa món, Giọng nói, So giá, Giá cộng đồng, Tải offline, Kết nối gia đình, Nhắc nhở, Chi tiêu, Thống kê, Cài đặt.</li>
+  <li>Phiên bản app, ngôn ngữ, loại máy (điện thoại / máy tính bảng / máy tính) và mở bằng app đã cài hay trình duyệt.</li>
+  <li>Nếu bạn đăng nhập: máy chủ tự gắn tài khoản và gia đình từ phiên đăng nhập. Ở chế độ chỉ dùng trên máy, chỉ có số đếm ẩn danh.</li></ul>
+  <h3>Không bao giờ gửi</h3>
+  <ul><li>Món ăn, tên, chữ bạn nhập, từ khoá tìm kiếm, giọng nói hay câu nói, giá, hoá đơn, hay bất kỳ thông tin cá nhân nào.</li></ul>
+  <h3>Vị trí — độ chính xác</h3>
+  <ul><li>Nếu gia đình đã nhập postcode trong So giá: postcode và bang suy ra từ postcode.</li>
+  <li>Nếu chưa: chỉ quốc gia và bang/vùng suy ra từ kết nối mạng. Không bao giờ lưu địa chỉ IP, thành phố/suburb hay toạ độ.</li></ul>
+  <h3>Lưu bao lâu, ai xem</h3>
+  <ul><li>Chỉ lưu bản tổng hợp theo ngày (không lưu từng thao tác), tối đa 13 tháng, sau đó tự xoá.</li>
+  <li>Người vận hành xem số liệu tổng hợp. Xem riêng một gia đình hay tài khoản phải bấm chọn rõ ràng và được ghi vào nhật ký kiểm tra.</li>
+  <li><b>Tắt</b> là ngừng gửi ngay, xoá hàng đợi trên máy và yêu cầu máy chủ xoá toàn bộ dữ liệu đã gửi từ máy này. Người vận hành cũng có thể tạm ngừng thu thập cho mọi người.</li></ul>
+ </section>
+
+ <section id="scout" aria-labelledby="vi-scout"><h2 id="vi-scout">5. Tiện ích FamTray Scout</h2>
+  <ul><li>Chỉ ghi dữ kiện giá trên trang siêu thị bạn mở hoặc cho phép: tên sản phẩm, giá, giá theo đơn vị, giá cũ, khuyến mãi, quy cách, mã/đường dẫn sản phẩm và tên cửa hàng hiển thị trên trang.</li>
+  <li>Không bao giờ đọc ô nhập liệu, cookie, thông tin tài khoản cửa hàng, hình ảnh, mô tả hay đánh giá; không tự bấm và không vượt CAPTCHA.</li>
+  <li>Khi ghép với gia đình, máy chủ lưu tên máy, suburb và postcode bạn nhập, cửa hàng ưa thích, và trạng thái hoạt động (phiên bản, lần chạy gần nhất). Bạn có thể huỷ ghép bất cứ lúc nào.</li></ul>
+ </section>
+
+ <section id="contact" aria-labelledby="vi-contact"><h2 id="vi-contact">6. Liên hệ</h2>
+  <p>Hỏi về dữ liệu của gia đình, xin xuất hoặc xoá: liên hệ <b>chủ gia đình</b> qua ứng dụng (Bếp của tôi → Thành viên). Chủ gia đình sẽ chuyển yêu cầu tới người vận hành ứng dụng khi cần.</p>
+  <p class="muted">Khi điều khoản thay đổi, ngày cập nhật ở đầu trang sẽ đổi và ứng dụng có thể hiện một thông báo nhỏ.</p>
+ </section>
+</main>
+
+<main class="doc" lang="en" id="en">
+ <h1>Privacy &amp; terms</h1>
+ <p class="updated">Updated: 1 Nov 2026</p>
+ <p class="lead">What the app stores, why, who can see it, and how to turn it off or delete it. This is the final version and replaces the earlier drafts.</p>
+ <nav class="toc" aria-label="Contents"><ul>
+  <li><a href="#family">Family data</a></li><li><a href="#community">Community prices</a></li><li><a href="#voice">Voice</a></li><li><a href="#usage">Usage statistics</a></li><li><a href="#scout">Scout extension</a></li><li><a href="#contact">Contact</a></li>
+ </ul></nav>
+
+ <section id="family-en" aria-labelledby="en-family"><h2 id="en-family">1. Family data</h2>
+  <h3>This device only (no account)</h3>
+  <ul><li>Recipes, meal plans, shopping lists, pantry, spending, prices and settings are kept in this device’s browser. Nothing is synced.</li>
+  <li>Device data is never merged into an online family automatically; you choose when you connect.</li></ul>
+  <h3>With an account and family (Family sync)</h3>
+  <ul><li><b>Account:</b> username, display name, e-mail if you add one (for recovery), a hashed password (never the password itself), sign-in sessions and trusted devices.</li>
+  <li><b>Family:</b> family name, members and roles (owner / editor / viewer), pending invitations.</li>
+  <li><b>Kitchen data:</b> family-authored recipes, meal plans, shopping lists, pantry, receipts and spending, saved family prices, reminders and settings — so every member sees the same data on every device.</li>
+  <li><b>Notifications:</b> the browser’s push address for each device that turned reminders on.</li>
+  <li>Online data is stored on servers in Australia. Only family members (by role) can see its content. The app operator sees aggregate figures and the account details needed for support; every support action is written to an audit log.</li>
+  <li>You can export a backup at any time (Other settings → Data &amp; backup). Family-authored recipes are never replaced with sample recipes.</li></ul>
+ </section>
+
+ <section id="community-en" aria-labelledby="en-community"><h2 id="en-community">2. Community prices (Price Scout)</h2>
+  <ul><li><b>Shared publicly:</b> price facts only — item, price, pack size, store and branch, deal, when the price was seen and an image fingerprint (to avoid duplicates). Others only see “Community”; your name and family are never shown. A nickname appears on the leaderboard only if you turn it on.</li>
+  <li><b>Not shared:</b> screenshots, store images and descriptions. A shelf photo is sent only if the price needs review and you agree; it is deleted after review or within 14 days.</li>
+  <li><b>Real prices only:</b> prices you actually saw (shelf tag, receipt, store app/website), accurate and current. Do not post false or made-up prices, or prices meant to promote your own shop or harm another store.</li>
+  <li><b>Moderation:</b> prices may be held for review, hidden or removed. To prevent abuse the server keeps a hash of the network address (not the address itself) and submission counts; accounts that post false prices may be limited.</li>
+  <li><b>Points and badges:</b> no cash value, no purchase needed, and they can be revoked for false prices.</li>
+  <li>Community prices are a guide, not guaranteed shelf prices. You can stop sharing at any time and ask support to remove prices you shared.</li></ul>
+ </section>
+
+ <section id="voice-en" aria-labelledby="en-voice"><h2 id="en-voice">3. Voice</h2>
+  <ul><li><b>On device:</b> with an on-device voice pack, audio never leaves the device and it works offline.</li>
+  <li><b>Browser speech recognition:</b> the browser may send audio to its maker’s speech service under that maker’s policy. The app only receives the text.</li>
+  <li><b>Voice statistics (off by default):</b> if you turn on “Help improve voice recognition”, after each confirmation the app sends: time, language, recogniser, the redacted words (up to 300 characters, with member names, e-mails, phone numbers, long numbers and links removed), unrecognised words, your corrections (phrase → recipe/ingredient id), item count and a hashed family code (not the family id). Never audio. Kept up to 90 days; switching off deletes what this device sent.</li></ul>
+ </section>
+
+ <section id="usage-en" aria-labelledby="en-usage"><h2 id="en-usage">4. Anonymous usage statistics</h2>
+  <p><b>On by default, can be turned off:</b> Other settings → Usage statistics → “Share anonymous usage statistics”. It shows how long and when the app is used and which features help.</p>
+  <h3>What is sent</h3>
+  <ul><li>A random install id for this device (the server stores only a hash of it).</li>
+  <li>Per day: active seconds (only while the page is visible and there was an interaction in the last 60 seconds), sessions (a new one after 30 minutes without use), seconds per hour of the day, and how often features from a fixed list were opened: Today, Weekly plan, Shopping, Recipe library, Pantry, Recipe editing, Voice, Price Scout, Community prices, Offline downloads, Family connection, Reminders, Spending, Insights, Settings.</li>
+  <li>App version, language, device class (phone / tablet / computer) and whether it runs as an installed app or in a browser.</li>
+  <li>If you are signed in, the server links the account and family from the sign-in session. In device-only mode there are anonymous counts only.</li></ul>
+  <h3>Never sent</h3>
+  <ul><li>Recipes, names, anything you type, search terms, voice or transcripts, prices, receipts or any personal data.</li></ul>
+  <h3>Location — precision</h3>
+  <ul><li>If the family entered a postcode in Price Scout: the postcode and the state derived from it.</li>
+  <li>Otherwise: only the country and state/region derived from the network connection. IP addresses, cities/suburbs and coordinates are never stored.</li></ul>
+  <h3>Retention and access</h3>
+  <ul><li>Only daily totals are kept (no individual actions), for up to 13 months, then deleted automatically.</li>
+  <li>The operator sees aggregate figures. Looking at a single family or account needs an explicit click and is written to the audit log.</li>
+  <li><b>Turning it off</b> stops sending at once, clears the queue on the device and asks the server to delete everything this device sent. The operator can also pause collection for everyone.</li></ul>
+ </section>
+
+ <section id="scout-en" aria-labelledby="en-scout"><h2 id="en-scout">5. FamTray Scout extension</h2>
+  <ul><li>Records only price facts on supermarket pages you open or allow: product name, price, unit price, was-price, deal, pack size, product id/link and the store name shown on the page.</li>
+  <li>Never reads form fields, cookies, store account details, images, descriptions or reviews; never clicks for you and never bypasses CAPTCHAs.</li>
+  <li>When paired with a family, the server keeps the device name, the suburb and postcode you enter, preferred stores and its status (version, last run). You can unpair at any time.</li></ul>
+ </section>
+
+ <section id="contact-en" aria-labelledby="en-contact"><h2 id="en-contact">6. Contact</h2>
+  <p>For questions about your family’s data, or to request an export or deletion, contact the <b>family owner</b> through the app (My kitchen → Members). The family owner passes requests on to the app operator when needed.</p>
+  <p class="muted">When these terms change, the date at the top changes and the app may show a small notice.</p>
+ </section>
+</main>
+</div>
+<script>(function(){var d=document.documentElement;function sync(){var l=d.dataset.lang;d.lang=l;document.title=l==='en'?'Privacy & terms · FamTray · Bếp Gia Đình':'Quyền riêng tư & điều khoản · FamTray · Bếp Gia Đình';var b=document.querySelectorAll('[data-set-lang]');for(var i=0;i<b.length;i++)b[i].setAttribute('aria-pressed',String(b[i].dataset.setLang===l))}
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-set-lang]');if(!b)return;d.dataset.lang=b.dataset.setLang;sync()});
+// English sections use -en ids; #usage etc. from the app jump to the visible language.
+function jump(){var h=location.hash.slice(1);if(!h)return;var id=d.dataset.lang==='en'&&!/-en$/.test(h)?h+'-en':h,el=document.getElementById(id);if(el&&el.scrollIntoView)el.scrollIntoView();if(el&&id!==h&&el.style!==undefined){el.style.boxShadow='0 0 0 2px var(--brand)';el.style.borderColor='var(--brand)'}}
+document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a||d.dataset.lang!=='en')return;e.preventDefault();history.replaceState(null,'',a.getAttribute('href'));jump()});
+sync();addEventListener('load',jump);addEventListener('hashchange',jump)})()</script>
+</body>
+</html>

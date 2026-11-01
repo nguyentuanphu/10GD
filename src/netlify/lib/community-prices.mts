@@ -323,7 +323,7 @@ export async function report(getStoreFn:any,{context,body,now}:any){
 }
 
 // ---------- terms ----------
-export const TERMS_VERSION='2026-11-draft';
+export const TERMS_VERSION='2026-11-01';// final wording, see dist/privacy.html#community (earlier acceptances: '2026-11-draft')
 export async function acceptTerms(getStoreFn:any,username:string,now:number){const store=communityStore(getStoreFn);const c=await editContributor(store,username,x=>({...x,termsAcceptedAt:new Date(now).toISOString(),termsVersion:TERMS_VERSION,shareDefault:x.shareDefault??true}),now);return{termsAcceptedAt:c.termsAcceptedAt,termsVersion:c.termsVersion,shareDefault:c.shareDefault!==false}}
 /** After the first consent the share box starts ticked for this account; the user can turn that off. */
 export async function setShareDefault(getStoreFn:any,username:string,on:boolean,now:number){const c=await editContributor(communityStore(getStoreFn),username,x=>({...x,shareDefault:on===true}),now);return{shareDefault:c.shareDefault}}

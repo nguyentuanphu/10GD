@@ -775,3 +775,22 @@ html[data-theme="dark"] .offline-note{background:var(--warn-surface,#2e2717);col
 /* Studio turned Price Scout off: hide every Price Scout surface, including list badges, the Amazon tray and voice price buttons. */
 body.flag-off-priceScout :is(.price-scout,.scout-tray,.scout-tray-sheet,.scout-viet-badge,.scout-badges,[data-scout],[data-voice-price]){display:none!important}
 /* === v1.6 price-scout-off end === */
+/* === v1.7 usage start === */
+/* Other settings → Usage statistics toggle, and the one-time "Terms updated" notice (non-modal). */
+.usage-toggle{display:flex;align-items:center;gap:12px;min-height:44px;cursor:pointer;font-weight:600;color:var(--text)}
+.usage-toggle input{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:48px;height:28px;margin:0;border-radius:999px;background:var(--line);border:1px solid var(--muted);position:relative;cursor:pointer}
+.usage-toggle input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--white);box-shadow:0 1px 3px #0003;transition:transform .18s ease}
+.usage-toggle input:checked{background:var(--green2);border-color:var(--green2)}
+.usage-toggle input:checked::after{transform:translateX(20px)}
+.usage-toggle input:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.usage-toggle input:disabled{opacity:.5;cursor:not-allowed}
+.usage-hint{margin:.25rem 0 0;overflow-wrap:anywhere}
+.usage-hint a{display:inline-flex;align-items:center;min-height:44px;color:var(--green2);font-weight:600}
+.terms-notice{display:flex;align-items:center;gap:8px;margin:12px 24px 0;padding:6px 6px 6px 14px;border:1px solid var(--line);border-radius:12px;background:var(--cream);color:var(--text);min-width:0}
+.terms-notice p{margin:0;flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.terms-notice a{color:var(--green2);font-weight:600;display:inline-flex;align-items:center;min-height:44px}
+.terms-notice-close{flex:0 0 auto;min-width:44px;min-height:44px;border:0;border-radius:10px;background:transparent;color:inherit;font-size:22px;line-height:1;cursor:pointer}
+.terms-notice-close:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+@media (max-width:760px){.terms-notice{margin:10px 16px 0}}
+@media (prefers-reduced-motion:reduce){.usage-toggle input::after{transition:none}}
+/* === v1.7 usage end === */

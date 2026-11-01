@@ -303,7 +303,7 @@ function voiceLocalSettingsHtml(cap,statuses){
  ${cap&&!cap.ok?`<p class="hint vl-note">${cap.reasons.map(voiceLocalReasonText).map(vlEsc).join(' ')} ${vlT('Đang dùng nhận giọng nói của trình duyệt.','Using browser speech recognition.')}</p>`:''}
  </fieldset>
  <label class="vl-check vl-consent"><input type="checkbox" class="check" id="voice-stats-consent" ${consent?'checked':''}> ${vlT('Giúp cải thiện nhận giọng nói (chỉ gửi chữ, không gửi âm thanh)','Help improve voice recognition (sends text only, never audio)')}</label>
- <p class="hint">${vlT('Tắt mặc định. Khi bật: sau mỗi lần bạn xác nhận, app gửi câu chữ đã lược bỏ tên thành viên, email, số điện thoại; lưu tối đa 90 ngày; tắt là xoá.','Off by default. When on: after each confirmation the app sends the words with member names, emails and phone numbers removed; kept up to 90 days; switching off deletes them.')}</p>`;
+ <p class="hint">${vlT('Tắt mặc định. Khi bật: sau mỗi lần bạn xác nhận, app gửi câu chữ đã lược bỏ tên thành viên, email, số điện thoại; lưu tối đa 90 ngày; tắt là xoá.','Off by default. When on: after each confirmation the app sends the words with member names, emails and phone numbers removed; kept up to 90 days; switching off deletes them.')} <a href="/privacy.html#voice" target="_blank" rel="noopener">${vlT('Xem chi tiết','Details')}</a></p>`;
 }
 async function voiceLocalRenderSettings(){
  const box=document.getElementById('voice-local-settings');if(!box)return;
