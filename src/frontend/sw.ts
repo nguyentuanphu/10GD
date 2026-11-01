@@ -45,7 +45,8 @@ async function evictArt(){
  const oldest=[...index.entries()].sort((a,b)=>(a[1].t||0)-(b[1].t||0));
  while(oldest.length&&(index.size>ART_RUNTIME_MAX_ENTRIES||bytes>ART_RUNTIME_MAX_BYTES)){const[key,v]=oldest.shift();await cache.delete(key);index.delete(key);bytes-=v.b||0;artIndexDirty=true}
 }
-async function rememberRuntimeArt(key,response,event){const cache=await caches.open(ART_RUNTIME),body=await response.clone().arrayBuffer();await cache.put(key,new Response(body,{status:200,headers:response.headers}));const index=await loadArtIndex(),now=Date.now();index.set(key,{t:now,v:now,b:body.byteLength});await evictArt();scheduleArtIndexSave(event)}
+// `response` must be a copy the page never reads (clone before handing the original to respondWith).
+async function rememberRuntimeArt(key,response,event){const body=await response.arrayBuffer(),cache=await caches.open(ART_RUNTIME);await cache.put(key,new Response(body,{status:200,headers:response.headers}));const index=await loadArtIndex(),now=Date.now();index.set(key,{t:now,v:now,b:body.byteLength});await evictArt();scheduleArtIndexSave(event)}
 async function findArt(key){for(const name of [PACK_ART,PACK_SHEETS,ART_PINNED,ART_RUNTIME]){const hit=await(await caches.open(name)).match(key);if(hit)return{hit,name}}return null}
 async function artResponse(event,url){
  const key=url.pathname,found=await findArt(key);
@@ -56,7 +57,7 @@ async function artResponse(event,url){
    index.set(key,entry);scheduleArtIndexSave(event)}
   return found.hit;
  }
- try{const response=await fetchWithDeadline(key,{},30000);if(response.ok&&!response.redirected)event.waitUntil(rememberRuntimeArt(key,response,event).catch(()=>{}));return response}
+ try{const response=await fetchWithDeadline(key,{},30000);if(response.ok&&!response.redirected)event.waitUntil(rememberRuntimeArt(key,response.clone(),event).catch(()=>{}));return response}
  catch{return new Response('',{status:504,statusText:'Offline artwork not downloaded'})}
 }
 // Pin the exact cells the page asks for (this week's menu and family recipes); unpinned cells move to the LRU cache.

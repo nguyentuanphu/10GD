@@ -157,7 +157,7 @@ async function main() {
       await page.evaluate(() => { (globalThis as any).BEP_OFFLINE = false; return otherSettingsModal(); });
       await page.locator('.other-settings').waitFor();
       assert.equal(await page.locator('#modal-title').innerText(), 'Cài đặt khác');
-      assert.deepEqual(await page.$$eval('.other-settings .kitchen-section', nodes => nodes.map(n => n.id)), ['settings-appearance', 'settings-currency', 'settings-data']);
+      assert.deepEqual(await page.$$eval('.other-settings .kitchen-section', nodes => nodes.map(n => n.id)), ['settings-appearance', 'settings-currency', 'settings-offline-ready', 'settings-offline-downloads', 'settings-data']);
       for (const sel of ['#theme-mode-select', '#festival-theme-select', '[data-personal=currency]', '[data-action=export]', '[data-action=import]']) assert.equal(await page.locator('.other-settings ' + sel).count(), 1, sel + ' in Other settings');
       assert.equal(await page.locator('.other-settings :is([data-personal=invite], #members-form, #settings-form, [data-personal=sign-out])').count(), 0, 'nothing from My kitchen or the account sheet');
       await page.locator('#theme-mode-select').selectOption('dark');
