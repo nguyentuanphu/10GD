@@ -13,7 +13,9 @@ const cards=page=>page.locator('#family-recipe-results .recipe-card h3').allInne
 // Expected counts are computed from catalogue fields and ingredient diet labels, independently of the chip code.
 const expected=(page,scope,key,kind,q='')=>page.evaluate(([scope,key,kind,q])=>{const inScope=r=>scope==='all'||(scope==='own'?ownRecipe(r):!ownRecipe(r)||!!q);const meta=r=>libraryRecipeMeta(r);const test={western:r=>recipeCuisine(meta(r))==='western',healthy:r=>recipeMatchesLibraryTag(r,'healthy'),vegetarian:r=>['vegan','vegetarian','check'].includes(recipeDiet(r)),vegan:r=>recipeDiet(r)==='vegan','seed-salad':r=>meta(r).recipeKind==='seed-salad',dressing:r=>meta(r).recipeKind==='dressing'};return state.recipes.filter(r=>inScope(r)&&(kind==='cat'?r.category===key:test[key](r))&&(!q||recipeSearchScore(r,q)>0)).length},[scope,key,kind,q]);
 const CHIPS=[['cat','noodle'],['tag','western'],['tag','healthy'],['tag','vegetarian'],['tag','vegan'],['tag','seed-salad'],['tag','dressing']];
-const chip=(page,kind,key)=>page.locator(`#family-recipe-chips [data-fm="${kind}-filter"][data-key="${key}"]`);
+// v1.7: diet chips (Healthy, Vegetarian, Thuần chay) live in the Filters sheet as data-fm="diet-filter"; the sheet is opened once per page.
+const DIETS=['healthy','vegetarian','vegan'];
+const chip=(page,kind,key)=>page.locator(`#family-recipe-chips [data-fm="${kind==='tag'&&DIETS.includes(key)?'diet':kind}-filter"][data-key="${key}"]`);
 const statusCount=async page=>+((await page.locator('#family-recipe-status').innerText()).match(/^(\d+)/)||[])[1];
 (async()=>{const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});const summary={};
 for(const [name,width,height] of [['mobile',375,812],['tablet',820,1100],['desktop',1280,800]]){
@@ -21,14 +23,15 @@ for(const [name,width,height] of [['mobile',375,812],['tablet',820,1100],['deskt
  await page.goto('https://kitchen.test/#recipes');await page.locator('#family-recipe-search').waitFor({timeout:20000});
  await page.evaluate(()=>{localStorage.setItem('bep-theme-mode','light');applyThemePreferences();const fam=(id,name,category,ingredients)=>({id,name,category,protein:'mixed',time:20,servings:4,yield:4,ingredients,prep:'',steps:['Nấu.'],favorite:false,custom:true,origin:'family',purposes:['main']});state.recipes.push(fam('fam-tofu','Đậu hũ chiên sả nhà mình','main',[{id:'tofu',qty:300},{id:'lemongrass',qty:20}]),fam('fam-egg','Trứng chiên hành nhà mình','main',[{id:'egg',qty:4},{id:'scallion',qty:20}]),fam('fam-pho','Phở bò nhà mình','noodle',[{id:'beef',qty:300},{id:'noodle',qty:400}]),fam('fam-ribs','Sườn ram nhà mình','main',[{id:'ribs',qty:500}]));save();render()});
  await page.locator('#toast.visible').waitFor({state:'hidden',timeout:10000}).catch(()=>{});
+ await page.locator('#family-recipe-chips [data-fm="filter-sheet"]').click();await page.locator('#family-filter-panel').waitFor();
  // 1. Every chip in every scope: status count, chip badge and cards agree with the catalogue; aria-pressed; ≥44px.
  const counts={},shotClip={x:0,y:0,width,height:name==='mobile'?height:name==='tablet'?520:460};
  for(const scope of ['own','samples','all']){await page.locator(`[data-fm="${scope}"]`).first().click();await page.locator('#family-recipe-chips').waitFor();
   for(const [kind,key] of CHIPS){const want=await expected(page,scope,key,kind);const badge=+(await chip(page,kind,key).locator('.chip-count').innerText());assert.equal(badge,want,`${scope} ${key} badge`);
    if(name==='mobile')await chip(page,kind,key).tap();else await chip(page,kind,key).click();
    assert.equal(await chip(page,kind,key).getAttribute('aria-pressed'),'true',`${key} pressed`);assert.equal(await statusCount(page),want,`${scope} ${key} status count`);
-   const shown=await cards(page);assert.equal(shown.length,Math.min(24,want),`${scope} ${key} cards`);if(!want)assert.ok(await page.locator('.library-no-match').count(),'no-match state instead of the first-run card');
-   if(want>24)assert.match(await page.locator('#family-recipe-results').innerText(),new RegExp(`Trang 1/\\d+ \\(${want} món\\)`));
+   const shown=await cards(page);assert.equal(shown.length,Math.min(20,want),`${scope} ${key} cards`);if(!want)assert.ok(await page.locator('.library-no-match').count(),'no-match state instead of the first-run card');
+   if(want>20)assert.match(await page.locator('#family-recipe-results').innerText(),new RegExp(`Đang hiện 20/${want} món`));
    counts[scope+':'+key]=want;
    const box=await chip(page,kind,key).boundingBox();assert.ok(box.height>=44&&box.width>=44,`${key} chip ≥44px (${box.width}×${box.height})`);
    await chip(page,kind,key).click();assert.equal(await chip(page,kind,key).getAttribute('aria-pressed'),'false','second tap clears the chip')}
@@ -45,9 +48,9 @@ for(const [name,width,height] of [['mobile',375,812],['tablet',820,1100],['deskt
  await chip(page,'tag','western').click();assert.ok((await cards(page)).some(t=>/Spaghetti|Mì Ý|Penne/.test(t)),'Âu/Ý shows Italian dishes');await chip(page,'tag','western').click();
  await chip(page,'tag','healthy').click();assert.ok(!(await page.evaluate(()=>familyRecipeRows().map(r=>r.name))).includes('Rau muống xào tỏi'),'Healthy is not every quick stir-fry');await chip(page,'tag','healthy').click();
  // 2. Chip + search (IME) + pagination reset; the input element is never re-rendered.
- await chip(page,'tag','vegan').click();await page.locator('[data-fm="page-next"]').first().click();assert.match(await page.locator('#family-recipe-results').innerText(),/Trang 2\//);
+ await chip(page,'tag','vegan').click();await page.locator('[data-fm="load-more"]').first().click();assert.match(await page.locator('#family-recipe-results').innerText(),/Đang hiện 40\//);
  await page.evaluate(()=>{document.querySelector('#family-recipe-search').dataset.same='1'});await page.locator('#family-recipe-search').click();const cdp=await context.newCDPSession(page);await imeType(cdp,[['d','da','đa','đậ','đậu']]);await settle(page);
- assert.equal(await page.locator('#family-recipe-search[data-same="1"]').inputValue(),'đậu');let want=await expected(page,'samples','vegan','tag','đậu');assert.ok(want>0&&want<counts['samples:vegan']);assert.equal(await statusCount(page),want,'chip + search count');assert.doesNotMatch(await page.locator('#family-recipe-results').innerText(),/Trang 2\//,'search resets to page 1');
+ assert.equal(await page.locator('#family-recipe-search[data-same="1"]').inputValue(),'đậu');let want=await expected(page,'samples','vegan','tag','đậu');assert.ok(want>0&&want<counts['samples:vegan']);assert.equal(await statusCount(page),want,'chip + search count');assert.doesNotMatch(await page.locator('#family-recipe-results').innerText(),/Đang hiện 40\//,'search resets to the first page');
  assert.ok((await page.evaluate(()=>familyRecipeRows().map(r=>recipeDiet(r)))).every(d=>d==='vegan'));
  await chip(page,'tag','vegetarian').click();assert.equal(await page.locator('#family-recipe-search').inputValue(),'đậu','chip keeps the search text');assert.equal(await statusCount(page),await expected(page,'samples','vegetarian','tag','đậu'));
  await chip(page,'cat','noodle').click();assert.equal(await statusCount(page),await page.evaluate(()=>state.recipes.filter(r=>r.category==='noodle'&&['vegan','vegetarian','check'].includes(recipeDiet(r))&&recipeSearchScore(r,'đậu')>0).length),'category ∧ tag ∧ search');
