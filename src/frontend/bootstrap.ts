@@ -139,8 +139,10 @@ interface Window {
       throw error;
     } finally { clearTimeout(timer); }
   };
-  const sameIdentity = (status: SessionStatus): boolean => status.household?.id === window.BEP_SESSION?.household?.id &&
-    status.household?.role === window.BEP_SESSION?.household?.role && status.household?.memberId === window.BEP_SESSION?.household?.memberId;
+  // Missing and null fields are the same identity (servers may omit an unlinked memberId).
+  const norm = (value: unknown): unknown => value ?? null;
+  const sameIdentity = (status: SessionStatus): boolean => norm(status.household?.id) === norm(window.BEP_SESSION?.household?.id) &&
+    norm(status.household?.role) === norm(window.BEP_SESSION?.household?.role) && norm(status.household?.memberId) === norm(window.BEP_SESSION?.household?.memberId);
   // Confirms the session after the app is visible; content stays on screen meanwhile.
   let checking = false;
   const check = async (pending?: Promise<Response>, initial = false): Promise<void> => {
@@ -155,6 +157,10 @@ interface Window {
       const status: SessionStatus | null = response.ok ? await response.json() : null;
       if (status?.connected && status.mode === 'account' && !sameIdentity(status)) {
         // Store the new identity first and confirm before using a cache after reload.
+        // Never reload more than twice per browser session for an identity change (loop guard).
+        let reloads = 0;
+        try { reloads = Number(sessionStorage.getItem('bep-identity-reloads') || 0); sessionStorage.setItem('bep-identity-reloads', String(reloads + 1)); } catch { /* storage unavailable */ }
+        if (reloads >= 2) { if (status.offlineGrant) await rememberOfflineAccess(status); return; }
         try { sessionStorage.setItem('bep-boot-confirm', '1'); } catch { /* reload still works */ }
         if (status.offlineGrant) await rememberOfflineAccess(status);
         else try { localStorage.removeItem('bep-offline-access-v1'); } catch { /* best effort */ }
