@@ -150,3 +150,38 @@ const prefs=(x:any={})=>({catalog,today,state:'NSW',...x});
  assert.equal(P.priceSanity('duong',4,hist,{today,catalog}).ok,false);assert.equal(P.priceSanity('duong',3.75,hist,{today,catalog}).ok,true,'250% boundary inclusive');assert.equal(P.priceSanity('duong',0.6,hist,{today,catalog}).ok,true,'40% boundary inclusive');
  assert.equal(P.priceSanity('duong',15,[obs('duong','coles',16,1,'kg'),obs('duong','coles',0.15,100,'g'),obs('duong','coles',1.5,100,'g')],{today,catalog}).ok,true,'compares normalised unit prices');
  console.log('PASS provenance fields (visibility, evidence hash, capturedAt, confidence, storeBranchId) and rolling-median price sanity');}
+
+// ---- Community Price Pilot: source priority, labels, pending hints, branches, flag-off no-op ----
+{const items=[{key:'a',label:'Gạo',itemId:'gao-jasmine',qty:5,unit:'kg'},{key:'b',label:'Dầu ăn',itemId:'dau-an',qty:2,unit:'L'},{key:'c',label:'Rau muống',itemId:'rau-muong',qty:500,unit:'g'}];
+ const own=[obs('gao-jasmine','woolworths',12,5,'kg'),obs('gao-jasmine','coles',14,5,'kg')];
+ const cp=(itemId:string,retailer:string,price:number,packQty:number,packUnit:string,extra:any={})=>({groupId:'g'+(++seq),itemId,label:itemId,retailer,branchId:retailer+':2166:cabramatta',branchLabel:'Cabramatta 2166',state:'NSW',status:'confirmed',usable:true,price,unitPrice:null,unitBasis:null,packQty,packUnit,units:null,promo:null,validUntil:null,families:2,lastObserved:'2026-10-31',ageDays:1,faded:false,sources:['shelf-photo'],...extra});
+ const server=[cp('gao-jasmine','coles',9,5,'kg'),cp('dau-an','coles',8,2,'L'),cp('dau-an','woolworths',8.4,2,'L',{status:'pending',usable:false,families:1}),cp('dau-an','woolworths',8.2,2,'L',{branchId:'woolworths:2200:bankstown',usable:false,faded:true,ageDays:16})];
+ const split=P.communityObservations(server,{});
+ assert.equal(split.confirmed.length,2,'only confirmed + usable enter totals');assert.equal(split.hints.length,2,'pending and greyed prices become hints');
+ const base=plain(P.optimizeBasket(items,own,prefs()));
+ const flagOff=plain(P.optimizeBasket(items,own,prefs({community:[],shopPrices:[],communityHints:[]})));
+ assert.deepEqual(flagOff.oneStop,base.oneStop,'no community data → identical result');assert.deepEqual(flagOff.split.stops,base.split.stops);
+ const shops=P.shopObservations([{id:'sp-1',itemId:'rau-muong',label:'Rau muống',price:2.5,unitPrice:null,unitBasis:null,packQty:500,packUnit:'g',observedAt:'2026-10-31',shop:{id:'shop1',name:'Chợ Việt',suburb:'Cabramatta',state:'NSW'}}]);
+ const r=plain(P.optimizeBasket(items,own,prefs({minSavings:0,minStopOrder:0,community:split.confirmed,communityHints:split.hints,shopPrices:shops})));
+ // Own-family Coles rice ($14) wins over the cheaper confirmed community Coles rice ($9).
+ assert.equal(r.oneStop.coles,14,'own-family price first');assert.equal(r.oneStop.woolworths,12);
+ assert.equal(r.stores.coles.total,22,'community fills the gap where the family has no price (oil $8)');
+ assert.deepEqual([r.oneStop.sourceMix.family,r.oneStop.sourceMix.community],[2,0],'one-stop compares family prices only here');
+ const assigned=r.split.stops.flatMap((s:any)=>s.items).filter((i:any)=>i.cost!=null);
+ assert.ok(assigned.some((i:any)=>i.key==='b'&&i.origin==='community'),'oil priced from confirmed community');
+ assert.ok(assigned.some((i:any)=>i.key==='c'&&i.origin==='shop'),'shop-posted price used last');
+ assert.equal(r.sourceMix.total,assigned.length);assert.ok(r.sourceMix.family>=1&&r.sourceMix.community>=1&&r.sourceMix.shop>=1,'source mix label counts');
+ assert.ok(!assigned.some((i:any)=>i.cost===8.4||i.cost===8.2),'pending/greyed never used in totals');
+ assert.equal(r.hints.length,2,'pending prices surface as hints');
+ // Branch preference: once a Coles branch is chosen, other Coles branches are ignored.
+ const pref=P.communityObservations([...server,cp('dau-an','coles',7,2,'L',{branchId:'coles:2200:bankstown'})],{branches:['coles:2200:bankstown']});
+ assert.deepEqual(pref.confirmed.filter((x:any)=>x.retailer==='coles').map((x:any)=>x.price),[7],'only the chosen Coles branch');
+ // Shareability: only shelf-photo with matching OCR or receipt.
+ assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'shelf-photo',ocrPrice:2.01}}),true);
+ assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'shelf-photo',ocrPrice:2.5}}),false);
+ assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'screenshot',ocrPrice:2}}),false,'screenshots stay family-only');
+ assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'bookmark'}}),false);
+ assert.equal(P.canShareToCommunity({itemId:null,price:2,evidence:{type:'receipt'}}),false);
+ assert.equal(P.withProvenance({...own[0],source:'screenshot'},{ocrPrice:12,evidenceType:'shelf-photo'}).evidence.type,'shelf-photo');
+ assert.equal(P.validObservation(P.withProvenance({...own[0],source:'screenshot'},{ocrPrice:12,evidenceType:'shelf-photo'})),true,'shelf-photo observations are still valid family observations');
+ console.log('PASS community pilot: own-family first, then confirmed community, then shop; pending as hints; source mix; branch filter; shareable evidence');}

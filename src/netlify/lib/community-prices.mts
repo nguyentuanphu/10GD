@@ -242,7 +242,7 @@ export async function contribute(getStoreFn:any,{context,observation,branch,ipHa
 export async function storeHeldPhoto(getStoreFn:any,{username,state,itemId,id,bytes,now}:any){
  const store=communityStore(getStoreFn),shard=await readJSON(store,shardKey(state,itemId)),s=shard?.submissions?.find((x:any)=>x.id===id);
  if(!s||s.account!==username||s.status!=='held'||s.evidence?.type!=='shelf-photo')fail('Không cần ảnh cho giá này.','No photo is needed for this price.',404);
- if(bytes.byteLength>3_000_000)fail('Ảnh tối đa 3 MB.','Photo must be under 3 MB.',413);
+ if(bytes.byteLength>5_500_000)fail('Ảnh tối đa 5,5 MB.','Photo must be under 5.5 MB.',413);
  if(sha256Bytes(bytes)!==s.evidence.imageHash)fail('Ảnh không khớp ảnh đã dùng để đọc giá.','The photo does not match the one used to read the price.',422);
  await store.set('photos/'+id,bytes);await store.setJSON('photo-meta/'+id,{id,state,itemId,expiresAt:new Date(now+RULES.photoDays*DAY).toISOString()});
  await mutateShard(store,state,itemId,sh=>{const x=sh.submissions.find((y:any)=>y.id===id);if(!x)return null;x.photo=true;return true});
