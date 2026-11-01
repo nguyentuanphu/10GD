@@ -19,6 +19,11 @@
 [functions."reminders"]
   schedule = "*/15 * * * *"
 
+# Price Scout licensed-feed import: 06:30 Australia/Sydney on Wed & Sat (two UTC
+# slots cover daylight saving; the function checks the Sydney hour itself).
+[functions."grocery-cron"]
+  schedule = "30 19,20 * * 2,5"
+
 [[edge_functions]]
   function = "family-gate"
   path = "/*"

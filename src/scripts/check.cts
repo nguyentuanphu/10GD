@@ -15,3 +15,4 @@ for(const file of fs.readdirSync('netlify/edge-functions').filter(f=>f.endsWith(
  execFileSync(process.execPath,['--input-type=module','--eval',fs.readFileSync('netlify/edge-functions/'+file,'utf8')],{cwd:require('node:path').resolve('netlify/edge-functions'),stdio:'inherit'});
 }
 console.log('Edge entry points executed as ES modules.');
+{const vm=require('node:vm'),ctx=vm.createContext({});vm.runInContext(fs.readFileSync('dist/master-catalog.js','utf8')+';this.n=MASTER_CATALOG.items.length',ctx);if(ctx.n<120)throw Error('Price Scout catalog too small');if(!fs.existsSync('netlify/functions/grocery.mjs')||!fs.existsSync('netlify/functions/grocery-cron.mjs'))throw Error('Price Scout functions missing');console.log('Price Scout catalog ('+ctx.n+' items) and functions verified.')}

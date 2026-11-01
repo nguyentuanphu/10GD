@@ -12,6 +12,12 @@ for (const [from, to] of [['netlify', 'netlify'], ['tests', 'tests'], ['scripts'
   cpSync(`.compiled/${from}`, to, { recursive: true });
 }
 
+// Price Scout master catalog: data/master-catalog.json is the source; ship it as a
+// classic script inside the startup pack so it is available offline.
+const catalog=JSON.parse(readFileSync('data/master-catalog.json','utf8'));
+if(catalog.version!==1||!Array.isArray(catalog.items)||catalog.items.length<100)throw new Error('Master catalog is invalid');
+writeFileSync('dist/master-catalog.js',"'use strict';\nglobalThis.MASTER_CATALOG=Object.freeze("+JSON.stringify(catalog)+");\n");
+
 // Keep a single authenticated download while preserving separate classic-script
 // execution scopes and the startup entry's exact dependency order.
 const startup = readFileSync('src/frontend/bootstrap.ts', 'utf8');
