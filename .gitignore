@@ -32,3 +32,5 @@ dist/downloads/
 dist/vendor/
 dist/offline-packs.json
 dist/build.json
+dist-extension-store/
+dist-extension-store.zip

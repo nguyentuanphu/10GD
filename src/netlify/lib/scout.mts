@@ -64,7 +64,22 @@ export function inWindow(ms:number,windows:any=DEFAULT_SCHEDULE,timeZone?:string
 export const NETWORK_DEFAULTS={autoScout:'off',semiAuto:'on',paused:false,robots:'respect',
  caps:{devicePagesPerRun:150,devicePagesPerDay:300,retailerPagesPerDay:{woolworths:600,coles:600,aldi:300,chemist:300,amazon:200} as any},
  schedule:DEFAULT_SCHEDULE,pacing:{minMs:20000,maxMs:40000},parser:{minSamples:20,minSuccess:0.5},leaseMinutes:8,
- specials:null as any,maxDevicesPerAccount:5};
+ specials:null as any,maxDevicesPerAccount:5,
+ // v1.7: one-click install links shown in My kitchen once Henry publishes the extension.
+ install:{chrome:null,edge:null} as {chrome:string|null,edge:string|null}};
+/** Extension id pinned by the `key` in extension/manifest.json (unpacked/zip installs).
+ *  A Web Store / Edge Add-ons build gets its own id: add it to SCOUT_EXTENSION_IDS. */
+export const BUNDLED_EXTENSION_ID='mjeoekikdicoojgoppnfibjbfpcfngja';
+const STORE_HOSTS:any={chrome:{hosts:['chromewebstore.google.com','chrome.google.com'],path:/^\/(webstore\/)?detail\//},edge:{hosts:['microsoftedge.microsoft.com'],path:/^\/addons\/detail\//}};
+/** A Chrome Web Store or Edge Add-ons listing URL (https, store host, /detail/ path). */
+export function validStoreUrl(u:any,kind:'chrome'|'edge'){try{const url=new URL(String(u));const k=STORE_HOSTS[kind];return url.protocol==='https:'&&!url.username&&!url.password&&k.hosts.includes(url.hostname)&&k.path.test(url.pathname)&&url.href.length<=300}catch{return false}}
+const envIds=(env:any)=>String(env?.SCOUT_EXTENSION_IDS||'').split(',').map((x:string)=>x.trim()).filter((x:string)=>/^[a-p]{32}$/.test(x));
+/** Public, non-secret install info for the app page (scout?op=public): which extension
+ *  ids to ping, and the store links when configured (env SCOUT_STORE_URL /
+ *  SCOUT_EDGE_STORE_URL win over the Studio setting). */
+export function publicInstallInfo(settings:any,env:any=process.env){
+ const pick=(kind:'chrome'|'edge',envKey:string)=>validStoreUrl(env?.[envKey],kind)?String(env[envKey]):validStoreUrl(settings?.install?.[kind],kind)?String(settings.install[kind]):null;
+ return {extensionIds:[...new Set([BUNDLED_EXTENSION_ID,...envIds(env)])],storeUrl:pick('chrome','SCOUT_STORE_URL'),edgeStoreUrl:pick('edge','SCOUT_EDGE_STORE_URL')}}
 const intIn=(v:any,a:number,b:number)=>Number.isInteger(v)&&v>=a&&v<=b;
 export function validateNetworkPatch(p:any,config:any=scoutDefaultConfig){const out:any={},bad=(k:string)=>fail('Giá trị không hợp lệ: '+k,'Invalid value: '+k);if(!p||typeof p!=='object')bad('body');
  for(const k of ['autoScout','semiAuto'])if(p[k]!==undefined){if(!['on','off'].includes(p[k]))bad(k);out[k]=p[k]}
@@ -74,6 +89,7 @@ export function validateNetworkPatch(p:any,config:any=scoutDefaultConfig){const 
  if(p.schedule!==undefined){if(!validSchedule(p.schedule))bad('schedule');out.schedule=p.schedule.map((w:any)=>({days:[...new Set(w.days)].sort(),start:w.start,end:w.end}))}
  if(p.pacing!==undefined){const a=p.pacing?.minMs,b=p.pacing?.maxMs;if(!intIn(a,20000,120000)||!intIn(b,a,180000))bad('pacing');out.pacing={minMs:a,maxMs:b}}
  if(p.parser!==undefined){const s=p.parser?.minSamples,r=p.parser?.minSuccess;if(!intIn(s,5,200)||typeof r!=='number'||r<0.1||r>0.95)bad('parser');out.parser={minSamples:s,minSuccess:r}}
+ if(p.install!==undefined){const o:any={};for(const k of ['chrome','edge'] as const){const v=p.install?.[k];if(v===undefined)continue;if(v===null||v==='')o[k]=null;else{if(!validStoreUrl(v,k))bad('install.'+k);o[k]=String(v)}}out.install=o}
  if(p.maxDevicesPerAccount!==undefined){if(!intIn(p.maxDevicesPerAccount,1,50))bad('maxDevicesPerAccount');out.maxDevicesPerAccount=p.maxDevicesPerAccount}
  if(p.specials!==undefined){if(p.specials===null)out.specials=null;else{out.specials={};for(const [r,list] of Object.entries<any>(p.specials||{})){if(!RETAILERS.includes(r)||!Array.isArray(list)||list.length>5)bad('specials.'+r);out.specials[r]=list.map((u:any)=>{if(!validRetailerUrl(u,r,config))bad('specials.'+r);return String(u)})}}}
  return out}
@@ -85,13 +101,13 @@ export async function platformAutoScout(getStoreFn:any,env:any=process.env){try{
  *  flags.autoScout → this store (settings/network) → default 'off'. */
 export async function networkSettings(getStoreFn:any,env:any=process.env){
  const stored=await readJSON(scoutStore(getStoreFn),'settings/network')||{},v:any=structuredClone(NETWORK_DEFAULTS);
- for(const k of Object.keys(v)){if(stored[k]===undefined)continue;if(k==='caps')v.caps={...v.caps,...stored.caps,retailerPagesPerDay:{...v.caps.retailerPagesPerDay,...(stored.caps?.retailerPagesPerDay||{})}};else v[k]=stored[k]}
+ for(const k of Object.keys(v)){if(stored[k]===undefined)continue;if(k==='caps')v.caps={...v.caps,...stored.caps,retailerPagesPerDay:{...v.caps.retailerPagesPerDay,...(stored.caps?.retailerPagesPerDay||{})}};else if(k==='install')v.install={...v.install,...stored.install};else v[k]=stored[k]}
  const plat=await platformAutoScout(getStoreFn,env);if(plat)v.autoScout=plat;v.autoScoutSource=plat?'platform':stored.autoScout!==undefined?'scout':'default';
  const envAuto=String(env?.SCOUT_AUTO||'').toLowerCase();if(['on','off'].includes(envAuto)){v.autoScout=envAuto;v.autoScoutSource='env'}
  v.robots='respect';v.updatedAt=stored.updatedAt||null;v.updatedBy=stored.updatedBy||null;return v}
 /** Saves network settings; an autoScout change is also written to the Studio platform
  *  setting so Studio → Settings and the Scout page always agree. */
-export async function saveNetwork(getStoreFn:any,patch:any,actor:string,now:number){if(patch?.autoScout==='on'||patch?.autoScout==='off')await saveSettings(getStoreFn,{flags:{autoScout:patch.autoScout==='on'}});return editRecord(scoutStore(getStoreFn),'settings/network',(cur:any)=>{const b=cur||{};return{...b,...patch,...(patch.caps?{caps:{...(b.caps||{}),...patch.caps,retailerPagesPerDay:{...(b.caps?.retailerPagesPerDay||{}),...(patch.caps.retailerPagesPerDay||{})}}}:{}),updatedAt:new Date(now).toISOString(),updatedBy:actor}})}
+export async function saveNetwork(getStoreFn:any,patch:any,actor:string,now:number){if(patch?.autoScout==='on'||patch?.autoScout==='off')await saveSettings(getStoreFn,{flags:{autoScout:patch.autoScout==='on'}});return editRecord(scoutStore(getStoreFn),'settings/network',(cur:any)=>{const b=cur||{};return{...b,...patch,...(patch.install?{install:{...(b.install||{}),...patch.install}}:{}),...(patch.caps?{caps:{...(b.caps||{}),...patch.caps,retailerPagesPerDay:{...(b.caps?.retailerPagesPerDay||{}),...(patch.caps.retailerPagesPerDay||{})}}}:{}),updatedAt:new Date(now).toISOString(),updatedBy:actor}})}
 export async function scoutConfig(getStoreFn:any){const o=await readJSON(scoutStore(getStoreFn),'config/override');return o?.config?.retailers?o.config:scoutDefaultConfig}
 export function validateConfig(c:any){if(!c||typeof c!=='object'||typeof c.version!=='string'||!/^[\w.-]{1,40}$/.test(c.version)||!c.retailers||typeof c.retailers!=='object')fail('Cấu hình không hợp lệ.','Invalid config.');if(JSON.stringify(c).length>120000)fail('Cấu hình quá lớn.','Config too large.',413);for(const [r,x] of Object.entries<any>(c.retailers)){if(!RETAILERS.includes(r)||!Array.isArray(x.hosts))fail('Cấu hình không hợp lệ: '+r,'Invalid config: '+r)}
  // Data only: every regex string must compile; no functions can exist in JSON.
@@ -295,7 +311,7 @@ export async function studioOverview(getStoreFn:any,{now,env=process.env}:any){
  const rows=devices.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).map(d=>{const t=d.totals||{},today=dc[d.id]||{};const pages=t.pages||0;return{id:d.id,name:d.name,owner:d.owner,postcode:d.postcode,suburb:d.suburb,stores:d.stores||{},lastHeartbeat:d.lastHeartbeat,lastRunAt:d.lastRunAt,lastSemiAt:d.lastSemiAt||null,pages,prices:t.prices||0,blocked:t.blocked||0,successRate:pages?Math.round((1-(t.parseFail||0)/pages)*100)/100:null,today:{pages:today.pages||0,leased:today.leased||0,prices:today.prices||0},autoAllowed:d.autoAllowed===true,autoEnabled:d.client?.autoEnabled===true,semiEnabled:d.client?.semiEnabled!==false,signedInWarning:Object.keys(d.client?.signedIn||{}).filter(r=>d.client.signedIn[r]),storeMismatch:d.client?.storeMismatch||{},version:d.client?.version||null,configVersion:d.client?.configVersion||null,caps:effectiveCaps(d,s),schedule:d.schedule||null,status:d.revokedAt?'revoked':d.pausedUntil&&d.pausedUntil>now?(String(d.pauseReason||'').startsWith('blocked')?'blocked':'paused'):'active',pausedUntil:d.pausedUntil&&d.pausedUntil>now?new Date(d.pausedUntil).toISOString():null,pauseReason:d.pauseReason||null}});
  const retailerRows=RETAILERS.map(r=>{const h=health[r]||{},c=retailers[r]||{};return{retailer:r,label:RETAILER_LABELS[r],paused:retailerPaused(h,now),reason:retailerPaused(h,now)?h.reason:null,until:h.until?new Date(h.until).toISOString():null,successRate:h.successRate??null,samples:(h.recent||[]).length,today:{leased:c.leased||0,pages:c.pages||0,prices:c.prices||0,parseFail:c.parseFail||0,blocked:c.blocked||0,robots:c.robots||0,semiPages:c.semiPages||0},cap:s.caps.retailerPagesPerDay[r]??0}});
  const tasks=await listTasks(getStoreFn,day),byStatus:any={};for(const t of tasks)byStatus[t.status]=(byStatus[t.status]||0)+1;
- return{settings:s,devices:rows,retailers:retailerRows,trusted:Object.entries<any>(trusted).map(([username,v])=>({username,...v})),tasks:{total:tasks.length,byStatus},configVersion:cfg?.version||null,events:await listEvents(getStoreFn,{days:7,limit:40,now}),day}}
+ return{settings:s,installInfo:{...publicInstallInfo(s,env),envStoreUrl:!!validStoreUrl(env?.SCOUT_STORE_URL,'chrome'),envEdgeStoreUrl:!!validStoreUrl(env?.SCOUT_EDGE_STORE_URL,'edge')},devices:rows,retailers:retailerRows,trusted:Object.entries<any>(trusted).map(([username,v])=>({username,...v})),tasks:{total:tasks.length,byStatus},configVersion:cfg?.version||null,events:await listEvents(getStoreFn,{days:7,limit:40,now}),day}}
 export async function coverage(getStoreFn:any,{now,days=7}:any){const rows:any={},stores=new Set<string>();
  for(let d=0;d<days;d++)for(const t of await listTasks(getStoreFn,dayKey(now-d*DAY))){if(!t.itemId||t.status!=='done')continue;const col=t.retailer+' · '+t.storeLabel;stores.add(col);const row=rows[t.itemId]||(rows[t.itemId]={itemId:t.itemId,name:t.name||t.itemId,cells:{}});const prev=row.cells[col];if(!prev||prev.at<t.doneAt)row.cells[col]={at:t.doneAt,prices:t.prices||0}}
  return{columns:[...stores].sort(),rows:Object.values(rows).sort((a:any,b:any)=>String(a.name).localeCompare(String(b.name))).slice(0,300)}}

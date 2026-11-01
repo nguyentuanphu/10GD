@@ -40,6 +40,8 @@ console.log('Edge entry points executed as ES modules.');
  const zlib=require('node:zlib'),vm=require('node:vm'),crypto=require('node:crypto');
  const assets=[...sw.match(/const ASSETS\s*=\s*(\[[^;]+\]);/)![1].matchAll(/['"]\.\/([^'"]*)['"]/g)].map(m=>m[1]||'index.html');
  if(assets.some(a=>a.startsWith('artwork/')))throw Error('Artwork must not be in the lite precache list');
+ if(assets.some(a=>a.startsWith('downloads/')))throw Error('Downloads (the FamTray Scout zip) must not be precached');
+ if(!/pathname\.startsWith\('\/downloads\/'\)\)\s*return;/.test(sw))throw Error('The service worker must pass /downloads/ straight to the network');
  const wire=[...new Set(assets)].reduce((total,f)=>{const bytes=fs.readFileSync('dist/'+f);return total+(/\.(js|json|css|html|svg|webmanifest)$/.test(f)?zlib.gzipSync(bytes).length:bytes.length)},0);
  if(wire>1.5*1024*1024)throw Error('Lite precache is '+wire+' bytes on the wire; budget 1.5 MB (plus this week\'s artwork cells)');
  const pack=JSON.parse(fs.readFileSync('dist/startup-scripts.json','utf8'));

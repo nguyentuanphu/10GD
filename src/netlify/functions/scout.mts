@@ -13,7 +13,7 @@ import {getStore} from '@netlify/blobs';
 import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount} from '../lib/accounts.mjs';
 import {platformSettings,roleFor,csrfFor,writeAudit,recordEvent} from '../lib/studio.mjs';
-import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,setRetailerPause,listEvents,rate,sha,RETAILERS} from '../lib/scout.mjs';
+import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo} from '../lib/scout.mjs';
 
 const BASE_HEADERS={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const ids=(env:any)=>String(env.SCOUT_EXTENSION_IDS||'').split(',').map((x:string)=>x.trim()).filter(Boolean);
@@ -33,6 +33,8 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
 
    // ----- public parser config (data only; versioned; cacheable) -----
    if(op==='config'&&isRead){const c=await scoutConfig(getStoreFn);if(url.searchParams.get('v')===c?.version)return json({version:c.version,unchanged:true},200,{'Cache-Control':'public, max-age=300'});return json({version:c?.version||null,config:c},200,{'Cache-Control':'public, max-age=300'})}
+   // ----- public install info for the app's "Pair this computer" card (non-secret) -----
+   if(op==='public'&&isRead)return json(publicInstallInfo(settings,env),200,{'Cache-Control':'public, max-age=300'});
 
    // ----- extension (device token) -----
    const deviceOps=['pair','heartbeat','device','device-settings','tasks','results','release','block','unpair'];

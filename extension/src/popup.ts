@@ -7,6 +7,12 @@ const G:any=globalThis,SC=G.ScoutClient,UI=G.ScoutUI,T=UI.T,esc=UI.esc,$=UI.$;
 await UI.init();
 let tabRetailer:string|null=null;
 try{const [tab]=await chrome.tabs.query({active:true,currentWindow:true});const cfg=await SC.config();if(tab?.url&&/^https?:/.test(tab.url))tabRetailer=G.ScoutParse?.retailerFor?.(new URL(tab.url).hostname,cfg)||null}catch{}
+// v1.7: the store-name step happens by itself. When a supermarket page shows a store and
+// this device has no store for that retailer yet, the popup asks once: “Dùng tên này”.
+const RET=['woolworths','coles','aldi','chemist','amazon'];
+function storeAsk(st:any){const seen=st.warnings?.storesSeen||{},mine=st.device?.stores||{},ask=RET.filter(r=>seen[r]&&!mine[r]);if(!ask.length)return '';
+ return `<section class="card" aria-labelledby="h-store" data-store-ask><h2 id="h-store">${T('Cửa hàng gần nhà','Your nearby store')}</h2><p class="muted">${T('Trang siêu thị đang hiển thị cửa hàng này. Đúng cửa hàng bạn hay mua?','The supermarket site shows this store. Is it the one you shop at?')}</p>
+ ${ask.map(r=>`<div class="row store-ask"><span><strong>${esc(UI.LABEL[r])}</strong>: “${esc(seen[r])}”</span><button class="btn primary small" type="button" data-use-store="${r}">${T('Dùng tên này','Use this name')}<span class="sr-only"> ${esc(UI.LABEL[r]+' '+seen[r])}</span></button></div>`).join('')}</section>`}
 async function render(){
  const st=await SC.get(),v=st.device,paired=!!st.token,next=UI.nextRun(st),warn=UI.storeWarnings(st);
  const semi=st.lastSemi,last=st.lastRun;
@@ -14,7 +20,7 @@ async function render(){
  <header class="bar"><h1><span class="logo" aria-hidden="true">◎</span> FamTray Scout</h1><button id="lang" class="btn ghost small" type="button" lang="${UI.lang==='en'?'vi':'en'}">${UI.lang==='en'?'Tiếng Việt':'English'}</button></header>
  ${st.paused?`<p class="banner warn" role="status">${T('Đang tạm dừng — không ghi giá, không chạy tự động.','Paused — no capture and no auto runs.')}</p>`:''}
  <button id="pause" class="btn big ${st.paused?'primary':'danger'}" type="button" aria-pressed="${st.paused?'true':'false'}">${st.paused?T('▶ Tiếp tục','▶ Resume'):T('⏸ Tạm dừng tất cả','⏸ Pause everything')}</button>
- ${!paired?`<section class="card"><h2>${T('Chưa ghép nối','Not paired yet')}</h2><p>${T('Nhập mã 8 ký tự từ Studio hoặc Bếp của tôi để bắt đầu.','Enter the 8-character code from Studio or My kitchen to start.')}</p><button id="opts" class="btn primary" type="button">${T('Mở cài đặt','Open settings')}</button></section>`:`
+ ${!paired?`<section class="card"><h2>${T('Chưa ghép nối','Not paired yet')}</h2><p>${T('Mở Bếp Gia Đình trên máy này → Bếp của tôi → “Ghép ngay”. Hoặc nhập mã 8 ký tự trong Cài đặt.','Open the family kitchen app on this computer → My kitchen → “Pair now”. Or enter the 8-character code in Settings.')}</p><button id="opts" class="btn primary" type="button">${T('Mở cài đặt','Open settings')}</button></section>`:`
  <section class="card" aria-labelledby="h-semi"><h2 id="h-semi">${T('Ghi giá khi bạn xem','Capture while you browse')}</h2>
   <p class="summary" id="semi-summary" role="status">${semi?.count?esc(T(`Đã lưu ${semi.count} giá · ${semi.retailerLabel||''}${semi.store?' '+semi.store:''}`,`Saved ${semi.count} prices · ${semi.retailerLabel||''}${semi.store?' '+semi.store:''}`)):semi?.error?esc(T('Chưa gửi được: ','Not sent: ')+semi.error):T('Mở trang sản phẩm hoặc khuyến mãi của siêu thị để ghi giá.','Open a supermarket product or specials page to capture prices.')}</p>
   <label class="switch"><input type="checkbox" id="semi" ${st.semiEnabled!==false?'checked':''}><span>${T('Bật ghi giá bán tự động','Semi-auto capture on')}</span></label>
@@ -28,10 +34,13 @@ async function render(){
   <dt>${T('Bị chặn','Blocked')}</dt><dd>${(st.blockedEvents||[]).length}</dd></dl>
   ${v?.paused?`<p class="banner warn">${esc(T('Máy tạm dừng đến ','Paused until ')+UI.when(Date.parse(v.paused.until)))}</p>`:''}
  </section>`}
+ ${paired?storeAsk(st):''}
  ${warn.map((w:string)=>`<p class="banner warn" role="alert">${esc(w)}</p>`).join('')}
  <p class="foot"><button id="opts2" class="btn ghost" type="button">${T('Cài đặt & hướng dẫn','Settings & setup guide')}</button></p>`;
  $('#lang').onclick=async()=>{UI.lang=UI.lang==='en'?'vi':'en';await SC.set({lang:UI.lang});document.documentElement.lang=UI.lang;render()};
  $('#pause').onclick=async()=>{const p=!(await SC.get(['paused'])).paused;await SC.set({paused:p});if(p)chrome.runtime.sendMessage({type:'stop-run'}).catch(()=>{});render()};
+ document.querySelectorAll('[data-use-store]').forEach((b:any)=>b.addEventListener('click',async()=>{b.disabled=true;const cur=await SC.get(['device','warnings']),r=b.dataset.useStore,stores={...(cur.device?.stores||{}),[r]:cur.warnings.storesSeen[r]};
+  try{const view=await SC.api('device-settings',{stores});const w=(await SC.get(['warnings'])).warnings;w.storeMismatch[r]=false;await SC.set({device:view,warnings:w})}catch(e:any){b.disabled=false;$('#app').insertAdjacentHTML('afterbegin',`<p class="banner warn" role="alert">${esc(e.message)}</p>`)}}));
  for(const id of ['#opts','#opts2'])$(id)?.addEventListener('click',()=>chrome.runtime.openOptionsPage());
  $('#semi')?.addEventListener('change',async(e:any)=>{await SC.set({semiEnabled:e.target.checked});render()});
  $('#site')?.addEventListener('change',async(e:any)=>{const s=(await SC.get(['semiSites'])).semiSites;s[tabRetailer!]=e.target.checked;await SC.set({semiSites:s});render()});

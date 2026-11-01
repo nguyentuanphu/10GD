@@ -62,4 +62,37 @@ chrome.runtime.onMessage.addListener((msg:any,sender:any,reply:any)=>{
   // If it does not answer within 10 s the window is closed; leases then expire server-side.
   if(msg?.type==='stop-run'){await SC.set({stopRun:Date.now()});setTimeout(async()=>{const st=await SC.get(['run']);if(st.run?.windowId)try{await chrome.windows.remove(st.run.windowId)}catch{}},10000);return true}
  })().then(reply,()=>reply(null));return true});
-(globalThis as any).scoutDebug={startRun,flushSemi,heartbeat,canStart};
+// ---------- one-click pairing from the app page (v1.7) ----------
+// The app page (My kitchen → Pair this computer) may only: ping (is the extension here,
+// is it paired with THIS app) and pair (hand over a one-time code it just created). The
+// server address is ALWAYS the sender's own origin, never a value from the message. The
+// device token stays in extension storage and is never sent to the page.
+const sameServer=(a:any,b:any)=>{try{return new URL(a).origin===new URL(b).origin}catch{return false}};
+async function external(msg:any,origin:string){
+ const st=await SC.get(['token','server','device','deviceId']),here=!!st.token&&sameServer(st.server,origin);
+ const status={ok:true,app:'famtray-scout',version:SC.BUILD.version,paired:!!st.token,pairedHere:here,deviceName:here?(st.device?.name||null):null,deviceId:here?(st.deviceId||null):null};
+ if(msg?.type==='ping')return status;
+ if(msg?.type==='pair'){
+  // Already paired with this app: keep it, unless the server says the device was revoked
+  // (api() clears the token on 401 revoked), in which case pair again below.
+  if(here){try{await SC.api('device');return {...status,already:true}}catch(e:any){if(e.status!==401)return {...status,already:true}}}
+  else if(st.token)return {ok:false,app:'famtray-scout',error:'paired-elsewhere'};
+  const code=String(msg.code||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(code.length!==8)return {ok:false,app:'famtray-scout',error:'bad-code'};
+  const name=String(msg.name||'').replace(/\s+/g,' ').trim().slice(0,40)||'Chrome',postcode=/^\d{4}$/.test(String(msg.postcode||''))?String(msg.postcode):'',suburb=String(msg.suburb||'').trim().slice(0,40);
+  await SC.set({server:origin});
+  try{const r=await SC.api('pair',{code,name,postcode,suburb,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone,version:SC.BUILD.version},{token:''});
+   await SC.set({token:r.token,deviceId:r.device.id,device:r.device,pairedVia:'app'});
+   return {ok:true,app:'famtray-scout',version:SC.BUILD.version,paired:true,pairedHere:true,deviceName:r.device?.name||name,deviceId:r.device?.id||null}}
+  catch(e:any){if(!(await SC.get(['token'])).token)await SC.set({server:st.server||''});return {ok:false,app:'famtray-scout',error:e.code||'pair-failed',message:e.message}}}
+ return {ok:false,app:'famtray-scout',error:'unsupported'}}
+chrome.runtime.onMessageExternal.addListener((msg:any,sender:any,reply:any)=>{
+ const origin=sender?.origin||(()=>{try{return new URL(sender?.url).origin}catch{return ''}})();
+ if(sender?.id&&sender.id!==chrome.runtime.id||!SC.appOriginAllowed(origin)){reply({ok:false,app:'famtray-scout',error:'origin-not-allowed'});return false}
+ if(!msg||typeof msg!=='object'||JSON.stringify(msg).length>2000){reply({ok:false,app:'famtray-scout',error:'bad-message'});return false}
+ external(msg,origin).then(reply,()=>reply({ok:false,app:'famtray-scout',error:'failed'}));return true});
+// Right after install, an app tab that is waiting on the install steps (it marks its own
+// URL with ?scout-wait=1) is reloaded so the page can see the new extension and offer
+// "Pair now". Other tabs are never touched.
+async function reloadWaitingTabs(){let n=0;try{for(const t of await chrome.tabs.query({})){let u:URL;try{u=new URL(t.url||'')}catch{continue}if(u.searchParams.get('scout-wait')==='1'&&SC.appOriginAllowed(u.origin)){await chrome.tabs.reload(t.id);n++}}}catch{}return n}
+chrome.runtime.onInstalled.addListener((d:any)=>{if(d?.reason==='install')reloadWaitingTabs()});
+(globalThis as any).scoutDebug={startRun,flushSemi,heartbeat,canStart,reloadWaitingTabs,originAllowed:(o:string)=>SC.appOriginAllowed(o)};

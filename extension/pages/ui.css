@@ -48,3 +48,7 @@ legend{font-weight:600;padding:0 4px}
 .foot{margin:6px 0 0;text-align:center}
 .runner{max-width:560px;margin:40px auto}
 @media (prefers-reduced-motion:no-preference){.btn{transition:background-color .15s,border-color .15s}}
+/* v1.7: one-tap store confirmation in the popup */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.store-ask{justify-content:space-between;margin-top:6px}
+.store-ask span{flex:1 1 140px;min-width:0;overflow-wrap:anywhere}

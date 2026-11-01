@@ -1,5 +1,7 @@
 [build]
-  command = "npm run check"
+  # Production build: app checks + the FamTray Scout extension zip (dist/downloads/famtray-scout.zip,
+  # app address baked in from the hosting build's site URL). See docs/scout-store/README.md.
+  command = "npm run build:production"
   publish = "dist"
   functions = "netlify/functions"
   # AGENTS.md rule 18: the hosting provider only builds production (main, after Henry's explicit DEPLOY).
@@ -13,6 +15,12 @@
 [[headers]]
   for = "/sw.js"
   [headers.values]
+    Cache-Control = "no-cache"
+[[headers]]
+  for = "/downloads/*.zip"
+  [headers.values]
+    Content-Type = "application/zip"
+    Content-Disposition = "attachment"
     Cache-Control = "no-cache"
 [[headers]]
   for = "/*"

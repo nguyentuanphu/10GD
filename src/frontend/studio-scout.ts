@@ -100,6 +100,13 @@ function render(){
    <div class="row"><button class="btn primary" type="submit">${T('Lưu','Save')}</button></div>
   </form>
  </section>
+ <section class="card" aria-labelledby="sc-inst"><h2 id="sc-inst">${T('Cài từ cửa hàng tiện ích','Store install links')}</h2>
+  <p class="muted">${T('Khi tiện ích đã được duyệt trên Chrome Web Store / Edge Add-ons, dán đường dẫn trang tiện ích vào đây. Bếp của tôi sẽ hiện nút “Cài từ Chrome Web Store” (cài một chạm, không cần chế độ nhà phát triển). Nhớ thêm mã tiện ích của bản cửa hàng vào SCOUT_EXTENSION_IDS.','Once the extension is approved on the Chrome Web Store / Edge Add-ons, paste its listing link here. My kitchen then shows an “Install from Chrome Web Store” button (one click, no Developer mode). Also add the store build’s extension id to SCOUT_EXTENSION_IDS.')}</p>
+  <form id="sc-install" class="form"><div class="fields"><label>Chrome Web Store<input type="url" name="chrome" maxlength="300" placeholder="https://chromewebstore.google.com/detail/…" value="${esc(s.install?.chrome||'')}" ${data.installInfo?.envStoreUrl?'disabled':''}></label><label>Edge Add-ons<input type="url" name="edge" maxlength="300" placeholder="https://microsoftedge.microsoft.com/addons/detail/…" value="${esc(s.install?.edge||'')}" ${data.installInfo?.envEdgeStoreUrl?'disabled':''}></label></div>
+  ${data.installInfo?.envStoreUrl||data.installInfo?.envEdgeStoreUrl?`<p class="note">${T('Một đường dẫn đang được đặt bằng biến môi trường (SCOUT_STORE_URL / SCOUT_EDGE_STORE_URL) và được ưu tiên.','A link is set by an environment variable (SCOUT_STORE_URL / SCOUT_EDGE_STORE_URL) and takes priority.')}</p>`:''}
+  <p class="muted">${T('Mã tiện ích được nhận:','Extension ids accepted:')} <code>${esc((data.installInfo?.extensionIds||[]).join(', '))}</code></p>
+  <div class="row"><button class="btn primary" type="submit">${T('Lưu đường dẫn','Save links')}</button></div></form>
+ </section>
  <section class="card" aria-labelledby="sc-tr"><h2 id="sc-tr">${T('Người dò giá tin cậy','Trusted scouts')}</h2>
   <p class="muted">${T('Giá từ người dò tin cậy được xác nhận ngay; người khác cần đồng thuận cộng đồng. Chủ Studio luôn được tin cậy.','Prices from trusted scouts are confirmed immediately; others go through community consensus. Studio owners are always trusted.')}</p>
   <ul class="plain">${data.trusted.map((t:any)=>`<li>${esc(t.username)} <small class="muted">${esc(when(t.at))}</small> <button class="btn small" type="button" data-untrust="${esc(t.username)}">${T('Bỏ','Remove')}</button></li>`).join('')||`<li class="muted">${T('Chưa có.','None yet.')}</li>`}</ul>
@@ -120,6 +127,7 @@ function wire(){
  for(const b of host.querySelectorAll('[data-ret]'))b.onclick=()=>act('studio-retailer',{retailer:b.dataset.ret,action:b.dataset.act},T('Đã lưu.','Saved.'));
  for(const b of host.querySelectorAll('[data-dev]'))b.onclick=()=>{const id=b.dataset.dev,a=b.dataset.act;if(a==='revoke'){const why=prompt(T('Lý do thu hồi (ghi vào nhật ký kiểm tra):','Reason for revoking (written to the audit log):'));if(!why||why.trim().length<3)return;act('studio-revoke',{deviceId:id,reason:why},T('Đã thu hồi máy.','Device revoked.'));return}act('studio-device',{deviceId:id,action:a},T('Đã lưu.','Saved.'))};
  for(const b of host.querySelectorAll('[data-untrust]'))b.onclick=()=>act('studio-trusted',{username:b.dataset.untrust,grant:false},T('Đã bỏ quyền tin cậy.','Trusted scout removed.'));
+ $('#sc-install',host).onsubmit=(e:any)=>{e.preventDefault();const f=e.target,install:any={};for(const k of ['chrome','edge'])if(!f[k].disabled)install[k]=f[k].value.trim()||null;act('studio-network',{patch:{install}},T('Đã lưu đường dẫn cài đặt.','Install links saved.'))};
  $('#sc-trust',host).onsubmit=(e:any)=>{e.preventDefault();act('studio-trusted',{username:e.target.u.value.trim().toLowerCase(),grant:true},T('Đã thêm người dò giá tin cậy.','Trusted scout added.'))};
  $('#sc-form',host).onsubmit=(e:any)=>{e.preventDefault();const f=e.target,n=(k:string)=>parseInt(f[k].value,10),s=data.settings;
   const schedule=s.schedule.map((_:any,i:number)=>({days:[...f.querySelectorAll(`input[name=w${i}d]:checked`)].map((x:any)=>+x.value),start:f[`w${i}s`].value,end:f[`w${i}e`].value})).filter((w:any)=>w.days.length);

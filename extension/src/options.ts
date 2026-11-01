@@ -27,6 +27,7 @@ async function render(){
  </section>
  <section class="card" aria-labelledby="h-pair"><h2 id="h-pair">2. ${T('Ghép nối','Pairing')}</h2>
  ${paired?`<p>${esc(T('Đã ghép nối: ','Paired: ')+(v?.name||st.deviceId))} ${v?.trusted?`<span class="chip">${T('Người dò giá tin cậy','Trusted scout')}</span>`:''}</p><p class="muted">${esc(st.server)}</p><button id="unpair" class="btn danger" type="button">${T('Hủy ghép nối máy này','Unpair this device')}</button>`:`
+  <p class="muted" data-easy-pair>${T('Cách dễ nhất: mở Bếp Gia Đình trên máy này → Bếp của tôi → Kết nối gia đình → “Ghép ngay”. Hoặc nhập mã bên dưới.','Easiest: open the family kitchen app on this computer → My kitchen → Family connection → “Pair now”. Or enter a code below.')}</p>
   <form id="pair" class="form">
    <label>${T('Địa chỉ ứng dụng','App address')}<input name="server" type="url" required placeholder="https://…" value="${esc(st.server)}" autocomplete="off"><small>${T('Địa chỉ bạn dùng để mở Bếp Gia Đình (hiện cạnh mã ghép nối).','The address you open the family kitchen app at (shown next to the pairing code).')}</small></label>
    <label>${T('Mã ghép nối (8 ký tự)','Pairing code (8 characters)')}<input name="code" required minlength="8" maxlength="9" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false"></label>

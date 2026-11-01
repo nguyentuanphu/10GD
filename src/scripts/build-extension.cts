@@ -6,6 +6,15 @@
 // default-config.js and refreshed from the server as JSON only.
 // The test build ONLY adds *.scout.test hosts (mapped to 127.0.0.1 by the browser
 // test) and allows shorter pacing for fake timing; the production build never does.
+// v1.7 (no-command install): the app address is baked in from SCOUT_SERVER_ORIGIN or,
+// when unset, the hosting build's site URL (`URL`, set in production builds), so the
+// production deploy build ships a pre-configured zip at dist/downloads/famtray-scout.zip.
+// The same origin(s) go into `externally_connectable`, so the app page can ping the
+// installed extension and hand it a one-time pairing code ("Pair now"). Extra app
+// origins: SCOUT_APP_ORIGINS (comma separated, https only). The test build adds only
+// localhost / kitchen.localhost / *.scout.test test hosts. A Web Store variant without
+// the pinned `key` (the Web Store refuses it and assigns its own id) is written to
+// dist-extension-store.zip.
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib');
 const test=process.argv.includes('--test'),src='extension',compiled='dist-extension',out=test?'dist-extension-test':'dist-extension';
 const manifest=JSON.parse(fs.readFileSync(src+'/manifest.json','utf8'));
@@ -15,6 +24,15 @@ for(const f of scripts)if(!fs.existsSync(path.join(compiled,f)))throw new Error(
 if(test){fs.rmSync(out,{recursive:true,force:true});fs.mkdirSync(out,{recursive:true});for(const f of scripts)fs.copyFileSync(path.join(compiled,f),path.join(out,f))}
 // Never ship stale files from older builds.
 for(const f of fs.readdirSync(out))if(!scripts.includes(f)&&!fs.statSync(path.join(out,f)).isDirectory())fs.rmSync(path.join(out,f));
+const httpsOrigin=(v:any)=>{try{const u=new URL(String(v||'').trim());return u.protocol==='https:'&&!u.username&&!u.password?u.origin:''}catch{return ''}};
+const server=httpsOrigin(process.env.SCOUT_SERVER_ORIGIN)||httpsOrigin(process.env.URL);
+const appOrigins=[...new Set([server,...String(process.env.SCOUT_APP_ORIGINS||'').split(',').map(httpsOrigin)].filter(Boolean))];
+// Test hosts: the app pages the browser tests open (localhost is a secure context), plus
+// other.scout.test, which is deliberately connectable but NOT in the extension's own
+// allowlist, so the test proves onMessageExternal checks the sender origin itself.
+const TEST_APP_HOSTS=['localhost','kitchen.localhost','app.scout.test'];
+const matches=test?[...TEST_APP_HOSTS.map(h=>'http://'+h+'/*'),'http://other.scout.test/*',...appOrigins.map(o=>o+'/*')]:appOrigins.map(o=>o+'/*');
+if(matches.length)manifest.externally_connectable={matches};
 if(test){
  const hosts=['woolworths','coles','aldi','chemist','amazon'];
  manifest.name+=' (test build)';
@@ -24,7 +42,7 @@ if(test){
 }
 fs.writeFileSync(path.join(out,'manifest.json'),JSON.stringify(manifest,null,2));
 fs.writeFileSync(path.join(out,'default-config.js'),"'use strict';\nglobalThis.SCOUT_DEFAULT_CONFIG=Object.freeze("+JSON.stringify(config)+");\n");
-fs.writeFileSync(path.join(out,'build-info.js'),"'use strict';\nglobalThis.SCOUT_BUILD=Object.freeze("+JSON.stringify({test,version:manifest.version,configVersion:config.version,server:/^https:\/\//.test(process.env.SCOUT_SERVER_ORIGIN||'')?process.env.SCOUT_SERVER_ORIGIN:'',keepRunnerOpen:false})+");\n");
+fs.writeFileSync(path.join(out,'build-info.js'),"'use strict';\nglobalThis.SCOUT_BUILD=Object.freeze("+JSON.stringify({test,version:manifest.version,configVersion:config.version,server,appOrigins,testAppHosts:test?TEST_APP_HOSTS:[],keepRunnerOpen:false})+");\n");
 for(const f of fs.readdirSync(src+'/pages'))fs.copyFileSync(path.join(src,'pages',f),path.join(out,f));
 // ---- icons: a simple green lens, drawn as PNG without dependencies ----
 function crc32(buf:Buffer){return zlib.crc32(buf)>>>0}
@@ -45,7 +63,13 @@ function zip(dir:string,file:string){const entries:Buffer[]=[],central:Buffer[]=
  const cd=Buffer.concat(central),end=Buffer.alloc(22);end.writeUInt32LE(0x06054b50,0);end.writeUInt16LE(central.length/2,8);end.writeUInt16LE(central.length/2,10);end.writeUInt32LE(cd.length,12);end.writeUInt32LE(offset,16);
  fs.writeFileSync(file,Buffer.concat([...entries,cd,end]))}
 if(!test){zip(out,'dist-extension.zip');
- // Also served by the app (My kitchen → Pair this computer) when the deploy build runs
- // build:extension. Generated only, never committed (dist/downloads/ is gitignored).
- fs.mkdirSync('dist/downloads',{recursive:true});fs.copyFileSync('dist-extension.zip','dist/downloads/famtray-scout.zip')}
-console.log('FamTray Scout extension built: '+out+(test?' (test build)':' + dist-extension.zip')+' · version '+manifest.version+' · config '+config.version);
+ // Also served by the app (My kitchen → Pair this computer). The production deploy
+ // build (npm run build:production) runs this. Generated only, never committed
+ // (dist/downloads/ is gitignored) and never precached by the app's service worker.
+ fs.mkdirSync('dist/downloads',{recursive:true});fs.copyFileSync('dist-extension.zip','dist/downloads/famtray-scout.zip');
+ // Web Store / Edge Add-ons upload: same files, manifest without the pinned `key`.
+ const store='dist-extension-store';fs.rmSync(store,{recursive:true,force:true});fs.mkdirSync(store);
+ for(const f of fs.readdirSync(out))fs.copyFileSync(path.join(out,f),path.join(store,f));
+ const {key:_key,...storeManifest}=manifest;fs.writeFileSync(path.join(store,'manifest.json'),JSON.stringify(storeManifest,null,2));
+ zip(store,'dist-extension-store.zip')}
+console.log('FamTray Scout extension built: '+out+(test?' (test build)':' + dist-extension.zip + dist-extension-store.zip')+' · version '+manifest.version+' · config '+config.version+' · app address '+(server||'(none: typed by the user)')+(matches.length?' · connectable: '+matches.join(' '):''));
