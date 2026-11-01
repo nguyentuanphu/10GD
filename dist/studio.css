@@ -146,3 +146,27 @@ dialog::backdrop{background:#0008}
 /* === v1.7 usage start === */
 .privacy-link{color:var(--muted);font-size:13px;display:inline-flex;align-items:center;min-height:44px}
 /* === v1.7 usage end === */
+/* === v1.7.1 urgent-reasons start === */
+.tile.tile-link{cursor:pointer;transition:border-color .15s}.tile.tile-link:hover{border-color:var(--brand2)}
+.tile .tile-more{margin:8px 0 0;font-size:13px}.tile .tile-more a{display:inline-flex;align-items:center;min-height:44px;font-weight:600}
+#urgent-main .ur-totals{margin:4px 0 14px;overflow-wrap:anywhere}
+#urgent-main h2{font-size:17px;margin:18px 0 8px}
+#urgent-main .ur-reasons,#urgent-main .ur-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+#urgent-main .ur-reasons{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+#urgent-main .ur-reasons li{display:flex;gap:12px;align-items:flex-start;min-width:0}
+#urgent-main .ur-n{font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--bad);min-width:2ch}
+#urgent-main .ur-reasons p,#urgent-main .ur-row p{margin:4px 0;overflow-wrap:anywhere}
+#urgent-main .ur-row{min-width:0}
+#urgent-main .ur-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+#urgent-main .ur-when{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+#urgent-main .ur-dev{font-size:13.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+#urgent-main .ur-fix{border-left:3px solid var(--accent);padding:2px 0 2px 10px}
+#urgent-main .ur-act{margin-top:8px}
+#urgent-main .ur-act .btn,#urgent-main .pager .btn{min-height:44px}
+#urgent-main .pager{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+#urgent-main .ur-family{margin-top:16px}
+#urgent-main .ur-family .ur-row{border-top:1px solid var(--line);padding:10px 0}
+#urgent-main .ur-recips{margin:4px 0;padding-left:18px;overflow-wrap:anywhere}
+#urgent-main .filters select{min-height:44px}
+@media (prefers-reduced-motion:reduce){.tile.tile-link{transition:none}}
+/* === v1.7.1 urgent-reasons end === */

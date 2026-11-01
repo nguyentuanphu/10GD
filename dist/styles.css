@@ -982,3 +982,6 @@ html[data-theme="dark"] .offline-pack-warn{color:#f3c98b}
 .account-sheet .account-part>h3{margin:0 0 8px;font-size:1rem}
 .settings-group-title{margin:18px 0 6px;font-size:1rem;color:var(--muted)}
 /* === v1.7.1 voice-settings end === */
+/* === v1.7.1 urgent-reasons start === */
+.urgent-message .urgent-fix{display:block;margin-top:4px;padding-left:8px;border-left:3px solid var(--accent,#b8643a);overflow-wrap:anywhere}
+/* === v1.7.1 urgent-reasons end === */

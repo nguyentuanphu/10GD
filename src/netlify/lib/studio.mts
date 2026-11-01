@@ -5,6 +5,7 @@
 import {randomBytes,randomUUID,createHash,scrypt,timingSafeEqual} from 'node:crypto';
 import {promisify} from 'node:util';
 import {accountStore,editRecord} from './accounts.mjs';
+import {alertRow} from './urgent-report.mjs';
 const derive=promisify(scrypt);
 export const sha256=(x:string)=>createHash('sha256').update(x).digest('hex');
 const REGION={consistency:'strong',region:'ap-southeast-2'} as const;
@@ -189,7 +190,7 @@ export async function scanFamily(getStoreFn:any,family:any,{withState=true,photo
  const [sizes,devices,alerts]=await Promise.all([mapLimit(photoKeys.slice(0,photoSample),limit,k=>readSize(root,k,'arrayBuffer')),mapLimit(deviceKeys,limit,k=>readJSON(root,k)),mapLimit(alertKeys.slice(0,300),limit,k=>readJSON(root,k))]);
  out.photos=photoKeys.length;for(const s of sizes){out.photoBytes+=s.bytes;out.photoSampled++}if(out.photoSampled&&out.photos>out.photoSampled)out.photoBytes=Math.round(out.photoBytes/out.photoSampled*out.photos);
  for(const d of devices)if(d)out.devices.push({deviceId:String(d.deviceId||'').slice(-6),platform:platformFromEndpoint(d.subscription?.endpoint),endpoint:maskEndpoint(d.subscription?.endpoint),account:d.accountUsername||null,linked:!!d.accountUsername&&family.members?.[d.accountUsername]?.memberId===d.memberId,language:d.language||'vi',role:d.role||'both',typesOn:Object.values(d.types||{}).filter(Boolean).length,urgentBypass:d.urgentBypass===true,quiet:(d.quietStart||'21:00')+'–'+(d.quietEnd||'07:00')});
- for(const a of alerts)if(a)out.alerts.push({day:String(a.createdAt||'').slice(0,10),pushStatus:a.pushStatus||'unknown',accepted:a.pushAccepted||0,targets:(a.targets||[]).length});
+ for(const a of alerts)if(a)out.alerts.push(alertRow(a));
  const row:any=await state;if(row?.data){try{const st=row.data;out.revision=row.etag?String(row.etag).slice(-8):null;out.stateBytes=Buffer.byteLength(JSON.stringify(st));out.members=(st.members||[]).length;const recipes=Array.isArray(st.recipes)?st.recipes:[];out.recipes={total:recipes.length,family:recipes.filter((r:any)=>r?.custom===true).length,catalog:recipes.filter((r:any)=>r?.custom!==true).length};out.counts={weeks:Object.keys(st.weeks||{}).length,pantry:(st.pantry||[]).length,receipts:(st.receipts||[]).length,errands:(st.errands||[]).length};const p=st.preferences||{};out.preferences={timezone:p.timezone||'Australia/Sydney',currency:p.currency||'AUD',attendanceTime:p.attendanceTime||'10:30',prepReminderTime:p.prepReminderTime||'17:00',shoppingReminderTime:p.shoppingReminderTime||'09:00'}}catch{}}
  for(const o of await obs as any[])if(o)out.observations+=Array.isArray(o)?o.length:Array.isArray(o.observations)?o.observations.length:0;
  return out;
