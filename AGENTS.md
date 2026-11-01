@@ -23,3 +23,9 @@ This is an agent workflow rule, not a claim that GitHub branch protection or hos
 11. Never name the hosting/storage infrastructure vendor in user-facing UI copy, status labels, help, notification text or assistant explanations. Use plain product language such as “Đồng bộ gia đình”, “Dữ liệu trực tuyến”, “Đã kết nối” and “Đồng bộ ngay”. Keep required SDK imports, API paths and deployment configuration internal; do not rewrite user-authored data or invent a custom domain.
 12. Keep family connection and owner invitations easy to find. Sign-up must accept a valid invitation code/link and connect the recipient after registration; preserve normal account-free device use. Never silently merge device-only and shared-family data.
 13. Prominent animated controls must respect prefers-reduced-motion and retain readable labels and accessible focus/touch targets.
+
+## Continuous integration — owner instruction, 1 November 2026
+
+14. Every test suite must run on GitHub. The `CI` workflow (`.github/workflows/ci.yml`) runs `npm run test:all` — build and static checks, typecheck, all unit/integration suites and every browser suite — on every pull request and every push. Any new suite must be added to `test:all` so CI runs it.
+15. A release is not ready for review, and deploy approval must not be requested, until the `CI` workflow has passed on the exact head commit of its PR. Report the run link with the release evidence. Local or sandbox test runs are supporting evidence only and do not replace GitHub CI.
+16. Never skip, disable, weaken or quarantine a test, step or workflow to obtain a green run. Fix the cause, or report the failure and its blocker to Henry. A green CI run is not deploy approval; rules 1–5 and 10 still apply.

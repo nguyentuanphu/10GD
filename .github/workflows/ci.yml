@@ -1,0 +1,51 @@
+name: CI
+
+# Runs every test suite (build, static checks, typecheck, unit/integration and all
+# browser suites) on GitHub for every pull request and every push. Required by
+# AGENTS.md rule 14. This workflow never deploys anything.
+on:
+  pull_request:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-all:
+    name: npm run test:all
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Resolve the synthetic test host
+        run: echo "127.0.0.1 kitchen.localhost" | sudo tee -a /etc/hosts
+
+      - name: Run every suite
+        run: npm run test:all
+
+      - name: Upload review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-screenshots
+          path: docs/reviews/**/*.png
+          if-no-files-found: ignore
+          retention-days: 14
