@@ -4,7 +4,7 @@
 // Verifies: options-page pairing, semi-auto capture + badge + popup summary on a
 // fixture page, auto mode visiting tasks one at a time with pacing, robots.txt skip,
 // and that a challenge page stops the run and pauses the device for 24 h.
-// Saves popup/options screenshots to docs/reviews/v1.6/auto-scout/.
+// Saves popup/options screenshots to docs/reviews/v1.7/easy-scout/extension/ (v1.6 evidence stays as recorded).
 // v1.7 easy install: the REAL app page (served on http://kitchen.localhost, a test-build
 // externally_connectable host) detects the installed extension, "Pair now" pairs it in
 // one click through the real scout handler (device appears, the token never reaches the
@@ -19,7 +19,7 @@ import {createServer} from 'node:http';
 import {join,resolve,extname} from 'node:path';
 import {tmpdir} from 'node:os';
 import {chromium} from 'playwright';
-const out='docs/reviews/v1.6/auto-scout';mkdirSync(out,{recursive:true});
+const out='docs/reviews/v1.7/easy-scout/extension';mkdirSync(out,{recursive:true});
 const ext=resolve('dist-extension-test');
 const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=Date.now()+ms;let last:any;while(Date.now()<end){last=await fn();if(last)return last;await sleep(250)}throw new Error('Timed out waiting for '+label)}
