@@ -55,3 +55,26 @@ html[data-festival="tet"]:not([data-theme="dark"]){--green:#9e2a2b;--green2:#b83
 .ingredient-sheet-4,.dish-sheet-2{background-repeat:no-repeat;background-size:400% 400%;background-position:var(--art-x) var(--art-y)}.ingredient-sheet-4{background-image:url(artwork/ingredients-v4.webp)}.dish-sheet-2{background-image:url(artwork/dishes-v2.webp)}
 /* Keep recipe summaries and meal actions readable in both themes. */
 .recipe-detail-hero{background:var(--cream);color:var(--text)}.recipe-detail-hero small{color:var(--muted)}html[data-theme="dark"] .recipe-card .btn.soft{background:var(--mint);color:var(--text);border-color:var(--line)}
+
+/* === v1.5 voice start === */
+.voice-intro{font-size:16px;line-height:1.5}
+.voice-live{display:flex;align-items:center;gap:10px;font-size:19px;margin:6px 0 10px;color:var(--text)}
+.voice-dot{width:14px;height:14px;border-radius:50%;background:var(--muted);flex:none}
+.voice-live[data-mode="listening"] .voice-dot{background:#c62828;box-shadow:0 0 0 0 #c6282855;animation:voicePulse 1.4s ease-in-out infinite}
+.voice-live[data-mode="blocked"] .voice-dot{background:var(--orange)}
+@keyframes voicePulse{0%,100%{box-shadow:0 0 0 0 #c6282855}50%{box-shadow:0 0 0 9px #c6282800}}
+#voice-text.voice-transcript{font-size:20px;line-height:1.5;min-height:7.5em;width:100%;box-sizing:border-box}
+.voice-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.voice-controls .btn,.voice-controls select{min-height:48px}
+.voice-stop-big,.voice-continue-big{font-size:19px;font-weight:750;min-height:56px;padding:12px 24px;min-width:150px}
+.voice-controls .btn.voice-stop-big,html[data-theme="dark"] .voice-controls .btn.voice-stop-big{background:#b3261e;border-color:#b3261e;color:#fff}
+.voice-stop-big:focus-visible,.voice-continue-big:focus-visible{outline:3px solid var(--green2);outline-offset:3px}
+.voice-controls .btn.voice-continue-big,html[data-theme="dark"] .voice-controls .btn.voice-continue-big{background:var(--green);border-color:var(--green);color:#fff}
+.voice-slow{display:inline-flex;align-items:center;gap:8px;min-height:48px;font-size:16px;cursor:pointer}
+.voice-controls [hidden]{display:none!important}
+.voice-item.needs-review .voice-qty:placeholder-shown,.voice-item.needs-review .voice-unit:placeholder-shown{border-color:#c87649;background:#fff6ee}
+html[data-theme="dark"] .voice-item.needs-review .voice-qty:placeholder-shown,html[data-theme="dark"] .voice-item.needs-review .voice-unit:placeholder-shown{background:#2d241c;border-color:#e08e5d}
+html[data-theme="dark"] .voice-controls .btn.voice-continue-big{color:#0f1a15}
+@media(max-width:560px){.voice-controls{flex-direction:column;align-items:stretch}.voice-controls>*{width:100%;box-sizing:border-box}.voice-controls select{width:100%!important}}
+@media(prefers-reduced-motion:reduce){.voice-live[data-mode="listening"] .voice-dot{animation:none;box-shadow:0 0 0 4px #c6282844}}
+/* === v1.5 voice end === */
