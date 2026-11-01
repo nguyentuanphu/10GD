@@ -58,6 +58,8 @@ const dim=(s:string)=>`${sizes[s].width}x${sizes[s].height}`;
  }
  const bug=(page:any)=>page.locator('#ladybug');
  const box=async(page:any)=>(await bug(page).boundingBox())!;
+ // Wait until the bug has finished any entrance/placement movement (two equal boxes 150 ms apart).
+ const settled=async(page:any)=>{let a=await box(page);for(let i=0;i<40;i++){await page.waitForTimeout(150);const c=await box(page);if(Math.abs(c.x-a.x)<0.5&&Math.abs(c.y-a.y)<0.5)return c;a=c}return a};
  const openSheet=async(page:any)=>{await bug(page).click();await page.waitForSelector('.lb-sheet')};
 
  // ---------- 1. visible / hidden per mode and role ----------
@@ -70,9 +72,9 @@ const dim=(s:string)=>`${sizes[s].width}x${sizes[s].height}`;
 
  // ---------- 2. drag / snap / reset / tuck away / safe areas ----------
  {const {context,page,errors}=await openApp({who:'tina',size:'mobile'});await bug(page).waitFor();
-  let b=await box(page);const nav=await page.locator('.sidebar').boundingBox();assert.ok(b.y+b.height<=nav!.y-7,'default above the bottom navigation');assert.ok(b.width>=44&&b.height>=44,'≥44 px');assert.ok(b.x+b.width<=375-7,'inside the right edge');
-  await page.mouse.move(b.x+26,b.y+26);await page.mouse.down();await page.mouse.move(150,300,{steps:8});await page.mouse.move(120,320,{steps:4});await page.mouse.up();await page.waitForTimeout(350);
-  b=await box(page);assert.ok(b.x<=10,'snapped to the left side: '+b.x);assert.ok(Math.abs(b.y-294)<12,'kept the height: '+b.y);
+  let b=await settled(page);const nav=await page.locator('.sidebar').boundingBox();assert.ok(b.y+b.height<=nav!.y-7,'default above the bottom navigation');assert.ok(b.width>=44&&b.height>=44,'≥44 px');assert.ok(b.x+b.width<=375-7,'inside the right edge');
+  await page.mouse.move(b.x+26,b.y+26);await page.mouse.down();await page.mouse.move(150,300,{steps:8});await page.mouse.move(120,320,{steps:4});await page.mouse.up();await page.waitForFunction(()=>{const r=document.querySelector('#ladybug')?.getBoundingClientRect();return !!r&&r.x<=10},null,{timeout:3000}).catch(()=>{});
+  b=await settled(page);assert.ok(b.x<=10,'snapped to the left side: '+b.x);assert.ok(Math.abs(b.y-294)<12,'kept the height: '+b.y);
   const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('bep-ladybug-pos')||'null'));assert.equal(saved.side,'left');
   assert.equal(await page.locator('.lb-sheet').count(),0,'a drag never opens the sheet');
   // drag far down: never over the navigation
