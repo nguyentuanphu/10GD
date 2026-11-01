@@ -1234,3 +1234,34 @@ html[data-theme="dark"] .mr-reasons .chip.mr-chip[aria-pressed="true"]{color:var
 .mr-wrap{container-type:inline-size}
 @container (max-width:220px){.mr-bar{gap:4px}.mr-btn{min-width:44px;padding:4px 7px;gap:3px;font-size:14px}.mr-who{min-width:44px;padding:4px 6px;justify-content:center}.mr-who .mr-avatars{display:none}.mr-who-label{font-size:12px}.mr-reasons .chip.mr-chip{width:100%;justify-content:flex-start;font-size:12px;padding:6px 10px}.mr-reason-wrap{flex-direction:column-reverse;align-items:stretch}.mr-close{align-self:flex-end}}
 /* === v1.7.1 menu-reactions end === */
+/* === v1.7.1 receipt-ocr start === */
+.receipt-warnings{display:grid;gap:6px;margin:8px 0 12px}
+.receipt-warning{margin:0;padding:9px 11px;border-radius:8px;background:#fff4e0;border:1px solid #f0d3a2;color:#6b4a12;font-size:12px;line-height:1.4}
+.receipt-warning-refund,.receipt-warning-non-aud{background:#eef3fb;border-color:#c6d4ec;color:#23406b}
+.receipt-from-scout{margin:6px 0}
+.receipt-line-hint{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 0;padding:0}
+.receipt-line-hint span{font-size:11px;line-height:1.3;padding:3px 7px;border-radius:999px;background:#f0eddf;color:#5d5340;overflow-wrap:anywhere}
+.receipt-line-discount,.receipt-line-surcharge,.receipt-line-rounding{background:#f7f6f0;border-style:dashed}
+.reconcile-list{display:grid;gap:8px;margin:10px 0}
+.reconcile-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:8px;align-items:center;min-height:52px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--white)}
+.reconcile-row .check{width:22px;height:22px;justify-self:center}
+.reconcile-name{min-width:0}.reconcile-name b{display:block;font-size:14px}.reconcile-name small{display:block;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.reconcile-status{font-size:12px;font-weight:700;padding:4px 8px;border-radius:999px;background:var(--mint);color:var(--green);text-align:right;max-width:150px}
+.reconcile-short .reconcile-status{background:#fff1df;color:#8a4b14}
+.reconcile-extra .reconcile-status,.reconcile-enough-extra .reconcile-status{background:#eef3fb;color:#23406b}
+.reconcile-unknown ul{margin:6px 0 0;padding-left:18px;font-size:12px}
+.receipt-dup-modal .modal-footer,.reconcile-modal .modal-footer{flex-wrap:wrap}
+.receipt-dup-modal .modal-footer .btn,.reconcile-modal .modal-footer .btn,.receipt-modal .modal-footer .btn{min-height:44px}
+.receipt-undo{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 24px);padding:8px 10px 8px 14px;border-radius:12px;background:var(--green);color:#fff;box-shadow:var(--shadow);font-size:13px}
+.receipt-undo .btn{min-height:44px;background:#fff;color:var(--green);border-color:#fff}
+@media(min-width:900px){.receipt-undo{bottom:24px}}
+@media(max-width:420px){.reconcile-row{grid-template-columns:44px minmax(0,1fr)}.reconcile-status{grid-column:2;justify-self:start;text-align:left}}
+html[data-theme="dark"] .receipt-warning{background:var(--warn-surface,#2e2717);border-color:#5a4a26;color:#f1d9a6}
+html[data-theme="dark"] .receipt-warning-refund,html[data-theme="dark"] .receipt-warning-non-aud{background:#1c2636;border-color:#33465f;color:#c9dbf5}
+html[data-theme="dark"] .receipt-line-hint span{background:var(--surface-3,#26372e);color:var(--text)}
+html[data-theme="dark"] .reconcile-row{background:var(--surface-2,#1f2d26);border-color:var(--border-strong,#34473d)}
+html[data-theme="dark"] .reconcile-short .reconcile-status{background:#3a2a17;color:#f3c48e}
+html[data-theme="dark"] .reconcile-extra .reconcile-status,html[data-theme="dark"] .reconcile-enough-extra .reconcile-status{background:#1c2636;color:#c9dbf5}
+html[data-theme="dark"] .receipt-line-discount,html[data-theme="dark"] .receipt-line-surcharge,html[data-theme="dark"] .receipt-line-rounding{background:var(--surface,#18221d)}
+@media(prefers-reduced-motion:reduce){.receipt-undo{transition:none}}
+/* === v1.7.1 receipt-ocr end === */
