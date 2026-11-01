@@ -1170,3 +1170,67 @@ html[data-theme="dark"] .lb-btn.lb-danger{color:#ff9d8f}
 html[data-theme="dark"] .lb-field textarea[aria-invalid=true]{border-color:#ff8a7a}
 .lb-sheet:focus{outline:none}
 /* === v1.7.1 ladybug end === */
+/* === v1.7.1 menu-reactions start === */
+.mr-wrap{display:flex;flex-direction:column;gap:6px;margin:2px 0 10px;padding-left:4px;min-width:0}
+.mr-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+.mr-btn{min-height:44px;min-width:56px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:6px 12px;border:1px solid var(--line);border-radius:22px;background:var(--white);color:var(--text);font-size:15px;line-height:1;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,transform .15s ease}
+.mr-btn .mr-count{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;min-width:1ch}
+.mr-btn:hover{border-color:var(--green2)}
+.mr-btn:active{transform:scale(.94)}
+.mr-like[aria-pressed="true"]{background:var(--mint);border-color:var(--green2);color:var(--green);box-shadow:inset 0 0 0 1px var(--green2)}
+.mr-dislike[aria-pressed="true"]{background:#fbeee6;border-color:var(--orange);color:#8a4a26;box-shadow:inset 0 0 0 1px var(--orange)}
+html[data-theme="dark"] .mr-dislike[aria-pressed="true"]{background:#3a2a20;color:#f4c3a4}
+html[data-theme="dark"] .mr-like[aria-pressed="true"]{color:var(--accent-ink,#86d6b2)}
+.mr-who{min-height:44px;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px dashed var(--line);border-radius:22px;background:transparent;color:var(--muted);font-size:13px;cursor:pointer;max-width:100%}
+.mr-who:hover{color:var(--text);border-color:var(--green2)}
+.mr-avatars{display:inline-flex;align-items:center;flex-wrap:wrap;gap:2px}
+.mr-av{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 4px;border-radius:12px;font-size:11px;font-weight:700;background:var(--cream);color:var(--text);border:1px solid var(--line)}
+.mr-av.like{background:var(--mint);color:var(--green);border-color:var(--green2)}
+.mr-av.dislike{background:#fbeee6;color:#8a4a26;border-color:var(--orange)}
+html[data-theme="dark"] .mr-av.dislike{background:#3a2a20;color:#f4c3a4}
+html[data-theme="dark"] .mr-av.like{color:var(--accent-ink,#86d6b2)}
+.mr-av.small{min-width:22px;height:22px;font-size:10px}
+.mr-reason-wrap{display:flex;align-items:flex-start;gap:4px;min-width:0}
+.mr-reasons{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;flex:1}
+.mr-reasons-label{font-size:12px;color:var(--muted);width:100%}
+.mr-reasons .chip.mr-chip{font-size:13px;min-height:44px;min-width:44px;padding:8px 12px}
+.mr-close{min-width:44px;min-height:44px}
+.mr-why{display:block;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.mr-panel .hint{margin-bottom:10px}
+.mr-dish-name{margin-bottom:6px}
+.mr-as{margin-bottom:10px}
+.mr-person{border-top:1px solid var(--line);padding:8px 0;display:flex;flex-direction:column;gap:6px}
+.mr-person-head{display:flex;align-items:center;gap:10px;min-width:0}
+.mr-avatar{font-size:22px;flex:none;width:32px;text-align:center}
+.mr-pname{display:flex;flex-direction:column;min-width:0;flex:1;overflow-wrap:anywhere}
+.mr-person-btns{display:flex;gap:6px;flex:none}
+.mr-person-btns .mr-btn{min-width:48px}
+.mr-recipe{margin:16px 0;padding-top:12px;border-top:1px solid var(--line)}
+.mr-tastes{margin-bottom:18px}
+.mr-summary{font-weight:550}
+.mr-tastes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px}
+.mr-tastes h3{margin-bottom:6px}
+.mr-list{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.mr-row{overflow-wrap:anywhere}
+.mr-row-meta{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;margin-left:6px}
+.mr-tally{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mr-dish-link{min-height:44px;padding:0;text-align:left;font-weight:550;color:var(--green);background:none;border:0;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+html[data-theme="dark"] .mr-dish-link{color:var(--accent-ink,#86d6b2)}
+.mr-members{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}
+.mr-member{border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-width:0}
+.mr-member h4{margin:0 0 4px;font-size:14px}
+.mr-member p{margin:2px 0;overflow-wrap:anywhere}
+.mr-patterns{display:flex;flex-wrap:wrap;gap:6px}
+@media (prefers-reduced-motion:reduce){.mr-btn{transition:none}.mr-btn:active{transform:none}}
+.mr-reasons .chip.mr-chip[aria-pressed="true"]{background:var(--mint);border-color:var(--green2);color:var(--green)}
+.mr-reasons .chip.mr-chip[aria-pressed="true"]::before{content:"✓";font-weight:700;margin-right:4px}
+html[data-theme="dark"] .mr-reasons .chip.mr-chip[aria-pressed="true"]{color:var(--accent-ink,#86d6b2)}
+.mr-list{list-style:none;padding-left:0}
+.mr-list .mr-row{display:flex;flex-wrap:wrap;align-items:center;gap:0 10px;border-bottom:1px solid var(--line)}
+.mr-list .mr-row:last-child{border-bottom:0}
+.mr-list .mr-row-meta{margin-left:0}
+.mr-member .mr-dish-link{min-height:0;display:inline;vertical-align:baseline}
+/* The desktop week grid has ~140px day columns: compact bar, one row, reasons stacked (no clipping). */
+.mr-wrap{container-type:inline-size}
+@container (max-width:220px){.mr-bar{gap:4px}.mr-btn{min-width:44px;padding:4px 7px;gap:3px;font-size:14px}.mr-who{min-width:44px;padding:4px 6px;justify-content:center}.mr-who .mr-avatars{display:none}.mr-who-label{font-size:12px}.mr-reasons .chip.mr-chip{width:100%;justify-content:flex-start;font-size:12px;padding:6px 10px}.mr-reason-wrap{flex-direction:column-reverse;align-items:stretch}.mr-close{align-self:flex-end}}
+/* === v1.7.1 menu-reactions end === */
