@@ -552,3 +552,57 @@ html[data-theme="dark"] .unit-chip[aria-pressed="true"]{color:var(--accent-ink,#
 .qty .unit-qty{flex-wrap:wrap;justify-content:center;row-gap:2px}
 @media (prefers-reduced-motion:no-preference){.unit-chip{transition:background-color .15s ease,border-color .15s ease}}
 /* === v1.5 units end === */
+/* === v1.6 voice-commands start === */
+/* Voice commands: preview cards, "Means" ingredient control, read-back/confirm strip, mic meter, noise hint,
+   push-to-talk and settings (AGENTS.md rules 8 and 13: 44px targets, focus, reduced motion). */
+.voice-map-wrap{grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);margin:2px 0 0}
+.voice-map-wrap>span{flex:none;white-space:nowrap}
+.voice-map-wrap .voice-map{flex:1 1 auto;min-width:0;width:100%;min-height:44px;font-size:16px;padding:8px}
+.voice-learned-tag{grid-column:2/-1;color:var(--green);font-size:13px;font-weight:650}
+.voice-readback-box{margin:0 0 12px}
+.voice-readback{font-size:16px;line-height:1.5;margin:0 0 6px;overflow-wrap:anywhere}
+.voice-confirm-live{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:10px 12px;border-radius:12px;border:2px solid var(--green);background:var(--mint);color:var(--text);font-size:16px}
+.voice-confirm-live[hidden]{display:none}
+.voice-confirm-live .voice-dot{background:#c62828}
+.voice-confirm-live .btn{min-height:44px;font-size:15px}
+.voice-cards{display:grid;gap:12px}
+.voice-card{border:1px solid var(--line);border-radius:12px;padding:10px 14px 12px;background:var(--white);min-width:0}
+.voice-card-head{display:flex;align-items:center;gap:10px;min-height:44px;font-size:17px}
+.voice-card-include{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;flex:1;min-width:0}
+.voice-card-include b{overflow-wrap:anywhere}
+.voice-card-icon{font-size:22px;line-height:1;flex:none}
+.voice-card-rows{border:0;padding:0;margin:6px 0;min-width:0}
+.voice-card-rows legend{font-weight:700;padding:0;margin-bottom:2px}
+.voice-card .checked-label{display:flex;align-items:center;gap:8px;min-height:44px;font-size:16px;overflow-wrap:anywhere}
+.voice-card .field select,.voice-card .field input,.voice-card .field textarea{min-height:44px;font-size:16px;max-width:100%}
+.voice-card .form-grid{min-width:0}
+.voice-card-mode{display:flex;flex-wrap:wrap;gap:0 16px}
+.voice-answer{font-size:18px;line-height:1.5;margin:6px 0;overflow-wrap:anywhere}
+.voice-card-answer{border-color:var(--green)}
+.voice-card-urgent{border-color:#c87649}
+.voice-meter{display:inline-block;flex:none;width:96px;height:12px;border-radius:7px;background:var(--line);overflow:hidden;margin-left:4px}
+.voice-meter[hidden]{display:none}
+.voice-meter-bar{display:block;height:100%;width:calc(var(--level,0) * 100%);background:var(--green);border-radius:7px}
+@media (prefers-reduced-motion:no-preference){.voice-meter-bar{transition:width 90ms linear}}
+.voice-noise-hint{margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid #c87649;background:#fff6ee;color:var(--text);font-size:16px;font-weight:650}
+.voice-noise-hint[hidden]{display:none}
+.voice-readback-toggle{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:15px;cursor:pointer}
+.voice-settings{margin:10px 0 0;border:1px solid var(--line);border-radius:12px;padding:0 12px}
+.voice-settings>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:700;font-size:16px}
+.voice-settings>summary:focus-visible{outline:3px solid var(--green2);outline-offset:2px}
+.voice-settings h4{margin:12px 0 4px;font-size:16px}
+.voice-opt{display:flex;align-items:center;gap:8px;min-height:44px;font-size:15px;cursor:pointer}
+.voice-learned{list-style:none;padding:0;margin:0}
+.voice-learned li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid var(--line);font-size:15px;overflow-wrap:anywhere}
+.voice-learned li>span{min-width:0}
+.voice-learned .btn{min-height:44px;min-width:64px;font-size:14px;flex:none}
+[data-vc-ptt]{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+[data-vc-ptt][aria-pressed="true"]{outline:4px solid #c62828;outline-offset:3px}
+html[data-theme="dark"] .voice-card{background:var(--surface,#18221d)}
+html[data-theme="dark"] .voice-noise-hint{background:#2d241c;border-color:#e08e5d}
+html[data-theme="dark"] .voice-learned-tag{color:var(--green2)}
+@media(max-width:560px){.voice-card{padding:8px 10px 10px}.voice-card-head{font-size:16px}.voice-map-wrap{font-size:13px}}
+.modal:has(#voice-text,.voice-cards,#voice-shopping-form,#voice-meal-form) .modal-footer .btn{min-height:48px;font-size:16px;padding:10px 18px}
+.voice-item.voice-item-pantry{grid-template-columns:minmax(0,1fr) 72px 84px}
+.voice-item-pantry .voice-warning,.voice-item-pantry .voice-heard{grid-column:1/-1}
+/* === v1.6 voice-commands end === */
