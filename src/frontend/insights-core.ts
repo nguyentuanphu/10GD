@@ -21,9 +21,9 @@ function historyRecipeAdjustment(s,r,date=sydneyDate()){
 }
 function recipeSuggestions(s,{date=sydneyDate(),category=null,exclude=[],limit=4}={}){
  const ranked=s.recipes.filter(r=>r.recipeKind!=='dressing'&&(!s.preferences.familyPlanner||r.custom||r.origin==='family')&&(!category||r.category===category)&&!exclude.includes(r.id)&&r.ingredients.length&&r.time<=s.preferences.maxTime&&allowedRecipe(r,s)&&s.recipeFeedback?.[r.id]?.rating!=='skip').map(r=>{
-  const h=recipeHistory(s,r.id,date),owned=r.ingredients.filter(i=>s.pantry.some(p=>p.ingredient===i.id&&p.qty>0&&(!p.expiry||p.expiry>=date))).length;
+  const h=recipeHistory(s,r.id,date),owned=r.ingredients.filter(i=>!PANTRY_STAPLE_IDS.has(i.id)&&s.pantry.some(p=>p.ingredient===i.id&&p.qty>0&&(!p.expiry||p.expiry>=date))).length;
   const expiring=r.ingredients.filter(i=>s.pantry.some(p=>p.ingredient===i.id&&p.qty>0&&p.expiry>=date&&p.expiry<=addDays(date,2))).length;
-  return{recipe:r,history:h,owned,expiring,score:historyRecipeAdjustment(s,r,date)+owned*2+expiring*3+(r.favorite?2:0)-recipeCost(r)*.04};
+  return{recipe:r,history:h,owned,expiring,score:historyRecipeAdjustment(s,r,date)+owned*2+expiring*3+(r.favorite?2:0)-scoringRecipeCost(r)*.04};
  }).sort((a,b)=>b.score-a.score||a.recipe.id.localeCompare(b.recipe.id));
  const picks=[];while(ranked.length&&picks.length<limit){ranked.sort((a,b)=>{const adjusted=x=>x.score-picks.filter(p=>p.recipe.protein===x.recipe.protein).length*5-picks.filter(p=>p.recipe.category===x.recipe.category).length*3;return adjusted(b)-adjusted(a)||a.recipe.id.localeCompare(b.recipe.id)});picks.push(ranked.shift())}return picks;
 }
