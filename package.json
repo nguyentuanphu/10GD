@@ -10,11 +10,11 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.frontend.json && tsc -p tsconfig.bootstrap.json && node .compiled/scripts/build.cjs",
     "typecheck": "tsc -p tsconfig.bootstrap.json --noEmit && tsc -p tsconfig.auth-email.json --noEmit",
     "check": "npm run build && node scripts/check.cjs",
-    "test": "node tests/core.test.cjs && node tests/spending.test.cjs && node tests/backend.test.mjs && node tests/units-catalog.test.cjs && node tests/push.test.mjs && node tests/insights-products.test.cjs && node tests/family-menu.test.cjs && node tests/access-calendar.test.mjs && node tests/accounts.test.mjs && node tests/personal.test.cjs && node tests/voice.test.cjs && node tests/voice-commands.test.cjs && node tests/offline.test.mjs && node tests/email-recovery.test.mjs && node tests/family-invitations.test.mjs && node tests/notifications.test.mjs && node tests/artwork.test.cjs && node tests/western-catalog.test.cjs && node tests/plant-catalog.test.cjs && node tests/catalog-fixes.test.cjs && node tests/catalog-filters.test.cjs && node tests/price-scout.test.cjs && node tests/grocery-api.test.mjs && node tests/studio.test.mjs && node tests/studio-hooks.test.mjs && node tests/studio-speed.test.mjs && node tests/community-prices.test.mjs && node tests/community-rewards.test.mjs && node tests/units-registry.test.cjs && node tests/voice-price.test.cjs && node tests/voice-recipe.test.cjs && node tests/voice-local.test.cjs && node tests/voice-vietlish.test.cjs && node tests/voice-stats-client.test.cjs && node tests/voice-stats.test.mjs",
+    "test": "node tests/core.test.cjs && node tests/spending.test.cjs && node tests/backend.test.mjs && node tests/units-catalog.test.cjs && node tests/push.test.mjs && node tests/insights-products.test.cjs && node tests/family-menu.test.cjs && node tests/access-calendar.test.mjs && node tests/accounts.test.mjs && node tests/personal.test.cjs && node tests/voice.test.cjs && node tests/voice-commands.test.cjs && node tests/offline.test.mjs && node tests/email-recovery.test.mjs && node tests/family-invitations.test.mjs && node tests/notifications.test.mjs && node tests/artwork.test.cjs && node tests/western-catalog.test.cjs && node tests/plant-catalog.test.cjs && node tests/catalog-fixes.test.cjs && node tests/catalog-filters.test.cjs && node tests/price-scout.test.cjs && node tests/grocery-api.test.mjs && node tests/studio.test.mjs && node tests/studio-hooks.test.mjs && node tests/studio-speed.test.mjs && node tests/community-prices.test.mjs && node tests/community-rewards.test.mjs && node tests/units-registry.test.cjs && node tests/offline-lite.test.mjs && node tests/offline-downloads.test.cjs && node tests/app-update.test.cjs && node tests/voice-price.test.cjs && node tests/voice-recipe.test.cjs && node tests/voice-local.test.cjs && node tests/voice-vietlish.test.cjs && node tests/voice-stats-client.test.cjs && node tests/voice-stats.test.mjs",
     "test:browser": "node tests/startup.test.cjs && node tests/kitchen-hub.test.cjs",
     "test:authenticated-startup": "node tests/authenticated-startup.test.cjs",
     "test:email": "node tests/email-recovery.test.mjs",
-    "test:all": "npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup && npm run test:artwork:browser && npm run test:price-scout:browser && npm run test:catalog:browser && npm run test:catalog-filters:browser && npm run test:community:browser && npm run test:banner:browser && npm run test:voice:browser && npm run test:voice-price:browser && npm run test:voice-commands:browser && npm run test:units:browser && npm run test:studio-speed:browser && npm run test:scout && npm run test:scout:browser && npm run test:scout-studio:browser && npm run test:scout-pair:browser && npm run test:voice-local:browser",
+    "test:all": "npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup && npm run test:artwork:browser && npm run test:price-scout:browser && npm run test:catalog:browser && npm run test:catalog-filters:browser && npm run test:community:browser && npm run test:banner:browser && npm run test:voice:browser && npm run test:voice-price:browser && npm run test:voice-commands:browser && npm run test:units:browser && npm run test:studio-speed:browser && npm run test:scout && npm run test:scout:browser && npm run test:scout-studio:browser && npm run test:offline:browser && npm run test:update:browser && npm run test:scout-pair:browser && npm run test:voice-local:browser",
     "artwork:audit": "npm run build && node scripts/artwork-audit.cjs",
     "test:artwork:browser": "node tests/artwork-browser.test.cjs",
     "test:price-scout:browser": "node tests/price-scout-browser.test.cjs",
@@ -35,16 +35,22 @@
     "test:scout": "npm run build:extension && node tests/scout-api.test.mjs && node tests/scout-parse.test.cjs && node tests/scout-community.test.mjs",
     "test:scout:browser": "npm run build:extension && node tests/scout-extension-browser.test.cjs",
     "test:scout-studio:browser": "node tests/scout-studio-browser.test.cjs",
-    "test:scout-pair:browser": "node tests/scout-pair-browser.test.cjs"
+    "test:scout-pair:browser": "node tests/scout-pair-browser.test.cjs",
+    "test:offline:browser": "node tests/offline-downloads-browser.test.cjs",
+    "test:update:browser": "node tests/app-update-browser.test.cjs"
   },
   "dependencies": {
     "@netlify/blobs": "10.5.0",
     "web-push": "3.6.7"
   },
   "devDependencies": {
+    "@tesseract.js-data/eng": "1.0.0",
+    "@tesseract.js-data/vie": "1.0.0",
     "@types/node": "26.6.6",
     "@types/web-push": "3.6.4",
     "playwright": "1.64.1",
+    "tesseract.js": "5.0.0",
+    "tesseract.js-core": "5.0.0",
     "typescript": "7.0.2"
   }
 }

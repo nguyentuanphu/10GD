@@ -24,12 +24,34 @@ console.log('Edge entry points executed as ES modules.');
  const before = order.slice(0, order.indexOf('language.js'));
  const bad: string[] = [];
  for (const name of before) {
-  const file = 'src/frontend/' + name.replace(/\.js$/, '.ts');
-  if (!fs.existsSync(file)) continue; // generated data scripts (e.g. master-catalog.js)
-  const source = fs.readFileSync(file, 'utf8');
+  // recipe-catalog-core.js is generated from the catalog helpers and the lazy catalog loader.
+  const files = name === 'recipe-catalog-core.js' ? ['src/frontend/recipe-catalog.ts', 'src/frontend/catalog-loader.ts'] : ['src/frontend/' + name.replace(/\.js$/, '.ts')];
+  if (!files.every(file => fs.existsSync(file))) continue; // generated data scripts (e.g. master-catalog.js)
+  const source = files.map(file => fs.readFileSync(file, 'utf8')).join('\n');
   const unguarded = source.replace(/typeof appLanguage\s*!==?\s*'undefined'\s*(?:&&|\?)\s*appLanguage/g, '').match(/\bappLanguage\b/g);
   if (unguarded) bad.push(name + ' (' + unguarded.length + ')');
  }
  if (bad.length) throw Error('Unguarded appLanguage before language.js: ' + bad.join(', '));
  console.log('Startup order: no unguarded language reads before language.js.');
+}
+
+// v1.6 bandwidth: lite precache budget, lazy catalog outside the startup pack, and per-cell artwork thumbnails.
+{
+ const zlib=require('node:zlib'),vm=require('node:vm'),crypto=require('node:crypto');
+ const assets=[...sw.match(/const ASSETS\s*=\s*(\[[^;]+\]);/)![1].matchAll(/['"]\.\/([^'"]*)['"]/g)].map(m=>m[1]||'index.html');
+ if(assets.some(a=>a.startsWith('artwork/')))throw Error('Artwork must not be in the lite precache list');
+ const wire=[...new Set(assets)].reduce((total,f)=>{const bytes=fs.readFileSync('dist/'+f);return total+(/\.(js|json|css|html|svg|webmanifest)$/.test(f)?zlib.gzipSync(bytes).length:bytes.length)},0);
+ if(wire>1.5*1024*1024)throw Error('Lite precache is '+wire+' bytes on the wire; budget 1.5 MB (plus this week\'s artwork cells)');
+ const pack=JSON.parse(fs.readFileSync('dist/startup-scripts.json','utf8'));
+ if(pack.scripts.some((s:{name:string;code:string})=>s.name==='recipe-catalog.js'||/const PLANT_RECIPES=/.test(s.code)))throw Error('Reference catalog data must not be in the startup pack');
+ const core=pack.scripts.find((s:{name:string})=>s.name==='recipe-catalog-core.js');
+ if(!core||!/function recipeDiet/.test(core.code)||!/function ensureCatalog/.test(core.code)||/__BEP_CATALOG_HASH__/.test(core.code))throw Error('Catalog helpers/loader missing from the startup pack');
+ const packs=JSON.parse(fs.readFileSync('dist/offline-packs.json','utf8'));
+ if(!core.code.includes(packs.catalogHash)||!sw.includes(packs.catalogHash))throw Error('Catalog hash mismatch between loader, worker and packs');
+ const manifest=JSON.parse(fs.readFileSync('dist/artwork/cells/manifest.json','utf8'));
+ for(const [sheet,hash] of Object.entries(manifest.sheets as Record<string,string>)){const actual=crypto.createHash('sha256').update(fs.readFileSync('dist/artwork/'+sheet+'.webp')).digest('hex').slice(0,16);if(actual!==hash)throw Error('Artwork sheet '+sheet+' changed; run python3 src/scripts/artwork-cells.py to regenerate list thumbnails')}
+ const ctx=vm.createContext({foodArt:()=>'',appLanguage:'vi',normalizeText:(t:string)=>String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').toLowerCase(),esc:(t:string)=>String(t)});
+ vm.runInContext(['seed','recipe-catalog','dish-composition','artwork'].map(f=>fs.readFileSync('dist/'+f+'.js','utf8')).join('\n')+'\nthis.paths=[...RECIPES.map(dishArtCellPath),...Object.keys(INGREDIENTS).map(ingredientArtCellPath)].filter(Boolean)',ctx);
+ for(const p of new Set(ctx.paths as string[])){const bytes=fs.readFileSync('dist/'+p);if(bytes.toString('ascii',0,4)!=='RIFF'||bytes.toString('ascii',8,12)!=='WEBP')throw Error('Invalid artwork cell: '+p)}
+ console.log('Lite precache '+(wire/1024).toFixed(0)+' KB on the wire; catalog lazy ('+packs.catalogHash+'); '+new Set(ctx.paths).size+' artwork cells verified.');
 }

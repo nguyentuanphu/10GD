@@ -13717,6 +13717,8 @@ const PLANT_RECIPES=[
 ];
 RECIPES.push(...PLANT_RECIPES);
 
+// ==== BEP startup helpers ==== Everything below this marker is small and ships in the startup pack (recipe-catalog-core.js);
+// everything above is reference data loaded lazily as recipe-catalog-data.js (see catalog-loader.ts and scripts/build).
 // Diet labels are computed from ingredients for every recipe (reference and family). Only ingredients on this explicit
 // allowlist count as plant-based; anything not listed (including family-added ingredients) leaves the dish unlabelled.
 const PLANT_VERIFIED_INGREDIENT_IDS=new Set(['tofu','rice','noodle','spinach','waterSpinach','cabbage','bokchoy','broccoli','carrot','potato','pumpkin','gourd','tomato','cucumber','mushroom','onion','scallion','garlic','ginger','lemongrass','pineapple','okra','bean','soy','oil','sugar','salt','pepper','coconut','riceNoodle','vermicelli','udon','corn','peas','seaweed','starch','lime','herbs','cookedRice','huTieu','banhCanh','vegBroth','spaghetti','penne','arborio','flour','oats','quinoa','brownRice','chickpea','lentil','kidneyBean','whiteBean','basil','oregano','lemon','lettuce','zucchini','eggplant','bellPepper','asparagus','avocado','olive','sesame','tahini','peanut','almond','walnut','pumpkinSeed','sunflowerSeed','chia','flax','bulgur','couscous','apple','orange','raisin','mustard','vinegar']);
