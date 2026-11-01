@@ -802,7 +802,7 @@ body.flag-off-priceScout :is(.price-scout,.scout-tray,.scout-tray-sheet,.scout-v
 .scout-wait-dot{flex:0 0 auto;width:10px;height:10px;border-radius:50%;background:var(--green2);animation:scout-wait 1.4s ease-in-out infinite}
 @keyframes scout-wait{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.scout-wait-dot{animation:none;opacity:.8}}
-.scout-pair-manual{margin:10px 0 4px}.scout-pair-manual summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
+.scout-pair-manual,.scout-pair-tips{margin:10px 0 4px}.scout-pair-manual summary,.scout-pair-tips summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
 @media (max-width:420px){.scout-install-steps li{grid-template-columns:56px minmax(0,1fr)}.scout-step-art svg{width:56px;height:38px}}
 html[data-theme="dark"] .scout-pair-card .callout.ok{background:#223a30;border-color:#3a5a4a;color:#cfeedd}
 html[data-theme="dark"] .scout-install-steps li{background:#111a16;border-color:#3a4c43}
