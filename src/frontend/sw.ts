@@ -101,6 +101,8 @@ self.addEventListener('fetch',event=>{
  const url=new URL(event.request.url);
  // API responses contain account/family data and never enter the public app cache.
  if(url.pathname.startsWith('/.netlify/')||url.pathname==='/login'||url.pathname==='/login.js')return;
+ // v1.7: the connectivity health ping always goes to the network; a cached or synthetic answer would hide a real outage.
+ if(url.pathname==='/health.json')return;
  if(event.request.method==='POST'&&url.pathname==='/share-notes'){
   event.respondWith((async()=>{
    let scope='guest/';
@@ -145,5 +147,5 @@ self.addEventListener('message',event=>{
  if(event.data?.type==='CLEAR_PRIVATE_CACHE')event.waitUntil(caches.delete(ACCESS_CACHE));
 });
 // Push: show the notification and tell open app windows so urgent lists refresh immediately.
-self.addEventListener('push',event=>{let data={};try{data=event.data?.json()||{}}catch(e){}const url=['/#today','/#shopping','/#planner','/#expenses','/#pantry'].includes(data.url)?data.url:'/#today';event.waitUntil(Promise.all([self.registration.showNotification(data.title||'Bếp Gia Đình',{body:data.body||'Nhà mình có việc bếp cần xem.',icon:'./family-logo.png',tag:data.tag||'bep-reminder',data:{url}}),self.clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>list.forEach(c=>{try{c.postMessage({type:'family-push',kind:String(data.type||'reminder').slice(0,20),url})}catch{}})).catch(()=>{})]))});
+self.addEventListener('push',event=>{let data={};try{data=event.data?.json()||{}}catch(e){}const url=['/#today','/#shopping','/#planner','/#expenses','/#pantry'].includes(data.url)?data.url:'/#today';event.waitUntil(Promise.all([self.registration.showNotification(data.title||'Bếp Gia Đình',{body:data.body||'Nhà mình có việc bếp cần xem.',icon:'./family-logo.png',tag:data.tag||'bep-reminder',data:{url,type:String(data.type||'reminder').slice(0,20)},timestamp:Date.now(),...(data.type==='urgent'?{renotify:true,requireInteraction:true,vibrate:[200,100,200]}:{})}),self.clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>list.forEach(c=>{try{c.postMessage({type:'family-push',kind:String(data.type||'reminder').slice(0,20),url})}catch{}})).catch(()=>{})]))});
 self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(async list=>{const target=new URL(event.notification.data?.url||'./#today',self.location.href).href;const client=list.find(c=>new URL(c.url).origin===self.location.origin);if(client){try{if(typeof client.navigate==='function')await client.navigate(target)}catch{try{client.postMessage({type:'family-push-open',url:event.notification.data?.url||'/#today'})}catch{}}try{return await client.focus()}catch{}}return self.clients.openWindow?self.clients.openWindow(target):undefined}))});
