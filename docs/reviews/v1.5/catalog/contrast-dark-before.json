@@ -1,0 +1,548 @@
+{
+ "theme": "dark",
+ "failures": 1569,
+ "selectors": 60,
+ "summary": [
+  {
+   "sel": "span",
+   "n": 168,
+   "min": 3.5,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "108,119,108",
+   "bg": "24,34,29",
+   "text": "Thực đơn"
+  },
+  {
+   "sel": ".day > strong",
+   "n": 140,
+   "min": 2.6,
+   "where": "today,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "83,101,81",
+   "bg": "24,34,29",
+   "text": "26"
+  },
+  {
+   "sel": "span.pill",
+   "n": 124,
+   "min": 2.96,
+   "where": "today,planner,recipes,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "96,128,90",
+   "bg": "29,53,44",
+   "text": "Weekends feast · 3.15 suất từ mẻ"
+  },
+  {
+   "sel": "span.nav-icon",
+   "n": 92,
+   "min": 3.5,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "108,119,108",
+   "bg": "24,34,29",
+   "text": "▤"
+  },
+  {
+   "sel": ".toolbar > button.btn.primary",
+   "n": 72,
+   "min": 3.12,
+   "where": "today,planner,recipes,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "255,255,255",
+   "bg": "60,163,124",
+   "text": "Đã nấu cả mẻ — trừ tủ một lần"
+  },
+  {
+   "sel": ".calendar-day > b",
+   "n": 60,
+   "min": 1.16,
+   "where": "modal-availability",
+   "fg": "255,255,255",
+   "bg": "60,163,124",
+   "text": "1"
+  },
+  {
+   "sel": ".text-btn > small",
+   "n": 59,
+   "min": 3.16,
+   "where": "shopping",
+   "fg": "99,113,95",
+   "bg": "24,34,29",
+   "text": "Đã có 500 g / tổng cần 4.94 kg · 13 bữa "
+  },
+  {
+   "sel": ".qty > span",
+   "n": 59,
+   "min": 2.89,
+   "where": "shopping",
+   "fg": "60,163,124",
+   "bg": "245,247,239",
+   "text": "4.44 kg"
+  },
+  {
+   "sel": ".qty > span.qty-chevrons",
+   "n": 59,
+   "min": 3.23,
+   "where": "shopping",
+   "fg": "122,144,102",
+   "bg": "245,247,239",
+   "text": "⌃"
+  },
+  {
+   "sel": ".chip-row > button.chip",
+   "n": 44,
+   "min": 3.8,
+   "where": "recipes,recipes-samples",
+   "fg": "122,134,114",
+   "bg": "255,254,250",
+   "text": "Món mặn"
+  },
+  {
+   "sel": "a.skip",
+   "n": 36,
+   "min": 3.12,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "255,255,255",
+   "bg": "60,163,124",
+   "text": "Đến nội dung"
+  },
+  {
+   "sel": ".language-toggle > b",
+   "n": 36,
+   "min": 3.1,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "60,163,124",
+   "bg": "255,254,250",
+   "text": "VI"
+  },
+  {
+   "sel": ".top-actions > button.top-avatar",
+   "n": 36,
+   "min": 3.79,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "103,121,92",
+   "bg": "234,231,217",
+   "text": "N"
+  },
+  {
+   "sel": ".callout > span",
+   "n": 36,
+   "min": 4.07,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "136,118,78",
+   "bg": "250,245,233",
+   "text": "Lưu ý: Đang dùng trên thiết bị này (khôn"
+  },
+  {
+   "sel": ".active > span",
+   "n": 30,
+   "min": 2.77,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "255,255,255",
+   "bg": "60,163,124",
+   "text": "Hôm nay"
+  },
+  {
+   "sel": ".active > span.nav-icon",
+   "n": 26,
+   "min": 2.77,
+   "where": "today,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "255,255,255",
+   "bg": "60,163,124",
+   "text": "⌂"
+  },
+  {
+   "sel": ".screen-switch > span",
+   "n": 24,
+   "min": 3.09,
+   "where": "today,planner,shopping,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "88,107,89",
+   "bg": "18,26,22",
+   "text": "Chế độ Đơn giản · Chữ to, ẩn bớt mục phụ"
+  },
+  {
+   "sel": "button.btn.primary",
+   "n": 24,
+   "min": 3.12,
+   "where": "today,planner,shopping,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "255,255,255",
+   "bg": "60,163,124",
+   "text": "Đơn giản"
+  },
+  {
+   "sel": ".card > span.pill",
+   "n": 24,
+   "min": 2.96,
+   "where": "today,insights,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "96,128,90",
+   "bg": "29,53,44",
+   "text": "Món mặn · 30 phút"
+  },
+  {
+   "sel": ".card > button.btn.soft",
+   "n": 24,
+   "min": 4.21,
+   "where": "today,insights,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "60,163,124",
+   "bg": "29,53,44",
+   "text": "Xem món & thêm vào bữa ↗"
+  },
+  {
+   "sel": ".toolbar > button.btn.soft",
+   "n": 24,
+   "min": 4.21,
+   "where": "today,shopping,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "60,163,124",
+   "bg": "29,53,44",
+   "text": "Gợi ý món từ đồ trong tủ ↗"
+  },
+  {
+   "sel": ".day > span",
+   "n": 20,
+   "min": 2.11,
+   "where": "today,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "198,217,201",
+   "bg": "60,163,124",
+   "text": "CN"
+  },
+  {
+   "sel": "p.eyebrow",
+   "n": 20,
+   "min": 4.03,
+   "where": "today,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "126,140,116",
+   "bg": "31,45,38",
+   "text": "NHỊP BẾP HÔM NAY"
+  },
+  {
+   "sel": "span.eyebrow",
+   "n": 20,
+   "min": 4.03,
+   "where": "today,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "126,140,116",
+   "bg": "31,45,38",
+   "text": "🌱 GIẢI PHÓNG TỦ LẠNH"
+  },
+  {
+   "sel": ".family-tag > span.avatar",
+   "n": 18,
+   "min": 1.06,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "230,239,233",
+   "bg": "226,233,220",
+   "text": "🏡"
+  },
+  {
+   "sel": "b",
+   "n": 18,
+   "min": 1.06,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "230,239,233",
+   "bg": "244,244,237",
+   "text": "Nhà mình"
+  },
+  {
+   "sel": "small#family-summary",
+   "n": 18,
+   "min": 2.24,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "151,169,158",
+   "bg": "244,244,237",
+   "text": "Gia đình · 4 · AUD"
+  },
+  {
+   "sel": ".family-tag > button.icon",
+   "n": 18,
+   "min": 1.06,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "230,239,233",
+   "bg": "244,244,237",
+   "text": "⌄"
+  },
+  {
+   "sel": ".side-note > span",
+   "n": 18,
+   "min": 1.05,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "230,239,233",
+   "bg": "243,243,233",
+   "text": "🌿"
+  },
+  {
+   "sel": ".side-note > b",
+   "n": 18,
+   "min": 1.05,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "230,239,233",
+   "bg": "243,243,233",
+   "text": "Một bữa cơm nhỏ."
+  },
+  {
+   "sel": ".side-note > p",
+   "n": 18,
+   "min": 2.22,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "151,169,158",
+   "bg": "243,243,233",
+   "text": "Cùng nhau chăm chút những điều thường ng"
+  },
+  {
+   "sel": ".side-link > span",
+   "n": 18,
+   "min": 3.43,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "105,118,107",
+   "bg": "24,34,29",
+   "text": "Nhắc nhở"
+  },
+  {
+   "sel": ".breadcrumb > b#crumb",
+   "n": 18,
+   "min": 2.25,
+   "where": "today,planner,shopping,recipes,pantry,expenses,insights,products,recipes-samples,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "74,91,75",
+   "bg": "24,34,29",
+   "text": "Hôm nay"
+  },
+  {
+   "sel": "span.nav-count",
+   "n": 16,
+   "min": 2.22,
+   "where": "today,planner,shopping,pantry,expenses,insights,products,modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-busy,modal-generate,modal-editMeal,modal-members,offline-today",
+   "fg": "108,119,108",
+   "bg": "57,66,62",
+   "text": "741"
+  },
+  {
+   "sel": ".heading-actions > button.btn.primary",
+   "n": 14,
+   "min": 3.12,
+   "where": "planner,shopping,recipes,pantry,expenses,products,recipes-samples",
+   "fg": "255,255,255",
+   "bg": "60,163,124",
+   "text": "✧ Lên thực đơn cả tuần"
+  },
+  {
+   "sel": ".availability-weekdays > span",
+   "n": 14,
+   "min": 3.68,
+   "where": "modal-availability",
+   "fg": "102,119,94",
+   "bg": "18,26,22",
+   "text": "T2"
+  },
+  {
+   "sel": ".modal-footer > button.btn.primary",
+   "n": 14,
+   "min": 3.12,
+   "where": "modal-availability,modal-recipe,modal-familyRecipe,modal-settings,modal-generate,modal-editMeal,modal-members",
+   "fg": "255,255,255",
+   "bg": "60,163,124",
+   "text": "Lưu lịch"
+  },
+  {
+   "sel": ".week-switch > button.icon",
+   "n": 12,
+   "min": 1.17,
+   "where": "planner,shopping,expenses",
+   "fg": "230,239,233",
+   "bg": "255,255,255",
+   "text": "‹"
+  },
+  {
+   "sel": ".toolbar > button.btn.small",
+   "n": 8,
+   "min": 3.12,
+   "where": "shopping,recipes-samples,modal-settings,modal-generate",
+   "fg": "255,255,255",
+   "bg": "60,163,124",
+   "text": "+ Mua thêm"
+  },
+  {
+   "sel": ".chips > button.chip",
+   "n": 6,
+   "min": 3.8,
+   "where": "pantry",
+   "fg": "122,134,114",
+   "bg": "255,254,250",
+   "text": "Ngăn mát"
+  },
+  {
+   "sel": "div.callout",
+   "n": 6,
+   "min": 4.07,
+   "where": "pantry,insights",
+   "fg": "136,118,78",
+   "bg": "250,245,233",
+   "text": "🌱 Có 1 lô cần dùng sớm. Hạn dùng do bạn"
+  },
+  {
+   "sel": ".mobile-more > span.nav-icon",
+   "n": 6,
+   "min": 2.77,
+   "where": "recipes,pantry,expenses,insights,products,recipes-samples",
+   "fg": "60,163,124",
+   "bg": "238,243,232",
+   "text": "•••"
+  },
+  {
+   "sel": ".mobile-more > span",
+   "n": 6,
+   "min": 2.77,
+   "where": "recipes,pantry,expenses,insights,products,recipes-samples",
+   "fg": "60,163,124",
+   "bg": "238,243,232",
+   "text": "Thêm"
+  },
+  {
+   "sel": ".pantry-cart-badges > span.pill.soft",
+   "n": 4,
+   "min": 2.96,
+   "where": "shopping",
+   "fg": "96,128,90",
+   "bg": "29,53,44",
+   "text": "Thịt gà:"
+  },
+  {
+   "sel": ".pill > b",
+   "n": 4,
+   "min": 2.96,
+   "where": "shopping",
+   "fg": "96,128,90",
+   "bg": "29,53,44",
+   "text": "đang có 500 g"
+  },
+  {
+   "sel": ".text-btn > span.pill.soft",
+   "n": 4,
+   "min": 2.96,
+   "where": "shopping",
+   "fg": "96,128,90",
+   "bg": "29,53,44",
+   "text": "🌱 Tủ có sẵn 500 g"
+  },
+  {
+   "sel": ".card > div.callout",
+   "n": 4,
+   "min": 4.07,
+   "where": "shopping",
+   "fg": "136,118,78",
+   "bg": "250,245,233",
+   "text": "4 món chưa rõ giá. Tổng trên chỉ gồm phầ"
+  },
+  {
+   "sel": ".card > button.btn.primary",
+   "n": 4,
+   "min": 3.12,
+   "where": "shopping,expenses",
+   "fg": "255,255,255",
+   "bg": "60,163,124",
+   "text": "↗ Chia sẻ / Messenger"
+  },
+  {
+   "sel": ".chip-row > button.chip.active",
+   "n": 4,
+   "min": 2.61,
+   "where": "recipes,recipes-samples",
+   "fg": "60,163,124",
+   "bg": "231,237,223",
+   "text": "Tất cả"
+  },
+  {
+   "sel": "p.callout",
+   "n": 4,
+   "min": 4.07,
+   "where": "insights,modal-availability",
+   "fg": "136,118,78",
+   "bg": "250,245,233",
+   "text": "Feast trong 30 ngày: 0 mẻ đã nấu · 0 bữa"
+  },
+  {
+   "sel": ".list-heading > span.pill",
+   "n": 2,
+   "min": 2.96,
+   "where": "shopping",
+   "fg": "96,128,90",
+   "bg": "29,53,44",
+   "text": "0/30 đã mua"
+  },
+  {
+   "sel": ".active > span.nav-count",
+   "n": 2,
+   "min": 2.61,
+   "where": "recipes,recipes-samples",
+   "fg": "255,255,255",
+   "bg": "88,176,143",
+   "text": "741"
+  },
+  {
+   "sel": ".chips > button.chip.active",
+   "n": 2,
+   "min": 2.61,
+   "where": "pantry",
+   "fg": "60,163,124",
+   "bg": "231,237,223",
+   "text": "Tất cả"
+  },
+  {
+   "sel": ".card > span.pill.gray",
+   "n": 2,
+   "min": 3.41,
+   "where": "pantry",
+   "fg": "124,132,118",
+   "bg": "240,241,235",
+   "text": "Ngăn mát"
+  },
+  {
+   "sel": ".card > span.pill.orange",
+   "n": 2,
+   "min": 3.36,
+   "where": "pantry",
+   "fg": "164,123,73",
+   "bg": "248,240,223",
+   "text": "Ngăn mát"
+  },
+  {
+   "sel": ".section-heading > span.pill.gray",
+   "n": 2,
+   "min": 3.41,
+   "where": "expenses",
+   "fg": "124,132,118",
+   "bg": "240,241,235",
+   "text": "Giá thực mua / kg, lít, quả"
+  },
+  {
+   "sel": ".modal-content > div.callout",
+   "n": 2,
+   "min": 4.07,
+   "where": "modal-recipe",
+   "fg": "136,118,78",
+   "bg": "250,245,233",
+   "text": "Chia sườn thành miếng vừa ăn; chuẩn bị h"
+  },
+  {
+   "sel": ".modal-content > div.callout.topspace",
+   "n": 2,
+   "min": 4.07,
+   "where": "modal-generate",
+   "fg": "136,118,78",
+   "bg": "250,245,233",
+   "text": "Đã chọn món và lấy 22 vị trí từ Kho tham"
+  },
+  {
+   "sel": ".offline-banner > span",
+   "n": 2,
+   "min": 1.07,
+   "where": "offline-today",
+   "fg": "230,239,233",
+   "bg": "255,243,215",
+   "text": "Lưu trên máy · tự đối chiếu khi có mạng."
+  },
+  {
+   "sel": "div.visible#toast",
+   "n": 2,
+   "min": 3.12,
+   "where": "offline-today",
+   "fg": "255,255,255",
+   "bg": "60,163,124",
+   "text": "Đang offline. Mọi chỉnh sửa được giữ trê"
+  }
+ ],
+ "errors": {}
+}
