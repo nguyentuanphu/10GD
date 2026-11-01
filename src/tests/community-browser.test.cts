@@ -229,7 +229,7 @@ async function main(){
     assert.equal(posts.find(p=>p.op==='community-action')?.body.action,'product-approve');assert.equal(posts[0].body.reason,'QA: checked page');posts.length=0;
    }
    // Rewards tab
-   await page.locator('[data-tab="rewards"]').click();await page.waitForSelector('#rwf');
+   await page.locator('[data-tab="rewards"]').click();await page.waitForSelector('#main:not([aria-busy]) #rwf');
    const rt=await page.locator('#main').innerText();assert.match(rt,/Mẹ Bin/);assert.match(rt,lang==='vi'?/Ẩn danh #4821/:/Anonymous #4821/);assert.match(rt,/qa-contrib-1/);assert.match(rt,lang==='vi'?/Đổi điểm lấy quà: chưa có/:/Redeeming points: not built/);
    await studioCheck('rewards');
    await page.evaluate(()=>{const el=document.querySelector('#cptab');if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-20)});await page.waitForTimeout(100);await shot(page,`studio-rewards-${lang}-${theme}-${size}`);
@@ -237,7 +237,7 @@ async function main(){
     await page.locator('[data-ledger="qa-contrib-1"]').click();await page.waitForSelector('#drawer[open]');assert.ok(gets.includes('community-ledger'));assert.match(await page.locator('#drawer').innerText(),/QA help/);await page.waitForTimeout(150);await shot(page,`studio-ledger-${lang}-${theme}-${size}`);await page.locator('#drawer [data-close]').click();
     await page.locator('[data-adjust="qa-contrib-1"]').click();await page.waitForSelector('#ask[open]');await page.fill('#ask input[name="points"]','-15');await page.fill('#ask textarea','QA: điều chỉnh thử');if(size==='mobile')await shot(page,`studio-adjust-dialog-${lang}-${theme}-${size}`);await page.locator('#ask button[value="ok"]').click();await page.waitForTimeout(200);
     const adj=posts.find(p=>p.op==='community-action');assert.deepEqual(adj?.body,{action:'points-adjust',account:'qa-contrib-1',points:-15,reason:'QA: điều chỉnh thử'},'adjust posts amount + reason (audited server-side)');
-    posts.length=0;await page.locator('[data-tab="rewards"]').click().catch(()=>{});await page.waitForSelector('#rwf');await page.fill('#rwf input[name="dailyCap"]','80');await page.locator('#rwf button.primary').click();await page.waitForSelector('#ask[open]');await page.locator('#ask button[value="ok"]').click();await page.waitForTimeout(200);
+    posts.length=0;await page.waitForSelector('#main:not([aria-busy])');await page.locator('[data-tab="rewards"]').click().catch(()=>{});await page.waitForSelector('#main:not([aria-busy]) #rwf');await page.fill('#rwf input[name="dailyCap"]','80');await page.locator('#rwf button.primary').click();await page.waitForSelector('#ask[open]');await page.locator('#ask button[value="ok"]').click();await page.waitForTimeout(200);
     assert.deepEqual(posts.find(p=>p.op==='settings-save')?.body.patch.rewards,{confirmed:10,specialBonus:5,corroborate:3,gapBonus:5,gapFamilies:3,penalty:20,dailyCap:80,levels:[100,500,1500]});
    }
    assert.deepEqual(errors,[]);await context.close();

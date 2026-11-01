@@ -119,3 +119,6 @@ dialog::backdrop{background:#0008}
 .grid-fields label{display:flex;flex-direction:column;gap:4px}
 #cptab [data-board],#cptab [data-period],#cptab [data-ledger],#cptab [data-adjust]{min-height:44px}
 #drawer [data-revoke],#cptab [data-pa]{min-height:44px}
+/* While a section reloads, its old content is stale: block input so typed values are not lost to the re-render. */
+#main[aria-busy="true"]{pointer-events:none;opacity:.65;transition:opacity .15s}
+@media (prefers-reduced-motion:reduce){#main[aria-busy="true"]{transition:none}}
