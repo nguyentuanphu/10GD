@@ -17,7 +17,7 @@ interface Window {
 }
 (async (): Promise<void> => {
   const local = ['terminal.local', 'localhost', '127.0.0.1'].includes(location.hostname);
-  const scripts = ['storage-context.js','seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','master-catalog.js','shopping-optimizer.js','app.js','dish-composition.js','artwork.js','unit-picker.js','family-features.js','shopping-planning.js','push-ui.js','simple-view.js','language.js','push-settings-ui.js','insights-ui.js','products-ui.js','price-scout-ui.js','family-menu-ui.js','household-ui.js','platform-banner.js','personal-ui.js'];
+  const scripts = ['storage-context.js','seed.js','recipe-catalog.js','core.js','spending-core.js','unit-registry.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','master-catalog.js','shopping-optimizer.js','app.js','dish-composition.js','artwork.js','unit-picker.js','family-features.js','shopping-planning.js','push-ui.js','simple-view.js','language.js','push-settings-ui.js','insights-ui.js','products-ui.js','price-scout-ui.js','family-menu-ui.js','household-ui.js','platform-banner.js','personal-ui.js'];
   // Replaced by the build with the startup pack's content hash. The service worker
   // answers instantly from its cache when hashes match and refreshes in the background.
   const packHash: string = '__BEP_STARTUP_PACK_HASH__';
