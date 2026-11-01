@@ -66,7 +66,7 @@ form.addEventListener('submit',async event=>{
   const payload:Record<string,unknown>={};
   if(submittedMode!=='reset')payload.username=field('username').value;
   if(submittedMode!=='request-reset')payload.password=field('password').value;
-  if(submittedMode==='register'){payload.name=field('name').value;if(field('email').value.trim())payload.email=field('email').value.trim();}
+  if(submittedMode==='register'){payload.name=field('name').value;if(field('email').value.trim())payload.email=field('email').value.trim();if(invitationField.value.trim())payload.invite=invitationField.value.trim();}
   if(submittedMode==='recover')payload.recoveryCode=field('recoveryCode').value;
   if(submittedMode==='login'||submittedMode==='register')payload.trust=field('trust').checked;
   if(submittedMode==='reset')payload.token=resetToken;
@@ -90,5 +90,7 @@ const parameters=new URLSearchParams(location.search);resetToken=parameters.get(
 const incomingInvite=parameters.get('invite');
 try{invitationField.value=incomingInvite||sessionStorage.getItem('bep-invite-draft')||'';if(incomingInvite)sessionStorage.setItem('bep-invite-draft',incomingInvite)}catch{invitationField.value=incomingInvite||''}
 if(resetToken||incomingInvite)history.replaceState(null,'','/login?locked=1');
-changeMode(resetToken?'reset':incomingInvite?'register':'login');
+// ?mode= opens a tab directly (the app's “Create account” and “Change password” links).
+const requestedMode=parameters.get('mode');
+changeMode(resetToken?'reset':incomingInvite?'register':requestedMode==='register'||requestedMode==='request-reset'||requestedMode==='recover'?requestedMode:'login');
 export {};

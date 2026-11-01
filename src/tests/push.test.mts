@@ -10,8 +10,8 @@ const data=new Map([['state',state],['push/vapid-keys',webPush.generateVAPIDKeys
 const sub={endpoint:'https://fcm.googleapis.com/fcm/send/synthetic-test',keys:{auth:'a'.repeat(22),p256dh:'a'.repeat(87)}};
 const device={deviceId:'synthetic-device-01',memberId:'dad',label:'Synthetic device',subscription:sub,types:{urgent:true,attendance:true},quietStart:'21:00',quietEnd:'07:00'};assert(validDevice(device));data.set('push/subscriptions/'+device.deviceId,device);
 let sends=0;const send=async()=>{sends++;return{statusCode:201}};
-let result=await sendPushBatch(store,{type:'urgent',title:'Mua thêm','body':'2 bó rau, cửa hàng thử',url:'/#shopping'},{targets:['mum'],send});assert.equal(result.accepted,0);assert.equal(sends,0);
-result=await sendPushBatch(store,{type:'urgent',title:'Mua thêm','body':'2 bó rau',url:'/#shopping'},{targets:['dad'],send});assert.equal(result.accepted,1);
+let result=await sendPushBatch(store,{type:'urgent',title:'Mua thêm','body':'2 bó rau, cửa hàng thử',url:'/#shopping'},{targets:['mum'],now:new Date('2026-10-30T01:00:00Z'),send});assert.equal(result.accepted,0);assert.equal(sends,0);
+result=await sendPushBatch(store,{type:'urgent',title:'Mua thêm','body':'2 bó rau',url:'/#shopping'},{targets:['dad'],now:new Date('2026-10-30T01:00:00Z'),send});assert.equal(result.accepted,1);
 await scheduledReminders(store,new Date('2026-10-29T23:30:00Z'),{send});const sent=sends;await scheduledReminders(store,new Date('2026-10-29T23:35:00Z'),{send});assert.equal(sends,sent);
 result=await sendPushBatch(store,{type:'attendance',title:'Báo cơm','body':'Thử',url:'/#today'},{automatic:true,now:new Date('2026-10-30T12:00:00Z'),send});assert.equal(result.accepted,0);
 console.log('PASS push endpoint safety, Sydney daylight saving, quiet hours, due windows, recipient routing and scheduled deduplication (mock transport only)');
@@ -19,7 +19,9 @@ console.log('PASS push endpoint safety, Sydney daylight saving, quiet hours, due
 device.language='en';device.role='shopper';data.set('push/subscriptions/'+device.deviceId,device);
 let lastPayload=null;const capture=async(_sub,payload)=>{lastPayload=JSON.parse(payload);return{statusCode:201}};
 result=await sendPushBatch(store,{type:'prep',title:'Sơ chế',body:'Thử',enTitle:'Prep',enBody:'Test prep'},{automatic:true,now:new Date('2026-10-30T06:00:00Z'),send:capture});assert.equal(result.accepted,0,'shopper does not get automatic prep');
-result=await sendPushBatch(store,{type:'urgent',title:'Thử',body:'Thử',enTitle:'Urgent item',enBody:'Two bunches'},{targets:['dad'],now:new Date('2026-10-30T12:00:00Z'),send:capture});assert.equal(result.accepted,0,'quiet hours respected by default');
+result=await sendPushBatch(store,{type:'urgent',title:'Thử',body:'Thử',enTitle:'Urgent item',enBody:'Two bunches'},{targets:['dad'],now:new Date('2026-10-30T12:00:00Z'),send:capture});assert.equal(result.accepted,1,'v1.5: urgent bypasses quiet hours by default (legacy device without a choice)');
+device.urgentPolicy='v2';device.urgentBypass=false;
+result=await sendPushBatch(store,{type:'urgent',title:'Thử',body:'Thử',enTitle:'Urgent item',enBody:'Two bunches'},{targets:['dad'],now:new Date('2026-10-30T12:00:00Z'),send:capture});assert.equal(result.accepted,0,'device can turn the urgent bypass off');assert.equal(result.reason,'quiet_hours');
 device.urgentBypass=true;
 result=await sendPushBatch(store,{type:'urgent',title:'Thử',body:'Thử',enTitle:'Urgent item',enBody:'Two bunches'},{targets:['dad'],now:new Date('2026-10-30T12:00:00Z'),send:capture});assert.equal(result.accepted,1);assert.equal(lastPayload.title,'Urgent item');assert.equal(lastPayload.body,'Two bunches');
 device.role='both';device.urgentBypass=false;data.delete('push/daily/2026-10-30/'+device.deviceId);

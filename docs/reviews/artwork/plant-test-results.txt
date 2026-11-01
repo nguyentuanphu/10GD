@@ -1,0 +1,178 @@
+
+> bep-gia-dinh@1.4.0 test:all
+> npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup && npm run test:artwork:browser
+
+
+> bep-gia-dinh@1.4.0 check
+> npm run build && node scripts/check.cjs
+
+
+> bep-gia-dinh@1.4.0 build
+> tsc -p tsconfig.json && tsc -p tsconfig.frontend.json && tsc -p tsconfig.bootstrap.json && node .compiled/scripts/build.cjs
+
+All application scripts and manifest checked.
+All offline assets and artwork files verified.
+Edge entry points executed as ES modules.
+
+> bep-gia-dinh@1.4.0 typecheck
+> tsc -p tsconfig.bootstrap.json --noEmit && tsc -p tsconfig.auth-email.json --noEmit
+
+
+> bep-gia-dinh@1.4.0 test
+> node tests/core.test.cjs && node tests/spending.test.cjs && node tests/backend.test.mjs && node tests/units-catalog.test.cjs && node tests/push.test.mjs && node tests/insights-products.test.cjs && node tests/family-menu.test.cjs && node tests/access-calendar.test.mjs && node tests/accounts.test.mjs && node tests/personal.test.cjs && node tests/offline.test.mjs && node tests/email-recovery.test.mjs && node tests/family-invitations.test.mjs && node tests/artwork.test.cjs && node tests/western-catalog.test.cjs && node tests/plant-catalog.test.cjs
+
+PASS seed state passes backup validation
+PASS attendance scales only the affected meal
+PASS other meal attendance stays unchanged
+PASS manual serving override uses reference quantities
+PASS expired stock is excluded
+PASS stock is subtracted once from aggregated requirements
+PASS pack rounding never underbuys
+PASS cook records meal completion
+PASS cook consumes usable stock
+PASS cook reports untracked ingredient amounts
+PASS undo restores consumed quantities
+PASS undo restores meal status
+PASS generator preserves locked meals
+PASS generator applies time and avoidance rules
+PASS generator applies time and avoidance rules
+PASS generator applies time and avoidance rules
+PASS generator applies time and avoidance rules
+PASS generator applies time and avoidance rules
+PASS generator applies time and avoidance rules
+PASS generator applies time and avoidance rules
+PASS generator applies time and avoidance rules
+PASS generator applies time and avoidance rules
+PASS generator applies time and avoidance rules
+PASS generator applies time and avoidance rules
+PASS generator applies time and avoidance rules
+PASS generator applies time and avoidance rules
+PASS exported state can be reimported
+PASS negative inventory rejected on import
+PASS grams present as kilograms
+PASS calendar crosses month boundary
+PASS Sunday belongs to the preceding Monday
+PASS 24 weekend soup recipes available
+PASS new weekend plan starts with a complete soup meal
+PASS no automatic rice added to soup meals
+PASS noodles and ready broth included in grocery quantities
+PASS quick porridge tracks cooked rice instead of raw rice
+PASS weekend generator respects both-meals preference
+PASS soup plans pass backup validation
+PASS manual purchase amount replaces suggested amount
+PASS manual amount controls grocery cost
+PASS recipe needs stay unchanged by purchase edits
+PASS quantity edit clears bought status for rechecking
+PASS override is scoped to selected date range
+PASS chosen amount survives attendance recalculation
+PASS manual amounts survive valid backup export/import
+PASS zero quantity is an explicit no-purchase choice
+PASS fractional count quantities rejected
+PASS negative manual quantities rejected in backups
+PASS selecting purchase quantity does not change actual stock
+PASS reset returns to recalculated automatic amount
+PASS old backups without manual quantity field remain compatible
+PASS one meal supports multiple mains
+PASS two mains automatically share standard portion
+PASS second main gets half of four-person recipe by default
+PASS per-dish portion override controls ingredient demand
+PASS replacing one dish preserves other dishes
+PASS meal can explicitly omit rice
+PASS meal can explicitly include rice
+PASS generator respects five-dish family composition
+PASS multi-dish plans remain backup compatible
+PASS deleting a built-in recipe does not break a new week
+PASS null backup is rejected without throwing
+PASS English receipt item maps to Vietnamese ingredient
+PASS specific multiword match beats generic onion
+PASS unknown item remains unmatched
+PASS confirmed abbreviated receipt match is learned
+PASS Vietnamese accented unit parses correctly
+PASS Vietnamese decimal weight converts to grams
+PASS unknown package weight does not produce a fake unit price
+PASS receipt parser excludes payment, subtotal and tax duplication
+PASS receipt parser leaves uncertain item for review
+PASS receipt date parsed day/month/year
+PASS weekly actual spend uses receipt date and total
+PASS price change compares normalized unit price within same retailer
+PASS different retailers get separate price histories
+PASS receipts round-trip through backup validation
+PASS invalid receipt quantities rejected on restore
+PASS phone note checklist parses known and unknown items
+PASS personal account access, secure session, unauthorized access, conditional writes, conflict protection, origin check, schema rejection and photo validation
+PASS 740 distinct named recipes and variants
+PASS all catalog entries include ingredients, preparation, steps and time
+PASS expanded catalog is backup compatible
+PASS two pieces do not fabricate grams or price
+PASS sale quantity remains displayable and purchasable without grams
+PASS sale unit does not change recipe requirements
+PASS unweighed pieces can be marked purchased
+PASS unweighed pieces can be stored
+PASS pantry preserves count without inventing a mass
+PASS unmeasured pantry pieces do not subtract gram demand
+PASS cooking another meal does not discard unmeasured pantry pieces
+PASS remembered known bunch size rounds automatic purchase to whole bunches
+PASS unit price and explicit gram estimate remain separate
+PASS known conversion stores both bunch count and estimate
+PASS consumption updates remaining count from explicit conversion
+PASS undo restores count and estimate
+PASS week-specific quantities do not leak to next week
+PASS sale units and pantry counts survive backup validation
+PASS negative sale quantities rejected on import
+PASS receipt can track actual price per bunch without grams
+PASS store address is retained with ingredient
+PASS remembered store applies to future week
+PASS weekday preference is configurable
+PASS fish day influences recipe ranking without changing constraints
+PASS stores and day themes remain backup compatible
+PASS push endpoint safety, Sydney daylight saving, quiet hours, due windows, recipient routing and scheduled deduplication (mock transport only)
+PASS language-specific payloads, role filters, quiet hours, explicit urgent override, two-per-day cap and device-only tests
+PASS concurrent automatic sends cannot exceed two daily slots
+PASS recorded-only cooking history, future/undo handling, preferences, suggestions, product URLs, prices, CSV, backup validation and depleted-lot undo
+PASS family-only categories, weekday/Friday/Saturday schedules, five linked feast meals, next Monday preservation, shopping, once-only cooking, undo, locks and backup validation
+PASS missing pools, breakfast yield, strict breakfast validation and custom ingredient hydration
+PASS whole-site gate, trusted/session cookies, expiry/tampering, login throttling, announcement persistence/read status/idempotency (no real push), calendar deductions, cooked/manual protection, future meals and reminder content
+PASS offline/signed-out service worker cannot read private cached pages
+PASS public app assets do not depend on an account API request
+PASS accounts: scrypt, account/session/recovery lifecycle, CSRF, household isolation (state/photos/push keys), targeted one-use invitations, roles/revocation, account Edge gate and authenticated cached weather
+PASS personal: VI/EN voice amounts, recipe intent/ambiguity, editable unknowns/duplicates, no parse mutation, confirmed shopping, separate currencies/history/prices, custom onboarding schedule and honest contextual greetings
+PASS signed identity validation stays separate from the public offline shell; private APIs bypass the cache
+PASS offline edits survive unload; reconnect syncs only against the same revision and preserves conflicts for review
+PASS optional sign-up email, no verification step, generic reset responses, hashed expiring one-use links, stale-token rejection, password replacement, backup rotation and session revocation
+PASS concurrent token consumption is atomic, existing accounts can bind email using their password, and cross-origin reset requests are rejected
+PASS Resend payload and server-side credentials, HTTPS recovery origin, explicit unconfigured state and delivery failure handling (all mail mocked)
+PASS old-session repair, fresh-device restore, remembered selection and safe ambiguous/revoked contexts
+PASS invitation before signup, one-use consumption, expiry and owner-only invitation permissions
+PASS artwork coverage, ingredient integrity, pasta form, changed/custom recipes and unknown ingredients
+PASS 100 distinct recipes, 32 used ingredients, four-portion quantities, safe idempotent migration, family edits/deletions, staple quantities, unknown/manual prices and dairy storage
+PASS 100 plant recipes, 106 ingredients, 82 verified vegan recipes, animal/unknown ingredient rejection, safe edition 3/4 upgrades, no auto-planned sauces and correct salad/dressing quantities
+
+> bep-gia-dinh@1.4.0 test:browser
+> node tests/startup.test.cjs
+
+PASS reproduces blank shell with previous loader and a synthetic runtime failure
+PASS account startup/navigation/settings/rendering at 375x812
+PASS account startup/navigation/settings/rendering at 820x1100
+PASS account startup/navigation/settings/rendering at 1280x800
+PASS account without household keeps device tools and offers optional create/join forms
+PASS personal account startup, failed download/timeout recovery and runtime failure recovery without deleting data
+
+> bep-gia-dinh@1.4.0 test:authenticated-startup
+> node tests/authenticated-startup.test.cjs
+
+PASS anonymous device tools, real edits and offline reload at mobile/tablet/desktop without private API calls
+PASS stable login/register/reset card and control coordinates, retained input, keyboard-safe fields, no overflow at 320/375/820/1280 widths
+PASS registration without verification and optional email reset (mail transport mocked)
+PASS previous loader seed timeout reproduced; public sign-in now opens directly
+PASS visible invitations, share composers, invitation-link signup/join and fresh desktop family sync
+PASS streamlined weekly auto-planner fallback, quick-add own/library dish flow, deduplicated voice button, short invite code and urgent message archiving
+PASS optional family creation and return to retained guest workspace
+PASS real account/functions/gate and active service worker: online reload, signed offline launch, no separate seed request
+PASS both recovery actions work through real navigation; Retry escapes stalled worker without deleting device data
+
+> bep-gia-dinh@1.4.0 test:artwork:browser
+> node tests/artwork-browser.test.cjs
+
+PASS mobile 375 812 catalog, details, shopping, gallery search, no overflow or runtime errors
+PASS tablet 820 1100 catalog, details, shopping, gallery search, no overflow or runtime errors
+PASS desktop 1280 800 catalog, details, shopping, gallery search, no overflow or runtime errors

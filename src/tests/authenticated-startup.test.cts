@@ -34,7 +34,7 @@ async function main() {
    const url=new URL(request.url);
    const response=await gate(request,{next:async()=>{
     if(url.pathname==='/.netlify/functions/accounts')return accounts(request);
-    if(url.pathname==='/.netlify/functions/family'){if(url.searchParams.get('op')!=='status'){if(req.method==='GET')counters.privateReads++;else counters.privateWrites++;}return family(request);}
+    if(url.pathname==='/.netlify/functions/family'){if(!['status','offline-key'].includes(url.searchParams.get('op')||'')){/* the public offline verification key is not private family data */if(req.method==='GET')counters.privateReads++;else counters.privateWrites++;}return family(request);}
     if(url.pathname==='/seed.js'){
      counters.seed++;
      if((req.headers.cookie||'').includes('qa-baseline=1')){pending.add(res);res.on('close',()=>pending.delete(res));return new Promise(()=>{});}
@@ -46,7 +46,7 @@ async function main() {
     if(!file.startsWith(dist+'/')&&!file.startsWith(dist+'\\'))return new Response('',{status:404});
     try{return new Response(readFileSync(file),{headers:{'Content-Type':mime[extname(file)]||'application/octet-stream'}})}catch{return new Response('',{status:404})}
    }});
-   res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));
+   const outHeaders:Record<string,string|string[]>=Object.fromEntries(response.headers);const cookies=response.headers.getSetCookie?.()||[];if(cookies.length)outHeaders['set-cookie']=cookies;res.writeHead(response.status,outHeaders);res.end(Buffer.from(await response.arrayBuffer()));
   } catch(error) {res.writeHead(500);res.end('Synthetic test server error');console.error(error)}
  });
  await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));
@@ -67,16 +67,19 @@ async function main() {
    const context=await browser.newContext({viewport,serviceWorkers:'allow',reducedMotion:'reduce'}),page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
    const reads=counters.privateReads,writes=counters.privateWrites;
    await page.goto(origin,{waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();assert.equal(new URL(page.url()).pathname,'/');
-   await page.locator('.top-avatar').click();await page.locator('#settings-form input[name=budget]').fill('321');await page.locator('[data-action=submit-form][data-id=settings-form]').click();
+   await page.locator('.kitchen-action-dock [data-personal=settings]').click();await page.locator('#settings-form input[name=budget]').fill('321');await page.locator('[data-action=submit-form][data-id=settings-form]').click();
    await page.evaluate(()=>{location.hash='shopping'});await page.waitForTimeout(100);assert.match(await page.locator('#main').innerText(),/Đi chợ|Shopping/);
    assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),321);
    if(name==='mobile'){
+    // The avatar's “Create account” link opens the real sign-in page on the register tab.
+    await page.goto(origin+'/login?return=%2F&mode=register');assert.equal(await page.getByRole('tab',{name:'Đăng ký',exact:true}).getAttribute('aria-selected'),'true');assert.equal(await page.locator('#registration-fields').isHidden(),false);
     await page.goto(origin+'/login?locked=1');await page.getByRole('tab',{name:'Đăng ký',exact:true}).click();await page.locator('#username').fill('guestregistered');await page.locator('#password').fill('GuestSignupPassphrase42');await page.locator('#name').fill('Guest user');await page.locator('#submit').click();await page.locator('#recovery:not([hidden])').waitFor();assert.equal(mail.length,0);await page.locator('#continue').click();await page.locator('[data-device-mode]').waitFor();assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),321,'sign-up without email must retain device work');
    }
    await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
-   await page.waitForFunction(async()=>!!await(await caches.open('bep-family-v17-artwork-voice')).match('/startup-scripts.json'));
+   await page.waitForFunction(async()=>{const cache=await caches.open('bep-family-v21-plant-catalog');const paths=['/startup-scripts.json','/artwork/corrections/family-v3-193.webp','/artwork/corrections/family-v3-431.webp',...Array.from({length:49},(_,i)=>'/artwork/dishes-v'+(i+1)+'.webp'),...Array.from({length:7},(_,i)=>'/artwork/ingredients-v'+(i+1)+'.webp')];return(await Promise.all(paths.map(path=>cache.match(path)))).every(Boolean)});
    await page.screenshot({path:evidence+'/'+name+'-guest.png',fullPage:true});
    await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),321);
+   await page.evaluate(()=>{location.hash='recipes'});await page.locator('[data-fm="samples"]').first().click();await page.locator('#family-recipe-search').fill('Dressing tahini chanh tỏi');await page.locator('.recipe-visual [data-art-sheet]').first().waitFor();const offlineArt=await page.locator('.recipe-visual [data-art-sheet]').first().getAttribute('data-art-sheet');assert.equal(await page.evaluate(async sheet=>(await fetch('/artwork/dishes-v'+sheet+'.webp')).status,offlineArt),200);await page.screenshot({path:'docs/reviews/artwork/'+name+'-offline.png',fullPage:true});
    assert.equal(counters.privateReads,reads);assert.equal(counters.privateWrites,writes);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
    await context.close();
   }
@@ -131,13 +134,13 @@ async function main() {
   await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
   await page.waitForFunction(async()=>{
    const access=await caches.open('bep-family-access-v1');if(!await access.match('/offline-access'))return false;
-   const cache=await caches.open('bep-family-v17-artwork-voice');return !!await cache.match('/startup-scripts.json');
+   const cache=await caches.open('bep-family-v21-plant-catalog');return !!await cache.match('/startup-scripts.json');
   });
   assert.equal(counters.seed,seedsBefore,'startup and worker must not fetch seed.js separately');
   assert.ok(counters.pack>packsBefore);
   await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();
   await page.screenshot({path:evidence+'/authenticated-worker.png',fullPage:true});
-  await page.getByRole('button',{name:'Kết nối gia đình',exact:true}).click();await page.locator('.account-security > summary').click();await page.locator('#account-email-address').fill('existing-browser@example.test');await page.locator('#account-email-password').fill('synthetic-startup-passphrase-only');await page.locator('#account-email button').click();await page.getByText('Đã lưu email khôi phục. Không cần xác minh khi đăng ký.',{exact:true}).waitFor();await page.keyboard.press('Escape');
+  await page.locator('.top-avatar').click();await page.getByRole('menuitem',{name:'Tài khoản & bảo mật',exact:true}).click();await page.locator('.account-sheet #account-email-address').waitFor();await page.locator('#account-email-address').fill('existing-browser@example.test');await page.locator('#account-email-password').fill('synthetic-startup-passphrase-only');await page.locator('#account-email button').click();await page.getByText('Đã lưu email khôi phục. Không cần xác minh khi đăng ký.',{exact:true}).waitFor();await page.keyboard.press('Escape');
   await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();
   assert.equal(await page.evaluate(()=>localStorage.getItem('qa-preserved')),'keep-family-data');
   assert.deepEqual(errors,[]);
@@ -147,7 +150,7 @@ async function main() {
   await page.waitForFunction(()=>globalThis.BEP_SESSION?.household?.id&&localStorage.getItem('account/'+globalThis.BEP_SESSION.household.id+'/bep-gia-dinh-v1'));
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),guestBudget);
   await page.waitForFunction(()=>!cloudConnection.checking&&!cloudConnection.syncing);await page.keyboard.press('Escape');
-  await page.locator('.top-avatar').click();await page.locator('#settings-form input[name=budget]').fill('777');await page.locator('[data-action=submit-form][data-id=settings-form]').click();await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
+  await page.locator('.kitchen-action-dock [data-personal=settings]').click();await page.locator('#settings-form input[name=budget]').fill('777');await page.locator('[data-action=submit-form][data-id=settings-form]').click();await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
   const familyId=await page.evaluate(()=>globalThis.BEP_SESSION.household.id),ownerUsername=await page.evaluate(()=>accountSession.account.username);
   for(const [size,viewport] of Object.entries({narrow:{width:320,height:740},mobile:{width:375,height:812},tablet:{width:820,height:1100},desktop:{width:1280,height:800}})){
    await page.setViewportSize(viewport);await page.evaluate(()=>{location.hash='today'});await page.waitForTimeout(100);
@@ -179,8 +182,8 @@ async function main() {
   await page.locator('[data-fm=edit-meal]').first().click();await page.locator('#quick-dish-name').fill('Cá thu sốt cà nhà làm');await page.locator('[data-fm=quick-add-dish]').click();await page.locator('[data-action=submit-form][data-id=family-meal-form]').click();await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
   assert.match(await page.locator('.family-meal-card').first().innerText(),/Cá thu sốt cà nhà làm/);
   await page.evaluate(()=>{location.hash='today'});await page.waitForTimeout(100);
-  await page.locator('[data-house=urgent-new]').click();await page.locator('#family-urgent-form textarea[name=message]').fill('Mua thêm rau thơm trước 5h chiều');await page.locator('[data-action=submit-form][data-id=family-urgent-form]').click();
-  await page.locator('[data-house=alert-archive]').first().waitFor();await page.locator('[data-house=alert-archive]').first().click();
+  if(!(await page.evaluate(()=>!!(document.querySelector('[data-urgent-panel]') as HTMLDetailsElement|null)?.open)))await page.locator('[data-urgent-panel]>summary').click();await page.locator('[data-house=urgent-new]').click();await page.locator('#family-urgent-form textarea[name=message]').fill('Mua thêm rau thơm trước 5h chiều');await page.locator('[data-action=submit-form][data-id=family-urgent-form]').click();
+  await page.locator('[data-house=alert-archive]').first().waitFor({state:'attached'});if(!(await page.evaluate(()=>!!(document.querySelector('[data-urgent-panel]') as HTMLDetailsElement|null)?.open)))await page.locator('[data-urgent-panel]>summary').click();await page.locator('[data-house=alert-archive]').first().waitFor();await page.locator('[data-house=alert-archive]').first().click();
   await page.locator('.archived-alerts').waitFor();assert.match(await page.locator('.archived-alerts').innerText(),/Tin đã lưu trữ|Archived messages/);
   console.log('PASS streamlined weekly auto-planner fallback, quick-add own/library dish flow, deduplicated voice button, short invite code and urgent message archiving');
   await page.goto(origin+'/?mode=guest',{waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();assert.equal(await page.evaluate(()=>globalThis.BEP_SESSION.mode),'guest');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),guestBudget);

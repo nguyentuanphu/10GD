@@ -1,0 +1,6 @@
+> bep-gia-dinh@1.4.0 test:artwork:browser
+> node tests/artwork-browser.test.cjs
+
+PASS mobile 375 812 catalog, details, shopping, gallery search, no overflow or runtime errors
+PASS tablet 820 1100 catalog, details, shopping, gallery search, no overflow or runtime errors
+PASS desktop 1280 800 catalog, details, shopping, gallery search, no overflow or runtime errors

@@ -1,0 +1,88 @@
+name: CI
+
+# Runs every suite in `npm run test:all` on GitHub for every pull request and push
+# (AGENTS.md rules 14–17). The list of suites is read from package.json at run time,
+# so a suite added to test:all is automatically run here, split into parallel jobs.
+# This workflow never deploys anything.
+on:
+  pull_request:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    name: list test:all steps
+    runs-on: ubuntu-latest
+    outputs:
+      steps: ${{ steps.list.outputs.steps }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: list
+        name: Split test:all into parallel steps
+        run: |
+          node -e '
+            const all = require("./package.json").scripts["test:all"].split("&&").map(s => s.trim()).filter(Boolean);
+            if (!all.length) throw Error("test:all is empty");
+            require("fs").appendFileSync(process.env.GITHUB_OUTPUT, "steps=" + JSON.stringify(all) + "\n");
+            console.log(all.join("\n"));
+          '
+
+  test:
+    name: ${{ matrix.step }}
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        step: ${{ fromJSON(needs.plan.outputs.steps) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium for Playwright
+        if: contains(matrix.step, 'browser') || contains(matrix.step, 'startup')
+        run: npx playwright install --with-deps chromium
+
+      - name: Resolve the synthetic test host
+        run: echo "127.0.0.1 kitchen.localhost" | sudo tee -a /etc/hosts
+
+      - name: Build
+        run: npm run build
+
+      - name: Run ${{ matrix.step }}
+        run: ${{ matrix.step }}
+
+      - name: Upload review screenshots
+        if: always() && (contains(matrix.step, 'browser') || contains(matrix.step, 'startup'))
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ strategy.job-index }}
+          path: docs/reviews/**/*.png
+          if-no-files-found: ignore
+          retention-days: 14
+
+  all:
+    name: npm run test:all
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every test:all step passed
+        run: |
+          if [ "${{ needs.test.result }}" != "success" ]; then echo "A test:all step failed: ${{ needs.test.result }}"; exit 1; fi

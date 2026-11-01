@@ -15,3 +15,21 @@ for(const file of fs.readdirSync('netlify/edge-functions').filter(f=>f.endsWith(
  execFileSync(process.execPath,['--input-type=module','--eval',fs.readFileSync('netlify/edge-functions/'+file,'utf8')],{cwd:require('node:path').resolve('netlify/edge-functions'),stdio:'inherit'});
 }
 console.log('Edge entry points executed as ES modules.');
+{const vm=require('node:vm'),ctx=vm.createContext({});vm.runInContext(fs.readFileSync('dist/master-catalog.js','utf8')+';this.n=MASTER_CATALOG.items.length',ctx);if(ctx.n<120)throw Error('Price Scout catalog too small');if(!fs.existsSync('netlify/functions/grocery.mjs')||!fs.existsSync('netlify/functions/grocery-cron.mjs'))throw Error('Price Scout functions missing');console.log('Price Scout catalog ('+ctx.n+' items) and functions verified.')}
+// Startup order guard: scripts that run before language.js must not read `appLanguage`
+// (declared there) without a `typeof` check, or account startup can crash with
+// "appLanguage is not defined" depending on network timing.
+{
+ const order: string[] = JSON.parse(fs.readFileSync('src/frontend/bootstrap.ts', 'utf8').match(/const scripts = (\[[^;]+\]);/)![1].replace(/'/g, '"'));
+ const before = order.slice(0, order.indexOf('language.js'));
+ const bad: string[] = [];
+ for (const name of before) {
+  const file = 'src/frontend/' + name.replace(/\.js$/, '.ts');
+  if (!fs.existsSync(file)) continue; // generated data scripts (e.g. master-catalog.js)
+  const source = fs.readFileSync(file, 'utf8');
+  const unguarded = source.replace(/typeof appLanguage\s*!==?\s*'undefined'\s*(?:&&|\?)\s*appLanguage/g, '').match(/\bappLanguage\b/g);
+  if (unguarded) bad.push(name + ' (' + unguarded.length + ')');
+ }
+ if (bad.length) throw Error('Unguarded appLanguage before language.js: ' + bad.join(', '));
+ console.log('Startup order: no unguarded language reads before language.js.');
+}

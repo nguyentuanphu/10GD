@@ -1,4 +1,46 @@
-# Bếp Gia Đình · v1.4
+# FamTray · Bếp Gia Đình · v1.5
+
+## What's new in v1.5
+
+- **Startup:** the app opens straight from a cached, verified identity, and the startup pack is cached by content hash and refreshed in the background. There is no "Opening your kitchen" screen.
+- **My kitchen** is the single settings hub. It shows members & portions first, then one family access area (invite, join, switch). Use device-only and Sign out ask for confirmation. Every section is bilingual.
+- **Notifications:**
+  - A device belongs to the member it was registered for, and shared family phones are supported.
+  - When a send fails, the app shows the precise reason.
+  - Urgent messages come through during quiet hours by default.
+  - The urgent message panel is collapsible.
+- **Voice input:** fillers are removed and long speech is split into clauses. More Vietnamese and English numbers and units are understood. Listening stops after a pause, and there is a slow-speech mode.
+- **Recipes:** 740 recipes, each with its own artwork.
+  - Vietnamese-first menus by default. Rice is decided by the main dish, and dressings are never planned.
+  - Deleted recipes stay deleted.
+  - Recipe search works with Vietnamese input methods.
+  - Dark mode meets WCAG AA contrast.
+- **Price Scout / So giá:** NSW/QLD postcode check and a 136-item master catalog without prices.
+  - Prices come from family captures: screenshot OCR, the "Lưu giá" bookmark, receipts and catalogue deals.
+  - The optimizer compares one-stop shopping with a smart split, applies the $5/$15 threshold and orders stops for food safety. It includes a Vietnamese-grocer benchmark and shopper personas.
+  - No retailer scraping. A licensed-feed slot is used only when `GROCERY_FEED_URL` is set.
+  - **Community prices** is a pilot, off by default and moderated in Studio. Only shelf photos and receipts can be shared, behind consensus, trust and outlier gates.
+- **Studio** (`/studio.html`) is the owner console. Access requires `STUDIO_ADMINS` (comma-separated usernames).
+  - It covers metrics, accounts, families, invitations, notification and system health, platform settings, banners, and the audit and event logs.
+  - It shows counts and metadata by default; family content stays private.
+- **CI:** GitHub Actions runs `npm run test:all` on every PR and push (AGENTS.md rules 14–16).
+
+Release evidence and limits are in `docs/reviews/v1.5/*/review.md`. Contributor terms for community prices are a draft that needs owner and legal review: `docs/legal/community-prices-terms-draft.md`.
+
+### Environment variables (v1.5)
+
+| Variable | Purpose | Secret? |
+|---|---|---|
+| `STUDIO_ADMINS` | Usernames allowed into Studio | No |
+| `STUDIO_SUPPORT` | Read-only Studio usernames (optional) | No |
+| `GROCERY_FEED_URL` (+ token) | Licensed price feed (optional; nothing runs without it) | Yes |
+| `RESEND_API_KEY`, `AUTH_EMAIL_FROM`, `AUTH_PUBLIC_URL` | Optional password-reset email | Key: yes |
+
+---
+
+# Earlier releases
+
+## Bếp Gia Đình · v1.4
 
 Family meal planning, shopping and receipts, built with HTML/CSS, TypeScript sources and a Netlify backend. JavaScript files in deployment directories are generated build outputs.
 
@@ -10,7 +52,7 @@ Family meal planning, shopping and receipts, built with HTML/CSS, TypeScript sou
 - Mobile navigation keeps Today / Weekly Menu / Shopping and moves secondary tools into More.
 
 - **Simple screens by default** for Today, Weekly Planner and Shopping, with a remembered Full view per device. Shopping uses 18px item names on phones, 44–48px checkbox touch targets, collapsible tools and an optional remaining-items filter.
-- **540 dishes and recipe variants:** 172 mains, 110 soups, 88 vegetable dishes and 170 noodle/soup/porridge meals. Every entry has ingredients, preparation and cooking steps. The catalog displays 24 cards per page, with search/category/time filters.
+- **740 reference recipes**, including 40 additional vegetarian dishes, 35 seed/grain/legume salads and 25 dressings. Each entry has quantities, preparation, steps and matching artwork; dressings are separate from automatically planned meals.
 - Multi-dish family meals, individual dish replacement, portion scales, per-person attendance and optional rice. Weekend soup selector and weekday meal suggestions respect configured constraints and meal locks.
 - Purchase quantity wheel with g/kg, ml/litres, pieces, slices, bunches, packs, boxes, trays, bags, bottles and custom unit names. Remember a preferred buying unit, size estimate, price and note per ingredient.
 - Pantry tracks measured quantities and unweighed counts separately. Unknown weights never silently become grams. Budget estimates identify unknown prices.
@@ -49,7 +91,7 @@ Scheduled Functions check due reminders every 15 minutes. Roles and selected rec
 
 ## Artwork
 
-`dist/artwork/ingredients-v1.webp` and `dist/artwork/dishes-v1.webp` are original generated illustration sprite sheets (16 cells each), integrated by `dist/artwork.js`. Remaining ingredient types use local SVG illustrations; unsupported dish types retain the existing vector artwork. All artwork is bundled for offline use. These are representative illustrations, not exact recipe photos or retailer product images. Generation prompts are recorded in `ARTWORK.md`.
+The built-in catalog has 106 ingredient illustrations and 740 recipe-specific illustrations, explicitly mapped to the matching ingredient IDs and recipe signatures. The existing gouache artwork is extended with companion sheets; all built-in recipes have painted artwork. Family-authored or edited recipes retain an ingredient-led fallback. See [ARTWORK.md](ARTWORK.md) and [the audit and review](docs/reviews/artwork/review.md). Illustrations are not exact recipe photographs, and family data is preserved.
 
 ## Family-authored menu
 

@@ -26,9 +26,10 @@ state.preferences.excludedIngredients=['fish'];if(allowedRecipe(state.recipes.fi
 const built=initializeHousehold({members:['A','B'],weights:[1,.5],currency:'VND',timezone:'Asia/Ho_Chi_Minh',maxTime:60,routine:'flexible',enabledMeals:['dinner'],cookingDays:[1],favorites:['r1','r13','r24']});familyGenerate(built,'2026-11-02',{random:()=>.5});if(built.members.length!==2||built.pantry.length||built.preferences.currency!=='VND')throw Error('Onboarding');for(const [date,day]of Object.entries(built.weeks['2026-11-02'].days)){if(date!=='2026-11-02'&&day.dinner.recipes.length||day.breakfast.recipes.length)throw Error('Unselected schedule generated')}
 if(!validImport(built))throw Error('Onboarding state cannot restore');
 const greeting=greetingFor(state,'Henry','2026-11-02',9);if(!greeting.title.includes('Henry')||/nóng|nắng/.test(greeting.message))throw Error('Greeting invented weather');const hot=greetingFor(state,'Henry','2026-11-02',9,{date:'2026-11-02',temp:33});if(!hot.message.includes('trái cây'))throw Error('Hot suggestion');const stale=greetingFor(state,'Henry','2026-11-02',9,{date:'2026-11-01',temp:33});if(stale.message===hot.message)throw Error('Stale weather used');
-let foodArt=()=>'<svg></svg>';`,c);
+let foodArt=()=>'<svg></svg>';function esc(s){return String(s).replace(/[&<>"']/g,'_')}`,c);
+vm.runInContext(fs.readFileSync('dist/dish-composition.js','utf8'),c);
 vm.runInContext(fs.readFileSync('dist/artwork.js','utf8'),c);
-vm.runInContext(`for(const id of Object.keys(INGREDIENTS)){const html=ingredientArtwork(id);if(!html.includes('ingredient-sheet')||html.includes('ingredient-vector'))throw Error('Ingredient missing watercolor artwork: '+id)}for(const r of state.recipes){const html=foodArt(r);if(!html.includes('dish-sheet')||html.includes('<svg'))throw Error('Dish missing watercolor artwork: '+r.name)}`,c);
+vm.runInContext(`for(const id of Object.keys(INGREDIENTS)){const html=ingredientArtwork(id);if(!html.includes('ingredient-sheet')||html.includes('ingredient-vector'))throw Error('Ingredient missing watercolor artwork: '+id)}for(const r of state.recipes){const html=foodArt(r);if(!html.includes('role="img"')||(!html.includes('dish-sheet')&&!html.includes('composed-dish')))throw Error('Dish missing labelled illustration: '+r.name)}`,c);
 vm.runInContext(`
 `,c);
 console.log('PASS personal: VI/EN voice amounts, recipe intent/ambiguity, editable unknowns/duplicates, no parse mutation, confirmed shopping, separate currencies/history/prices, custom onboarding schedule and honest contextual greetings');

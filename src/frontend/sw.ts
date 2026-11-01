@@ -1,19 +1,26 @@
 'use strict';
 if(typeof importScripts==='function')importScripts('./offline-access.js');
 const ACCESS_CACHE='bep-family-access-v1';
-const CACHE='bep-family-v17-artwork-voice';
-const ASSETS=['./','./index.html','./bootstrap.js','./offline-access.js','./startup-scripts.json','./styles.css','./family-logo.png','./artwork/ingredients-v1.webp','./artwork/ingredients-v2.webp','./artwork/ingredients-v3.webp','./artwork/dishes-v1.webp','./icon.svg','./notification-icon.png','./notification-icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
-async function fetchWithDeadline(input,options={}){
- const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+const CACHE='bep-family-v21-plant-catalog';
+const ASSETS=['./','./index.html','./bootstrap.js','./offline-access.js','./startup-scripts.json','./styles.css','./family-logo.png','./artwork/ingredients-v1.webp','./artwork/ingredients-v2.webp','./artwork/ingredients-v3.webp','./artwork/dishes-v1.webp','./artwork/ingredients-v4.webp','./artwork/ingredients-v5.webp','./artwork/ingredients-v6.webp','./artwork/ingredients-v7.webp','./artwork/dishes-v2.webp','./artwork/dishes-v3.webp','./artwork/dishes-v4.webp','./artwork/dishes-v5.webp','./artwork/dishes-v6.webp','./artwork/dishes-v7.webp','./artwork/dishes-v8.webp','./artwork/dishes-v9.webp','./artwork/dishes-v10.webp','./artwork/dishes-v11.webp','./artwork/dishes-v12.webp','./artwork/dishes-v13.webp','./artwork/dishes-v14.webp','./artwork/dishes-v15.webp','./artwork/dishes-v16.webp','./artwork/dishes-v17.webp','./artwork/dishes-v18.webp','./artwork/dishes-v19.webp','./artwork/dishes-v20.webp','./artwork/dishes-v21.webp','./artwork/dishes-v22.webp','./artwork/dishes-v23.webp','./artwork/dishes-v24.webp','./artwork/dishes-v25.webp','./artwork/dishes-v26.webp','./artwork/dishes-v27.webp','./artwork/dishes-v28.webp','./artwork/dishes-v29.webp','./artwork/dishes-v30.webp','./artwork/dishes-v31.webp','./artwork/dishes-v32.webp','./artwork/dishes-v33.webp','./artwork/dishes-v34.webp','./artwork/dishes-v35.webp','./artwork/dishes-v36.webp','./artwork/dishes-v37.webp','./artwork/dishes-v38.webp','./artwork/dishes-v39.webp','./artwork/dishes-v40.webp','./artwork/dishes-v41.webp','./artwork/dishes-v42.webp','./artwork/dishes-v43.webp','./artwork/dishes-v44.webp','./artwork/dishes-v45.webp','./artwork/dishes-v46.webp','./artwork/dishes-v47.webp','./artwork/dishes-v48.webp','./artwork/dishes-v49.webp','./artwork/corrections/family-v3-193.webp','./artwork/corrections/family-v3-431.webp','./icon.svg','./notification-icon.png','./notification-icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
+async function fetchWithDeadline(input,options={},ms=8000){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),ms);
  try{const response=await fetch(input,{...options,signal:controller.signal});await response.clone().arrayBuffer();return response}finally{clearTimeout(timer)}
 }
+// The startup pack carries its content hash as the second JSON key; keep it beside the
+// cached copy so a loader expecting that exact pack is answered without the network.
+const PACK='./startup-scripts.json';
+async function storePack(cache,response){const body=await response.clone().arrayBuffer(),hash=new TextDecoder().decode(body.slice(0,160)).match(/"hash":"([a-f0-9]{8,64})"/)?.[1]||'',headers=new Headers(response.headers);headers.set('x-bep-pack-hash',hash);await cache.put(PACK,new Response(body,{status:200,headers}));return hash}
+async function refreshPack(cache,ms){const response=await fetchWithDeadline(new URL(PACK,self.location.href).href,{cache:'no-cache',credentials:'same-origin'},ms);if(response.ok&&!response.redirected&&(response.headers.get('content-type')||'').includes('application/json'))await storePack(cache,response);return response}
+// Images change rarely; show the cached copy at once and refresh it for the next launch.
+const staleFirst=url=>/\.(png|webp|svg|webmanifest)$/.test(url.pathname);
 function publicAsset(request){const url=new URL(request.url);return url.origin===self.location.origin&&ASSETS.some(path=>new URL(path,self.location.href).pathname===url.pathname)}
 async function cachedOfflineResponse(request){
  if(!publicAsset(request)&&request.mode!=='navigate')return new Response('Không có bản tải offline.',{status:503});
  const cache=await caches.open(CACHE);return await cache.match(request,{ignoreSearch:true})||(request.mode==='navigate'?await cache.match('./index.html'):null)||new Response('Kết nối mạng để tải ứng dụng lần đầu.',{status:503});
 }
 self.addEventListener('install',event=>event.waitUntil((async()=>{
- const cache=await caches.open(CACHE);await Promise.allSettled(ASSETS.map(async path=>{const response=await fetchWithDeadline(path);if(response.ok&&!response.redirected)await cache.put(path,response)}));await self.skipWaiting();
+ const cache=await caches.open(CACHE);await Promise.allSettled(ASSETS.map(async path=>{if(path===PACK){await refreshPack(cache,60000);return}const response=await fetchWithDeadline(path);if(response.ok&&!response.redirected)await cache.put(path,response)}));await self.skipWaiting();
 })()));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('bep-family-')&&k!==CACHE&&k!==ACCESS_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
@@ -29,15 +36,32 @@ self.addEventListener('fetch',event=>{
   })());return;
  }
  if(event.request.method!=='GET'||url.origin!==self.location.origin)return;
+ if(url.pathname==='/startup-scripts.json'){
+  event.respondWith((async()=>{
+   const cache=await caches.open(CACHE),fresh=url.searchParams.has('fresh'),cached=fresh?null:await cache.match(PACK);
+   if(cached){if(cached.headers.get('x-bep-pack-hash')!==url.searchParams.get('v'))event.waitUntil(refreshPack(cache,60000).catch(()=>{}));return cached}
+   try{return await refreshPack(cache,30000)}catch{return await cache.match(PACK)||new Response('Kết nối mạng để tải ứng dụng lần đầu.',{status:503})}
+  })());return;
+ }
+ if(staleFirst(url)&&publicAsset(event.request)){
+  event.respondWith((async()=>{
+   const cache=await caches.open(CACHE),cached=await cache.match(event.request,{ignoreSearch:true});
+   const update=fetchWithDeadline(event.request,{},30000).then(async response=>{if(response.ok&&!response.redirected)await cache.put(event.request,response.clone());return response});
+   if(cached){event.waitUntil(update.catch(()=>{}));return cached}
+   try{return await update}catch{return cachedOfflineResponse(event.request)}
+  })());return;
+ }
  event.respondWith((async()=>{
   try{const response=await fetchWithDeadline(event.request);if(response.ok&&!response.redirected&&publicAsset(event.request)){const cache=await caches.open(CACHE);await cache.put(event.request,response.clone())}return response}catch{return cachedOfflineResponse(event.request)}
  })());
 });
 self.addEventListener('message',event=>{
  if(event.data?.type==='CHECK_OFFLINE_READY')event.waitUntil((async()=>{const cache=await caches.open(CACHE),matches=await Promise.all(ASSETS.map(path=>cache.match(new URL(path,self.location.href).href)));let identityReady=true;if(event.data.householdId){try{const saved=await(await caches.open(ACCESS_CACHE)).match('/offline-access'),access=saved&&await verifyOfflineAccess(await saved.json());identityReady=access?.household?.id===event.data.householdId}catch{identityReady=false}}event.source?.postMessage({type:'OFFLINE_READY',ready:matches.every(Boolean)&&identityReady})})());
- if(event.data?.type==='SAVE_OFFLINE_ACCESS')event.waitUntil((async()=>{if(await verifyOfflineAccess(event.data.grant))await(await caches.open(ACCESS_CACHE)).put('/offline-access',Response.json(event.data.grant))})());
+ // The verifying key is fetched by the worker itself (never taken from the page message) and pinned in the private cache.
+ if(event.data?.type==='SAVE_OFFLINE_ACCESS')event.waitUntil((async()=>{const access=await caches.open(ACCESS_CACHE);try{const res=await fetch('/.netlify/functions/family?op=offline-key',{credentials:'same-origin',cache:'no-store'}),key=res.ok?offlineJwk((await res.json())?.publicKey):null;if(key)await access.put('/offline-signing-key',Response.json(key))}catch{}if(await verifyOfflineAccess(event.data.grant))await access.put('/offline-access',Response.json(event.data.grant))})());
  // Logout revokes cached private identity, not the public shell or guest's device data.
  if(event.data?.type==='CLEAR_PRIVATE_CACHE')event.waitUntil(caches.delete(ACCESS_CACHE));
 });
-self.addEventListener('push',event=>{let data={};try{data=event.data?.json()||{}}catch(e){}event.waitUntil(self.registration.showNotification(data.title||'Bếp Gia Đình',{body:data.body||'Nhà mình có việc bếp cần xem.',icon:'./family-logo.png',tag:data.tag||'bep-reminder',data:{url:['/#today','/#shopping','/#planner','/#expenses','/#pantry'].includes(data.url)?data.url:'/#today'}}))});
-self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{const target=new URL(event.notification.data?.url||'./#today',self.location.href).href;const client=list.find(c=>new URL(c.url).origin===self.location.origin);if(client){client.navigate(target);return client.focus()}return clients.openWindow(target)}))});
+// Push: show the notification and tell open app windows so urgent lists refresh immediately.
+self.addEventListener('push',event=>{let data={};try{data=event.data?.json()||{}}catch(e){}const url=['/#today','/#shopping','/#planner','/#expenses','/#pantry'].includes(data.url)?data.url:'/#today';event.waitUntil(Promise.all([self.registration.showNotification(data.title||'Bếp Gia Đình',{body:data.body||'Nhà mình có việc bếp cần xem.',icon:'./family-logo.png',tag:data.tag||'bep-reminder',data:{url}}),self.clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>list.forEach(c=>{try{c.postMessage({type:'family-push',kind:String(data.type||'reminder').slice(0,20),url})}catch{}})).catch(()=>{})]))});
+self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(async list=>{const target=new URL(event.notification.data?.url||'./#today',self.location.href).href;const client=list.find(c=>new URL(c.url).origin===self.location.origin);if(client){try{if(typeof client.navigate==='function')await client.navigate(target)}catch{try{client.postMessage({type:'family-push-open',url:event.notification.data?.url||'/#today'})}catch{}}try{return await client.focus()}catch{}}return self.clients.openWindow?self.clients.openWindow(target):undefined}))});
