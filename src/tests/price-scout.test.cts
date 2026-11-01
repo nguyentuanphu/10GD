@@ -176,11 +176,22 @@ const prefs=(x:any={})=>({catalog,today,state:'NSW',...x});
  // Branch preference: once a Coles branch is chosen, other Coles branches are ignored.
  const pref=P.communityObservations([...server,cp('dau-an','coles',7,2,'L',{branchId:'coles:2200:bankstown'})],{branches:['coles:2200:bankstown']});
  assert.deepEqual(pref.confirmed.filter((x:any)=>x.retailer==='coles').map((x:any)=>x.price),[7],'only the chosen Coles branch');
+ // Users who never captured anything: confirmed community prices alone drive one-stop/split comparisons.
+ {const onlyCommunity=P.communityObservations([cp('gao-jasmine','coles',13.5,5,'kg'),cp('gao-jasmine','woolworths',12.8,5,'kg',{online:true,branchId:'woolworths:online:NSW',branchLabel:'online'}),cp('dau-an','coles',8,2,'L'),cp('dau-an','woolworths',8.5,2,'L')],{});
+  assert.equal(onlyCommunity.confirmed.find((x:any)=>x.retailer==='woolworths'&&x.itemId==='gao-jasmine').online,true,'online label survives into the optimizer rows');
+  const fresh=plain(P.optimizeBasket(items,[],prefs({minSavings:0,minStopOrder:0,community:onlyCommunity.confirmed})));
+  assert.equal(fresh.oneStop.commonCount,2,'one-stop comparison works with community prices only');assert.equal(fresh.oneStop.sourceMix.community,4);assert.equal(fresh.oneStop.sourceMix.family,0);assert.ok(fresh.split.stops.length>=1)}
  // Shareability: only shelf-photo with matching OCR or receipt.
  assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'shelf-photo',ocrPrice:2.01}}),true);
  assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'shelf-photo',ocrPrice:2.5}}),false);
- assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'screenshot',ocrPrice:2}}),false,'screenshots stay family-only');
- assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'bookmark'}}),false);
+ // Owner decision 1 Nov 2026: screenshots/bookmarks are shareable as facts when the read price matches.
+ const H='a'.repeat(64);
+ assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'screenshot',imageHash:H,ocrPrice:2}}),true,'screenshot with matching OCR is shareable');
+ assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'screenshot',imageHash:H,ocrPrice:2.4}}),false,'OCR mismatch');
+ assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'screenshot',ocrPrice:2}}),false,'screenshot needs its fingerprint');
+ assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'bookmark'}}),false,'bookmark needs a page price');
+ assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'bookmark',ocrPrice:2}}),true);
+ assert.equal(P.canShareToCommunity({itemId:'x',price:2,evidence:{type:'manual',ocrPrice:2}}),false,'manual stays family-only');
  assert.equal(P.canShareToCommunity({itemId:null,price:2,evidence:{type:'receipt'}}),false);
  assert.equal(P.withProvenance({...own[0],source:'screenshot'},{ocrPrice:12,evidenceType:'shelf-photo'}).evidence.type,'shelf-photo');
  assert.equal(P.validObservation(P.withProvenance({...own[0],source:'screenshot'},{ocrPrice:12,evidenceType:'shelf-photo'})),true,'shelf-photo observations are still valid family observations');

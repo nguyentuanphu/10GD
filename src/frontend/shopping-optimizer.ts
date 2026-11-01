@@ -332,9 +332,11 @@ function sourceMix(origins){const m={family:0,official:0,community:0,shop:0};for
 // still-usable (regular ≤14 days, specials until validUntil) prices enter totals. PENDING
 // prices are returned separately as hints. If the user picked branches for a retailer,
 // only those branches are used for that retailer; otherwise any branch in the state.
-const COMMUNITY_SHAREABLE=['shelf-photo','receipt'];
-function canShareToCommunity(o){return!!o&&!!o.itemId&&COMMUNITY_SHAREABLE.includes(o.evidence?.type)&&(o.evidence.type!=='shelf-photo'||typeof o.evidence.ocrPrice==='number'&&Math.abs(o.evidence.ocrPrice-o.price)<=0.01+1e-9)}
-function communityRow(c,origin){return{id:origin+':'+(c.groupId||c.id),groupId:c.groupId||null,itemId:c.itemId,label:c.label,retailer:c.retailer,branchId:c.branchId||null,branchLabel:c.branchLabel||null,state:c.state||null,price:c.price,currency:'AUD',packQty:c.packQty??null,packUnit:c.packUnit??null,units:c.units??null,unitPrice:c.unitPrice??null,unitBasis:c.unitBasis??null,wasPrice:null,promo:c.promo||null,validUntil:c.validUntil||null,observedAt:c.lastObserved||c.observedAt,source:origin,origin,families:c.families||0,status:c.status||null,ageDays:c.ageDays??null,faded:!!c.faded,sources:c.sources||[],shop:c.shop||null}}
+// Shareable: shelf-tag photos and app/website screenshots (image fingerprint + OCR within $0.01),
+// "Lưu giá" bookmark captures (page price within $0.01) and confirmed receipt lines. Manual entry never.
+const COMMUNITY_SHAREABLE=['shelf-photo','receipt','screenshot','bookmark'];
+function canShareToCommunity(o){if(!o||!o.itemId||!COMMUNITY_SHAREABLE.includes(o.evidence?.type))return false;const e=o.evidence;if(e.type==='receipt')return true;if(e.type==='screenshot'&&!(typeof e.imageHash==='string'&&/^[a-f0-9]{64}$/.test(e.imageHash)))return false;return typeof e.ocrPrice==='number'&&Math.abs(e.ocrPrice-o.price)<=0.01+1e-9}
+function communityRow(c,origin){return{id:origin+':'+(c.groupId||c.id),groupId:c.groupId||null,itemId:c.itemId,label:c.label,retailer:c.retailer,branchId:c.branchId||null,branchLabel:c.branchLabel||null,state:c.state||null,price:c.price,currency:'AUD',packQty:c.packQty??null,packUnit:c.packUnit??null,units:c.units??null,unitPrice:c.unitPrice??null,unitBasis:c.unitBasis??null,wasPrice:null,promo:c.promo||null,validUntil:c.validUntil||null,observedAt:c.lastObserved||c.observedAt,source:origin,origin,families:c.families||0,status:c.status||null,ageDays:c.ageDays??null,faded:!!c.faded,online:c.online===true,sources:c.sources||[],shop:c.shop||null}}
 function communityObservations(items,{branches=[]}={}){
  const preferred=new Set(branches||[]),byRetailer=new Set([...preferred].map(b=>String(b).split(':')[0]));
  const keep=c=>!byRetailer.has(c.retailer)||preferred.has(c.branchId);
