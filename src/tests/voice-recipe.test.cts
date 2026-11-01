@@ -53,6 +53,8 @@ check('7 EN stir fry','Recipe for beef stir fry for 2 people. Ingredients: 300g 
 // Several takes (pause/continue) joined by new lines still segment as one recipe.
 check('takes joined','Món canh bí đỏ, cho bốn người.\nNguyên liệu có nửa ký bí đỏ, hai lạng thịt bằm\nhành lá, muối vừa ăn. Cách nấu: bí gọt vỏ cắt miếng, rồi nấu sôi nước cho thịt vào, sau đó cho bí vào nấu mềm.','vi',r=>{
  assert.equal(r.title,'Canh bí đỏ');assert.deepEqual(ing(r),[['Bí đỏ',0.5,'kg'],['Thịt bằm',200,'g'],['Hành lá',null,''],['Muối',null,'']]);assert.equal(r.steps.length,3);});
+check('“công thức món ăn” title','Công thức món ăn canh bí đỏ, cho bốn người. Nguyên liệu có nửa ký bí đỏ, hai lạng thịt bằm. Cách nấu: bí gọt vỏ cắt miếng, rồi nấu sôi nước cho thịt vào, sau đó cho bí vào nấu mềm.','vi',r=>{
+ assert.equal(r.title,'Canh bí đỏ');assert.equal(r.servings,4);});
 // Empty / no structure
 {const r=seg('');assert.equal(r.title,'');assert.deepEqual(r.ingredients,[]);count++}
 {const r=seg('xin chào cả nhà');assert.ok(r.flags.includes('no-steps'));count++}

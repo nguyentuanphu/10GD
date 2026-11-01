@@ -139,7 +139,7 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   await tap(more);assert.equal(await libRows(),10,'5 more');
   await page.locator('#meal-lib-list [data-meal-more="lib"]').focus();await page.keyboard.press('Enter');assert.equal(await libRows(),15,'keyboard Enter shows 5 more');
   assert.ok(await page.evaluate(()=>!!document.activeElement?.closest('#meal-lib-list')),'focus stays in the list');
-  await page.locator('#meal-dish-search').fill('xyzkhongco');await page.waitForTimeout(400);assert.match(await page.locator('#meal-search-status').innerText(),/Không tìm thấy món.*\(0 món\)/);assert.equal(await page.locator('[data-meal-more]').count(),0,'no Show more on an empty result');
+  await page.locator('#meal-dish-search').fill('xyzkhongco');await page.waitForTimeout(400);assert.match(await page.locator('#meal-search-status').innerText(),/Không tìm thấy món ăn khớp.*\(0 món\)/);assert.equal(await page.locator('[data-meal-more]').count(),0,'no Show more on an empty result');
   await page.locator('#meal-dish-search').fill('');await page.waitForTimeout(400);assert.equal(await libRows(),30);
   await noOverflow(page,label+' meal');assert.deepEqual(errors,[]);await context.close();
  }
@@ -160,7 +160,7 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   assert.deepEqual(all[0].ingredients,[{name:'Thịt gà',qty:500,unit:'g'},{name:'Hành lá',qty:50,unit:'g'}],'family quantities shared exactly');
   await openDetail(r1);await page.waitForFunction(()=>/Đang chờ duyệt/.test(document.querySelector('.rc-share-card')?.textContent||''));
   // pending is not public
-  await page.evaluate(()=>closeModal());await page.evaluate(()=>{location.hash='recipes'});await tap(page.locator('[data-rc="tab"]'));await page.locator('#rc-results').waitFor();await page.waitForFunction(()=>/Chưa có món cộng đồng/.test(document.querySelector('#rc-results')?.textContent||''));
+  await page.evaluate(()=>closeModal());await page.evaluate(()=>{location.hash='recipes'});await tap(page.locator('[data-rc="tab"]'));await page.locator('#rc-results').waitFor();await page.waitForFunction(()=>/Chưa có món ăn cộng đồng/.test(document.querySelector('#rc-results')?.textContent||''));
   // Studio approve (owner, audited) → points
   const ok=await studioAct('approve',all[0].id);assert.equal(ok.points,5);assert.equal((await rewardsFor(getStoreFn,{username:'qa-mum',now:Date.now(),rewards:null})).total,5);
   assert.ok((await listLog(getStoreFn,'audit',{now:Date.now()})).items.some((e:any)=>e.action==='community_recipe_approve'));
@@ -213,6 +213,6 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
  // Studio page (owner), three sizes
  for(const [name,viewport] of Object.entries(sizes) as any[]){const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce'});await context.addCookies([cookieOf(henry)]);const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page,{account:false});
   await page.goto(origin+'/studio.html#recipes');await page.locator('#recipes-main .cr-tabs').waitFor({timeout:20000});await page.locator('[data-cr-tab="all"]').click();await page.locator('#recipes-main .cr-item').first().waitFor();
-  assert.match(await page.locator('#nav').innerText(),/Món cộng đồng|Community recipes/);await noOverflow(page,'studio '+name);await shot(page,`${name}-studio-vi`);assert.deepEqual(errors,[]);await context.close()}
+  assert.match(await page.locator('#nav').innerText(),/Món ăn cộng đồng|Community recipes/);await noOverflow(page,'studio '+name);await shot(page,`${name}-studio-vi`);assert.deepEqual(errors,[]);await context.close()}
  await browser.close();console.log('Recipe form, photos, community recipes and meal search: browser checks passed.');
 })().catch(e=>{console.error(e);process.exit(1)});

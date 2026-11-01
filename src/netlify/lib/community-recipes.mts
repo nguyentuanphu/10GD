@@ -70,7 +70,7 @@ export function jpegHasMetadata(input:Uint8Array){let i=2;while(i+4<=input.lengt
  *  nothing is guessed or filled in. */
 export function cleanSharedRecipe(body:any){
  const kind=RECIPE_KINDS.includes(body?.kind)?body.kind:fail('Chọn chia sẻ cả món hoặc chỉ ảnh.','Choose whole recipe or photo only.');
- const r=body?.recipe||{},name=text(r.name,150);if(name.length<2)fail('Thiếu tên món.','Missing dish name.');
+ const r=body?.recipe||{},name=text(r.name,150);if(name.length<2)fail('Thiếu tên món ăn.','Missing dish name.');
  const category=CATEGORIES.includes(r.category)?r.category:'main';
  const out:any={kind,name,category};
  if(kind==='full'){
@@ -98,7 +98,7 @@ export async function shareRecipe(getStoreFn:any,{context,body,now}:any){
  if(!await bump(store,`recipes/rate/${dayKey(now)}/share-${account}`,RECIPE_RULES.sharesPerDay,now))fail('Đã chia sẻ đủ số món hôm nay. Thử lại ngày mai.','Daily sharing limit reached. Try again tomorrow.',429);
  // Re-sharing the same family recipe replaces the earlier copy (back to pending) instead of duplicating it.
  let existing:any=null;let pool=0;for await(const k of listKeys(store,'recipes/items/')){pool++;const x=await readJSON(store,k);if(x&&x.familyRef===familyRef&&x.sourceId===sourceId){existing=x;break}}
- if(!existing&&pool>=RECIPE_RULES.maxPool*4)fail('Kho món cộng đồng đang đầy. Thử lại sau.','The community pool is full. Try again later.',503);
+ if(!existing&&pool>=RECIPE_RULES.maxPool*4)fail('Kho món ăn cộng đồng đang đầy. Thử lại sau.','The community pool is full. Try again later.',503);
  const id=existing?.id||'cr-'+now.toString(36)+'-'+randomBytes(5).toString('hex');
  const displayName=anonymous?null:text(context.household.name,60)||null;
  const keepPhoto=!!existing?.hasPhoto&&body?.keepPhoto===true;
@@ -110,8 +110,8 @@ export async function shareRecipe(getStoreFn:any,{context,body,now}:any){
 export async function storeRecipePhoto(getStoreFn:any,{context,id,bytes,now}:any){
  if(!validRecipeId(id))fail('Mã món không hợp lệ.','Invalid id.');
  const store=communityStore(getStoreFn),x=await readJSON(store,itemKey(id));
- if(!x||x.account!==context.account.username&&x.familyRef!==familyRefOf(context.household?.id||''))fail('Không tìm thấy món đã chia sẻ.','Shared recipe not found.',404);
- if(!['pending','approved'].includes(x.status))fail('Món này không còn trong hàng chờ.','This recipe is no longer in the queue.',409);
+ if(!x||x.account!==context.account.username&&x.familyRef!==familyRefOf(context.household?.id||''))fail('Không tìm thấy món ăn đã chia sẻ.','Shared recipe not found.',404);
+ if(!['pending','approved'].includes(x.status))fail('Món ăn này không còn trong hàng chờ.','This recipe is no longer in the queue.',409);
  if(bytes.byteLength>RECIPE_RULES.maxUploadBytes)fail('Ảnh quá lớn.','Photo too large.',413);
  const {bytes:clean,width,height}=stripJpeg(new Uint8Array(bytes));
  if(clean.byteLength>RECIPE_RULES.maxPhotoBytes)fail('Ảnh tối đa 1,2 MB sau khi nén.','Photo must be under 1.2 MB after compression.',413);
@@ -124,7 +124,7 @@ export async function storeRecipePhoto(getStoreFn:any,{context,id,bytes,now}:any
 export async function unshareRecipe(getStoreFn:any,{context,id}:any){
  if(!validRecipeId(id))fail('Mã món không hợp lệ.','Invalid id.');
  const store=communityStore(getStoreFn),x=await readJSON(store,itemKey(id));
- if(!x||x.familyRef!==familyRefOf(context.household?.id||'')&&x.account!==context.account.username)fail('Không tìm thấy món đã chia sẻ.','Shared recipe not found.',404);
+ if(!x||x.familyRef!==familyRefOf(context.household?.id||'')&&x.account!==context.account.username)fail('Không tìm thấy món ăn đã chia sẻ.','Shared recipe not found.',404);
  try{await store.delete(photoKey(id))}catch{}await store.delete(itemKey(id));
  return{removed:true,id};
 }
@@ -140,7 +140,7 @@ export async function reportRecipe(getStoreFn:any,{context,body,now}:any){
  if(!await bump(store,`recipes/rate/${dayKey(now)}/report-${account}`,RECIPE_RULES.reportsPerDay,now))fail('Bạn đã báo cáo nhiều lần hôm nay.','Too many reports today.',429);
  let found=false,dup=false;
  await editRecord(store,itemKey(id),(x:any)=>{if(!x||x.status!=='approved')return undefined;found=true;const by=familyRefOf('report:'+account);if((x.reports||[]).some((r:any)=>r.by===by&&r.status==='open')){dup=true;return undefined}return{...x,reports:[...(x.reports||[]).slice(-(RECIPE_RULES.maxReports-1)),{id:'rr-'+randomBytes(4).toString('hex'),reason,note:text(body?.note,300),at:iso(now),by,status:'open'}]}});
- if(!found)fail('Không tìm thấy món.','Recipe not found.',404);
+ if(!found)fail('Không tìm thấy món ăn.','Recipe not found.',404);
  return{reported:true,duplicate:dup};
 }
 
@@ -180,7 +180,7 @@ export async function moderateRecipe(getStoreFn:any,{action,body,now,actor,rewar
   }
   return fail('Thao tác không hỗ trợ.','Unsupported action.');
  });
- if(!next)fail('Không tìm thấy món.','Recipe not found.',404);
+ if(!next)fail('Không tìm thấy món ăn.','Recipe not found.',404);
  if(['reject','remove'].includes(action))try{await store.delete(photoKey(id))}catch{}
  if(['reject','remove'].includes(action))await editRecord(store,itemKey(id),(x:any)=>x?{...x,hasPhoto:false}:undefined);
  let points:number|null=null;

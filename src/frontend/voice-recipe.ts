@@ -157,7 +157,7 @@ function segmentRecipe(text,opts={}){
  delete out._prep;
  // Title: after "món"/"công thức"/"cách nấu"/"recipe for"/"how to make", else the first clause before any marker.
  {let s=0,e=preEnd;const head=vrFind(T,['hôm nay','today'],0,Math.min(e,6));
-  const m=vrFind(T,['công thức món','công thức','cách nấu món','cách làm món','cách nấu','cách làm','món','recipe for','how to make','how to cook','we are making','were making','we are cooking','we re making','making','make','cook'],0,e);
+  const m=vrFind(T,['công thức món ăn','công thức món','công thức','cách nấu món ăn','cách nấu món','cách làm món ăn','cách làm món','cách nấu','cách làm','món ăn','món','recipe for','how to make','how to cook','we are making','were making','we are cooking','we re making','making','make','cook'],0,e);
   if(m&&(!head||m.start>=head.start)&&m.start<12)s=m.end;
   while(s<e&&(T[s].sep||consumed.has(s)))s++;
   let k=s;while(k<e&&!T[k].sep&&!consumed.has(k)&&!VR.is(T,k,VR_TAIL)&&!VR.phrase(T,k,['cho','đủ cho','for','serves','gồm','includes','mất','takes']))k++;
@@ -220,7 +220,7 @@ function vrRenderReview(p){
  const need=p.ingredients.filter(i=>i.needs).length;
  box.innerHTML=`<section class="vr-review"><h3>${vrT('Xem lại trước khi lưu','Review before saving')}</h3>
  ${dup?`<p class="callout vr-dup" role="status">⚠️ ${vrT(`Đã có món “${vrEsc(dup.name)}”. Bản đọc này sẽ lưu thành món MỚI — món cũ không bị ghi đè. Đổi tên nếu cần.`,`“${vrEsc(dup.name)}” already exists. This will be saved as a NEW recipe — the existing one is not overwritten. Rename it if you like.`)}</p>`:''}
- <div class="field"><label for="vr-title">${vrT('Tên món','Recipe name')}</label><input class="input" id="vr-title" maxlength="150" value="${vrEsc(p.title)}" placeholder="${vrT('Chưa nghe tên món — điền vào đây','No name heard — type it here')}"></div>
+ <div class="field"><label for="vr-title">${vrT('Tên món ăn','Recipe name')}</label><input class="input" id="vr-title" maxlength="150" value="${vrEsc(p.title)}" placeholder="${vrT('Chưa nghe tên món ăn — điền vào đây','No name heard — type it here')}"></div>
  <div class="scout-grid"><div class="field"><label for="vr-servings">${vrT('Số suất','Servings')}</label><input class="input" id="vr-servings" type="number" min="1" max="100" step="1" value="${p.servings??''}" placeholder="${vrT('chưa nói','not said')}"></div><div class="field"><label for="vr-time">${vrT('Thời gian (phút)','Time (minutes)')}</label><input class="input" id="vr-time" type="number" min="0" max="600" value="${p.time??''}" placeholder="${vrT('chưa nói','not said')}"></div></div>
  <h4>${vrT('Nguyên liệu','Ingredients')} <small>${need?vrT(`· ${need} dòng cần điền`,`· ${need} to fill in`):''}</small></h4>
  <datalist id="vr-units">${['g','kg','ml','l','quả','cái','bó','gói','miếng','muỗng canh','muỗng cà phê','chén','củ','tép'].map(u=>`<option value="${u}">`).join('')}</datalist>
@@ -248,7 +248,7 @@ function vrUse(){
  const t=f.querySelector('input[name="transcript"]');if(t)t.value=String(c.raw||'').slice(0,20000);
  const dup=vrDuplicate(c.title);
  const note=document.createElement('div');note.className='vr-form-note';
- note.innerHTML=`<p class="callout" role="status">🎙 ${vrT('Đã điền từ lời đọc. Kiểm tra lại rồi bấm Lưu món gia đình.','Filled from your dictation. Check it, then tap Save family recipe.')}${dup?' '+vrT(`Đã có món “${vrEsc(dup.name)}” — món này sẽ lưu thành món mới, không ghi đè.`,`“${vrEsc(dup.name)}” already exists — this is saved as a new recipe, not overwritten.`):''}</p><details class="vr-raw"><summary>${vrT('Lời đọc gốc','Original transcript')}</summary><p data-user-content>${vrEsc(c.raw).replace(/\n/g,'<br>')}</p></details>`;
+ note.innerHTML=`<p class="callout" role="status">🎙 ${vrT('Đã điền từ lời đọc. Kiểm tra lại rồi bấm Lưu món ăn gia đình.','Filled from your dictation. Check it, then tap Save family recipe.')}${dup?' '+vrT(`Đã có món “${vrEsc(dup.name)}” — món này sẽ lưu thành món mới, không ghi đè.`,`“${vrEsc(dup.name)}” already exists — this is saved as a new recipe, not overwritten.`):''}</p><details class="vr-raw"><summary>${vrT('Lời đọc gốc','Original transcript')}</summary><p data-user-content>${vrEsc(c.raw).replace(/\n/g,'<br>')}</p></details>`;
  f.prepend(note);
 }
 function voiceRecipeSaved(){vrState.take?.stop(true);vrClearDraft()}

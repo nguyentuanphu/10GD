@@ -23,7 +23,7 @@ function mrValue(s,memberId,recipeId){return mrEntry(s,memberId,recipeId)?.v||'n
 // Set a member's reaction. value 'like' | 'dislike' | 'none'; toggle=true turns an equal value off (one-tap toggle).
 function setMenuReaction(s,{member,recipe,value,reasons,date,by='',at=Date.now(),toggle=false}){
  if(!s?.members?.some(m=>m.id===member))throw Error(typeof tr==='function'?tr('Chọn thành viên trong gia đình.','Choose a family member.'):'Chọn thành viên trong gia đình.');
- const id=String(recipe?.id||'');if(!id||id.length>150)throw Error('Món không hợp lệ.');if(!MR_VALUES.includes(value))throw Error('Invalid reaction');
+ const id=String(recipe?.id||'');if(!id||id.length>150)throw Error('Món ăn không hợp lệ.');if(!MR_VALUES.includes(value))throw Error('Invalid reaction');
  const d=mrDate(date)?date:sydneyDate(),key=mrKey(member,id),old=mrEntry(s,member,id),stamp=Math.max(Math.floor(at),(old?.at||0)+1);
  let v=value;if(toggle&&old?.v===value)v='none';
  const keep=old&&old.v===v?old.why:[],why=Array.isArray(reasons)?[...new Set(reasons)].filter(w=>(MR_REASON_CODES[v]||[]).includes(w)):keep.filter(w=>(MR_REASON_CODES[v]||[]).includes(w));
