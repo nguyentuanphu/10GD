@@ -3,7 +3,8 @@
 // Classic script: defines globalThis.ScoutCore and, under Node, module.exports.
 //
 // GUARDRAILS (owner, option C) that live in this file:
-//  - pacing() never returns less than 20 s or more than 40 s in a production build;
+//  - pacing() never returns less than 3 s or more than 120 s in a production build (v1.7:
+//    owner-adjustable presets; default Normal 20–40 s), still jittered min–max;
 //  - detectChallenge() recognises bot challenges / 403 / 429 / unusual pages so the
 //    runner STOPS (it never tries to solve or bypass them);
 //  - robotsAllows() implements RFC 9309 matching for the paths auto mode visits;
@@ -113,8 +114,11 @@ function validSchedule(w:any){return Array.isArray(w)&&w.length<=14&&w.every((x:
 function inWindow(ms:number,windows:any=DEFAULT_SCHEDULE,timeZone?:string){if(!validSchedule(windows))return false;const {day,minutes}=localParts(ms,timeZone);return windows.some((w:any)=>w.days.includes(day)&&minutes>=hm(w.start)&&minutes<hm(w.end))}
 /** First time ≥ ms (5-minute steps, up to 8 days) that falls inside a window, or null. */
 function nextWindowStart(ms:number,windows:any=DEFAULT_SCHEDULE,timeZone?:string){if(!validSchedule(windows))return null;const step=5*60000;let t=Math.ceil(ms/step)*step;for(let i=0;i<8*24*12;i++,t+=step)if(inWindow(t,windows,timeZone))return t;return null}
-/** Delay before the next page: random within [20 s, 40 s]. A test build may pass a shorter override; production clamps. */
-function pacing(rand:number=Math.random(),override?:{minMs:number,maxMs:number}|null,testBuild=false){const p=testBuild&&override?override:PACING;const lo=testBuild?p.minMs:Math.max(PACING.minMs,p.minMs),hi=testBuild?p.maxMs:Math.min(PACING.maxMs,Math.max(lo,p.maxMs));return Math.round(lo+(hi-lo)*Math.min(1,Math.max(0,rand)))}
+/** Delay before the next page: random within the server's [min, max] (default Normal
+ *  20–40 s). Production builds clamp to [3 s, 120 s]; a test build may go shorter. */
+const PACE_FLOOR=3000,PACE_CEIL=120000;
+function pacing(rand:number=Math.random(),override?:{minMs:number,maxMs:number}|null,testBuild=false){const p=override&&Number.isFinite(override.minMs)&&Number.isFinite(override.maxMs)?override:PACING;
+ const clamp=(v:number)=>testBuild?Math.max(0,v):Math.min(PACE_CEIL,Math.max(PACE_FLOOR,v));const lo=clamp(p.minMs),hi=Math.max(lo,clamp(p.maxMs));return Math.round(lo+(hi-lo)*Math.min(1,Math.max(0,rand)))}
 // ---------- store label ----------
 const normLabel=(s:any)=>clean(String(s||''),80).toLowerCase().replace(/^(your\s+store|my\s+store|store|shopping at|pick up from|deliver(?:y|ing)? to)\s*[:\-]?\s*/i,'').replace(/[^a-z0-9]+/g,' ').trim();
 function storeMatches(seen:any,assigned:any){const a=normLabel(assigned),s=normLabel(seen);if(!a)return true;if(!s)return false;return s===a||s.includes(a)||a.includes(s)}

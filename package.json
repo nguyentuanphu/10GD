@@ -33,7 +33,7 @@
     "bench:studio": "node tests/studio-bench.mjs",
     "build:extension": "npm run build && tsc -p tsconfig.extension.json && node scripts/build-extension.cjs && node scripts/build-extension.cjs --test",
     "build:production": "npm run check && tsc -p tsconfig.extension.json && node scripts/build-extension.cjs",
-    "test:scout": "npm run build:extension && node tests/scout-api.test.mjs && node tests/scout-parse.test.cjs && node tests/scout-community.test.mjs",
+    "test:scout": "npm run build:extension && node tests/scout-api.test.mjs && node tests/scout-parse.test.cjs && node tests/scout-community.test.mjs && node tests/scout-remote.test.mjs",
     "test:scout:browser": "npm run build:extension && node tests/scout-extension-browser.test.cjs",
     "test:scout-studio:browser": "node tests/scout-studio-browser.test.cjs",
     "test:scout-pair:browser": "node tests/scout-pair-browser.test.cjs",

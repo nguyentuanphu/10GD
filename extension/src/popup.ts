@@ -32,6 +32,9 @@ async function render(){
   <dt>${T('Lần chạy tới','Next run')}</dt><dd>${next?esc(UI.when(next)):'—'}</dd>
   <dt>${T('Lần chạy trước','Last run')}</dt><dd>${last?esc(UI.when(last.at)+' · '+T(`${last.pages} trang, ${last.prices} giá`,`${last.pages} pages, ${last.prices} prices`)+' · '+UI.reason(last.stop)):T('chưa có','never')}</dd>
   <dt>${T('Bị chặn','Blocked')}</dt><dd>${(st.blockedEvents||[]).length}</dd></dl>
+  ${st.run?`<p class="banner ok" role="status" data-run-status>${esc(T(`Đang chạy · ${st.run.pages||0}/${v?.caps?.pagesPerRun||150} trang`,`Running · ${st.run.pages||0}/${v?.caps?.pagesPerRun||150} pages`))}</p><button id="stoprun" class="btn danger" type="button">${T('⏹ Dừng lần chạy này','⏹ Stop this run')}</button>`
+   :st.autoEnabled&&v?.autoAllowed&&v?.network?.autoScout==='on'&&!v?.paused&&!st.paused?`<button id="runnow" class="btn primary" type="button">${T('▶ Chạy ngay','▶ Run now')}</button><p class="muted">${T('Chạy một lần ngay bây giờ, ngoài khung giờ. Mọi giới hạn vẫn áp dụng.','Runs once now, outside the schedule. All limits still apply.')}</p>`:''}
+  ${v?.network?.pacing?`<p class="muted" data-pace>${esc(T('Nhịp: ','Pace: ')+UI.paceLabel(v.network.pacing))}</p>`:''}
   ${v?.paused?`<p class="banner warn">${esc(T('Máy tạm dừng đến ','Paused until ')+UI.when(Date.parse(v.paused.until)))}</p>`:''}
  </section>`}
  ${paired?storeAsk(st):''}
@@ -41,6 +44,8 @@ async function render(){
  $('#pause').onclick=async()=>{const p=!(await SC.get(['paused'])).paused;await SC.set({paused:p});if(p)chrome.runtime.sendMessage({type:'stop-run'}).catch(()=>{});render()};
  document.querySelectorAll('[data-use-store]').forEach((b:any)=>b.addEventListener('click',async()=>{b.disabled=true;const cur=await SC.get(['device','warnings']),r=b.dataset.useStore,stores={...(cur.device?.stores||{}),[r]:cur.warnings.storesSeen[r]};
   try{const view=await SC.api('device-settings',{stores});const w=(await SC.get(['warnings'])).warnings;w.storeMismatch[r]=false;await SC.set({device:view,warnings:w})}catch(e:any){b.disabled=false;$('#app').insertAdjacentHTML('afterbegin',`<p class="banner warn" role="alert">${esc(e.message)}</p>`)}}));
+ $('#runnow')?.addEventListener('click',async(e:any)=>{e.target.disabled=true;const why=await chrome.runtime.sendMessage({type:'run-now'});if(why){$('#app').insertAdjacentHTML('afterbegin',`<p class="banner warn" role="alert">${esc(UI.reason(why))}</p>`);e.target.disabled=false}});
+ $('#stoprun')?.addEventListener('click',async(e:any)=>{e.target.disabled=true;await chrome.runtime.sendMessage({type:'stop-run',server:true})});
  for(const id of ['#opts','#opts2'])$(id)?.addEventListener('click',()=>chrome.runtime.openOptionsPage());
  $('#semi')?.addEventListener('change',async(e:any)=>{await SC.set({semiEnabled:e.target.checked});render()});
  $('#site')?.addEventListener('change',async(e:any)=>{const s=(await SC.get(['semiSites'])).semiSites;s[tabRetailer!]=e.target.checked;await SC.set({semiSites:s});render()});

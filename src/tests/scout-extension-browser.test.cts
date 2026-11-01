@@ -224,6 +224,36 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
   assert.deepEqual(pageErrors,[]);
   console.log('PASS v1.7 easy install: detection, Pair now end-to-end (device appears, token never on the page), manual code fallback, sender-origin refusal, one-tap store name, reopen after install');
 
+  // ================= v1.7 remote control: Studio Run now + Stop, fast pace still one page at a time =================
+  {const devId=extSt.deviceId,dow=new Date(Date.now()+3*86400000).getDay();
+   await scoutLib.saveNetwork(getStoreFn,{autoScout:'on'},'henrynguyen',Date.now());
+   await scoutLib.editDevice(getStoreFn,devId,(d:any)=>({...d,autoAllowed:true,stores:{woolworths:'Hurstville'},schedule:[{days:[dow],start:'00:00',end:'00:30'}],pacing:{minMs:3000,maxMs:3500}}));// outside its window; Very fast pace
+   await setStorage({autoEnabled:true,testPacing:null,lastRun:null,stopRun:0});
+   cfg.version='e2e-3';cfg.retailers.woolworths.specials=[3,4,5,6].map(n=>base('woolworths')+'/shop/browse/specials/half-price?page='+n);await store.setJSON('config/override',{config:cfg});
+   // Retire the earlier challenge fixture task (released when the first device was blocked).
+   {const day=scoutLib.dayKey(Date.now());await scoutLib.ensurePlan(getStoreFn,{settings:await scoutLib.networkSettings(getStoreFn,env),now:Date.now(),adapter});for(const t of await scoutLib.listTasks(getStoreFn,day))if(t.url.includes('/challenge'))await store.setJSON(`tasks/${day}/${t.taskId}`,{...t,status:'done'})}
+   assert.equal(await sw.evaluate(()=>(globalThis as any).scoutDebug.canStart()),'outside-window','no grant → waits for its window');
+   // Studio: Run now (grant + queued command), delivered with the next heartbeat.
+   await scoutLib.grantRunNow(getStoreFn,devId,'henrynguyen',Date.now());const cmd=await scoutLib.queueCommand(getStoreFn,devId,'run-now',{},'henrynguyen',Date.now());
+   const v0=visits.length;await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());
+   await until(async()=>(await storage(['run'])).run,15000,'run started by the Run now command');
+   await until(async()=>((await scoutLib.getDevice(getStoreFn,devId)).commands||[]).find((c:any)=>c.id===cmd.id)?.status==='done',15000,'command acknowledged');
+   await until(async()=>visits.slice(v0).filter(v=>v.host==='woolworths.scout.test').length>=2||(await storage(['lastRun'])).lastRun,40000,'two pages at the fast pace');
+   {const early=(await storage(['lastRun'])).lastRun;assert.equal(early,null,'run ended before two pages: '+JSON.stringify(early)+' tasks '+JSON.stringify((await scoutLib.listTasks(getStoreFn,scoutLib.dayKey(Date.now()))).map((t:any)=>[t.status,t.url.slice(-30),t.leasedBy===devId])))}
+   const pop3=await ctx.newPage();await pop3.setViewportSize({width:375,height:700});await pop3.goto(`chrome-extension://${id}/popup.html`);await pop3.locator('[data-run-status]').waitFor();assert.match(await pop3.locator('[data-run-status]').innerText(),/Đang chạy · \d+\/150 trang/);assert.equal(await pop3.locator('#stoprun').count(),1);
+   // Studio: Stop → obeyed within one heartbeat.
+   await scoutLib.stopRun(getStoreFn,devId,Date.now());await scoutLib.queueCommand(getStoreFn,devId,'stop',{},'henrynguyen',Date.now());await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());
+   const lr=await until(async()=>(await storage(['lastRun'])).lastRun,20000,'run stopped');assert.equal(lr.stop,'stopped',JSON.stringify(lr));
+   const fast=visits.slice(v0).filter(v=>v.host==='woolworths.scout.test');assert.ok(fast.length>=2&&fast.length<4,'stopped before the end: '+fast.length);
+   for(let i=1;i<fast.length;i++){const gap=fast[i].at-fast[i-1].at;assert.ok(gap>=3000,'still paced ≥ 3 s, one page at a time: '+gap)}
+   assert.equal(new Set(fast.map(v=>v.path)).size,fast.length,'each page once');
+   await until(async()=>(await ctx.pages()).every((p:any)=>!p.url().includes('runner.html')),15000,'runner window closed');
+   // The live status reached the server (heartbeat each minute; here forced).
+   await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());const live=scoutLib.liveStatus(await scoutLib.getDevice(getStoreFn,devId),await scoutLib.networkSettings(getStoreFn,env),Date.now());
+   assert.equal(live.online,true);assert.equal(live.lastRun.stop,'stopped');assert.equal(live.pace.minMs,3000);assert.equal(live.pace.source,'device');assert.equal(live.chromeOpen,true);
+   await pop3.close();
+   console.log('PASS v1.7 remote control in the extension: Run now command → run outside the window, Very fast pace still sequential (≥ 3 s), Stop obeyed within one heartbeat, popup status, live status')}
+
   // ---------- Chrome Web Store / Edge Add-ons screenshots (1280×800) + promo tile ----------
   if(process.env.SCOUT_STORE_SCREENSHOTS==='1'){const dir='docs/scout-store/screenshots';mkdirSync(dir,{recursive:true});
    const st=await ctx.newPage();await st.setViewportSize({width:1280,height:800});
