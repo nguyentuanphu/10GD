@@ -703,3 +703,20 @@ html[data-theme="dark"] .scout-pair-card{background:#18241f;border-color:#3a4c43
 html[data-theme="dark"] .scout-pair-code,html[data-theme="dark"] .scout-src-chip{background:#223a30;color:#e8f2ec}
 html[data-theme="dark"] .scout-pair-card .scout-pair-big{color:#a8e0c2}
 /* === v1.6 scout-pair end === */
+/* === v1.6 voice-integration start === */
+.voice-local.voice-local-shared{border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;margin:10px 0 0}
+.voice-local.voice-local-shared>*{margin-left:0;margin-right:0}
+.voice-local-shared .vl-group{border:0;padding:0;margin:0;min-width:0}
+.voice-local-shared .vl-group legend{font-weight:700;font-size:16px;padding:10px 0 2px}
+.voice-local-shared .vl-pack-title{margin:6px 0 2px;font-size:16px;overflow-wrap:anywhere}
+.voice-local-shared .vl-pack-title small{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.voice-local-shared .vl-pack-row{padding-left:0}
+.voice-lang-settings .voice-lang-row{margin-top:4px}
+.voice-mode-chip{margin-left:auto;font-size:14px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
+.voice-suggest{min-height:44px;margin:4px 0;white-space:normal;text-align:left;border-style:dashed}
+.voice-local-tip{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.voice-local-tip .btn{min-height:44px}
+.vt-lang-settings{margin:8px 0}
+.vt-lang-settings .voice-lang{margin:4px 0 10px}
+.voice-item .voice-suggest{flex-basis:100%}
+/* === v1.6 voice-integration end === */

@@ -45,24 +45,28 @@ async function main(){
   await page.waitForFunction(()=>typeof (globalThis as any).voiceModal==='function'&&typeof (globalThis as any).voiceLocalRecognizer==='function'&&typeof (globalThis as any).voiceStatsEvent==='function'&&document.querySelector('#main h1'),null,{timeout:20000});
   return{page,context,errors};
  }
- const openSheet=async(page:any)=>{await page.evaluate('closeModal();voiceModal()');await page.waitForSelector('#voice-local-settings');await page.waitForFunction(()=>document.querySelector('#voice-local-settings [data-vl-pack] .vl-state'));};
- const expand=async(page:any)=>{await page.locator('#voice-local-settings > summary').click();await page.waitForTimeout(60)};
+ const openSheet=async(page:any)=>{await page.evaluate('closeModal();voiceModal()');await page.waitForSelector('#voice-local-settings',{state:'attached'});await page.waitForFunction(()=>document.querySelector('#voice-local-settings [data-vl-pack] .vl-state'));};
+ // v1.6 integration: the on-device section lives inside the sheet's ONE "Cài đặt giọng nói" panel (#voice-settings),
+ // and the recogniser is chosen in that panel's shared selector (stored in bep-voice-recognizer), not a separate radio list.
+ const expand=async(page:any)=>{if(!(await page.locator('#voice-settings').evaluate((d:any)=>d.open)))await page.locator('#voice-settings > summary').click();await page.waitForTimeout(60)};
+ const active=(page:any)=>page.evaluate('VoiceAPI.activeRecognizer()');
  async function check(page:any,label:string){
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert.ok(overflow<=1,label+': horizontal overflow '+overflow+'px');
-  const small=await page.evaluate(()=>[...document.querySelectorAll('#voice-local-settings summary,#voice-local-settings .vl-choice,#voice-local-settings .vl-check,#voice-local-settings .btn')].filter((e:any)=>e.offsetParent&&e.getBoundingClientRect().height<43.5).map((e:any)=>(e.textContent||'').trim().slice(0,30)));
+  const small=await page.evaluate(()=>[...document.querySelectorAll('#voice-settings > summary,#voice-recognizer,#voice-local-settings .vl-check,#voice-local-settings .btn,#voice-lang-settings .voice-lang-btn')].filter((e:any)=>e.offsetParent&&e.getBoundingClientRect().height<43.5).map((e:any)=>(e.textContent||'').trim().slice(0,30)));
   assert.deepEqual(small,[],label+': touch targets under 44px');
   const clipped=await page.evaluate(()=>[...document.querySelectorAll('#voice-local-settings *')].filter((e:any)=>e.offsetParent&&e.getBoundingClientRect().right>innerWidth+1).length);assert.equal(clipped,0,label+': content outside the viewport');
-  const text=await page.locator('#voice-local-settings').innerText();assert.ok(!/netlify|blobs/i.test(text),label+': no hosting vendor named');
+  const text=await page.locator('#voice-settings').innerText();assert.ok(!/netlify|blobs/i.test(text),label+': no hosting vendor named');
+  assert.equal(await page.locator('#voice-settings').count(),1,label+': one voice settings panel');assert.equal(await page.locator('details#voice-local-settings').count(),0,label+': no second settings block');
  }
  const shot=async(page:any,name:string)=>{await page.locator('#voice-local-settings').scrollIntoViewIfNeeded();await page.waitForTimeout(60);await page.screenshot({path:`${out}/${name}.png`});shots++};
  try{
   // 1. Settings block: default OFF, exact sizes, consent OFF — screenshots across sizes/themes/languages.
   for(const [size,lang,theme] of [['mobile','vi','light'],['tablet','vi','light'],['desktop','vi','light'],['mobile','en','dark'],['tablet','en','dark'],['desktop','en','dark'],['mobile','vi','dark'],['mobile','en','light']]){
    const {page,context,errors}=await open({viewport:sizes[size],lang,theme});await openSheet(page);await expand(page);
-   const t=await page.locator('#voice-local-settings').innerText();
+   const t=await page.locator('#voice-settings').innerText();
    if(lang==='vi'){for(const want of ['Cài đặt giọng nói','Của trình duyệt','Nhẹ','Chính xác hơn','79,7 MB','252 MB','Chưa tải','Giúp cải thiện nhận giọng nói (chỉ gửi chữ, không gửi âm thanh)'])assert.ok(t.includes(want),size+' vi missing '+want)}
    else{for(const want of ['Voice settings','Browser','Light','More accurate','79.7 MB','252 MB','Not downloaded','Help improve voice recognition (sends text only, never audio)'])assert.ok(t.includes(want),size+' en missing '+want)}
-   assert.equal(await page.locator('input[name=vl-choice][value=""]').isChecked(),true,'browser recogniser by default');
+   assert.equal(await active(page),'browser','browser recogniser by default');assert.equal(await page.locator('input[name=vl-choice]').count(),0,'no duplicate recogniser chooser');
    assert.equal(await page.locator('#voice-stats-consent').isChecked(),false,'consent off by default');
    assert.equal(await page.locator('[data-vl-download="base"]').isDisabled(),false);
    await check(page,`${size} ${lang} ${theme}`);await shot(page,`settings-${lang}-${theme}-${size}-${sizes[size].width}x${sizes[size].height}`);
@@ -77,8 +81,9 @@ async function main(){
    await page.evaluate('voiceLocalRenderSettings()');await page.waitForTimeout(80);
    await page.locator('[data-vl-download="base"]').click();
    await page.waitForFunction(()=>document.querySelector('[data-vl-pack="base"] .vl-state')?.getAttribute('data-state')==='ready',null,{timeout:8000});
-   assert.equal(await page.locator('input[name=vl-choice][value="base"]').isChecked(),true,'downloaded pack becomes the recogniser');
-   assert.equal(await page.evaluate(()=>localStorage.getItem('bep-voice-local')),'base');
+   await page.waitForFunction(()=>(document.querySelector('#voice-recognizer') as any)?.value==='local-base',null,{timeout:4000});
+   assert.equal(await active(page),'local-base','downloaded pack becomes the recogniser, shown in the shared selector');
+   assert.equal(await page.evaluate(()=>localStorage.getItem('bep-voice-recognizer')),'local-base');
    assert.equal(external.length,6,'pinned files only: '+external.join(' '));
    await shot(page,'settings-vi-light-mobile-downloaded-375x812');
    const before=external.length,recsBefore=await page.evaluate(()=>(window as any).__recs.length);
@@ -89,7 +94,7 @@ async function main(){
    assert.equal(await page.evaluate('voiceStatsRecognizer()'),'local-base');
    await page.locator('#voice-stop').click().catch(()=>{});
    // English toggle → English hint to Whisper.
-   await page.evaluate('closeModal();voiceModal()');await page.locator('.voice-lang-btn[data-voice-lang="en-AU"]').click();
+   await page.evaluate('closeModal();voiceModal()');await expand(page);await page.locator('.voice-lang-btn[data-voice-lang="en-AU"]').click();
    await page.waitForFunction(()=>/two kilos of pork belly/.test((document.querySelector('#voice-text') as any)?.value||''),null,{timeout:8000});
    await page.screenshot({path:`${out}/sheet-local-listening-en-vi-light-375x812.png`});shots++;
    // 3. Offline: recognition still works; the worker comes from Cache Storage.
@@ -115,7 +120,7 @@ async function main(){
    assert.equal(posts[1]?.op,'forget');await page.waitForFunction(()=>localStorage.getItem('bep-voice-stats-device')===null,null,{timeout:3000});
    // 6. Remove pack → back to browser recognition.
    await page.locator('[data-vl-remove="base"]').click();await page.waitForFunction(()=>document.querySelector('[data-vl-pack="base"] .vl-state')?.getAttribute('data-state')==='none');
-   assert.equal(await page.locator('input[name=vl-choice][value=""]').isChecked(),true);
+   await page.waitForFunction(()=>(globalThis as any).VoiceAPI.activeRecognizer()==='browser');assert.equal(await page.evaluate(()=>localStorage.getItem('bep-voice-recognizer')),null);
    const n=await page.evaluate(()=>(window as any).__recs.length);await page.evaluate('closeModal();voiceModal()');await page.waitForTimeout(100);assert.equal(await page.evaluate(()=>(window as any).__recs.length),n+1,'browser recogniser used again');
    assert.deepEqual(errors,[]);await context.close();
   }
@@ -126,7 +131,8 @@ async function main(){
    assert.equal(await page.locator('[data-vl-download="base"]').isDisabled(),true);assert.match(await page.locator('#voice-local-settings').innerText(),/Using browser speech recognition/);
    // A chosen pack that is not available falls back to the browser recogniser.
    await page.evaluate(()=>localStorage.setItem('bep-voice-local','base'));const n=await page.evaluate(()=>(window as any).__recs.length);await page.evaluate('closeModal();voiceModal()');await page.waitForFunction((n:number)=>(window as any).__recs.length>n,n);
-   assert.equal(await page.evaluate(()=>localStorage.getItem('bep-voice-local')),null,'unavailable choice is cleared');
+   await page.waitForFunction(()=>localStorage.getItem('bep-voice-recognizer')===null,null,{timeout:3000});
+   assert.equal(await page.evaluate(()=>localStorage.getItem('bep-voice-local')),null,'unavailable choice is cleared (legacy key migrated, shared key cleared)');
    await page.evaluate('closeModal();voiceModal()');await expand(page);await shot(page,'settings-en-light-mobile-unsupported-375x812');
    assert.deepEqual(errors,[]);await context.close();
   }
@@ -167,7 +173,9 @@ async function main(){
     if(size==='desktop'&&lang==='en'){const [dl]=await Promise.all([page.waitForEvent('download'),page.locator('#vs-export').click()]);const j=JSON.parse(readFileSync(await dl.path(),'utf8'));assert.equal(j.format,'bep-voice-synonyms');assert.ok(j.synonyms.some((s:any)=>s.phrase==='rau răm'&&s.id==='vietnameseMint'))}
     // Hash navigation away and back keeps Studio's main / Scout panel consistent.
     if(size==='desktop'&&lang==='vi'&&theme==='light'){await page.evaluate(()=>{location.hash='#overview'});await page.waitForTimeout(150);assert.equal(await page.locator('#voice-main').isHidden(),true);assert.equal(await page.locator('#main').isHidden(),false);
-     await page.evaluate(()=>{location.hash='#scout'});await page.waitForTimeout(200);if(await page.locator('#scout-main').count())assert.equal(await page.locator('#main').isHidden(),true,'Scout panel still hides Studio main');
+     await page.evaluate(()=>{location.hash='#scout'});await page.waitForTimeout(200);if(await page.locator('#scout-main').count()){assert.equal(await page.locator('#voice-main').isHidden(),true,'Voice panel hidden on #scout');
+      // Since the v1.5 Studio panel registry, Scout renders INSIDE Studio's #main (older studio.js: its own <main> that hides #main).
+      const inMain=await page.evaluate(()=>!!document.querySelector('#main #scout-main'));assert.equal(await page.locator('#main').isHidden(),!inMain,'Scout panel and Studio main stay consistent');if(inMain)assert.equal(await page.locator('#scout-main').isVisible(),true,'Scout panel shown')}
      await page.evaluate(()=>{location.hash='#voice'});await page.waitForSelector('#voice-main:not([hidden]) .vs-kpis')}
     assert.deepEqual(errors,[]);await context.close();
    }

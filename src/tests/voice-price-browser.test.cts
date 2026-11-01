@@ -55,8 +55,8 @@ async function main(){
   const shownSr=await page.evaluate(()=>[...document.querySelectorAll('.vp-sheet .sr-only,.vr-sheet .sr-only,.price-scout .sr-only')].filter((e:any)=>e.getBoundingClientRect().width>1).length);
   assert.equal(shownSr,0,label+': screen-reader-only text is visually hidden');
  }
- const PRICE_TARGETS='.vp-controls .btn,.vp-row-actions .btn,.vt-lang .voice-lang-btn,.scout-voice-btn';
- const RECIPE_TARGETS='.vp-controls .btn,.vt-lang .voice-lang-btn,.vr-ing .input,.vr-del,.vr-entry-btn,.vr-steps textarea';
+ const PRICE_TARGETS='.vt-lang-settings > summary,.vp-controls .btn,.vp-row-actions .btn,.vt-lang .voice-lang-btn,.scout-voice-btn';
+ const RECIPE_TARGETS='.vt-lang-settings > summary,.vp-controls .btn,.vt-lang .voice-lang-btn,.vr-ing .input,.vr-del,.vr-entry-btn,.vr-steps textarea';
  const shot=async(page:any,name:string)=>{await page.screenshot({path:`${out}/${name}.png`,fullPage:false});shots++};
  const scrollModal=(page:any,sel:string)=>page.evaluate((sel:string)=>document.querySelector(sel)?.scrollIntoView({block:'start'}),sel);
  try{
@@ -113,7 +113,9 @@ async function main(){
   // 3. Language toggle restarts recognition in the chosen language and remembers it (same convention as voice input).
   {const {page,context}=await open({lang:'en'});await page.evaluate('voicePriceOpen()');
    assert.deepEqual(await recLangs(page),['en-AU']);
-   await page.locator('.vt-lang [data-vp-lang="vi-VN"]').click();await page.waitForTimeout(50);
+   // v1.6: Auto by default — the override sits in the collapsed "Cài đặt giọng nói", nothing to pick before speaking.
+   assert.equal(await page.locator('.vt-lang [data-vp-lang="vi-VN"]').isVisible(),false,'no language choice shown before speaking');assert.match(await page.locator('.vt-lang-settings > summary').innerText(),/Auto/);
+   await page.locator('.vt-lang-settings > summary').click();await page.locator('.vt-lang [data-vp-lang="vi-VN"]').click();await page.waitForTimeout(50);
    const st=await page.evaluate(()=>(window as any).__recs.map((r:any)=>[r.lang,r.ended]));assert.deepEqual(st,[['en-AU',true],['vi-VN',false]]);
    assert.deepEqual(await page.evaluate(()=>[localStorage.getItem('bep-voice-lang'),localStorage.getItem('bep-voice-auto')]),['vi-VN','0']);
    assert.equal(await page.locator('[data-vp-lang="vi-VN"]').getAttribute('aria-pressed'),'true');await context.close()}

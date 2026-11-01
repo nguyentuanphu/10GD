@@ -14,8 +14,9 @@ const MIXED='2 kg pork belly với một bó rau muống, mua 3 hộp eggs, a bu
 async function main(){
  mkdirSync(out,{recursive:true});
  const browser=await chromium.launch();
- async function open({viewport=sizes.mobile,lang='vi',theme='light',voicePrefs=null as null|Record<string,string>}={}){
+ async function open({viewport=sizes.mobile,lang='vi',theme='light',voicePrefs=null as null|Record<string,string>,languages=null as null|string[]}={}){
   const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any});
+  if(languages)await context.addInitScript((l:string[])=>{Object.defineProperty(navigator,'languages',{get:()=>l});Object.defineProperty(navigator,'language',{get:()=>l[0]})},languages);
   await context.addInitScript(({lang,theme,voicePrefs})=>{const w=window as any;
    if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');localStorage.removeItem('bep-voice-lang');localStorage.removeItem('bep-voice-auto');localStorage.setItem('bep-voice-slow','1');if(voicePrefs)for(const[k,v]of Object.entries(voicePrefs))localStorage.setItem(k,v)}
    w.__recs=[];class FakeRec{lang='';n=0;started=false;ended=false;onresult:any;onend:any;onerror:any;constructor(){w.__recs.push(this)}start(){this.started=true}stop(){this.end()}abort(){this.end()}end(){if(this.ended)return;this.ended=true;setTimeout(()=>this.onend&&this.onend(),0)}}
@@ -35,6 +36,8 @@ async function main(){
   return{page,context,errors};
  }
  const recLangs=(page:any)=>page.evaluate(()=>(window as any).__recs.map((r:any)=>r.lang));
+ // v1.6: Auto is the default and needs no choice; the Tiếng Việt / English override lives in the collapsed "Cài đặt giọng nói".
+ const settings=async(page:any)=>{if(!(await page.locator('#voice-settings').evaluate((d:any)=>d.open)))await page.locator('#voice-settings > summary').click();await page.waitForTimeout(40)};
  const pressed=(page:any)=>page.evaluate(()=>[...document.querySelectorAll('.voice-lang [data-voice-lang]')].map((b:any)=>b.dataset.voiceLang+':'+b.getAttribute('aria-pressed')));
  const labels=(page:any)=>page.evaluate(()=>[...document.querySelectorAll('.voice-item')].map((el:any)=>[el.querySelector('.voice-label').value,el.querySelector('.voice-unit').value]));
  async function check(page:any,label:string){
@@ -47,7 +50,9 @@ async function main(){
  try{
   // 1. English UI starts English recognition; the toggle switches to Vietnamese, restarts cleanly and keeps the words heard.
   {const {page,context,errors}=await open({lang:'en'});
-   assert.deepEqual(await recLangs(page),['en-AU'],'English UI starts en-AU');assert.deepEqual(await pressed(page),['vi-VN:false','en-AU:true']);
+   assert.deepEqual(await recLangs(page),['en-AU'],'English UI on an English-only device starts en-AU');
+   assert.equal(await page.locator('.voice-lang-btn').first().isVisible(),false,'no language choice shown before speaking');
+   assert.match(await page.locator('#voice-mode-chip').innerText(),/Auto/);await settings(page);assert.deepEqual(await pressed(page),['vi-VN:false','en-AU:true']);
    assert.equal(await page.locator('.voice-lang-btn[data-voice-lang="vi-VN"]').innerText(),'Tiếng Việt','language names are not translated');
    await page.evaluate(()=>(window as any).__say('two kilos of pork belly'));
    await page.locator('.voice-lang-btn[data-voice-lang="vi-VN"]').click();await page.waitForTimeout(50);
@@ -57,11 +62,31 @@ async function main(){
    assert.deepEqual(await page.evaluate(()=>[localStorage.getItem('bep-voice-lang'),localStorage.getItem('bep-voice-auto')]),['vi-VN','0'],'manual choice remembered on this device');
    await page.evaluate(()=>(window as any).__say('và một bó rau muống'));assert.match(await page.inputValue('#voice-text'),/two kilos of pork belly, và một bó rau muống/);
    // Reopening uses the remembered choice; ticking Auto goes back to the UI language.
-   await page.evaluate('closeModal();voiceModal()');assert.equal((await recLangs(page)).pop(),'vi-VN');
-   await page.locator('#voice-auto').check();await page.waitForTimeout(50);assert.equal((await recLangs(page)).pop(),'en-AU');assert.equal(await page.evaluate(()=>localStorage.getItem('bep-voice-auto')),'1');
+   await page.evaluate('closeModal();voiceModal()');assert.equal((await recLangs(page)).pop(),'vi-VN');assert.equal(await page.locator('#voice-mode-chip').innerText(),'Tiếng Việt','override shown in the chip');
+   await settings(page);await page.locator('#voice-auto').check();await page.waitForTimeout(50);assert.equal((await recLangs(page)).pop(),'en-AU');assert.equal(await page.evaluate(()=>localStorage.getItem('bep-voice-auto')),'1');
    assert.deepEqual(errors,[]);await context.close()}
-  // 2. Vietnamese UI starts Vietnamese recognition.
-  {const {page,context}=await open({lang:'vi'});assert.deepEqual(await recLangs(page),['vi-VN']);assert.deepEqual(await pressed(page),['vi-VN:true','en-AU:false']);await context.close()}
+  // 2. Vietnamese UI starts Vietnamese recognition at once (Auto, no prompt).
+  {const {page,context}=await open({lang:'vi'});assert.deepEqual(await recLangs(page),['vi-VN']);assert.match(await page.locator('#voice-mode-chip').innerText(),/Tự động/);await settings(page);assert.deepEqual(await pressed(page),['vi-VN:true','en-AU:false']);await context.close()}
+  // 2b. Auto: English UI on a device that also lists Vietnamese listens in vi-VN (Vietlish), still with no prompt.
+  {const {page,context}=await open({lang:'en',languages:['en-AU','vi-VN']});assert.deepEqual(await recLangs(page),['vi-VN'],'Auto prefers vi-VN for a Vietnamese device');
+   assert.equal(await page.locator('.voice-lang-btn').first().isVisible(),false);await page.evaluate(()=>(window as any).__say('1kg salmon, 2kg tuna'));await page.evaluate('previewVoice()');await page.waitForSelector('.voice-item');
+   assert.deepEqual(await labels(page),[['Salmon','kg'],['Tuna','kg']],'Vietlish parsed, shown in the UI language');await context.close()}
+  // 2c. The owner's 10-item list as heard on production (no commas, "a"=eight, "to sermons", "galaxies"):
+  //     ten lines, one-tap "Did you mean", and the confirmed choice is learned by the family.
+  for(const lang of['en','vi']){const {page,context,errors}=await open({lang});
+   await page.evaluate(()=>(window as any).__say('5 chicken breast a tomatoes 6 potatoes 4 carrots 3 beef five onions 12 eggs to sermons 3 broccolis 10 galaxies'));
+   await page.evaluate('previewVoice()');await page.waitForSelector('.voice-item');
+   assert.equal(await page.locator('.voice-item').count(),10,lang+': ten lines');
+   const sug=page.locator('.voice-suggest');assert.equal(await sug.count(),2);
+   assert.deepEqual(await sug.allInnerTexts(),lang==='en'?['Did you mean: salmon (cá hồi)?','Did you mean: garlic (tỏi)?']:['Có phải: cá hồi (salmon)?','Có phải: tỏi (garlic)?']);
+   const h=await sug.first().evaluate((e:any)=>e.getBoundingClientRect().height);assert.ok(h>=43.5,'suggestion touch target '+h);
+   await sug.last().click();assert.equal(await page.locator('.voice-item').nth(9).locator('.voice-map').inputValue(),'garlic');assert.equal(await page.locator('.voice-item').nth(9).locator('.voice-label').inputValue(),lang==='en'?'Garlic':'Tỏi');
+   assert.deepEqual((await labels(page)).slice(0,2),lang==='en'?[['Chicken breast','pieces'],['Tomatoes','pcs']]:[['Ức gà','miếng'],['Cà chua','quả']],'no "whole", localised');
+   await page.locator('[data-personal="voice-apply-shopping"]').click();await page.waitForFunction(()=>location.hash==='#shopping');
+   assert.deepEqual(await page.evaluate('(state.voiceLearned||[]).map(e=>[e.p,e.id])'),[['galaxies','garlic']],'confirmed suggestion learned');
+   await page.evaluate('closeModal();voiceModal()');await page.evaluate(()=>(window as any).__say('10 galaxies'));await page.evaluate('previewVoice()');await page.waitForSelector('.voice-item');
+   assert.equal(await page.locator('.voice-item .voice-map').inputValue(),'garlic','learned word maps directly next time');assert.equal(await page.locator('.voice-suggest').count(),0);
+   assert.deepEqual(errors,[]);await context.close()}
   // 3. Auto mode suggests (never forces) a switch when the words look Vietnamese under English recognition.
   {const {page,context}=await open({lang:'en'});
    await page.evaluate(()=>(window as any).__say('hai ky thit ba chi voi mot bo rau muong',.42));

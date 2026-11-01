@@ -61,11 +61,19 @@ t('segmenter: final after a pause, partials while speaking, cap at max length',(
 t('registers recognizers and offline packs only when the hooks exist',async()=>{
  const c=ctx({caches:fakeCaches(),navigator:{userAgent:'Chrome/141',onLine:true}});
  assert.equal(run(c,'voiceLocalRegisterHooks()'),0,'standalone: nothing to register, no error');
- run(c,"globalThis.__recs=[];globalThis.__packs=[];globalThis.registerVoiceRecognizer=r=>__recs.push(r);globalThis.registerOfflinePack=p=>__packs.push(p)");
- assert.equal(run(c,'voiceLocalRegisterHooks()'),4);assert.equal(run(c,'voiceLocalRegisterHooks()'),0,'idempotent');
+ // v1.6 integration: R's registry returns an unregister function; only DOWNLOADED + usable packs become recognisers
+ // (so the shared selector never offers one that cannot start). Offline packs register at once.
+ run(c,"globalThis.__recs=[];globalThis.__packs=[];globalThis.registerVoiceRecognizer=r=>{__recs.push(r);return()=>{__recs.splice(__recs.indexOf(r),1)}};globalThis.registerOfflinePack=p=>__packs.push(p);voiceLocalProbe=async()=>({ok:true,packs:{base:{ok:true},small:{ok:true}}})");
+ assert.equal(run(c,'voiceLocalRegisterHooks()'),2);assert.equal(run(c,'voiceLocalRegisterHooks()'),0,'idempotent');
+ await run(c,'voiceLocalSyncRecognizers()');assert.equal(run(c,'__recs.length'),0,'nothing downloaded: no recogniser offered');
+ run(c,"voiceLocalStatus=async id=>id==='base'?'ready':'none'");assert.equal(await run(c,'voiceLocalSyncRecognizers()'),1);await run(c,'voiceLocalSyncRecognizers()');
  const recs=run(c,'__recs'),packs=run(c,'__packs');
- assert.deepEqual([...recs].map((r:any)=>r.id),['local-base','local-small']);
- for(const r of recs){assert.equal(typeof r.start,'function');assert.equal(typeof r.stop,'function');assert.ok(r.label)}
+ assert.deepEqual([...recs].map((r:any)=>r.id),['local-base'],'ready pack registered once');
+ for(const r of recs){assert.equal(typeof r.start,'function');assert.equal(typeof r.stop,'function');assert.equal(typeof r.abort,'function');assert.ok(r.label);assert.equal(r.offline,true,'works offline');assert.equal(r.flushOnStop,true)}
+ // onResult(text, final) from the engine is delivered in R's shape onResult(text, {isFinal}).
+ run(c,"globalThis.__got=[];voiceLocalRecognizer=id=>({id:'local-'+id,label:'x',start:async(lang,onResult)=>{onResult('một',false);onResult('một ký',true)},stop(){},abort(){}})");
+ await run(c,"voiceLocalAdapter('base').start('vi-VN',(t,i)=>__got.push([t,i.isFinal]),()=>{})");assert.deepEqual(JSON.parse(JSON.stringify(run(c,'__got'))),[['một',false],['một ký',true]]);
+ run(c,"voiceLocalStatus=async()=>'none'");await run(c,'voiceLocalSyncRecognizers()');assert.equal(run(c,'__recs.length'),0,'removed pack is unregistered');
  assert.deepEqual([...packs].map((p:any)=>p.id),['voice-local-base','voice-local-small']);
  assert.equal(packs[0].sizeBytes,79664191+27501064,'pack size includes the shared runtime');
  for(const p of packs){assert.equal(typeof p.download,'function');assert.equal(typeof p.remove,'function');assert.equal(await p.status(),'none')}

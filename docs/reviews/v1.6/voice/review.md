@@ -145,3 +145,67 @@ The built-in `browser` recogniser (SpeechRecognition) is the default. When anoth
 - "Mark bought / remove" act on the currently selected shopping range (`shopDates()`) and the current week.
 - An urgent message needs a connected family account; otherwise the existing account sheet opens, as it does for the normal urgent button.
 - The 300-entry cap is enforced on write. Validation accepts up to 1000 entries so that a future client with a higher cap is not rejected.
+
+## v1.6 integration (Agent V): one recogniser contract, Auto language, Vietlish, spoken lists
+
+Branch `agent-v/integration` (from local `v16-int`). Not pushed, not merged, not deployed. This is not deploy approval, and GitHub CI has not run on it yet (AGENTS.md rules 1–5, 10, 15–17).
+
+### One recogniser contract
+- **Contract.** `registerVoiceRecognizer({id, label, start(lang, onResult, onEnd), stop(), abort?(), offline?, flushOnStop?})` returns `unregister()`.
+  - `onResult(text, {isFinal, confidence})` is the shape. A boolean second argument is also accepted.
+  - With `flushOnStop`, `stop()` keeps taking the last words until the recogniser calls `onEnd`, so Stop does not drop the final segment.
+  - Unregistering re-renders the selector.
+- **Single selection.** The choice is stored only in `bep-voice-recognizer`.
+  - The voice sheet, "Nói giá" and recipe dictation all read it through `VoiceAPI.recognizerClass()` and `VoiceAPI.recognizerOffline()`.
+  - The older on-device key `bep-voice-local` is migrated once.
+- **On-device recogniser (U).** It registers through this hook, adapting `onResult(text, final)` to `{isFinal}`, with `offline:true`.
+  - A pack is registered **only when it is downloaded and usable**, so the selector never offers one that cannot start.
+  - Download, remove and sheet-open re-sync the registration. A stale choice falls back to the browser recogniser.
+  - `voice-local.js` loads before `voice-commands.js`, so it now registers when the registry announces itself (`bep-voice-registry` event). Before this fix it never registered.
+- **Voice prices / dictation (S).** They are now *consumers*.
+  - They use the selected recogniser's class, fall back to `SpeechRecognition`, and start offline when the selected recogniser is on-device.
+  - The guessed `registerVoiceRecognizer(rec,{owner,stop})` call is removed. It always threw and was swallowed, because a SpeechRecognition instance is not a recogniser engine.
+- **One settings panel.** The sheet has one collapsed **Cài đặt giọng nói / Voice settings** panel. It holds, in order:
+  - spoken language (Tự động / Tiếng Việt / English)
+  - the on-device packs (download/remove, Studio statistics consent)
+  - read-back, confirm, push-to-talk, meter, the recogniser selector and learned words
+
+  U's separate settings block and radio list are not shown when this shared panel exists (they are kept for a build without voice-commands).
+
+### Auto language (default, no choice needed)
+- The mic starts at once. The Tiếng Việt / English buttons moved into the panel as an override, and a chip in the sheet shows "Tự động · Việt + Anh" or the forced language.
+- **Browser recognition in Auto** uses vi-VN. The exception is when the app UI is English **and** the device lists no Vietnamese language; then it uses en-AU.
+- **Alternatives.** `maxAlternatives` is 5, and every alternative is scored by its full bilingual parse (catalog matches, number/item alternation). The best one wins.
+- **On-device Whisper in Auto** runs with language auto-detect, which is the best path for code-switching.
+- **Tip.** A one-time tip, "Tải giọng nói nâng cao để hiểu Vietlish tốt hơn", opens the panel at the download row.
+
+### Vietlish and spoken lists (`voice-learning.ts`, VoiceAPI)
+- **Vietlish lexicon.** Every utterance is parsed with both vocabularies, plus a curated Vietlish list that maps only to existing catalog ids. Examples:
+  - salmon / sa mơn / xa mông / sơ mơn → salmon
+  - tuna / tu na / tuy na → `tuna` (the catalog's only tuna item)
+  - bíp, pót bé li, chích ken uynh, s-rim, bờ rốc cô li, a vô ca đô, bốc choi, ba tơ, sờ tếch, phi lê, cream / kem tươi
+  - Cheese has no catalog item. It is shown as "Phô mai / Cheese" with no id.
+- **Ambiguous words.** Bare "kem", "min/mince", "chi" and "bơ" are never mapped silently.
+- **Fuzzy and phonetic matching.** Matching is diacritic-stripped, with syllable edit distance ≤1–2 and a consonant skeleton with r/l merged (sermons ~ salmon, galaxies ~ garlic), against VI and EN names. It works like this:
+  - A medium-confidence match shows a one-tap **"Có phải: cá hồi (salmon)? / Did you mean: garlic (tỏi)?"**.
+  - Tapping it sets the line's *Hiểu là / Means*. Applying the preview stores the choice as a family learned correction, so the same word maps directly next time.
+- **Lists without "and" or commas.** A number that follows an item name starts a new item; dates, headcounts, prices and "thịt ba chỉ" are protected.
+- **Homophones.** to/too→two, for→four, ate→eight, tree→three, won→one, and "a" before a plural noun inside a list→eight. These rewrites are only candidates. A rewrite wins only when its parse scores clearly higher than the original parse.
+- **Bare counts of meat/fish** are pieces (miếng), never "whole" and never an invented weight. A unit the person said always wins.
+
+### Tests
+- `tests/voice-vietlish.test.cjs` (in `npm test`) covers:
+  - 45 Vietlish utterances as vi-VN/en-AU recognisers write them
+  - the owner's 10-item list in 6 recogniser outputs, including the production one ("a tomatoes … to sermons … galaxies"), with EN/VI labels
+  - 11 VI/Vietlish list utterances
+  - no false splits, units, Did-you-mean, the learned feed, alternative scoring and the Auto language rule
+- `voice-browser` covers:
+  - Auto starts with no language prompt
+  - an English UI on a Vietnamese device listens in vi-VN
+  - the owner list gives 10 lines, a tap on "Did you mean", and the confirmed word is learned
+- `voice-local-browser` tests the shared panel and selector. `voice-price-browser` tests the collapsed override.
+
+### Honest limit
+Browser speech recognition hears one language per session. In vi-VN, English words arrive as Vietnamese-looking spellings ("sa mơn"); in en-AU, Vietnamese words arrive as English homophones. The parser lexicon and fuzzy matching recover the common cases, but they cannot recover words the engine never heard. For the best Vietlish accuracy, use the on-device recogniser (Whisper, multilingual auto-detect).
+
+Real accents and devices were not tested here. The recognisers are mocked, and the lexicon spellings are educated guesses that should be refined from the family's opt-in statistics and learned words.

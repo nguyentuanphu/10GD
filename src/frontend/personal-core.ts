@@ -215,7 +215,10 @@ let voiceRecipeEnCache=null;
 function voiceRecipeEn(r){if(!r)return'';if(r.nameEn)return String(r.nameEn);if(r.custom||typeof translateRecipeViToEn!=='function')return'';voiceRecipeEnCache??=new Map();if(!voiceRecipeEnCache.has(r.name)){let t='';try{t=translateRecipeViToEn(String(r.name||'').trim())||''}catch{}voiceRecipeEnCache.set(r.name,t)}return voiceRecipeEnCache.get(r.name)}
 // Family-authored names are shown as written; library recipes use their English title in English.
 function voiceRecipeTitle(r,lang){if(!r)return'';return lang==='en'&&voiceRecipeEn(r)||r.name}
-function voiceDefaultRecLang(uiLang,pref){const ui=uiLang==='en'?'en-AU':'vi-VN';return pref&&pref.auto===false&&['vi-VN','en-AU'].includes(pref.lang)?pref.lang:ui}
+// Auto (default): Vietnamese families speak Vietlish, and the vi-VN recogniser writes English loanwords reasonably,
+// so Auto listens in vi-VN unless both the app and the device are English-only. A manual override wins.
+function voiceDeviceHasVietnamese(langs){const l=langs||(typeof navigator!=='undefined'?(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language]):[]);return[...(l||[])].some(x=>/^vi\b/i.test(String(x||'')))}
+function voiceDefaultRecLang(uiLang,pref,deviceLangs){if(pref&&pref.auto===false&&['vi-VN','en-AU'].includes(pref.lang))return pref.lang;return uiLang==='en'&&!voiceDeviceHasVietnamese(deviceLangs)?'en-AU':'vi-VN'}
 // Which language does a transcript look like? Diacritics are Vietnamese; English counts unit, number and food words.
 const VOICE_VI_PLAIN=new Set(['hai','mot','bon','muoi','ky','lang','thit','rau','muong','trung','heo','mua','nau','qua','goi','voi','nha','nhe','canh','chua','pho','bun','cho','them','nua','gao','hanh','nuoc','mam','suon','xao','kho','luoc','bo','ga','ca','tom','toi','nay','mai','chai','dau','mam','roi','lay','cai','chuc','ruoi']);
 let voiceEnWords=null;

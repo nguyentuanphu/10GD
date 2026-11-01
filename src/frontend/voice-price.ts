@@ -290,14 +290,18 @@ function voicePriceDraftSeed(row,raw,lang=voiceUiLang()){
 globalThis.VoicePrice={parsePriceUtterance,voicePriceDraftSeed,tokens:vpTokens,number:vpNumber,fold:VP_FOLD,key:VP_KEY,is:vpIs,phrase:vpPhrase,mass:vpMassAt,count:vpCountAt,container:vpContainerAt,half:vpHalfAt};
 
 // ---------- Shared recogniser wrapper (browser) ----------
-// Prefers a recogniser selected by the general voice layer (VoiceAPI.getRecognizer() / VoiceAPI.Recognizer),
-// otherwise the browser's SpeechRecognition. Each live recogniser is announced through
-// registerVoiceRecognizer() when that hook exists, so only one microphone session runs at a time.
+// Uses the recogniser chosen in the voice sheet's "Bộ nhận diện giọng nói" selector through the voice layer's
+// SpeechRecognition-shaped class (VoiceAPI.recognizerClass(), voice-commands.js) — the browser recogniser or the
+// downloaded on-device one — and falls back to the browser's SpeechRecognition when the voice layer is absent.
+// This is a CONSUMER of recognisers: it never registers itself (registerVoiceRecognizer is for recogniser engines).
+// One microphone session at a time: starting here stops the voice sheet and its confirm window first.
 function vpRecognizerCtor(){
  const api=globalThis.VoiceAPI;
- try{const r=api&&(typeof api.getRecognizer==='function'?api.getRecognizer():api.Recognizer||api.recognizer);if(typeof r==='function')return r}catch{}
+ try{if(api&&typeof api.recognizerClass==='function'){const r=api.recognizerClass();if(typeof r==='function')return r}}catch{}
  return globalThis.SpeechRecognition||globalThis.webkitSpeechRecognition||null;
 }
+// True when the selected recogniser runs on the device (downloaded pack), so it can start while offline.
+function vpRecognizerOffline(){try{const api=globalThis.VoiceAPI;return!!(api&&typeof api.recognizerOffline==='function'&&api.recognizerOffline())}catch{return false}}
 function vpLangPrefs(){if(typeof voiceLangPrefs==='function')return voiceLangPrefs();let auto=true,lang='';try{auto=localStorage.getItem('bep-voice-auto')!=='0';lang=localStorage.getItem('bep-voice-lang')||''}catch{}return{auto,lang}}
 function vpDefaultLang(){const ui=voiceUiLang()==='en'?'en':'vi';return typeof voiceDefaultRecLang==='function'?voiceDefaultRecLang(ui,vpLangPrefs()):(ui==='en'?'en-AU':'vi-VN')}
 function vpSetLangPref(lang){try{localStorage.setItem('bep-voice-lang',lang);localStorage.setItem('bep-voice-auto','0')}catch{}}
@@ -307,17 +311,17 @@ function createVoiceTake(o){
  let rec=null,keep=false,sid=0,restarts=0;
  const take={listening:false,
   start(){
-   if(!vpOnline()){o.onState('offline');return false}
+   if(!vpOnline()&&!vpRecognizerOffline()){o.onState('offline');return false}
    const Ctor=vpRecognizerCtor();if(!Ctor){o.onState('unsupported');return false}
    if(typeof stopVoice==='function')try{stopVoice()}catch{}
+   try{globalThis.VoiceAPI?.stopListening?.()}catch{}
    take.stop(true);keep=true;restarts=0;const my=++sid;
    const launch=()=>{if(my!==sid||!keep)return;let r;try{r=rec=new Ctor()}catch{keep=false;o.onState('unsupported');return}
-    r.lang=o.lang();r.continuous=true;r.interimResults=true;r.maxAlternatives=3;
+    r.lang=o.lang();r.continuous=true;r.interimResults=true;r.maxAlternatives=5;
     r.onresult=e=>{if(my!==sid)return;let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const res=e.results[i];if(!res)continue;const text=typeof pickBestVoiceAlt==='function'?pickBestVoiceAlt(res):(res[0]?.transcript||'');if(res.isFinal){restarts=0;o.onFinal(String(text||'').trim())}else interim+=text}if(o.onInterim)o.onInterim(interim)};
     r.onerror=e=>{if(my!==sid)return;if(e&&['not-allowed','service-not-allowed','audio-capture'].includes(e.error)){keep=false;o.onState('blocked')}};
     r.onend=()=>{if(my!==sid)return;rec=null;if(keep&&o.keep&&restarts++<30){setTimeout(launch,200);return}keep=false;take.listening=false;o.onState('stopped')};
     try{r.start()}catch{}
-    try{if(typeof registerVoiceRecognizer==='function')registerVoiceRecognizer(r,{owner:o.owner||'voice-price',stop:()=>take.stop()})}catch{}
     take.listening=true;o.onState('listening')};
    launch();return true},
   stop(silent){keep=false;sid++;const r=rec;rec=null;if(r){try{r.stop()}catch{try{r.abort()}catch{}}}const was=take.listening;take.listening=false;if(!silent||was)o.onState(silent?'paused':'stopped')},
@@ -325,14 +329,15 @@ function createVoiceTake(o){
  };
  return take;
 }
-const VoiceTakeLang={defaultLang:vpDefaultLang,setPref:vpSetLangPref,name:l=>String(l).startsWith('en')?'English':'Tiếng Việt',online:vpOnline,supported:()=>!!vpRecognizerCtor()};
+const VoiceTakeLang={defaultLang:vpDefaultLang,setPref:vpSetLangPref,name:l=>String(l).startsWith('en')?'English':'Tiếng Việt',online:()=>vpOnline()||vpRecognizerOffline(),supported:()=>!!vpRecognizerCtor()};
 globalThis.createVoiceTake=createVoiceTake;globalThis.VoiceTakeLang=VoiceTakeLang;
 
 // ---------- Price sheet UI (browser) ----------
 const vpT=(vi,en)=>typeof tr==='function'?tr(vi,en):vi;
 const vpEsc=s=>typeof esc==='function'?esc(s):String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 let vpState={rows:[],text:'',want:null,lang:null,take:null,current:null};
-function vpLangToggle(attr,lang){return`<div class="voice-lang vt-lang" role="group" aria-label="${vpT('Ngôn ngữ đang nói','Language you speak')}"><span class="voice-lang-icon" aria-hidden="true">🎙</span>${['vi-VN','en-AU'].map(l=>`<button type="button" class="voice-lang-btn" ${attr}="${l}" aria-pressed="${l===lang}" lang="${l.slice(0,2)}" data-user-content>${VoiceTakeLang.name(l)}</button>`).join('')}</div>`}
+// Auto by default (no choice needed); the Tiếng Việt / English override sits in a collapsed "Cài đặt giọng nói".
+function vpLangToggle(attr,lang){const auto=vpLangPrefs().auto;return`<details class="voice-settings vt-lang-settings"><summary>${vpT('Cài đặt giọng nói','Voice settings')} · ${auto?vpT('Tự động','Auto'):VoiceTakeLang.name(lang)}</summary><p class="hint">${vpT('Tự động: không cần chọn — nói lẫn Việt – Anh vẫn hiểu. Chỉ chọn khi muốn ép một ngôn ngữ.','Auto: no need to choose — mixed Vietnamese and English is understood. Pick one only to force a language.')}</p><div class="voice-lang vt-lang" role="group" aria-label="${vpT('Ngôn ngữ đang nói','Language you speak')}"><span class="voice-lang-icon" aria-hidden="true">🎙</span>${['vi-VN','en-AU'].map(l=>`<button type="button" class="voice-lang-btn" ${attr}="${l}" aria-pressed="${!auto&&l===lang}" lang="${l.slice(0,2)}" data-user-content>${VoiceTakeLang.name(l)}</button>`).join('')}</div></details>`}
 globalThis.voiceTakeLangToggle=vpLangToggle;
 const vpMoney=n=>n==null?'—':(typeof aud==='function'?aud(n,'AUD'):'$'+(+n).toFixed(2));
 function vpRetailerName(id){const r=globalThis.PriceScout?.RETAILERS?.[id];return r?(voiceUiLang()==='en'?r.name:(r.vi||r.name)):''}
@@ -378,7 +383,7 @@ function voicePriceOpen(want=null,keepRows=false){
   onInterim:t=>{const box=document.getElementById('vp-text');if(box&&t)box.value=(vpState.text?vpState.text+', ':'')+t},
   onFinal:t=>{const box=document.getElementById('vp-text');if(!box){vpState.take?.stop(true);return}if(!t)return;vpState.text=(vpState.text?vpState.text+', ':'')+t;box.value=vpState.text;vpParseNow()}});
  vpRenderRows();
- if(!vpOnline())vpSetMode('offline');else if(!keepRows&&vpRecognizerCtor())vpState.take.start();
+ if(!vpOnline()&&!vpRecognizerOffline())vpSetMode('offline');else if(!keepRows&&vpRecognizerCtor())vpState.take.start();
 }
 // Called by Price Scout after a voice price is saved: learn label → item, then return to the remaining rows.
 function voicePriceSaved(o){
