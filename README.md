@@ -1,4 +1,19 @@
-# FamTray · Bếp Gia Đình · v1.5
+# FamTray · Bếp Gia Đình · v1.6
+
+## What's new in v1.6
+- **Voice:** Auto language by default (no VI/EN choice needed), Vietlish understanding ("1kg salmon", "sa mơn"), spoken lists split into items, did-you-mean confirmation, commands (bought / remove / change meal / not eating tonight / pantry / urgent message / questions), read-back and spoken confirmation, regional words and per-family learned corrections, mic level meter and push-to-talk. Optional on-device recognition (download, off by default) and opt-in text-only voice statistics in Studio.
+- **Price Scout:** say a price ("rau muống hai đô rưỡi một bó, chợ Cabramatta"), recipe dictation for family recipes, and Studio's Price Scout switch/states now really control the app (off hides everything; states greyed out in Studio).
+- **FamTray Scout (Auto Scout):** desktop extension (semi-auto by default, Auto behind Studio + device switches), multi-computer network managed in Studio, "Ghép máy tính này" pairing in My kitchen, results flow into community prices.
+- **Bandwidth & offline:** lite first install (~0.4 MB precache instead of ~17.7 MB), lazy 740-recipe catalogue, thumbnails, "Tải về để dùng offline" with sizes (Wi-Fi only by default), offline readiness card, self-hosted receipt OCR.
+- **Force update:** idle devices update automatically; busy devices see a notice; Studio can require a minimum build (blocking screen after data is saved).
+- **Fixes:** Today invite button no longer flashes; startup setup prompt is an inline notice instead of a popup.
+- **Release process:** full suite on GitHub CI in parallel (AGENTS.md 14–17); no hosting builds before DEPLOY (rule 18).
+
+Hosting variable needed for the extension: `SCOUT_EXTENSION_IDS=mjeoekikdicoojgoppnfibjbfpcfngja` (not secret). Evidence: `docs/reviews/v1.6/*/review.md`.
+
+---
+
+## v1.5
 
 ## What's new in v1.5
 
