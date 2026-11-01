@@ -982,3 +982,64 @@ html[data-theme="dark"] .offline-pack-warn{color:#f3c98b}
 .account-sheet .account-part>h3{margin:0 0 8px;font-size:1rem}
 .settings-group-title{margin:18px 0 6px;font-size:1rem;color:var(--muted)}
 /* === v1.7.1 voice-settings end === */
+/* === v1.7.1 recipe-community start === */
+.field.rc-raw-ingredients,.rc-ing-note[hidden],.rc-sug[hidden],.rc-photo-remove[hidden],.rc-photo-empty[hidden]{display:none!important}
+.rc-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.rc-ings{border:0;padding:0;margin:0 0 14px;min-width:0}
+.rc-ings legend{font-weight:600;margin-bottom:6px;padding:0}
+.rc-ing-head{display:none}
+.rc-ing-list{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:8px}
+.rc-ing-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);grid-template-areas:"name name" "qty unit" "tools tools" "note note";gap:6px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--white)}
+.rc-ing-name{grid-area:name;position:relative;min-width:0}
+.rc-ing-row input,.rc-ing-row select{width:100%;min-height:44px;font-size:16px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--white);color:var(--text);min-width:0}
+.rc-ing-qty{grid-area:qty}
+.rc-ing-row select{grid-area:unit}
+.rc-ing-tools{grid-area:tools;display:flex;gap:6px;justify-content:flex-end}
+.rc-icon{min-width:44px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--text);font-size:18px;line-height:1}
+.rc-icon.rc-remove{color:#a5402a}
+.rc-ing-note{grid-area:note;margin:0;font-size:12px;color:var(--warn-ink,#7a4a00)}
+.rc-sug{position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:30;background:var(--white);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);max-height:264px;overflow-y:auto;overscroll-behavior:contain}
+.rc-sug-opt{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;min-height:44px;padding:8px 12px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);text-align:left;font-size:15px}
+.rc-sug-opt:last-child{border-bottom:0}
+.rc-sug-opt[aria-selected="true"],.rc-sug-opt:hover{background:var(--mint)}
+.rc-sug-opt small{white-space:nowrap}
+.rc-paste{margin:6px 0}
+.rc-paste summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--green2)}
+.rc-paste textarea{width:100%;font-size:16px;margin:6px 0}
+@media (min-width:600px){
+ .rc-ing-head{display:grid;grid-template-columns:minmax(0,1fr) 92px 150px 150px;gap:6px;font-size:12px;color:var(--muted);padding:0 9px}
+ .rc-ing-row{grid-template-columns:minmax(0,1fr) 92px 150px auto;grid-template-areas:"name qty unit tools" "note note note note";align-items:center}
+}
+.rc-photo-box{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.rc-photo-preview{width:112px;height:84px;border-radius:10px;overflow:hidden;background:var(--cream);display:grid;place-items:center;font-size:30px;flex:none;border:1px solid var(--line)}
+.rc-photo-preview img{width:100%;height:100%;object-fit:cover}
+.rc-photo-actions{display:flex;gap:8px;flex-wrap:wrap}
+.rc-file-btn{position:relative;overflow:hidden;min-height:44px;display:inline-flex;align-items:center;gap:4px}
+.rc-file-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
+.rc-file-btn:focus-within{outline:3px solid #c87649;outline-offset:3px}
+.rc-photo-remove{min-height:44px}
+.rc-label{display:block;font-weight:600;margin-bottom:6px}
+.rc-photo-wrap{position:relative;display:block;width:100%;height:100%}
+.rc-photo-wrap>img.rc-recipe-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.rc-card-img{cursor:default;overflow:hidden}
+.rc-community-photo{width:100%;height:100%;object-fit:cover;display:block}
+.rc-by{margin:2px 0 6px;font-size:13px;color:var(--muted)}
+.rc-more summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--green2);font-weight:550}
+.rc-more h4{margin:8px 0 4px;font-size:13px}
+.rc-ing-view{padding-left:18px;margin:0}
+.rc-card .toolbar .btn{min-height:44px}
+.rc-share-card{margin-top:14px}
+.rc-share-card .toolbar .btn{min-height:44px}
+.rc-choice{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:0 0 10px}
+.rc-choice legend{font-weight:600;padding:0 4px}
+.rc-choice .checked-label,.rc-consent{min-height:44px;display:flex;align-items:center;gap:8px}
+.rc-status.rc-pending{background:var(--warn-surface,#fff3dc);color:var(--warn-ink,#7a4a00)}
+.rc-status.rc-approved{background:var(--mint);color:var(--green)}
+.rc-status.rc-rejected,.rc-status.rc-removed{background:var(--danger-surface,#fbe7e2);color:var(--danger-ink,#8a2d1c)}
+.meal-more-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.meal-more-btn{min-height:44px}
+html[data-theme="dark"] .rc-ing-row,html[data-theme="dark"] .rc-sug,html[data-theme="dark"] .rc-ing-row input,html[data-theme="dark"] .rc-ing-row select{background:#18221d;color:var(--text);border-color:var(--line)}
+html[data-theme="dark"] .rc-icon.rc-remove{color:#f2a08c}
+html[data-theme="dark"] .rc-ing-note{color:#f1d39a}
+@media (prefers-reduced-motion:reduce){.rc-sug-opt,.rc-file-btn,.meal-more-btn{transition:none}}
+/* === v1.7.1 recipe-community end === */

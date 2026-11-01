@@ -482,6 +482,10 @@ async function addEntry(store:any,account:string,entry:any,cfg:any,now:number){
   doc.entries.push({...entry,points,requested:entry.points,state:entry.state||doc.state||null,at:new Date(now).toISOString(),day});
   if(entry.state)doc.state=entry.state;return true});
 }
+/** v1.7.1 community recipes: a small fixed award for an APPROVED shared recipe (idempotent per recipe id,
+ *  respects the daily cap). Pending/rejected recipes never earn points. */
+export const RECIPE_AWARD_POINTS=5;
+export async function awardRecipePoints(getStoreFn:any,{account,recipeId,label,now,rewards}:any){const cfg=rewardConfig(rewards);memo.clear();return addEntry(communityStore(getStoreFn),account,{id:'award:recipe:'+recipeId,type:'recipe',points:RECIPE_AWARD_POINTS,capped:true,label:text(label,80)||null,ref:recipeId},cfg,now)}
 export function badgesOf(doc:any){
  const revoked=new Set((doc?.entries||[]).filter((e:any)=>e.type==='revoke').map((e:any)=>e.ref)),live=(doc?.entries||[]).filter((e:any)=>AWARD_TYPES.includes(e.type)&&!revoked.has(e.id)),out:any[]=[];
  if(live.filter((e:any)=>e.promo==='half-price').length>=3)out.push({id:'half-price',icon:'🏷️',vi:'Săn deal 1/2 giá',en:'Half-price hunter'});
