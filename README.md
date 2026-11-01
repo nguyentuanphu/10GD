@@ -1,4 +1,12 @@
-# FamTray · Bếp Gia Đình · v1.7
+# FamTray · Bếp Gia Đình · v1.7.1
+
+## What's new in v1.7.1
+- **Voice:** one-tap VI │ EN toggle next to every mic; hold-to-talk is the default (tap mode optional); unclear results ("các bạn") ask to repeat instead of adding junk; "5x" asks "trứng (eggs)?"; iPhone fixes for words lost at session restart and after Stop.
+- **On-device "More accurate" speech** available on every iPhone/iPad (warning on older devices, automatic fallback); the Light pack is removed; honest reasons instead of "Not available on this server".
+- **Settings:** "Cài đặt khác" now sits under the avatar's "Tài khoản & cài đặt".
+
+Evidence: `docs/reviews/v1.7.1/voice-settings/review.md`.
+
 
 ## What's new in v1.7 (ships together with v1.6 in one deploy)
 - **Usage statistics:** anonymous, on by default with an opt-out in Cài đặt khác; postcode or network (country/state only, no IP stored) location; Studio "Mức sử dụng" tab (DAU/WAU/MAU, minutes, sessions, peak hours, features, retention, inactive families, locations); 13-month retention; audited drill-downs. Studio switch `usageAnalytics`.
