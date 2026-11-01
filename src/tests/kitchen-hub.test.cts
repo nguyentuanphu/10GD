@@ -128,6 +128,10 @@ async function main() {
     {
       const { page, context, errors } = await open({ members: 1 });
       await ready(page);
+      // The member count is fetched after startup; the button appears once the family is known to have one account.
+      await page.waitForFunction(() => localStorage.getItem('account/qa/bep-connected-accounts') === '1');
+      await page.evaluate(() => { if (!document.querySelector('.modal')) render(); });
+      await page.locator('.kitchen-action-dock [data-personal=invite]').waitFor();
       assert.equal(await page.locator('.kitchen-action-dock [data-personal=invite]').count(), 1, 'owner with one account sees Today invite');
       // The big Today button is the way into My kitchen (the header avatar opens the account menu).
       await page.locator('.kitchen-action-dock [data-personal=settings]').click();
@@ -199,10 +203,14 @@ async function main() {
       assert.deepEqual(errors, []);
       await context.close();
       const busy = await open({ members: 3 });
+      // Regression (owner report, 1 Nov 2026): the Today invite flashed on every open and then disappeared, because an
+      // unknown member count was treated as one account. Record whether it ever appears during startup.
+      await busy.page.evaluate(() => { (globalThis as any).__qaInviteSeen = !!document.querySelector('.kitchen-action-dock [data-personal=invite]'); new MutationObserver(() => { if (document.querySelector('.kitchen-action-dock [data-personal=invite]')) (globalThis as any).__qaInviteSeen = true; }).observe(document.documentElement, { childList: true, subtree: true }); });
       await ready(busy.page);
       await busy.page.waitForFunction(() => localStorage.getItem('account/qa/bep-connected-accounts') === '3');
       await busy.page.evaluate(() => render());
       assert.equal(await busy.page.locator('.kitchen-action-dock [data-personal=invite]').count(), 0, 'Today invite hidden once several accounts are connected');
+      assert.equal(await busy.page.evaluate(() => (globalThis as any).__qaInviteSeen), false, 'Today invite never flashes for a family with several accounts');
       await busy.context.close();
       console.log('PASS My kitchen has exactly four family cards; Other settings and the account sheet hold the moved sections; confirmations unchanged');
     }
