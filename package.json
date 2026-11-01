@@ -10,17 +10,18 @@
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.frontend.json && tsc -p tsconfig.bootstrap.json && node .compiled/scripts/build.cjs",
     "typecheck": "tsc -p tsconfig.bootstrap.json --noEmit && tsc -p tsconfig.auth-email.json --noEmit",
     "check": "npm run build && node scripts/check.cjs",
-    "test": "node tests/core.test.cjs && node tests/spending.test.cjs && node tests/backend.test.mjs && node tests/units-catalog.test.cjs && node tests/push.test.mjs && node tests/insights-products.test.cjs && node tests/family-menu.test.cjs && node tests/access-calendar.test.mjs && node tests/accounts.test.mjs && node tests/personal.test.cjs && node tests/voice.test.cjs && node tests/offline.test.mjs && node tests/email-recovery.test.mjs && node tests/family-invitations.test.mjs && node tests/notifications.test.mjs && node tests/artwork.test.cjs && node tests/western-catalog.test.cjs && node tests/plant-catalog.test.cjs && node tests/catalog-fixes.test.cjs && node tests/price-scout.test.cjs && node tests/grocery-api.test.mjs && node tests/studio.test.mjs && node tests/community-prices.test.mjs",
+    "test": "node tests/core.test.cjs && node tests/spending.test.cjs && node tests/backend.test.mjs && node tests/units-catalog.test.cjs && node tests/push.test.mjs && node tests/insights-products.test.cjs && node tests/family-menu.test.cjs && node tests/access-calendar.test.mjs && node tests/accounts.test.mjs && node tests/personal.test.cjs && node tests/voice.test.cjs && node tests/offline.test.mjs && node tests/email-recovery.test.mjs && node tests/family-invitations.test.mjs && node tests/notifications.test.mjs && node tests/artwork.test.cjs && node tests/western-catalog.test.cjs && node tests/plant-catalog.test.cjs && node tests/catalog-fixes.test.cjs && node tests/price-scout.test.cjs && node tests/grocery-api.test.mjs && node tests/studio.test.mjs && node tests/studio-hooks.test.mjs && node tests/community-prices.test.mjs",
     "test:browser": "node tests/startup.test.cjs && node tests/kitchen-hub.test.cjs",
     "test:authenticated-startup": "node tests/authenticated-startup.test.cjs",
     "test:email": "node tests/email-recovery.test.mjs",
-    "test:all": "npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup && npm run test:artwork:browser && npm run test:price-scout:browser && npm run test:catalog:browser && npm run test:community:browser",
+    "test:all": "npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup && npm run test:artwork:browser && npm run test:price-scout:browser && npm run test:catalog:browser && npm run test:community:browser && npm run test:banner:browser",
     "artwork:audit": "npm run build && node scripts/artwork-audit.cjs",
     "test:artwork:browser": "node tests/artwork-browser.test.cjs",
     "test:price-scout:browser": "node tests/price-scout-browser.test.cjs",
     "test:catalog:browser": "node tests/catalog-browser.test.cjs",
     "audit:contrast": "npm run build && node scripts/contrast-audit.cjs",
-    "test:community:browser": "node tests/community-browser.test.cjs"
+    "test:community:browser": "node tests/community-browser.test.cjs",
+    "test:banner:browser": "node tests/platform-banner-browser.test.cjs"
   },
   "dependencies": {
     "@netlify/blobs": "10.5.0",

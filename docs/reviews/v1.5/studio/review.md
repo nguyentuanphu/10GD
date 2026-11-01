@@ -164,7 +164,28 @@ The small-business exemption (turnover under $3M) may not apply if the service h
 
 ## Hooks the lead should add after merging
 
-These are not done. Each is about one line. Studio works without them, but the related tiles show "not recorded". Import `{recordEvent,recordSync,recordCronRun,isAccountDisabled,signupPolicy,isFamilySuspended,familyLimits,platformSettings}` from `../lib/studio.mjs` (from `./studio.mjs` inside lib). There is an ESM import cycle between `accounts.mts` and `studio.mts`. It is safe because neither module calls the other at load time. Every hook helper swallows errors.
+**Status (v1.5, branch `agent-h/studio-hooks`): items 1–14 below are now wired.** Details, adaptations to the current code and test evidence are in [`../studio-hooks/review.md`](../studio-hooks/review.md). Summary:
+
+| # | Hook | Where it landed |
+|---|---|---|
+| 1 | Disabled accounts rejected in `resolveAccount` (existing sessions stop working) | `src/netlify/lib/accounts.mts` |
+| 2 | Disabled accounts blocked at login (403, `error` + `errorEn`, no session issued, `login_failed` event) | `accounts.mts` |
+| 3 | Sign-up policy open / closed / invite-only at register (invite must be a real, unexpired invite for that username); `status.signup` + new `status.signupMode` | `accounts.mts`; login page now sends the invitation field with register (`src/frontend/login.ts`, one line) |
+| 4 | Events: signup, login, login_failed, family_created, invite_created, invite_accepted, invite_revoked, error | `accounts.mts` |
+| 5 | Limits: `maxFamiliesPerAccount` on create-family; per-family `maxMembers` on join (default 20) | `accounts.mts` |
+| 6 | Suspended family read-only: 423 on state/photo/alert-send/push-send writes (reads work); also blocks new invites and joins | `src/netlify/functions/family.mts`, `accounts.mts` |
+| 7 | `recordSync` on state PUT success and 409 | `family.mts` |
+| 8 | `push_send` events (type, reason, accepted, failed, expired) after alert-send, push-send, push-test | `family.mts` |
+| 9 | Per-family `maxDevices` on push-subscribe (default 50) | `family.mts`; device listing cap raised to 500 in `push.mts` |
+| 10 | `error` event in the family catch block | `family.mts` |
+| 11 | Reminder runs (`recordCronRun('reminders')`) | `src/netlify/functions/reminders.mts` (inside `runReminders`) |
+| 12 | `sendPushBatch` returns `expired` (404/410) | `src/netlify/lib/push.mts` |
+| 13 | Price Scout runs (`recordCronRun('price-scout')`, counts only; outside-window runs not logged) | `src/netlify/functions/grocery-cron.mts` |
+| 14 | Public banner, maintenance note, update prompt, feature switches in the app | `src/frontend/platform-banner.ts` (+ 423 toast in `family-features.ts`) |
+
+Original instructions, kept for reference:
+
+(Written before the hooks were wired; the code has since changed, so the snippets were adapted rather than pasted.) Import `{recordEvent,recordSync,recordCronRun,isAccountDisabled,signupPolicy,isFamilySuspended,familyLimits,platformSettings}` from `../lib/studio.mjs` (from `./studio.mjs` inside lib). There is an ESM import cycle between `accounts.mts` and `studio.mts`. It is safe because neither module calls the other at load time. Every hook helper swallows errors.
 
 **`src/netlify/lib/accounts.mts`**
 

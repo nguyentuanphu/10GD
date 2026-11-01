@@ -327,3 +327,26 @@ html[data-theme="dark"] .scout-status.shop{background:#252a4a;color:#c9ccff}
 html[data-theme="dark"] .scout-pilot{background:#4a2a1c;color:#f3c6ad}
 @media (max-width:520px){.scout-cp-price strong{font-size:15px}}
 /* === v1.5 community end === */
+
+/* === v1.5 platform-banner start === */
+.platform-notices{display:grid;gap:8px;margin:12px 24px 0;max-width:100%}
+.platform-banner{display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--mint);color:var(--text);box-shadow:var(--shadow);min-width:0}
+.platform-banner.warning{background:#fff4e8;border-color:#e8b88f}
+.platform-banner-icon{flex:0 0 26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;background:var(--green);color:#fff}
+.platform-banner.warning .platform-banner-icon{background:#a4521f}
+.platform-banner-text{flex:1 1 auto;margin:0;font-size:14px;line-height:1.45;min-width:0;overflow-wrap:anywhere}
+.platform-banner-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.platform-banner-actions .btn{min-height:44px;font-size:14px}
+.platform-banner-close{min-width:44px;min-height:44px;border:0;border-radius:10px;background:transparent;color:inherit;font-size:22px;line-height:1;cursor:pointer}
+.platform-banner-close:hover{background:#0000000d}
+.platform-banner-close:focus-visible,.platform-banner-actions .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+html[data-theme="dark"] .platform-banner{background:#1d352c;border-color:#2f5143;color:var(--text)}
+html[data-theme="dark"] .platform-banner.warning{background:#3a2a1c;border-color:#7a5434}
+html[data-theme="dark"] .platform-banner.warning .platform-banner-icon{background:#e08e5d;color:#1a120c}
+html[data-theme="dark"] .platform-banner-close:hover{background:#ffffff14}
+@media (max-width:760px){.platform-notices{margin:10px 16px 0}.platform-banner{align-items:flex-start;flex-wrap:wrap}.platform-banner-text{flex-basis:calc(100% - 90px)}.platform-update .platform-banner-actions{margin-left:36px}}
+/* Feature switches from the owner console (body classes set by platform-banner.ts). */
+body.flag-off-priceScout .price-scout,body.flag-off-priceScout .scout-tray{display:none!important}
+body.flag-off-voice [data-personal="voice"]{display:none!important}
+body.flag-off-urgentMessages .family-urgent,body.flag-off-urgentMessages [data-house="urgent-new"]{display:none!important}
+/* === v1.5 platform-banner end === */
