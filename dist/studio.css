@@ -109,3 +109,8 @@ dialog::backdrop{background:#0008}
  .wrapcode{max-width:100%}
  .side-foot .who{display:none}
 }
+/* community prices (v1.5) */
+.tile.warn{border-color:var(--warn)}
+.tabs{flex-wrap:wrap}
+.review-photo{display:block;max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line)}
+#cptab .actions .btn{min-height:44px}

@@ -269,13 +269,18 @@ function optimizeBasket(items,observations,prefs={}){
  const opts={today:prefs.today||sydneyToday(),state:prefs.state||null,includeStale:!!prefs.includeStale};
  const minSavings=prefs.minSavings??5,minStopOrder=prefs.minStopOrder??15;
  const cat=catalogMap(prefs.catalog);
+ const community=Array.isArray(prefs.community)?prefs.community:[],shopPosted=Array.isArray(prefs.shopPrices)?prefs.shopPrices:[],hints=Array.isArray(prefs.communityHints)?prefs.communityHints:[];
  const lines=[],unknown=[];
  for(const need of items||[]){
   const item=need.itemId&&cat.get(need.itemId);
   if(!item){unknown.push({key:need.key,label:need.label,reason:'no-match'});continue}
   const prices={};
-  for(const r of RETAILER_IDS){const p=bestPrice(item,r,observations,opts);if(!p)continue;const c=costFor(item,need,p);if(c)prices[r]={...c,unitPrice:p.unitPrice,observation:p.observation,freshness:p.freshness}}
-  const line={key:need.key,label:need.label||item.nameVi,item,need,prices,cold:COLD.has(item.foodSafety),chilled:item.foodSafety==='chilled'};
+  // Source priority: own-family prices first, then CONFIRMED community prices, then shop-posted prices.
+  for(const r of RETAILER_IDS){let p=bestPrice(item,r,observations,opts),origin=p?(p.observation.source==='official'?'official':'family'):null;
+   if(!p&&community.length){p=bestPrice(item,r,community,opts);origin=p?'community':null}
+   if(!p&&shopPosted.length){p=bestPrice(item,r,shopPosted,opts);origin=p?'shop':null}
+   if(!p)continue;const c=costFor(item,need,p);if(c)prices[r]={...c,unitPrice:p.unitPrice,observation:p.observation,freshness:p.freshness,origin}}
+  const line={key:need.key,label:need.label||item.nameVi,item,need,prices,cold:COLD.has(item.foodSafety),chilled:item.foodSafety==='chilled',hints:hints.filter(h=>h.itemId===item.id)};
   lines.push(line);if(!Object.keys(prices).length)unknown.push({key:need.key,label:line.label,reason:'no-price',itemId:item.id});
  }
  // One-stop totals
@@ -303,7 +308,7 @@ function optimizeBasket(items,observations,prefs={}){
  }
  const stopMap=new Map();
  for(const[l,r]of assignment){const key=r||mainStore;const s=stopMap.get(key)||{retailer:key,delivery:!!RETAILERS[key].delivery,items:[],total:0,savings:0,unknownCount:0};
-  if(r){s.items.push({key:l.key,label:l.label,itemId:l.item.id,cost:l.prices[r].cost,unitPrice:l.prices[r].unitPrice,unitBasis:l.item.unitBasis,approx:l.prices[r].approx,cold:l.cold,chilled:l.chilled,promo:l.prices[r].observation.promo||null});s.total+=l.prices[r].cost;if(r!==mainStore&&l.prices[mainStore])s.savings+=l.prices[mainStore].cost-l.prices[r].cost}
+  if(r){s.items.push({key:l.key,label:l.label,itemId:l.item.id,origin:l.prices[r].origin,cost:l.prices[r].cost,unitPrice:l.prices[r].unitPrice,unitBasis:l.item.unitBasis,approx:l.prices[r].approx,cold:l.cold,chilled:l.chilled,promo:l.prices[r].observation.promo||null});s.total+=l.prices[r].cost;if(r!==mainStore&&l.prices[mainStore])s.savings+=l.prices[mainStore].cost-l.prices[r].cost}
   else{s.items.push({key:l.key,label:l.label,itemId:l.item.id,cost:null,cold:l.cold,chilled:l.chilled});s.unknownCount++}
   stopMap.set(key,s)}
  const splitStops=[...stopMap.values()].map(s=>({...s,total:round(s.total),savings:round(s.savings)}));
@@ -313,11 +318,30 @@ function optimizeBasket(items,observations,prefs={}){
  const savings=round(base-splitComparable);
  const split={mainStore,stops:splitStops,total:round(splitStops.reduce((n,s)=>n+s.total,0)),comparableCount:comparable.length,comparableBase:base,comparableSplit:splitComparable,savings,savingsPct:base>0?round(savings/base*100,1):0,folded,minSavings,minStopOrder,extraStops:splitStops.filter(s=>s.retailer!==mainStore).length};
  const route=routeOrder(splitStops);
+ const splitMix=sourceMix([...assignment].filter(([,r])=>r).map(([l,r])=>l.prices[r].origin));
+ oneStop.sourceMix=sourceMix(common.flatMap(l=>[l.prices.woolworths.origin,l.prices.coles.origin]));split.sourceMix=splitMix;
  const benchmark=[];
  for(const l of lines){const v=l.prices['viet-grocer'];if(!v)continue;const sm=['woolworths','coles','aldi'].filter(r=>l.prices[r]).sort((a,b)=>l.prices[a].cost-l.prices[b].cost)[0];if(!sm)continue;const s=l.prices[sm];benchmark.push({key:l.key,label:l.label,itemId:l.item.id,viet:v.cost,supermarket:{retailer:sm,cost:s.cost,promo:s.observation.promo||null},cheaper:v.cost<=s.cost?'viet-grocer':sm,difference:round(Math.abs(s.cost-v.cost)),approx:v.approx||s.approx})}
  const bulk=lines.filter(l=>l.item.bulkCandidate&&(l.item.category==='household'||l.item.category==='personal')).map(l=>({key:l.key,label:l.label,itemId:l.item.id,unitBasis:l.item.unitBasis,prices:Object.fromEntries(Object.entries(l.prices).map(([r,p])=>[r,{cost:p.cost,unitPrice:p.unitPrice}]))}));
- return{currency:'AUD',today:opts.today,state:opts.state,itemCount:(items||[]).length,pricedCount:lines.filter(l=>Object.keys(l.prices).length).length,unknown,stores,oneStop,split,route,benchmark,bulk};
+ return{currency:'AUD',today:opts.today,state:opts.state,itemCount:(items||[]).length,pricedCount:lines.filter(l=>Object.keys(l.prices).length).length,unknown,stores,oneStop,split,route,benchmark,bulk,sourceMix:splitMix,hints:lines.flatMap(l=>l.hints.map(h=>({...h,key:l.key,lineLabel:l.label})))};
 }
+function sourceMix(origins){const m={family:0,official:0,community:0,shop:0};for(const o of origins)if(o&&Object.hasOwn(m,o))m[o]++;m.total=m.family+m.official+m.community+m.shop;return m}
+
+// ---------- Community Price Pilot (feature-flagged) ----------
+// Server community items → observation-like rows for optimizeBasket. Only CONFIRMED and
+// still-usable (regular ≤14 days, specials until validUntil) prices enter totals. PENDING
+// prices are returned separately as hints. If the user picked branches for a retailer,
+// only those branches are used for that retailer; otherwise any branch in the state.
+const COMMUNITY_SHAREABLE=['shelf-photo','receipt'];
+function canShareToCommunity(o){return!!o&&!!o.itemId&&COMMUNITY_SHAREABLE.includes(o.evidence?.type)&&(o.evidence.type!=='shelf-photo'||typeof o.evidence.ocrPrice==='number'&&Math.abs(o.evidence.ocrPrice-o.price)<=0.01+1e-9)}
+function communityRow(c,origin){return{id:origin+':'+(c.groupId||c.id),groupId:c.groupId||null,itemId:c.itemId,label:c.label,retailer:c.retailer,branchId:c.branchId||null,branchLabel:c.branchLabel||null,state:c.state||null,price:c.price,currency:'AUD',packQty:c.packQty??null,packUnit:c.packUnit??null,units:c.units??null,unitPrice:c.unitPrice??null,unitBasis:c.unitBasis??null,wasPrice:null,promo:c.promo||null,validUntil:c.validUntil||null,observedAt:c.lastObserved||c.observedAt,source:origin,origin,families:c.families||0,status:c.status||null,ageDays:c.ageDays??null,faded:!!c.faded,sources:c.sources||[],shop:c.shop||null}}
+function communityObservations(items,{branches=[]}={}){
+ const preferred=new Set(branches||[]),byRetailer=new Set([...preferred].map(b=>String(b).split(':')[0]));
+ const keep=c=>!byRetailer.has(c.retailer)||preferred.has(c.branchId);
+ const all=(items||[]).filter(c=>c&&c.itemId&&c.price>0&&keep(c));
+ return{confirmed:all.filter(c=>c.status==='confirmed'&&c.usable===true).map(c=>communityRow(c,'community')),hints:all.filter(c=>c.status!=='confirmed'||!c.usable).map(c=>communityRow(c,'community'))};
+}
+function shopObservations(list){return(list||[]).filter(p=>p&&p.itemId&&p.price>0).map(p=>({...communityRow({...p,lastObserved:p.observedAt,status:'shop'},'shop'),id:'shop:'+p.id,retailer:'viet-grocer'}))}
 // Chemist → ALDI → (Amazon delivery, no stop) → Woolworths/Coles → Chợ Việt.
 // Any stop carrying raw meat or frozen goods goes after the stops that don't.
 function routeOrder(stops){
@@ -335,8 +359,8 @@ const VISIBILITY=['family','community'],EVIDENCE=['shelf-photo','receipt','scree
 function evidenceType(source){return source==='receipt'?'receipt':source==='screenshot'?'screenshot':source==='bookmark'?'bookmark':'manual'}
 // manual/catalogue = low; screenshot/bookmark/shelf-photo whose OCR price matched = medium; receipt/official = high.
 function computeConfidence(source,evidence){if(source==='receipt'||source==='official'||evidence?.type==='receipt')return'high';if(['screenshot','bookmark','shelf-photo'].includes(evidence?.type||source)&&evidence?.ocrMatches===true)return'medium';return'low'}
-function makeEvidence(source,{imageHash=null,ocrPrice=null,price=null}={}){const ocr=typeof ocrPrice==='number'&&ocrPrice>0?round(ocrPrice):null;return{type:evidenceType(source),imageHash:typeof imageHash==='string'&&/^[a-f0-9]{64}$/.test(imageHash)?imageHash:null,ocrPrice:ocr,ocrMatches:ocr==null?null:price!=null&&Math.abs(ocr-price)<0.005}}
-function withProvenance(o,{imageHash=null,ocrPrice=null,capturedAt=null}={}){const evidence=o.evidence&&EVIDENCE.includes(o.evidence.type)?{...o.evidence,ocrMatches:o.evidence.ocrPrice==null?null:Math.abs(o.evidence.ocrPrice-o.price)<0.005}:makeEvidence(o.source,{imageHash,ocrPrice,price:o.price});return{...o,visibility:'family',evidence,capturedAt:o.capturedAt||capturedAt||null,confidence:computeConfidence(o.source,evidence),storeBranchId:o.storeBranchId??o.branchId??null}}
+function makeEvidence(source,{imageHash=null,ocrPrice=null,price=null,type=null}={}){const ocr=typeof ocrPrice==='number'&&ocrPrice>0?round(ocrPrice):null;return{type:type&&EVIDENCE.includes(type)?type:evidenceType(source),imageHash:typeof imageHash==='string'&&/^[a-f0-9]{64}$/.test(imageHash)?imageHash:null,ocrPrice:ocr,ocrMatches:ocr==null?null:price!=null&&Math.abs(ocr-price)<0.005}}
+function withProvenance(o,{imageHash=null,ocrPrice=null,capturedAt=null,evidenceType=null}={}){const evidence=o.evidence&&EVIDENCE.includes(o.evidence.type)?{...o.evidence,ocrMatches:o.evidence.ocrPrice==null?null:Math.abs(o.evidence.ocrPrice-o.price)<0.005}:makeEvidence(o.source,{imageHash,ocrPrice,price:o.price,type:evidenceType});return{...o,visibility:'family',evidence,capturedAt:o.capturedAt||capturedAt||null,confidence:computeConfidence(o.source,evidence),storeBranchId:o.storeBranchId??o.branchId??null}}
 function validProvenance(o){
  if(o.visibility!=null&&o.visibility!=='family')return false;
  const e=o.evidence;if(e!=null&&(typeof e!=='object'||!EVIDENCE.includes(e.type)||!(e.imageHash==null||typeof e.imageHash==='string'&&/^[a-f0-9]{64}$/.test(e.imageHash))||!(e.ocrPrice==null||typeof e.ocrPrice==='number'&&e.ocrPrice>=0&&e.ocrPrice<=10000)||!(e.ocrMatches==null||typeof e.ocrMatches==='boolean')))return false;
@@ -390,10 +414,10 @@ function receiptObservations(receipts,catalog,{ingredientUnit=null,state=null}={
   for(const line of r.items||[]){const item=line.ingredient&&byIngredient.get(line.ingredient);if(!item||!(line.total>0)||!(Number.isFinite(line.quantity)&&line.quantity>0))continue;
    const unit=ingredientUnit?ingredientUnit(line.ingredient):null;if(!unit)continue;const packUnit=unit==='quả'?'each':unit==='ml'?'mL':unit;
    const unitPrice=unitPriceOf(line.total,line.quantity,packUnit,packUnit==='each'?line.quantity:null,item.unitBasis);if(unitPrice==null)continue;
-   out.push({id:('receipt:'+r.id+':'+(line.id||out.length)).replace(/[^\w:.-]/g,'').slice(0,120),itemId:item.id,label:String(line.label||item.nameVi).slice(0,160),retailer,branchId:null,state,price:round(line.total),currency:'AUD',packQty:line.quantity,packUnit,units:packUnit==='each'?line.quantity:null,unitPrice,unitBasis:item.unitBasis,wasPrice:null,promo:null,validUntil:null,observedAt:r.date,observedBy:r.createdBy||null,source:'receipt',note:String(r.store||'').slice(0,120),visibility:'family',evidence:{type:'receipt',imageHash:null,ocrPrice:null,ocrMatches:null},capturedAt:r.createdAt||null,confidence:'high',storeBranchId:null})}}
+   out.push({id:('receipt:'+r.id+':'+(line.id||out.length)).replace(/[^\w:.-]/g,'').slice(0,120),itemId:item.id,label:String(line.label||item.nameVi).slice(0,160),retailer,branchId:null,state,price:round(line.total),currency:'AUD',packQty:line.quantity,packUnit,units:packUnit==='each'?line.quantity:null,unitPrice,unitBasis:item.unitBasis,wasPrice:null,promo:null,validUntil:null,observedAt:r.date,observedBy:r.createdBy||null,source:'receipt',note:String(r.store||'').slice(0,120),visibility:'family',evidence:{type:'receipt',imageHash:null,ocrPrice:null,ocrMatches:null,receiptId:String(r.id||''),lineId:line.id!=null?String(line.id):null},capturedAt:r.createdAt||null,confidence:'high',storeBranchId:null})}}
  return out;
 }
 
-const api={RETAILERS,RETAILER_IDS,CATEGORIES,SAFETY,SOURCES,PROMOS,BASIS,FRESH_DAYS,STALE_DAYS,SUPPORTED_STATES,UNSUPPORTED,norm,sydneyToday,addDays,dayDiff,postcodeState,cycleId,cycleEnd,nextSpecialBuyDays,defaultDealEnd,unitPriceOf,convertUnitPrice,basisMultiplier,detectRetailer,retailerFromHost,matchCatalog,parsePriceText,extractProductPage,bookmarkletSource,captureToDraft,validObservation,freshness,itemUnitPrice,bestPrice,allowedChannel,optimizeBasket,routeOrder,tripsFromReceipts,detectPersona,receiptObservations,VISIBILITY,EVIDENCE,CONFIDENCE,computeConfidence,makeEvidence,withProvenance,validProvenance,priceSanity};
+const api={RETAILERS,RETAILER_IDS,CATEGORIES,SAFETY,SOURCES,PROMOS,BASIS,FRESH_DAYS,STALE_DAYS,SUPPORTED_STATES,UNSUPPORTED,norm,sydneyToday,addDays,dayDiff,postcodeState,cycleId,cycleEnd,nextSpecialBuyDays,defaultDealEnd,unitPriceOf,convertUnitPrice,basisMultiplier,detectRetailer,retailerFromHost,matchCatalog,parsePriceText,extractProductPage,bookmarkletSource,captureToDraft,validObservation,freshness,itemUnitPrice,bestPrice,allowedChannel,optimizeBasket,routeOrder,tripsFromReceipts,detectPersona,receiptObservations,VISIBILITY,EVIDENCE,CONFIDENCE,computeConfidence,makeEvidence,withProvenance,validProvenance,priceSanity,sourceMix,canShareToCommunity,communityObservations,shopObservations,COMMUNITY_SHAREABLE};
 root.PriceScout=api;
 })(globalThis);

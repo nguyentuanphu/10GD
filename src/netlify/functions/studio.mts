@@ -3,6 +3,7 @@ import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount,accountStore,editRecord,scopedStore} from '../lib/accounts.mjs';
 import {createAuthMailer,digestToken,newMailToken,validEmail} from '../lib/auth-email.mjs';
 import {sendPushBatch,pushKeys} from '../lib/push.mjs';
+import {moderationData,moderationPhoto,moderate,pruneCommunity,pilotConfig} from '../lib/community-prices.mjs';
 import {studioStore,familyDataStore,studioRoles,roleFor,maskEmail,writeAudit,listLog,pruneLogs,platformSettings,validateSettingsPatch,saveSettings,activeBanner,verifyPassword,csrfFor,newRecoveryCode,newEpoch,collectAccounts,scanFamily,overview,invalidateOverview,storageProbe,familyFlags,familyLimits,sha256,dayKey,recordEvent,TRASH_RETENTION_DAYS} from '../lib/studio.mjs';
 
 const DAY=86400000;
@@ -43,7 +44,7 @@ export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=(
    if(op==='me'&&isRead)return json({username:actor,name:ctx.account.name,role,csrf:csrfFor(ctx.sessionKey),build:env.COMMIT_REF?String(env.COMMIT_REF).slice(0,12):null,context:env.CONTEXT||null});
 
    if(op==='overview'&&isRead){const o=await overview(getStoreFn,{now});const {perFamily,...rest}=o;return json(rest)}
-   if(op==='recompute'&&method==='POST'){const pruned=await pruneLogs(getStoreFn,now);const o=await overview(getStoreFn,{fresh:true,now});await audit('recompute_overview',null,{details:{pruned}});const {perFamily,...rest}=o;return json(rest)}
+   if(op==='recompute'&&method==='POST'){const pruned=await pruneLogs(getStoreFn,now)+await pruneCommunity(getStoreFn,now);const o=await overview(getStoreFn,{fresh:true,now});await audit('recompute_overview',null,{details:{pruned}});const {perFamily,...rest}=o;return json(rest)}
 
    if(op==='accounts'&&isRead){
     const {users,live,sessions,families}=await collectAccounts(getStoreFn,now),seen=new Map<string,number>(),count=new Map<string,number>();
@@ -154,7 +155,11 @@ export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=(
 
    if(op==='events'&&isRead){const r=await listLog(getStoreFn,'events',{now,from:q('from')||undefined,to:q('to')||undefined,type:q('type')||undefined,account:q('account')||undefined,family:q('family')||undefined,cursor:q('cursor')||undefined,limit:Math.min(100,+q('limit')||50)});await audit('view_events',null,{details:{type:q('type')||null}});return json(r)}
    if(op==='audit'&&isRead){ownerOnly();const r=await listLog(getStoreFn,'audit',{now,from:q('from')||undefined,to:q('to')||undefined,type:q('type')||undefined,account:q('account')||undefined,family:q('family')||undefined,cursor:q('cursor')||undefined,limit:Math.min(100,+q('limit')||50)});await audit('view_audit');return json(r)}
-   if(op==='prune'&&method==='POST'){const removed=await pruneLogs(getStoreFn,now);await audit('prune_logs',null,{details:{removed}});return json({removed})}
+   // Community Price Pilot moderation. Owner-only; every view and action is audited.
+   if(op==='community'&&isRead){ownerOnly();const d=await moderationData(getStoreFn,now);await audit('view_community',null,{details:{queue:d.queue.length}});return json({...d,pilot:pilotConfig(settings.values),flagSource:settings.sources['flags.communityPrices']||'default'})}
+   if(op==='community-photo'&&isRead){ownerOnly();const id=q('id');const bytes=await moderationPhoto(getStoreFn,id);await audit('view_community_photo',{type:'community',id},{result:bytes?'ok':'missing'});if(!bytes)return json({error:'Không có ảnh (đã xóa hoặc hết hạn).',errorEn:'No photo (deleted or expired).'},404);return new Response(bytes,{headers:{'Content-Type':'image/jpeg','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'"}})}
+   if(op==='community-action'&&method==='POST'){const action=String(body.action||''),reason=reasonOf(body,['approve','dismiss-reports','restore','shop-dismiss','shop-restore'].includes(action)?0:3);const r=await moderate(getStoreFn,{action,body,now});await audit('community_'+action.replace(/-/g,'_'),{type:'community',id:r.target},{reason,details:{state:body.state||null,itemId:body.itemId||null,account:r.account||null,shop:r.shop||null}});return json({done:true,...r})}
+   if(op==='prune'&&method==='POST'){const removed=await pruneLogs(getStoreFn,now)+await pruneCommunity(getStoreFn,now);await audit('prune_logs',null,{details:{removed}});return json({removed})}
    return json({error:'Thao tác không hỗ trợ.',errorEn:'Unsupported operation.'},405);
   }catch(e:any){if(!e.status)console.error('Studio operation failed',e?.name);if(!e.status)await recordEvent(getStoreFn,'error',{area:'studio',op});return json({error:e.status?e.message:'Chưa xử lý được. Thử lại sau.',errorEn:e.status?e.en||e.message:'Could not complete the request. Try again later.'},e.status||503)}
  };
