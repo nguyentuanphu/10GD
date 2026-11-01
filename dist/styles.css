@@ -606,3 +606,33 @@ html[data-theme="dark"] .voice-learned-tag{color:var(--green2)}
 .voice-item.voice-item-pantry{grid-template-columns:minmax(0,1fr) 72px 84px}
 .voice-item-pantry .voice-warning,.voice-item-pantry .voice-heard{grid-column:1/-1}
 /* === v1.6 voice-commands end === */
+/* === v1.6 voice-local start === */
+.voice-local{margin:12px 0 0;border:1px solid var(--line);border-radius:14px;background:var(--surface,var(--white));color:var(--text);max-width:100%;min-width:0}
+.voice-local>summary{min-height:48px;display:flex;align-items:center;gap:8px;padding:0 14px;font-size:16px;font-weight:700;cursor:pointer;list-style:none;border-radius:14px}
+.voice-local>summary::-webkit-details-marker{display:none}
+.voice-local>summary::before{content:"⚙️";font-size:18px}
+.voice-local>summary::after{content:"▾";margin-left:auto;color:var(--muted)}
+.voice-local[open]>summary::after{content:"▴"}
+.voice-local>summary:focus-visible{outline:3px solid var(--accent-ink,var(--green));outline-offset:2px}
+.voice-local>:not(summary){margin-left:14px;margin-right:14px}
+.voice-local>:last-child{margin-bottom:14px}
+.vl-group{border:0;padding:0;margin:4px 14px 10px;min-width:0}
+.vl-group legend{font-weight:700;font-size:15px;padding:0;margin-bottom:6px}
+.vl-pack{border-top:1px solid var(--line);padding:8px 0;min-width:0}
+.vl-choice{display:flex;align-items:center;gap:10px;min-height:48px;font-size:16px;cursor:pointer;min-width:0}
+.vl-choice input{width:24px;height:24px;flex-shrink:0;accent-color:var(--green)}
+.vl-choice span{min-width:0;overflow-wrap:anywhere}
+.vl-choice small{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.vl-choice input:disabled+span{opacity:.75}
+.vl-pack-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding-left:34px}
+.vl-pack-row .btn{min-height:44px;font-size:15px}
+.vl-state{font-size:14px;color:var(--muted)}
+.vl-state[data-state="ready"]{color:var(--accent-ink,var(--green));font-weight:700}
+.vl-progress{display:block;width:calc(100% - 34px);margin:8px 0 0 34px;height:10px;accent-color:var(--green)}
+.vl-progress[hidden]{display:none}
+.vl-note{display:block;color:var(--warn-ink,var(--muted));font-size:14px;line-height:1.5;padding-left:34px;margin-top:4px}
+p.vl-note{padding-left:0}
+.vl-check{display:flex;align-items:flex-start;gap:10px;min-height:48px;padding:10px 0;font-size:16px;line-height:1.4;cursor:pointer}
+.vl-consent{border-top:1px solid var(--line);font-weight:600}
+.voice-local .hint{font-size:14px;line-height:1.5}
+/* === v1.6 voice-local end === */
