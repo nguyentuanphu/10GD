@@ -949,3 +949,37 @@ html[data-theme="dark"] .scout-copy-row .input{background:#111a16;color:#e8f2ec;
 html[data-theme="dark"] .scout-old{color:#a7b3ab}
 .scout-tips{margin:4px 0 8px;padding-left:1.2em;font-size:13px;line-height:1.5}.scout-tips li{margin:4px 0;overflow-wrap:anywhere}
 /* === v1.7 easy-scout end === */
+/* === v1.7.1 voice-settings start === */
+/* One-tap spoken-language toggle (VI ⇄ EN) next to every mic button. */
+.voice-lang-toggle{display:inline-flex;align-items:center;gap:2px;min-height:44px;min-width:88px;padding:4px;border:1.5px solid var(--line);border-radius:999px;background:var(--paper,#fff);color:var(--text);font:inherit;font-weight:700;cursor:pointer;position:relative;flex:0 0 auto}
+.voice-lang-toggle .vlt-seg{display:inline-flex;align-items:center;justify-content:center;min-width:38px;min-height:34px;padding:0 8px;border-radius:999px;color:var(--muted);letter-spacing:.02em}
+.voice-lang-toggle .vlt-seg.on{background:var(--green,#2f7d57);color:#fff}
+.voice-lang-toggle .vlt-auto{position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
+.voice-lang-toggle:focus-visible{outline:3px solid var(--orange,#e07a2f);outline-offset:2px}
+.voice-controls:has(.vlt-auto),.vp-controls:has(.vlt-auto){padding-bottom:14px}
+.voice-controls,.vp-controls{align-items:center}
+html[data-theme="dark"] .voice-lang-toggle{background:#111a16;border-color:#3a4c43;color:#e8f2ec}
+html[data-theme="dark"] .voice-lang-toggle .vlt-seg{color:#a7b3ab}
+html[data-theme="dark"] .voice-lang-toggle .vlt-seg.on{background:#4cae80;color:#08130d}
+/* Hold to talk (default): no callout, selection or scrolling while the finger is down; a clear pressed state. */
+.voice-hold-btn,[data-hold-mic]{touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;min-height:48px}
+[data-hold-mic].holding,[data-hold-mic][aria-pressed="true"]{box-shadow:0 0 0 4px rgba(224,122,47,.35);transform:scale(.98)}
+@media (prefers-reduced-motion:no-preference){[data-hold-mic].holding{animation:voice-hold-pulse 1.2s ease-in-out infinite}}
+@keyframes voice-hold-pulse{0%,100%{box-shadow:0 0 0 3px rgba(224,122,47,.35)}50%{box-shadow:0 0 0 8px rgba(224,122,47,.12)}}
+@media (prefers-reduced-motion:reduce){[data-hold-mic].holding,[data-hold-mic][aria-pressed="true"]{transform:none}}
+.voice-hold-hint{flex-basis:100%;margin:4px 0 0;font-size:14px;color:var(--warn-ink,#7a4a00)}
+html[data-theme="dark"] .voice-hold-hint{color:#f3c98b}
+/* "Chưa nghe rõ, nói lại?" and the on-device fallback notice. */
+.voice-retry,.vl-fail{margin:10px 0;padding:10px 12px;border:1px solid var(--warn-border,#e7c27d);border-radius:12px;background:var(--warn-surface,#fff6e5);color:var(--warn-ink,#5a3a00);overflow-wrap:anywhere}
+.voice-retry p,.vl-fail p{margin:0 0 8px}
+.voice-retry .toolbar,.vl-fail .toolbar{display:flex;flex-wrap:wrap;gap:8px}
+.voice-retry .btn,.vl-fail .btn{min-height:44px;white-space:normal;text-align:left}
+html[data-theme="dark"] .voice-retry,html[data-theme="dark"] .vl-fail{background:#2b2414;border-color:#6b5524;color:#f3e2bd}
+.offline-pack-warn{display:block;color:var(--warn-ink,#7a4a00);overflow-wrap:anywhere}
+html[data-theme="dark"] .offline-pack-warn{color:#f3c98b}
+.voice-live[data-local="loading"] .voice-dot,.voice-live[data-local="recognizing"] .voice-dot{background:var(--orange,#e07a2f)}
+/* Account & settings: the account part on top, "Other settings" grouped under it. */
+.account-sheet .account-part{margin-bottom:6px}
+.account-sheet .account-part>h3{margin:0 0 8px;font-size:1rem}
+.settings-group-title{margin:18px 0 6px;font-size:1rem;color:var(--muted)}
+/* === v1.7.1 voice-settings end === */

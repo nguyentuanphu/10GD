@@ -23,5 +23,5 @@ if(labels[location.hash.slice(1)])view=location.hash.slice(1);
 render();
 
 // More: the other sections plus “Other settings”. My kitchen is not repeated here: its big button sits under every page heading.
-document.addEventListener('click',event=>{if(!event.target.closest('[data-ui-more]'))return;modal(tr('Các mục khác','More tools'),`<div class="more-tools">${Object.entries(labels).filter(([id])=>!['today','planner','shopping'].includes(id)).map(([id,[icon,name]])=>`<a class="btn full" data-close-nav href="#${id}">${icon} ${esc(name)}</a>`).join('')}<button type="button" class="btn full more-other-settings" data-personal="other-settings"><span aria-hidden="true">⚙</span> ${tr('Cài đặt khác','Other settings')}</button></div>`)});
+document.addEventListener('click',event=>{if(!event.target.closest('[data-ui-more]'))return;modal(tr('Các mục khác','More tools'),`<div class="more-tools">${Object.entries(labels).filter(([id])=>!['today','planner','shopping'].includes(id)).map(([id,[icon,name]])=>`<a class="btn full" data-close-nav href="#${id}">${icon} ${esc(name)}</a>`).join('')}</div>`)});
 document.addEventListener('click',event=>{if(event.target.closest('[data-close-nav]'))closeModal()});
