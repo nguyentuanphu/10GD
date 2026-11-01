@@ -1,0 +1,292 @@
+{
+ "latency": "40-120 ms per call",
+ "scale": 8,
+ "data": "50 accounts, 20 families, 200 sessions, 100 push devices, 2,000 events, 200 audit rows, 40 contributors, 120 price shards",
+ "rows": [
+  {
+   "tab": "me",
+   "op": "me",
+   "cold": {
+    "get": 4,
+    "list": 0,
+    "set": 1,
+    "delete": 0,
+    "ms": 406
+   },
+   "warm": {
+    "get": 3,
+    "list": 0,
+    "set": 1,
+    "delete": 0,
+    "ms": 353
+   },
+   "bytes": 149
+  },
+  {
+   "tab": "overview",
+   "op": "overview",
+   "cold": {
+    "get": 2675,
+    "list": 53,
+    "set": 2,
+    "delete": 0,
+    "ms": 215920
+   },
+   "warm": {
+    "get": 4,
+    "list": 0,
+    "set": 1,
+    "delete": 0,
+    "ms": 425
+   },
+   "bytes": 737
+  },
+  {
+   "tab": "accounts",
+   "op": "accounts",
+   "cold": {
+    "get": 274,
+    "list": 3,
+    "set": 1,
+    "delete": 0,
+    "ms": 21711
+   },
+   "warm": {
+    "get": 273,
+    "list": 3,
+    "set": 1,
+    "delete": 0,
+    "ms": 21383
+   },
+   "bytes": 8101
+  },
+  {
+   "tab": "families",
+   "op": "families",
+   "cold": {
+    "get": 2965,
+    "list": 56,
+    "set": 2,
+    "delete": 0,
+    "ms": 239144
+   },
+   "warm": {
+    "get": 294,
+    "list": 3,
+    "set": 1,
+    "delete": 0,
+    "ms": 23882
+   },
+   "bytes": 7650
+  },
+  {
+   "tab": "invitations",
+   "op": "invites",
+   "cold": {
+    "get": 474,
+    "list": 33,
+    "set": 1,
+    "delete": 0,
+    "ms": 39396
+   },
+   "warm": {
+    "get": 473,
+    "list": 33,
+    "set": 1,
+    "delete": 0,
+    "ms": 39793
+   },
+   "bytes": 28281
+  },
+  {
+   "tab": "notifications",
+   "op": "notifications",
+   "cold": {
+    "get": 3139,
+    "list": 66,
+    "set": 2,
+    "delete": 0,
+    "ms": 250910
+   },
+   "warm": {
+    "get": 468,
+    "list": 13,
+    "set": 1,
+    "delete": 0,
+    "ms": 38089
+   },
+   "bytes": 4760
+  },
+  {
+   "tab": "messages",
+   "op": "messages",
+   "cold": {
+    "get": 2945,
+    "list": 56,
+    "set": 2,
+    "delete": 0,
+    "ms": 235153
+   },
+   "warm": {
+    "get": 274,
+    "list": 3,
+    "set": 1,
+    "delete": 0,
+    "ms": 21273
+   },
+   "bytes": 2811
+  },
+  {
+   "tab": "settings",
+   "op": "settings",
+   "cold": {
+    "get": 5,
+    "list": 0,
+    "set": 1,
+    "delete": 0,
+    "ms": 465
+   },
+   "warm": {
+    "get": 4,
+    "list": 0,
+    "set": 1,
+    "delete": 0,
+    "ms": 477
+   },
+   "bytes": 971
+  },
+  {
+   "tab": "health",
+   "op": "health",
+   "cold": {
+    "get": 2687,
+    "list": 55,
+    "set": 3,
+    "delete": 1,
+    "ms": 215492
+   },
+   "warm": {
+    "get": 16,
+    "list": 2,
+    "set": 2,
+    "delete": 1,
+    "ms": 1596
+   },
+   "bytes": 820
+  },
+  {
+   "tab": "logs (events)",
+   "op": "events",
+   "cold": {
+    "get": 54,
+    "list": 2,
+    "set": 2,
+    "delete": 0,
+    "ms": 4802
+   },
+   "warm": {
+    "get": 53,
+    "list": 2,
+    "set": 2,
+    "delete": 0,
+    "ms": 4492
+   },
+   "bytes": 12257
+  },
+  {
+   "tab": "logs (audit)",
+   "op": "audit",
+   "cold": {
+    "get": 54,
+    "list": 3,
+    "set": 2,
+    "delete": 0,
+    "ms": 4673
+   },
+   "warm": {
+    "get": 53,
+    "list": 3,
+    "set": 2,
+    "delete": 0,
+    "ms": 4316
+   },
+   "bytes": 15025
+  },
+  {
+   "tab": "community",
+   "op": "community",
+   "cold": {
+    "get": 247,
+    "list": 6,
+    "set": 2,
+    "delete": 0,
+    "ms": 20163
+   },
+   "warm": {
+    "get": 246,
+    "list": 6,
+    "set": 2,
+    "delete": 0,
+    "ms": 19881
+   },
+   "bytes": 36986
+  },
+  {
+   "tab": "rollout",
+   "op": "rollout",
+   "cold": {
+    "get": 4,
+    "list": 0,
+    "set": 1,
+    "delete": 0,
+    "ms": 369
+   },
+   "warm": {
+    "get": 3,
+    "list": 0,
+    "set": 1,
+    "delete": 0,
+    "ms": 341
+   },
+   "bytes": 498
+  },
+  {
+   "tab": "account drawer",
+   "op": "account",
+   "cold": {
+    "get": 1223,
+    "list": 19,
+    "set": 2,
+    "delete": 0,
+    "ms": 96243
+   },
+   "warm": {
+    "get": 1222,
+    "list": 19,
+    "set": 2,
+    "delete": 0,
+    "ms": 95889
+   },
+   "bytes": 5857
+  },
+  {
+   "tab": "family drawer",
+   "op": "family",
+   "cold": {
+    "get": 28,
+    "list": 1,
+    "set": 2,
+    "delete": 0,
+    "ms": 2204
+   },
+   "warm": {
+    "get": 27,
+    "list": 1,
+    "set": 2,
+    "delete": 0,
+    "ms": 2349
+   },
+   "bytes": 2389
+  }
+ ]
+}

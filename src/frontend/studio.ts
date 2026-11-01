@@ -24,8 +24,24 @@ function applyTheme(){const dark=themePref==='dark'||themePref==='auto'&&matchMe
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',applyTheme);applyTheme();
 
 // ---------- API ----------
-async function api(op:string,params:any={}){const qs=new URLSearchParams({op,...params});const r=await fetch(API+'?'+qs,{credentials:'same-origin',headers:{Accept:'application/json'}});return handle(r)}
-async function post(op:string,body:any={}){const r=await fetch(API+'?op='+op,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','x-studio-csrf':me?.csrf||''},body:JSON.stringify(body)});return handle(r)}
+// Tab data is kept per browser tab (sessionStorage, per signed-in user) and shown at once on the
+// next visit, then refreshed in the background (stale-while-revalidate). Only list/summary
+// responses are kept: never `me` (it carries the CSRF token), detail drawers, the support view,
+// ledgers or photos. Every request still goes through the server's admin checks; any change
+// made from Studio clears the saved copies.
+const CACHE='studio-view:',FRESH_MS=10000,NO_CACHE=new Set(['me','account','family','support-view','community-ledger','community-photo']);
+// `view` is set only while a tab's render() starts: its api() calls begin synchronously and keep
+// their own context, so overlapping renders (prefetch, background refresh) never mix.
+let cacheUser='',view:any=null;
+const ckey=(path:string)=>CACHE+cacheUser+':'+path;
+function cacheRead(path:string){try{const v=sessionStorage.getItem(ckey(path));return v?JSON.parse(v):null}catch{return null}}
+function cacheWrite(path:string,data:any){try{const s=JSON.stringify({at:Date.now(),data});if(s.length<1500000)sessionStorage.setItem(ckey(path),s)}catch{}}
+function cacheClear(){try{for(const k of Object.keys(sessionStorage))if(k.startsWith(CACHE))sessionStorage.removeItem(k)}catch{}}
+async function api(op:string,params:any={}){const path=new URLSearchParams({op,...params}).toString(),ctx=view,cacheable=!!ctx&&!NO_CACHE.has(op);
+ if(cacheable&&ctx.cacheFirst){const c=cacheRead(path);if(c&&(!ctx.maxAge||Date.now()-c.at<ctx.maxAge)){ctx.used.push({path,at:c.at});return c.data}}
+ const r=await fetch(API+'?'+path+(cacheable&&ctx.force?'&fresh=1':''),{credentials:'same-origin',headers:{Accept:'application/json'},...(ctx?{signal:ctx.signal}:{})}),data=await handle(r);
+ if(cacheable){cacheWrite(path,data);ctx.used.push({path,at:Date.now(),live:true})}return data}
+async function post(op:string,body:any={}){const r=await fetch(API+'?op='+op,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','x-studio-csrf':me?.csrf||''},body:JSON.stringify(body)});cacheClear();return handle(r)}
 async function handle(r:Response){let data:any={};try{data=await r.json()}catch{}if(!r.ok){const e:any=new Error(lang==='en'?data.errorEn||data.error||'Request failed':data.error||data.errorEn||'Lỗi');e.status=r.status;e.data=data;throw e}return data}
 function toast(msg:string,bad=false){const t=$('#toast');t.textContent=msg;t.className='toast show'+(bad?' bad':'');clearTimeout((toast as any).t);(toast as any).t=setTimeout(()=>t.className='toast',4200)}
 const failMsg=(e:any)=>toast(e.message||T('Lỗi','Error'),true);
@@ -288,15 +304,56 @@ async function familyDetail(id:string){try{const d=await api('family',{id}),f=d.
   try{const s=await api('support-view',{id}),x=s.summary;$('#sv',el).innerHTML=`<section class="card support" aria-label="${T('Chế độ hỗ trợ','Support view')}"><h3>${T('Chế độ hỗ trợ (chỉ đọc) đến ','Support view (read-only) until ')}${date(s.expires)}</h3><p class="muted">${T('Lý do','Reason')}: ${esc(s.reason)}</p><dl class="kv"><dt>${T('Tuần thực đơn','Menu weeks')}</dt><dd>${num(x.counts.weeks)}</dd><dt>${T('Tủ bếp','Pantry items')}</dt><dd>${num(x.counts.pantry)}</dd><dt>${T('Hóa đơn','Receipts')}</dt><dd>${num(x.counts.receipts)}</dd><dt>${T('Việc mua','Errands')}</dt><dd>${num(x.counts.errands)}</dd><dt>${T('Lỗi tin nhắn','Message failures')}</dt><dd>${num(x.alertFailures)}</dd><dt>${T('Xung đột','Conflicts')}</dt><dd>${num(x.conflicts)}</dd></dl><h4>${T('Cấu trúc dữ liệu','Data shape')}</h4><ul class="plain cols">${Object.entries(s.shape).map(([k,v]:any)=>`<li><code>${esc(k)}</code> ${v.type==='list'?v.items+' '+T('mục','items'):v.type==='object'?v.keys+' '+T('khóa','keys'):esc(v.type)}</li>`).join('')}</ul></section>`;$('#sv',el).scrollIntoView({block:'nearest'})}catch(e){failMsg(e)}})}catch(e){failMsg(e)}}
 
 // ---------- shell ----------
-function shell(){document.documentElement.lang=lang;document.title='Studio · FamTray · Bếp Gia Đình';const cur=(location.hash||'#overview').slice(1);
- $('#nav').innerHTML=Object.entries(pages).map(([k,p]:any)=>`<a href="#${k}" ${k===cur?'aria-current="page"':''}><span aria-hidden="true">${p.icon}</span>${esc(lang==='en'?p.en:p.vi)}</a>`).join('');
+// The navigation is built once per language; route changes only move aria-current.
+let navLang='';
+function shell(){document.documentElement.lang=lang;document.title='Studio · FamTray · Bếp Gia Đình';const cur=(location.hash||'#overview').slice(1),nav=$('#nav');
+ if(navLang!==lang||!nav.children.length){nav.innerHTML=Object.entries(pages).map(([k,p]:any)=>`<a href="#${k}"><span aria-hidden="true">${p.icon}</span>${esc(lang==='en'?p.en:p.vi)}</a>`).join('');navLang=lang}
+ $$('a',nav).forEach((a:any)=>a.getAttribute('href')==='#'+cur?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
  $('#lang').textContent=lang==='en'?'Tiếng Việt':'English';$('#lang').setAttribute('aria-label',lang==='en'?'Chuyển sang tiếng Việt':'Switch to English');
  $('#theme').textContent=({auto:T('Giao diện: tự động','Theme: auto'),light:T('Giao diện: sáng','Theme: light'),dark:T('Giao diện: tối','Theme: dark')} as any)[themePref];
  $('#who').textContent=me?`${me.username} · ${me.role==='owner'?T('chủ','owner'):T('hỗ trợ','support')}`:'';$('#net').textContent=navigator.onLine?T('Trực tuyến','Online'):T('Ngoại tuyến','Offline');$('#net').className='net '+(navigator.onLine?'on':'off')}
-let routing=0;
-async function route(){const key=(location.hash||'#overview').slice(1),page=pages[key]||pages.overview,el=$('#main'),n=++routing,fromNav=!!document.activeElement?.closest?.('#nav');shell();el.setAttribute('aria-busy','true');
- try{await page.render(el);if(n===routing){el.removeAttribute('aria-busy');const h=$('h1',el);if(fromNav)h?.focus()}}catch(e:any){el.removeAttribute('aria-busy');el.innerHTML=`<div class="card notice"><h1>${T('Không tải được','Could not load')}</h1><p>${esc(e.message)}</p></div>`}}
-async function boot(){shell();try{me=await api('me')}catch(e:any){const d=e.data||{};$('#main').innerHTML=`<div class="card notice"><h1>${e.status===401?T('Cần đăng nhập','Sign in required'):d.disabled?T('Studio đang tắt','Studio is disabled'):T('Không có quyền','No access')}</h1><p>${esc(e.message)}</p>${e.status===401?`<p><a class="btn primary" href="/login?return=/studio.html">${T('Đăng nhập','Sign in')}</a></p>`:''}<p><a href="/">${T('← Về ứng dụng','← Back to the app')}</a></p></div>`;$('#nav').innerHTML='';return}route()}
+
+// Skeleton rows while a tab loads for the first time (no saved copy yet).
+const skeleton=()=>`<div class="skel" aria-hidden="true"><div class="skel-h"></div><div class="skel-p"></div><div class="skel-tiles">${'<div></div>'.repeat(4)}</div>${'<div class="skel-row"></div>'.repeat(6)}</div><p class="sr-only">${T('Đang tải…','Loading…')}</p>`;
+// "Updated X ago" + Refresh (forces the server to rebuild its 60 s lists too).
+let freshTimer:any=0;
+function freshness(box:any,at:number,{stale=false,pending=false,failed=false,changed=false}:any={}){const head=$('.page-head',box);if(!head)return;let bar=$('.fresh',head);if(!bar){bar=document.createElement('div');bar.className='fresh';bar.setAttribute('role','status');head.appendChild(bar)}
+ const label=()=>{const s=Math.max(0,Math.round((Date.now()-at)/1000)),age=s<5?T('vừa xong','just now'):s<90?T(`${s} giây trước`,`${s} s ago`):ago(at);return changed?T('Có dữ liệu mới.','New data is available.'):failed?T(`Bản đã lưu · ${age} · chưa cập nhật được`,`Saved copy · ${age} · could not refresh`):pending?T(`Bản đã lưu · cập nhật ${age} · đang làm mới…`,`Saved copy · updated ${age} · refreshing…`):T(`Cập nhật ${age}`,`Updated ${age}`)};
+ bar.className='fresh'+(stale||pending||failed?' stale':'')+(changed?' changed':'');bar.innerHTML=`<span class="fresh-label">${esc(label())}</span><button type="button" class="btn small fresh-btn" data-refresh>↻ ${changed?T('Hiện dữ liệu mới','Show new data'):T('Làm mới','Refresh')}</button>`;
+ $('[data-refresh]',bar).onclick=()=>route({force:!changed});
+ clearInterval(freshTimer);freshTimer=setInterval(()=>{const l=$('.fresh-label',bar);if(!bar.isConnected){clearInterval(freshTimer);return}if(l)l.textContent=label()},15000)}
+let routing=0,ctrl:AbortController|null=null,dirty=false;
+const newView=(n:number,o:any)=>({n,signal:ctrl?.signal,used:[] as any[],cacheFirst:true,force:false,maxAge:0,...o});
+/** Render one tab. Saved data (if any) shows at once; then the same requests run again in the
+ *  background and the tab is redrawn only if the data changed and nothing is being edited. */
+async function route(opts:any={}){const key=(location.hash||'#overview').slice(1),page=pages[key]||pages.overview,main=$('#main'),n=++routing,fromNav=!!document.activeElement?.closest?.('#nav');
+ ctrl?.abort();ctrl=new AbortController();shell();dirty=false;main.setAttribute('aria-busy','true');
+ const box=document.createElement('div');box.className='view';box.innerHTML=skeleton();main.replaceChildren(box);
+ const v=newView(n,{cacheFirst:!opts.force,force:!!opts.force});
+ try{view=v;const p=page.render(box);view=null;await p;if(n!==routing)return;main.removeAttribute('aria-busy');const h=$('h1',box);if(fromNav)h?.focus();
+  box.addEventListener('input',()=>{dirty=true});box.addEventListener('change',()=>{dirty=true});
+  const saved=v.used.filter((u:any)=>!u.live),oldest=Math.min(Date.now(),...v.used.map((u:any)=>u.at));
+  if(!v.used.length)return;
+  if(!saved.length||Date.now()-oldest<FRESH_MS){freshness(box,oldest);return}
+  freshness(box,oldest,{pending:true});revalidate(n,page,box,saved,oldest)}
+ catch(e:any){view=null;if(n!==routing||e?.name==='AbortError')return;main.removeAttribute('aria-busy');box.innerHTML=`<div class="card notice"><h1>${T('Không tải được','Could not load')}</h1><p>${esc(e.message)}</p></div>`;if(e.status===401||e.status===403)cacheClear()}}
+async function revalidate(n:number,page:any,box:any,saved:any[],oldest:number){
+ try{const before=saved.map(u=>JSON.stringify(cacheRead(u.path)?.data??null));
+  const fresh=await Promise.all(saved.map(async u=>{const r=await fetch(API+'?'+u.path,{credentials:'same-origin',headers:{Accept:'application/json'},signal:ctrl!.signal});return handle(r)}));
+  if(n!==routing)return;const changed=fresh.some((d,i)=>JSON.stringify(d)!==before[i]);fresh.forEach((d,i)=>cacheWrite(saved[i].path,d));
+  if(!changed){freshness(box,Date.now());return}
+  if(dirty||box.contains(document.activeElement)&&document.activeElement?.matches?.('input,select,textarea')||$('#drawer').open||$('#ask').open){freshness(box,oldest,{changed:true});return}
+  // Redraw from the fresh copies into a detached container, then swap it in.
+  const next=document.createElement('div');next.className='view';view=newView(n,{cacheFirst:true});const p=page.render(next);view=null;await p;
+  if(n!==routing||dirty)return;const y=scrollY;$('#main').replaceChildren(next);scrollTo(0,y);next.addEventListener('input',()=>{dirty=true});next.addEventListener('change',()=>{dirty=true});freshness(next,Date.now())}
+ catch(e:any){if(n!==routing||e?.name==='AbortError')return;if(e?.status===401||e?.status===403){cacheClear();route();return}freshness(box,oldest,{failed:true})}}
+// After the first paint, quietly fetch the overview and the next tab so they open instantly.
+// Only plain list/summary tabs (no audited views, no health probe).
+const PREFETCH=['overview','accounts','families','invites','notifications','messages','settings'];
+async function prefetch(){const cur=(location.hash||'#overview').slice(1),order=Object.keys(pages),nextTab=order[order.indexOf(cur)+1],list=[...new Set(['overview',nextTab].filter(k=>k&&k!==cur&&PREFETCH.includes(k)))];
+ for(const k of list){if(!me||!navigator.onLine)return;const v=newView(routing,{maxAge:60000});v.signal=new AbortController().signal;try{view=v;const p=pages[k].render(document.createElement('div'));view=null;await p}catch{}finally{view=null}}}
+async function boot(){shell();$('#main').innerHTML=`<div class="view">${skeleton()}</div>`;try{me=await api('me')}catch(e:any){cacheClear();const d=e.data||{};$('#main').innerHTML=`<div class="card notice"><h1>${e.status===401?T('Cần đăng nhập','Sign in required'):d.disabled?T('Studio đang tắt','Studio is disabled'):T('Không có quyền','No access')}</h1><p>${esc(e.message)}</p>${e.status===401?`<p><a class="btn primary" href="/login?return=/studio.html">${T('Đăng nhập','Sign in')}</a></p>`:''}<p><a href="/">${T('← Về ứng dụng','← Back to the app')}</a></p></div>`;$('#nav').innerHTML='';navLang='';return}
+ cacheUser=me.username+'.'+me.role;await route();const idle=(window as any).requestIdleCallback||((f:any)=>setTimeout(f,1200));idle(()=>prefetch(),{timeout:3000})}
 $('#lang').onclick=()=>{lang=lang==='en'?'vi':'en';store.set('studio-lang',lang);me?route():boot()};
 $('#theme').onclick=()=>{themePref=({auto:'light',light:'dark',dark:'auto'} as any)[themePref];store.set('studio-theme',themePref);applyTheme();shell()};
 addEventListener('hashchange',()=>{if(me){$('#drawer').open&&$('#drawer').close();route()}});addEventListener('online',shell);addEventListener('offline',shell);

@@ -122,3 +122,19 @@ dialog::backdrop{background:#0008}
 /* While a section reloads, its old content is stale: block input so typed values are not lost to the re-render. */
 #main[aria-busy="true"]{pointer-events:none;opacity:.65;transition:opacity .15s}
 @media (prefers-reduced-motion:reduce){#main[aria-busy="true"]{transition:none}}
+/* === v1.5 studio-speed start === */
+.fresh{flex-basis:100%;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.86rem;color:var(--muted);margin-top:-4px}
+.fresh.stale .fresh-label{color:var(--text)}
+.fresh.changed{color:var(--text);font-weight:600}
+.fresh-btn{min-height:36px}
+@media (max-width:960px),(pointer:coarse){.fresh-btn{min-height:44px}}
+.skel{display:grid;gap:12px}
+.skel>div,.skel-tiles>div{background:var(--line);border-radius:10px;opacity:.55;animation:skel 1.2s ease-in-out infinite alternate}
+.skel-h{height:30px;width:min(320px,70%)}
+.skel-p{height:16px;width:min(560px,90%)}
+.skel .skel-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;background:none;animation:none;opacity:1}
+.skel-tiles>div{height:86px}
+.skel-row{height:40px}
+@keyframes skel{from{opacity:.35}to{opacity:.7}}
+@media (prefers-reduced-motion:reduce){.skel>div,.skel-tiles>div{animation:none}}
+/* === v1.5 studio-speed end === */
