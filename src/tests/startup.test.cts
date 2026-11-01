@@ -101,8 +101,11 @@ async function main() {
     assert.match(await timeout.page.getByRole('alert').innerText(), /quá lâu/);
     await timeout.context.close();
     const newcomer = await open({ account: true, noHousehold: true });
-    await newcomer.page.locator('[data-device-mode]').waitFor();await newcomer.page.getByRole('button',{name:'Kết nối gia đình',exact:true}).click();await newcomer.page.locator('[data-personal=new-family]').click();await newcomer.page.locator('#account-create').waitFor();
-    await newcomer.page.locator('#account-join').waitFor();
+    await newcomer.page.locator('[data-device-mode]').waitFor();await newcomer.page.getByRole('button',{name:'Kết nối gia đình',exact:true}).click();
+    // My kitchen opens at Family access: join is one collapsed form, create is secondary.
+    await newcomer.page.locator('#kitchen-family #account-join').waitFor({state:'attached'});
+    assert.equal(await newcomer.page.locator('#account-join').count(), 1, 'one join form');
+    await newcomer.page.locator('[data-personal=new-family]').click();await newcomer.page.locator('#account-create').waitFor();
     assert.deepEqual(newcomer.errors, []);
     await newcomer.page.screenshot({ path: `${screenshots}/new-account.png`, fullPage: true });
     await newcomer.context.close();

@@ -185,3 +185,64 @@ html[data-theme="dark"] .scout-step{color:#0d1712}
 .scout-settings-body{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}
 .scout-sanity{margin:10px 0 0;font-size:13px}
 /* === v1.5 price-scout end === */
+/* === v1.5 kitchen-startup start === */
+/* Quiet startup skeleton: no visible text, static when reduced motion is requested. */
+.startup-skeleton{display:grid;gap:12px;max-width:760px;padding:8px 0}
+.startup-skeleton span{display:block;border-radius:8px;background:var(--line)}
+.startup-skeleton .sk-eyebrow{width:90px;height:10px}.startup-skeleton .sk-title{width:min(340px,80%);height:30px}.startup-skeleton .sk-sub{width:min(420px,90%);height:12px}
+.startup-skeleton .sk-row{display:flex;gap:8px;background:none}.startup-skeleton .sk-pill{width:72px;height:34px;border-radius:999px}
+.startup-skeleton .sk-card{height:150px;border-radius:14px}.startup-skeleton .sk-card-short{height:90px}
+.sk-text{display:inline-block;width:88px;height:10px;border-radius:5px;background:var(--line);vertical-align:middle}.sk-text.sk-short{width:60px;height:8px}
+@media (prefers-reduced-motion:no-preference){.startup-skeleton span:not(.sk-row),.sk-text{animation:bep-skeleton 1.4s ease-in-out infinite}}
+@keyframes bep-skeleton{50%{opacity:.45}}
+/* My kitchen: one settings hub with readable sizes and 44px targets. */
+.kitchen-hub .modal-content{padding:0 18px 18px}
+.kitchen-hub .btn{white-space:normal;text-align:center;font-size:13px;min-height:44px;padding:9px 14px;line-height:1.35}
+.kitchen-hub .btn.small{font-size:13px;min-height:44px}
+.kitchen-hub .text-btn.kitchen-link{min-height:44px;font-size:13px;margin-top:6px}
+.kitchen-hub .field label,.kitchen-hub .checked-label{font-size:13px}
+.kitchen-hub .field input,.kitchen-hub .field select,.kitchen-hub select.input{min-height:44px;font-size:16px}
+.kitchen-hub .hint,.kitchen-hub .callout,.kitchen-hub p{font-size:13px}
+.kitchen-hub .toolbar{display:flex;flex-wrap:wrap;gap:8px}
+.kitchen-jump{display:flex;flex-wrap:wrap;gap:6px;padding:10px 0;margin-bottom:6px;background:var(--paper);border-bottom:1px solid var(--line)}
+.kitchen-jump-link{min-height:36px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--white);color:var(--text);font-size:12px;font-weight:550}
+@media (pointer:coarse){.kitchen-jump-link{min-height:44px}}
+.kitchen-section{padding:16px 0;border-bottom:1px solid var(--line);scroll-margin-top:12px}
+@media (max-width:699px){.kitchen-jump{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -14px 6px;padding:10px 14px}.kitchen-jump::-webkit-scrollbar{display:none}.kitchen-jump-link{flex:0 0 auto}}
+@media (min-width:700px){.kitchen-jump{position:sticky;top:0;z-index:3}.kitchen-section{scroll-margin-top:120px}}
+.kitchen-member-row+.kitchen-member-row label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.kitchen-section>h3,.kitchen-section>summary h3{font-size:16px;margin:0 0 10px}
+.kitchen-section h4{font-size:13px;margin:14px 0 8px}
+.kitchen-section.family-hub-summary{padding:16px;margin:16px 0;border:0}
+details.kitchen-section>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;list-style-position:outside}
+details.kitchen-section>summary h3{display:inline;margin:0}
+.kitchen-more{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--white)}
+.kitchen-more>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600;font-size:13px}
+.kitchen-more[open]{padding-bottom:12px}
+.kitchen-member-row{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(112px,140px);gap:10px;align-items:start;margin-bottom:8px}
+.kitchen-member-row label{white-space:nowrap}.kitchen-you{display:block;margin-top:2px;font-size:12px}
+.kitchen-member-row .field{margin:0}.kitchen-member-emoji{font-size:20px;padding-top:9px}.kitchen-member-row:first-child .kitchen-member-emoji{padding-top:36px}
+.kitchen-counts{grid-template-columns:repeat(3,minmax(0,1fr))}
+.kitchen-hub .account-identity-bar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0}
+.kitchen-hub .family-choice{justify-content:space-between;text-align:left}
+.join-status{background:#e8f5ee;border-color:#2e6f40;color:#1b4d2e;font-weight:600}
+.invite-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.invite-row .btn{min-height:44px;font-size:13px}
+.more-tools .more-kitchen{margin-bottom:8px;min-height:48px;font-size:13px}
+@media (max-width:420px){.kitchen-hub .modal-content{padding:0 14px 14px}.kitchen-counts{grid-template-columns:1fr 1fr 1fr}.kitchen-member-row{grid-template-columns:22px minmax(0,1fr) 108px;gap:8px}}
+/* Accessible confirmation dialog layered above any open sheet. */
+.confirm-backdrop{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:16px;background:#19352c80}
+.confirm-dialog{width:min(440px,100%);background:var(--paper);color:var(--text);border-radius:14px;padding:20px;box-shadow:0 25px 100px #142f3a55}
+.confirm-dialog h2{font-size:18px;margin:0 0 10px}.confirm-dialog p{font-size:14px;margin:0 0 12px}
+.confirm-warning{padding:10px 12px;border-radius:8px;background:#faf0e6;color:#7a4a20;border:1px solid #ecd2b4}
+.confirm-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;margin-top:8px}
+.confirm-actions .btn{min-height:44px;min-width:44px;font-size:14px;padding:10px 16px;white-space:normal}
+.btn.danger{background:#9a3f31;color:#fff;border-color:#9a3f31}
+html[data-theme="dark"] .kitchen-more,html[data-theme="dark"] .kitchen-jump-link{background:#1f2d26;color:var(--text);border-color:var(--line)}
+html[data-theme="dark"] .join-status{background:#1d3a2b;color:#cfeedd;border-color:#2e6f40}
+html[data-theme="dark"] .confirm-warning{background:#3a2a1c;color:#f3d6b8;border-color:#5a3e24}
+details.kitchen-section>summary,.kitchen-more>summary{list-style:none;gap:8px}details.kitchen-section>summary::-webkit-details-marker,.kitchen-more>summary::-webkit-details-marker{display:none}
+details.kitchen-section>summary::after,.kitchen-more>summary::after{content:'';margin-left:auto;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);flex:0 0 auto}
+details.kitchen-section[open]>summary::after,.kitchen-more[open]>summary::after{transform:rotate(-135deg)}
+.kitchen-hub .kitchen-section:last-child{border-bottom:0}
+/* === v1.5 kitchen-startup end === */

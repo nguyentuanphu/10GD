@@ -11,7 +11,7 @@
     "typecheck": "tsc -p tsconfig.bootstrap.json --noEmit && tsc -p tsconfig.auth-email.json --noEmit",
     "check": "npm run build && node scripts/check.cjs",
     "test": "node tests/core.test.cjs && node tests/spending.test.cjs && node tests/backend.test.mjs && node tests/units-catalog.test.cjs && node tests/push.test.mjs && node tests/insights-products.test.cjs && node tests/family-menu.test.cjs && node tests/access-calendar.test.mjs && node tests/accounts.test.mjs && node tests/personal.test.cjs && node tests/voice.test.cjs && node tests/offline.test.mjs && node tests/email-recovery.test.mjs && node tests/family-invitations.test.mjs && node tests/notifications.test.mjs && node tests/artwork.test.cjs && node tests/western-catalog.test.cjs && node tests/plant-catalog.test.cjs && node tests/price-scout.test.cjs && node tests/grocery-api.test.mjs && node tests/studio.test.mjs",
-    "test:browser": "node tests/startup.test.cjs",
+    "test:browser": "node tests/startup.test.cjs && node tests/kitchen-hub.test.cjs",
     "test:authenticated-startup": "node tests/authenticated-startup.test.cjs",
     "test:email": "node tests/email-recovery.test.mjs",
     "test:all": "npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup && npm run test:artwork:browser && npm run test:price-scout:browser",

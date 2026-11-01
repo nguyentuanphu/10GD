@@ -1,4 +1,5 @@
 import { cpSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 // Remove the retired shared-password module from earlier generated builds.
 for(const directory of ['.compiled/netlify/lib','netlify/lib'])for(const suffix of ['.mjs','.mjs.map'])rmSync(directory+'/session'+suffix,{force:true});
 // Inline the compiled login client so even an older authenticated service worker
@@ -25,4 +26,13 @@ const list = startup.match(/const scripts = (\[[^;]+\]);/);
 if (!list) throw new Error('Startup script order is missing');
 const names = [...list[1].matchAll(/'([^']+\.js)'/g)].map(match => match[1]);
 if (!names.length) throw new Error('Startup script list is empty');
-writeFileSync('dist/startup-scripts.json', JSON.stringify({version: 1, scripts: names.map(name => ({name, code: readFileSync('dist/' + name, 'utf8')}))}));
+const packScripts = names.map(name => ({name, code: readFileSync('dist/' + name, 'utf8')}));
+// The content hash lets the service worker answer from its cache when the loader
+// expects exactly this pack. `hash` stays the second key so the worker can read it
+// from the first bytes without parsing the whole pack.
+const hash = createHash('sha256').update(JSON.stringify(packScripts)).digest('hex').slice(0, 20);
+writeFileSync('dist/startup-scripts.json', JSON.stringify({version: 1, hash, scripts: packScripts}));
+const loader = readFileSync('dist/bootstrap.js', 'utf8');
+const packHashPattern = /const packHash = '[^']*'/;
+if (!packHashPattern.test(loader)) throw new Error('Startup loader hash placeholder is missing');
+writeFileSync('dist/bootstrap.js', loader.replace(packHashPattern, `const packHash = '${hash}'`));
