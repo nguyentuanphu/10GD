@@ -154,7 +154,10 @@ async function inject(section:any){
 let queued=false,reopen=false;
 function scan(){queued=false;const s=document.querySelector('.kitchen-hub #kitchen-family');if(s&&!s.querySelector('.scout-pair-card'))inject(s).catch(()=>{})}
 new MutationObserver(()=>{if(!queued){queued=true;requestAnimationFrame(scan)}}).observe(document.body,{childList:true,subtree:true});
-addEventListener('online',()=>{const c=document.querySelector('.scout-pair-card');if(c){paint(c);refresh().then(()=>c.isConnected&&paint(c))}});
+const reconnect=()=>{const c=document.querySelector('.scout-pair-card');if(c){paint(c);if(online())refresh().then(()=>c.isConnected&&paint(c))}};
+addEventListener('online',reconnect);
+// v1.7: the connectivity checker confirms online/offline after a health ping and announces it with this event.
+addEventListener('bep-connectivity',reconnect);
 addEventListener('offline',()=>{const c=document.querySelector('.scout-pair-card');if(c)paint(c)});
 // Reopened by the extension right after install (?scout-wait=1): open My kitchen → Family.
 try{if(new URL(location.href).searchParams.get('scout-wait')==='1'){reopen=true;let n=0;const t=setInterval(()=>{n++;const ready=session()?.household&&typeof kitchenModal==='function'&&!document.querySelector('#startup-progress')&&(document.querySelector('#main')?.textContent?.length||0)>200;
