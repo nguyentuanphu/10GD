@@ -25,6 +25,7 @@ t('mark bought VI/EN',()=>{for(const s of['đánh dấu đã mua trứng','đã 
 t('remove VI/EN (destructive)',()=>{for(const s of['xoá hành lá','bỏ hành lá ra khỏi danh sách','không cần mua hành lá nữa','remove spring onions from the list','take spring onions off the list',"we don't need spring onions anymore"]){const k=one(s,'remove');assert.equal(k.items[0].ingredient,'scallion',s);assert.equal(k.destructive,true)}
  assert.equal(cmds('bò hai ký').cards.length,0,'“bò” (beef) is not “bỏ” (remove)')});
 t('change planned meal VI/EN with date and meal',()=>{let k=one('tối thứ Ba đổi thành phở bò','meal');assert.equal(k.date,'2026-11-03');assert.equal(k.mealType,'dinner');assert.equal(k.dish,'phở bò');assert.ok(k.candidates.length);
+ k=one('tối thứ Ba đổi thành món ăn phở bò','meal');assert.equal(k.dish,'phở bò','“món ăn” is accepted like “món”');assert.ok(k.candidates.length);
  k=one('change Tuesday dinner to beef pho','meal');assert.equal(k.date,'2026-11-03');assert.equal(k.mealType,'dinner');assert.ok(k.candidates.length);
  k=one('trưa mai nấu canh chua cá thay','meal');assert.equal(k.date,'2026-11-03');assert.equal(k.mealType,'lunch');assert.equal(k.candidates[0],'own-soup');
  k=one('tối chủ nhật đổi sang món gì lạ chưa có','meal');assert.equal(k.date,'2026-11-08');assert.equal(k.needsRecipe,true,'unknown dish asks to pick or quick-create');

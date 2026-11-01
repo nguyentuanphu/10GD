@@ -87,8 +87,8 @@ async function main() {
       await page.locator('#offline-ready-body .offline-ready-list').waitFor();
       await page.waitForFunction(() => /Kho 740 món/.test((document.querySelector('#offline-ready-body') as HTMLElement)?.innerText || '') && !/…/.test((document.querySelector('#offline-ready-body') as HTMLElement)?.innerText || ''), null, { timeout: 15000 });
       const readyText = await page.locator('#offline-ready-body').innerText();
-      assert.match(readyText, /✓\s*Thực đơn tuần này/); assert.match(readyText, /✓\s*Hình món tuần này/); assert.match(readyText, /✗\s*Kho 740 món/);
-      assert.match(await page.locator('#network-status').getAttribute('title') || '', /Sẵn sàng offline: .*Kho món ✗/);
+      assert.match(readyText, /✓\s*Thực đơn tuần này/); assert.match(readyText, /✓\s*Hình món ăn tuần này/); assert.match(readyText, /✗\s*Kho 740 món/);
+      assert.match(await page.locator('#network-status').getAttribute('title') || '', /Sẵn sàng offline: .*Kho món ăn ✗/);
       await page.screenshot({ path: `${shots}/offline-status-375-vi-offline.png` });
       await context.setOffline(false);
       assert.deepEqual(errors, []);
