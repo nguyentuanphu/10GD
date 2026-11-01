@@ -552,3 +552,35 @@ html[data-theme="dark"] .unit-chip[aria-pressed="true"]{color:var(--accent-ink,#
 .qty .unit-qty{flex-wrap:wrap;justify-content:center;row-gap:2px}
 @media (prefers-reduced-motion:no-preference){.unit-chip{transition:background-color .15s ease,border-color .15s ease}}
 /* === v1.5 units end === */
+/* === v1.6 offline-downloads start === */
+/* Lists show per-cell thumbnails; detail views layer the full painted sheet on top of the cell. */
+.recipe-detail-hero .food-illustration.art-cell,.food-illustration.art-cell.art-hero{background-image:var(--art-full),var(--art-cell)!important;background-size:var(--art-full-size),cover!important;background-position:var(--art-full-pos),center!important;background-repeat:no-repeat!important}
+.art-cell{background-color:#f3efe3}
+html[data-theme="dark"] .art-cell{background-color:#24312a}
+.offline-downloads{display:grid;gap:10px}
+.offline-wifi{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--paper);cursor:pointer;min-height:44px;box-sizing:border-box}
+.offline-wifi input{width:22px;height:22px;margin:2px 0 0;flex-shrink:0;accent-color:var(--green)}
+.offline-wifi span{display:grid;gap:2px;min-width:0}
+.offline-pack-list,.offline-ready-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.offline-pack{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white);flex-wrap:wrap}
+.offline-pack-main{display:grid;gap:3px;min-width:0;flex:1 1 200px}
+.offline-pack-main b{font-size:14px;overflow-wrap:anywhere}
+.offline-pack-main small{color:var(--muted);font-size:12.5px;line-height:1.35;overflow-wrap:anywhere}
+.offline-pack[data-state=ready] .offline-pack-status,.offline-pack[data-state=builtin] .offline-pack-status{color:var(--green2);font-weight:600}
+.offline-pack-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.offline-pack-actions .btn{min-height:44px;min-width:72px}
+.offline-progress{height:6px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:3px}
+.offline-progress span{display:block;height:100%;background:var(--green2);border-radius:inherit}
+@media (prefers-reduced-motion:no-preference){.offline-progress span{transition:width .25s ease}}
+.offline-storage{margin:0}
+.offline-ready-item>span,.offline-ready-fix{display:flex;gap:8px;align-items:center;min-height:36px;font-size:14px}
+.offline-ready-item.ok span[aria-hidden]{color:var(--green2);font-weight:700}
+.offline-ready-item.missing span[aria-hidden]{color:var(--orange);font-weight:700}
+.offline-ready-fix{width:100%;min-height:44px;padding:6px 10px;border:1px dashed var(--orange);border-radius:10px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.offline-ready-fix small{color:var(--muted)}
+.offline-ready-fix:focus-visible,.offline-wifi:focus-within{outline:3px solid var(--green2);outline-offset:2px}
+.offline-note{padding:10px 12px;border-radius:10px;background:#fff6e5;color:#6b4a12;font-size:14px}
+html[data-theme="dark"] .offline-note{background:var(--warn-surface,#2e2717);color:var(--warn-ink,#f1d39a)}
+.network-status{position:relative}
+.network-status[data-offline-ready=partial]::after{content:"";position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 2px var(--white)}
+/* === v1.6 offline-downloads end === */

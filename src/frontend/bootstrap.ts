@@ -14,10 +14,12 @@ interface Window {
   BEP_SESSION?: SessionStatus;
   BEP_OFFLINE?: boolean;
   BEP_STARTUP?: { cachedIdentity: boolean; packHash: string; ready?: number };
+  // Optional async steps registered by earlier scripts, run before the named script ('@ready': after all).
+  BEP_SCRIPT_HOOKS?: Record<string, () => Promise<void> | void>;
 }
 (async (): Promise<void> => {
   const local = ['terminal.local', 'localhost', '127.0.0.1'].includes(location.hostname);
-  const scripts = ['storage-context.js','seed.js','recipe-catalog.js','core.js','spending-core.js','unit-registry.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','master-catalog.js','shopping-optimizer.js','app.js','dish-composition.js','artwork.js','unit-picker.js','family-features.js','shopping-planning.js','push-ui.js','simple-view.js','language.js','push-settings-ui.js','insights-ui.js','products-ui.js','price-scout-ui.js','family-menu-ui.js','household-ui.js','platform-banner.js','personal-ui.js'];
+  const scripts = ['storage-context.js','seed.js','recipe-catalog-core.js','core.js','spending-core.js','unit-registry.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','master-catalog.js','shopping-optimizer.js','app.js','dish-composition.js','artwork.js','unit-picker.js','family-features.js','shopping-planning.js','push-ui.js','simple-view.js','language.js','push-settings-ui.js','insights-ui.js','products-ui.js','price-scout-ui.js','family-menu-ui.js','household-ui.js','platform-banner.js','personal-ui.js','offline-downloads.js'];
   // Replaced by the build with the startup pack's content hash. The service worker
   // answers instantly from its cache when hashes match and refreshes in the background.
   const packHash: string = '__BEP_STARTUP_PACK_HASH__';
@@ -221,7 +223,13 @@ interface Window {
     }
     window.BEP_STARTUP={cachedIdentity,packHash};
     const entries = await packPromise;
+    const runHook = async (name: string): Promise<void> => {
+      const hook = window.BEP_SCRIPT_HOOKS?.[name];
+      if (hook) try { await hook(); } catch (error) { console.warn('Startup hook failed', name, error); }
+    };
     for (const entry of entries) {
+      if (failed) return;
+      await runHook(entry.name);
       if (failed) return;
       activeScript = entry.name;
       const script = document.createElement('script');
@@ -229,6 +237,7 @@ interface Window {
       document.body.append(script);
       if (failed) return;
     }
+    await runHook('@ready');
     document.querySelector('#startup-progress')?.remove();
     document.querySelector('main')?.removeAttribute('aria-busy');
     if (!document.querySelector('#main')?.textContent?.trim()) throw new Error('Ứng dụng chưa hiển thị nội dung. Hãy thử lại. / The app did not render; please retry.');

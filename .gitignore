@@ -26,3 +26,5 @@ dist/startup-scripts.json
 dist-extension/
 dist-extension-test/
 dist-extension.zip
+dist/vendor/
+dist/offline-packs.json
