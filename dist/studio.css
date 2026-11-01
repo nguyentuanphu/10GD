@@ -138,3 +138,8 @@ dialog::backdrop{background:#0008}
 @keyframes skel{from{opacity:.35}to{opacity:.7}}
 @media (prefers-reduced-motion:reduce){.skel>div,.skel-tiles>div{animation:none}}
 /* === v1.5 studio-speed end === */
+
+/* Price Scout off: dependent settings are greyed out but keep their values */
+.flags.is-off,.check.is-off{opacity:.45}
+.flags.is-off .row,.check.is-off{pointer-events:none}
+.scout-states-off{display:block;margin:.25rem 0 .5rem}

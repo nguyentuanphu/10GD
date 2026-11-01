@@ -10,7 +10,7 @@ function platformWrite(kind,key,value){try{platformStore(kind)?.setItem(key,valu
 function platformDismissed(){try{return JSON.parse(platformRead('local',PLATFORM_DISMISS_KEY)||'[]')}catch{return[]}}
 function platformAccountMode(){return typeof accountSession!=='undefined'&&!!accountSession||globalThis.BEP_SESSION?.mode==='account'}
 // Feature switches: a body class per feature that is turned off; CSS hides the matching entry point.
-function applyPlatformFlags(flags){const known={priceScout:'flag-off-priceScout',voice:'flag-off-voice',urgentMessages:'flag-off-urgentMessages'};for(const [flag,cls] of Object.entries(known))document.body.classList.toggle(cls,flags?.[flag]===false)}
+function applyPlatformFlags(flags){const known={priceScout:'flag-off-priceScout',voice:'flag-off-voice',urgentMessages:'flag-off-urgentMessages'};let changed=false;for(const [flag,cls] of Object.entries(known)){const off=flags?.[flag]===false;if(document.body.classList.contains(cls)!==off){document.body.classList.toggle(cls,off);changed=true}}if(changed&&typeof render==='function'&&!document.querySelector('.modal'))try{render()}catch{}}
 // Editions are whole numbers (APP_EDITION in core.ts). A non-numeric minimum is ignored rather than guessed.
 function platformNeedsUpdate(min){if(min==null||!/^\d+$/.test(String(min)))return false;return typeof APP_EDITION==='number'&&Number(min)>APP_EDITION}
 function platformNoticeItems(data){const items=[],dismissed=platformDismissed(),en=typeof appLanguage!=='undefined'&&appLanguage==='en';if(!data)return items;
