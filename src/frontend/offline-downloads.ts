@@ -80,7 +80,7 @@ function registerBuiltInOfflinePacks(){
 }
 let offlineManifestCache=null;
 // Voice placeholder until the on-device recognizer registers its own pack (same id).
-function offlineVoicePlaceholder(){return{id:'voice',large:true,placeholder:true,label:()=>otr('Giọng nói không cần mạng','Offline voice'),description:()=>otr('Sắp có: nhận dạng giọng nói ngay trên máy.','Coming soon: speech recognition on this device.'),sizeBytes:0,status:async()=>({state:'unavailable'})}}
+function offlineVoicePlaceholder(){return{id:'voice',large:true,placeholder:true,label:()=>otr('Giọng nói không cần mạng','Offline voice'),description:()=>otr('Nhận dạng giọng nói ngay trên máy, không cần mạng.','Speech recognition on this device, without a connection.'),sizeBytes:0,status:async()=>({state:'unavailable'})}}
 
 async function offlinePackStatus(p){try{const s=await p.status();offlineStatusCache.set(p.id,s);return s}catch{const s={state:'unknown'};offlineStatusCache.set(p.id,s);return s}}
 function offlineStatusText(p,s,job){
@@ -211,6 +211,7 @@ function offlineWithCatalog(name){
  wrapped.__withCatalog=true;globalThis[name]=wrapped;
 }
 for(const name of ['familyGeneratePreview','familyEditMeal','editMeal','setupShowPreview','familyRecipeEditor'])offlineWithCatalog(name);
+window.addEventListener('hashchange',()=>setTimeout(offlineCatalogForView,0));
 window.addEventListener('bep-catalog-ready',()=>{offlineStatusCache.delete('catalog');if($('.offline-pack-list'))offlineRefreshUi()});
 
 // ---- Self-hosted OCR (vendor/tesseract). Falls back to the public CDN only if the files are missing. ----
@@ -230,5 +231,10 @@ document.addEventListener('click',event=>{const link=event.target.closest?.('a[h
 
 registerBuiltInOfflinePacks();
 offlineManifest().then(m=>{offlineManifestCache=m;return Promise.all([offlineInitOcrStatus(),offlineComputeReadiness()])}).then(()=>offlineUpdateIndicator()).catch(()=>{});
+// A catalog fetched before the worker controlled the page (first visit) is stored for offline use once it does.
+async function offlineKeepLoadedCatalog(){try{if(typeof catalogLoaded!=='function'||!catalogLoaded()||!navigator.serviceWorker?.controller||!offlineOnline()||typeof catalogUrl!=='function')return;const cache=await caches.open(OFFLINE_CACHES.catalog);if(!(await cache.keys()).length)await fetch(catalogUrl(),{credentials:'same-origin'});offlineStatusCache.delete('catalog')}catch{}}
+navigator.serviceWorker?.addEventListener('controllerchange',()=>setTimeout(offlineKeepLoadedCatalog,1000));
+setTimeout(offlineKeepLoadedCatalog,5000);
 offlineSchedulePin();
+setTimeout(offlineCatalogForView,0);
 setTimeout(offlineResumeQueue,4000);

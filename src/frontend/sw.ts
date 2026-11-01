@@ -86,12 +86,17 @@ async function ocrResponse(event,request){
 self.addEventListener('install',event=>event.waitUntil((async()=>{
  const cache=await caches.open(CACHE);
  await Promise.allSettled(ASSETS.map(async path=>{for(let attempt=0;attempt<2;attempt++){try{if(path===PACK){await refreshPack(cache,60000);return}const response=await fetchWithDeadline(path,{},30000);if(response.ok&&!response.redirected){await cache.put(path,response);return}}catch{}}}));
- await self.skipWaiting();
+ // v1.6 updates: a new worker waits until the page tells it to take over (app-update.js decides when it is safe:
+ // never in the middle of an edit). It takes over at once on a first visit, when no window is controlled, or when
+ // the running worker predates this protocol (its pages cannot send SKIP_WAITING).
+ if(await takeOverNow())await self.skipWaiting();
 })()));
+const UPDATE_PROTOCOL='bep-update-protocol-v1';
+async function takeOverNow(){try{if(!self.registration?.active)return true;if(!(await caches.keys()).includes(UPDATE_PROTOCOL))return true;return(await self.clients.matchAll({type:'window',includeUncontrolled:true})).length===0}catch{return true}}
 // Older releases precached every artwork sheet. Keep those bytes as the detailed-artwork download instead of
 // fetching them again, then retire the old app cache.
 async function migrateOldArtwork(names){const sheets=await caches.open(PACK_SHEETS);for(const name of names){try{const old=await caches.open(name);for(const request of await old.keys()){const key=new URL(request.url).pathname;if(!/^\/artwork\/[a-z0-9/_-]+\.webp$/i.test(key)||key.startsWith('/artwork/cells/'))continue;if(!await sheets.match(key)){const response=await old.match(request);if(response)await sheets.put(key,response)}}}catch{}}}
-self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(async keys=>{const old=keys.filter(k=>k.startsWith('bep-family-')&&k!==CACHE&&k!==ACCESS_CACHE);await migrateOldArtwork(old);await Promise.all(old.map(k=>caches.delete(k)))}).then(()=>self.clients.claim())));
+self.addEventListener('activate',event=>event.waitUntil(caches.open(UPDATE_PROTOCOL).then(()=>caches.keys()).then(async keys=>{const old=keys.filter(k=>k.startsWith('bep-family-')&&k!==CACHE&&k!==ACCESS_CACHE);await migrateOldArtwork(old);await Promise.all(old.map(k=>caches.delete(k)))}).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
  const url=new URL(event.request.url);
  // API responses contain account/family data and never enter the public app cache.
@@ -130,6 +135,7 @@ self.addEventListener('fetch',event=>{
  })());
 });
 self.addEventListener('message',event=>{
+ if(event.data?.type==='SKIP_WAITING'){event.waitUntil(self.skipWaiting());return}
  if(event.data?.type==='CHECK_OFFLINE_READY')event.waitUntil((async()=>{const cache=await caches.open(CACHE),matches=await Promise.all(ASSETS.map(path=>cache.match(new URL(path,self.location.href).href)));let identityReady=true;if(event.data.householdId){try{const saved=await(await caches.open(ACCESS_CACHE)).match('/offline-access'),access=saved&&await verifyOfflineAccess(await saved.json());identityReady=access?.household?.id===event.data.householdId}catch{identityReady=false}}event.source?.postMessage({type:'OFFLINE_READY',ready:matches.every(Boolean)&&identityReady})})());
  // The page lists the artwork cells of this week's menu and the family's own recipes; keep exactly those offline.
  if(event.data?.type==='PRECACHE_ART'&&Array.isArray(event.data.paths))event.waitUntil(pinArt(event.data.paths).then(result=>event.source?.postMessage({type:'ART_PINNED',...result})).catch(()=>{}));

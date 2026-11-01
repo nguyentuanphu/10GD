@@ -94,7 +94,11 @@ writeFileSync('dist/startup-scripts.json', JSON.stringify({version: 1, hash, scr
 const loader = readFileSync('dist/bootstrap.js', 'utf8');
 const packHashPattern = /const packHash = '[^']*'/;
 if (!packHashPattern.test(loader)) throw new Error('Startup loader hash placeholder is missing');
-writeFileSync('dist/bootstrap.js', loader.replace(packHashPattern, `const packHash = '${hash}'`));
+// Sortable build id: UTC build time + pack hash. Studio can require every device to run at least this build.
+const buildId = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z') + '-' + hash.slice(0, 8);
+if (!loader.includes("'__BEP_BUILD_ID__'")) throw new Error('Startup loader build id placeholder is missing');
+writeFileSync('dist/bootstrap.js', loader.replace(packHashPattern, `const packHash = '${hash}'`).replace("'__BEP_BUILD_ID__'", `'${buildId}'`));
+writeFileSync('dist/build.json', JSON.stringify({build: buildId, pack: hash}));
 
 // The service worker keeps only the current catalog download (older versions are replaced on update).
 const worker=readFileSync('dist/sw.js','utf8');

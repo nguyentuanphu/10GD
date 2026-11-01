@@ -25,7 +25,7 @@ function ensureCatalog({timeout=30000}={}){
  catalogPromise=(async()=>{
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
   let code='';
-  try{const res=await fetch(catalogUrl(),{credentials:'same-origin',signal:controller.signal});if(!res.ok)throw Error('catalog '+res.status);code=await res.text()}finally{clearTimeout(timer)}
+  try{const res=await fetch(catalogUrl(),{credentials:'same-origin',signal:controller.signal});if(!res.ok){if(res.status===404)try{globalThis.bepModuleGone?.('catalog')}catch{}throw Error('catalog '+res.status)}code=await res.text()}finally{clearTimeout(timer)}
   if(catalogLoaded())return true;
   const script=document.createElement('script');
   script.textContent=code+'\n//# sourceURL='+new URL(BEP_CATALOG_PATH,location.href).href;

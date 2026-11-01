@@ -28,7 +28,12 @@ export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=(
   const url=new URL(request.url),op=url.searchParams.get('op')||'',method=request.method,now=nowFn(),isRead=['GET','HEAD'].includes(method);
   try{
    // Public, cacheable banner/maintenance info for the app. No auth, no personal data.
-   if(op==='banner'&&isRead){const s=await platformSettings(getStoreFn,{env,now});return json({banner:activeBanner(s.values,now),maintenance:s.values.maintenanceMessage||null,minAppEdition:s.values.minAppEdition||null,signups:s.values.signups,flags:s.values.flags},200,{'Cache-Control':'public, max-age=60'})}
+   // v1.6 app update outcomes from devices (public, no personal data): fixed event names and enumerated fields only.
+   if(op==='client-event'&&method==='POST'){const origin=request.headers.get('origin');if(origin&&origin!==url.origin)return json({error:'origin'},403);let b:any={};try{b=JSON.parse((await request.text()).slice(0,2000))}catch{}
+    const type=({'update.started':'update_started','update.result':'update_result'} as any)[String(b?.type)];if(!type)return json({error:'type'},400);
+    const pick=(v:any,list:string[])=>list.includes(String(v))?String(v):'other';
+    await recordEvent(getStoreFn,type,{outcome:pick(b.outcome,['none','success','failed','timeout','blocked','reload']),reason:pick(b.reason,['none','new-worker','forced','pack-mismatch','module-gone','invalid','no-worker','offline','busy','controller']),build:/^\d{8}T\d{6}Z-[a-f0-9]{6,20}$/.test(String(b.build))?String(b.build):null},now);return json({ok:true})}
+   if(op==='banner'&&isRead){const s=await platformSettings(getStoreFn,{env,now});return json({banner:activeBanner(s.values,now),maintenance:s.values.maintenanceMessage||null,minAppEdition:s.values.minAppEdition||null,updateNotice:s.values.updateNotice!==false,minBuild:s.values.minBuild||null,signups:s.values.signups,flags:s.values.flags},200,{'Cache-Control':'public, max-age=60'})}
    const roles=studioRoles(env);if(!roles.enabled)return json({error:HOW_TO.vi,errorEn:HOW_TO.en,disabled:true},403);
    if(!isRead&&request.headers.get('origin')!==url.origin)return json({error:'Yêu cầu phải từ cùng trang.',errorEn:'Same-origin request required.'},403);
    const ctx=await resolveAccount(request,getStoreFn,now);if(!ctx)return json({error:'Cần đăng nhập tài khoản.',errorEn:'Sign in to your account first.',login:'/login'},401);
@@ -131,7 +136,7 @@ export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=(
    if(op==='messages'&&isRead){const o=await overview(getStoreFn,{now}),{families}=await collectAccounts(getStoreFn,now),names=new Map(families.map(f=>[f.id,f.name])),days=Array.from({length:14},(_,i)=>dayKey(now-(13-i)*DAY));const rows=Object.entries(o.perFamily||{}).map(([id,p]:any)=>{const per=days.map(d=>(p.alertRows||[]).filter((a:any)=>a.day===d).length);return{id,name:names.get(id)||'—',total:(p.alertRows||[]).length,failed:(p.alertRows||[]).filter((a:any)=>a.pushStatus==='not_sent').length,days:per}}).filter(r=>r.total).sort((a,b)=>b.total-a.total);return json({days,rows,computedAt:o.computedAt})}
 
    if(op==='settings'&&isRead){const s=await platformSettings(getStoreFn,{env,fresh:true,now});return json({values:s.values,sources:s.sources,updatedAt:s.stored.updatedAt||null})}
-   if(op==='settings-save'&&method==='POST'){const patch=validateSettingsPatch(body.patch||{});delete patch.banner;await saveSettings(getStoreFn,patch);await audit('save_settings',null,{details:{keys:Object.keys(patch),...(patch.rewards?{rewards:patch.rewards}:{})}});const s=await platformSettings(getStoreFn,{env,fresh:true,now});return json({values:s.values,sources:s.sources})}
+   if(op==='settings-save'&&method==='POST'){const patch=validateSettingsPatch(body.patch||{});delete patch.banner;if(patch.minBuild!==undefined||patch.updateNotice!==undefined)ownerOnly();await saveSettings(getStoreFn,patch);await audit('save_settings',null,{details:{keys:Object.keys(patch),...(patch.rewards?{rewards:patch.rewards}:{})}});const s=await platformSettings(getStoreFn,{env,fresh:true,now});return json({values:s.values,sources:s.sources})}
    if(op==='banner-save'&&method==='POST'){const patch=validateSettingsPatch({banner:body.banner??null});await saveSettings(getStoreFn,patch);await audit(patch.banner?'save_banner':'clear_banner',null,{details:patch.banner?{severity:patch.banner.severity,audience:patch.banner.audience,start:patch.banner.start,end:patch.banner.end}:null});return json({banner:patch.banner})}
 
    if(op==='health'&&isRead){

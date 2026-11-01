@@ -28,3 +28,4 @@ dist-extension-test/
 dist-extension.zip
 dist/vendor/
 dist/offline-packs.json
+dist/build.json
