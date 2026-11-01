@@ -41,7 +41,9 @@ async function run(){
  while(true){
   const stopWhy=await stopRequested();if(stopWhy)return finish(stopWhy,win.id);
   if(state.pages>=caps.pagesPerRun)return finish('cap-run',win.id);
-  while(await userInThisWindow(win.id)){show(T('Đang chờ — bạn đang dùng cửa sổ này.','Waiting — you are using this window.'));await sleep(SC.BUILD.test?500:30000);const w=await stopRequested();if(w)return finish(w,win.id)}
+  // An explicit Run now was asked for by a person, so it does not wait for them to leave the window
+  // (a just-opened window is often reported as focused and the run would never progress).
+  while(!state.explicit&&await userInThisWindow(win.id)){show(T('Đang chờ — bạn đang dùng cửa sổ này.','Waiting — you are using this window.'));await sleep(SC.BUILD.test?500:30000);const w=await stopRequested();if(w)return finish(w,win.id)}
   if(!state.queue.length){let r:any;try{r=await SC.api('tasks',{runId:state.runId,autoEnabled:true,max:5,startedAt:state.started})}catch(e:any){return finish(e.code||'server-error',win.id)}
    if(r.code)return finish(r.code,win.id);if(!r.tasks?.length)return finish(r.stop||'no-tasks',win.id);
    for(const t of r.tasks){state.queue.push(t);state.leased.add(t.taskId)}state.pacing=r.pacing;await heartbeatRun({pace:r.pacing?.preset||null})}
