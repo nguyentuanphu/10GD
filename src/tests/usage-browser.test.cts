@@ -51,7 +51,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
 
  // ---------- 1. active-minute counting (deterministic clock inside the page) ----------
  {const {context,page,errors}=await openApp();
-  const r=await page.evaluate(()=>{const g:any=globalThis,t0=Date.now()+1000;g.usageClear();let hidden=false;Object.defineProperty(document,'visibilityState',{configurable:true,get:()=>hidden?'hidden':'visible'});
+  const r=await page.evaluate(()=>{const g:any=globalThis,noon=new Date();noon.setHours(12,0,0,0);const t0=noon.getTime();/* local noon: the 31-min session gap must not cross local midnight (CI failed when run at 23:31 UTC) */g.usageClear();let hidden=false;Object.defineProperty(document,'visibilityState',{configurable:true,get:()=>hidden?'hidden':'visible'});
    const res:any={};g.usageLastTick=0;g.usageInteract(t0);res.a=g.usageTick(t0+15000);           // visible + recent interaction: 15 s
    hidden=true;res.b=g.usageTick(t0+30000);                                                      // hidden tab: 0
    hidden=false;g.usageLastTick=t0+30000;res.c=g.usageTick(t0+45000);                             // visible, last interaction 45 s ago: 15 s
