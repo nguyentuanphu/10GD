@@ -17,7 +17,7 @@ const RETAILERS={
 const RETAILER_IDS=Object.keys(RETAILERS);
 const CATEGORIES=['fresh','meat','seafood','pantry','dairy','frozen','bakery','household','personal'];
 const SAFETY=['ambient','chilled','frozen','raw-meat','household'];
-const SOURCES=['screenshot','bookmark','receipt','catalogue','manual','official'];
+const SOURCES=['screenshot','bookmark','receipt','catalogue','manual','official','voice'];
 const PROMOS=['half-price','special','special-buy','price-drop','multibuy','deal','clearance'];
 const BASIS={per_kg:{dim:'mass',per:1000},per_100g:{dim:'mass',per:100},per_L:{dim:'vol',per:1000},per_100mL:{dim:'vol',per:100},per_each:{dim:'each',per:1},per_wash:{dim:'wash',per:1},per_roll:{dim:'roll',per:1},per_sheet:{dim:'sheet',per:1}};
 const UNITS={g:['mass',1],gram:['mass',1],grams:['mass',1],kg:['mass',1000],kilo:['mass',1000],ml:['vol',1],l:['vol',1000],litre:['vol',1000],liter:['vol',1000],litres:['vol',1000],each:['each',1],ea:['each',1],'quả':['each',1],qua:['each',1],pc:['each',1],pcs:['each',1],bunch:['each',1],wash:['wash',1],washes:['wash',1],roll:['roll',1],rolls:['roll',1],sheet:['sheet',1],sheets:['sheet',1]};
@@ -357,7 +357,7 @@ function routeOrder(stops){
 
 // ---------- Provenance (ready for a future, moderated community phase) ----------
 // visibility: 'family' (only value accepted today); 'community' is reserved.
-const VISIBILITY=['family','community'],EVIDENCE=['shelf-photo','receipt','screenshot','bookmark','manual'],CONFIDENCE=['low','medium','high'];
+const VISIBILITY=['family','community'],EVIDENCE=['shelf-photo','receipt','screenshot','bookmark','manual','manual-voice'],CONFIDENCE=['low','medium','high'];
 function evidenceType(source){return source==='receipt'?'receipt':source==='screenshot'?'screenshot':source==='bookmark'?'bookmark':'manual'}
 // manual/catalogue = low; screenshot/bookmark/shelf-photo whose OCR price matched = medium; receipt/official = high.
 function computeConfidence(source,evidence){if(source==='receipt'||source==='official'||evidence?.type==='receipt')return'high';if(['screenshot','bookmark','shelf-photo'].includes(evidence?.type||source)&&evidence?.ocrMatches===true)return'medium';return'low'}
