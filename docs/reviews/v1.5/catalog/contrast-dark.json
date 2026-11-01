@@ -1,0 +1,22 @@
+{
+ "theme": "dark",
+ "sizes": [
+  "1280x800",
+  "375x812"
+ ],
+ "views": 36,
+ "failures": 2,
+ "selectors": 1,
+ "summary": [
+  {
+   "sel": ".toolbar > button.btn.small",
+   "n": 2,
+   "min": 4.5,
+   "where": "recipes-samples",
+   "fg": "127,137,131",
+   "bg": "24,34,29",
+   "text": "← Trang trước"
+  }
+ ],
+ "errors": {}
+}

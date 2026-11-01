@@ -13717,13 +13717,21 @@ const PLANT_RECIPES=[
 ];
 RECIPES.push(...PLANT_RECIPES);
 
-const PLANT_VERIFIED_INGREDIENT_IDS=new Set(Object.keys(INGREDIENTS));
+// Diet labels are computed from ingredients for every recipe (reference and family). Only ingredients on this explicit
+// allowlist count as plant-based; anything not listed (including family-added ingredients) leaves the dish unlabelled.
+const PLANT_VERIFIED_INGREDIENT_IDS=new Set(['tofu','rice','noodle','spinach','waterSpinach','cabbage','bokchoy','broccoli','carrot','potato','pumpkin','gourd','tomato','cucumber','mushroom','onion','scallion','garlic','ginger','lemongrass','pineapple','okra','bean','soy','oil','sugar','salt','pepper','coconut','riceNoodle','vermicelli','udon','corn','peas','seaweed','starch','lime','herbs','cookedRice','huTieu','banhCanh','vegBroth','spaghetti','penne','arborio','flour','oats','quinoa','brownRice','chickpea','lentil','kidneyBean','whiteBean','basil','oregano','lemon','lettuce','zucchini','eggplant','bellPepper','asparagus','avocado','olive','sesame','tahini','peanut','almond','walnut','pumpkinSeed','sunflowerSeed','chia','flax','bulgur','couscous','apple','orange','raisin','mustard','vinegar']);
 const NON_VEGETARIAN_INGREDIENT_IDS=new Set(['pork','ribs','chicken','beef','salmon','fish','shrimp','fishSauce','broth','wonton','fishBall','cookedChicken','tuna']);
-const DAIRY_EGG_INGREDIENT_IDS=new Set(['egg','milk','yogurt','cream','butter','parmesan','mozzarella','feta']);
+// Vegetarian but not vegan.
+const DAIRY_EGG_INGREDIENT_IDS=new Set(['egg','eggNoodle','milk','yogurt','cream','butter']);
+// Often contain animal ingredients depending on the brand (dashi/fish in miso, animal rennet in cheese, milk/egg in
+// bread or fresh pasta): never vegan, and vegetarian only after the family checks the label.
+const DIET_CHECK_INGREDIENT_IDS=new Set(['miso','parmesan','mozzarella','feta','bread','wholeBread','pasta','lasagne']);
+function recipeDiet(r){const ids=(r?.ingredients||[]).map(i=>i.id);if(!ids.length)return null;if(ids.some(id=>NON_VEGETARIAN_INGREDIENT_IDS.has(id)))return 'meat';if(ids.some(id=>!PLANT_VERIFIED_INGREDIENT_IDS.has(id)&&!DAIRY_EGG_INGREDIENT_IDS.has(id)&&!DIET_CHECK_INGREDIENT_IDS.has(id)))return 'unknown';if(ids.some(id=>DIET_CHECK_INGREDIENT_IDS.has(id)))return 'check';return ids.some(id=>DAIRY_EGG_INGREDIENT_IDS.has(id))?'vegetarian':'vegan'}
 function isDressingRecipe(r){return r?.recipeKind==='dressing'}
-function isVegetarianRecipe(r){return ['vegetarian','vegan'].includes(r?.diet)&&r.ingredients?.length>0&&r.ingredients.every(i=>PLANT_VERIFIED_INGREDIENT_IDS.has(i.id)&&!NON_VEGETARIAN_INGREDIENT_IDS.has(i.id))}
-function isVeganRecipe(r){return r?.diet==='vegan'&&isVegetarianRecipe(r)&&r.ingredients.every(i=>!DAIRY_EGG_INGREDIENT_IDS.has(i.id))}
-function isSeedSaladRecipe(r){return r?.recipeKind==='seed-salad'&&isVegetarianRecipe(r)}
+function isVegetarianRecipe(r){const d=recipeDiet(r);return d==='vegetarian'||d==='vegan'}
+function isVeganRecipe(r){return recipeDiet(r)==='vegan'}
+function recipeNeedsDietCheck(r){return recipeDiet(r)==='check'}
+function isSeedSaladRecipe(r){return r?.recipeKind==='seed-salad'}
 function recipeCategoryLabel(r){const en=typeof appLanguage!=='undefined'&&appLanguage==='en';return isDressingRecipe(r)?(en?'Salad dressing':'Sốt dressing'):isSeedSaladRecipe(r)?(en?'Seed & grain salad':'Salad hạt & ngũ cốc'):CATEGORY[r.category]}
 
 function recipePortionLabel(r,n){const en=typeof appLanguage!=='undefined'&&appLanguage==='en';return n+' '+(isDressingRecipe(r)?(en?'salad dressing portions':'phần sốt salad'):(en?'standard portions':'suất chuẩn'))}
