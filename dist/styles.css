@@ -992,3 +992,6 @@ html[data-theme="dark"] .scout-found-banner{background:#163326;border-color:#2f5
 .scout-pair-highlight{outline:3px solid var(--green,#1f7a4d);outline-offset:3px}
 @media (prefers-reduced-motion:no-preference){.scout-pair-highlight{transition:outline-color .6s}}
 /* === v1.7.1 price-check pairing end === */
+/* === v1.7.1 urgent-reasons start === */
+.urgent-message .urgent-fix{display:block;margin-top:4px;padding-left:8px;border-left:3px solid var(--accent,#b8643a);overflow-wrap:anywhere}
+/* === v1.7.1 urgent-reasons end === */
