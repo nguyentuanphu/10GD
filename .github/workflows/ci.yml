@@ -55,8 +55,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Every step gets Chromium: suites decide for themselves whether they need a browser
+      # (e.g. test:scout parses fixtures in a real page), and a name filter silently misses them.
       - name: Install Chromium for Playwright
-        if: contains(matrix.step, 'browser') || contains(matrix.step, 'startup')
         run: npx playwright install --with-deps chromium
 
       - name: Resolve the synthetic test host
@@ -69,7 +70,7 @@ jobs:
         run: ${{ matrix.step }}
 
       - name: Upload review screenshots
-        if: always() && (contains(matrix.step, 'browser') || contains(matrix.step, 'startup'))
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: screenshots-${{ strategy.job-index }}
