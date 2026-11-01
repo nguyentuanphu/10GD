@@ -750,3 +750,7 @@ html[data-theme="dark"] .offline-note{background:var(--warn-surface,#2e2717);col
 .app-update-card .app-update-go{min-height:48px;width:100%}
 @media (prefers-reduced-motion:no-preference){.app-update-notice{animation:app-update-in .25s ease-out}@keyframes app-update-in{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}}
 /* === v1.6 app-update end === */
+/* === v1.6 price-scout-off start === */
+/* Studio turned Price Scout off: hide every Price Scout surface, including list badges, the Amazon tray and voice price buttons. */
+body.flag-off-priceScout :is(.price-scout,.scout-tray,.scout-tray-sheet,.scout-viet-badge,.scout-badges,[data-scout],[data-voice-price]){display:none!important}
+/* === v1.6 price-scout-off end === */
