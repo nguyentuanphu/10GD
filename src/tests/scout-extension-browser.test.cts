@@ -415,11 +415,16 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    await o.click('#pace [data-pace="slow"]');await until(async()=>(await scoutLib.getDevice(getStoreFn,devId)).clientPacing?.minMs===30000,5000,'slow saved');await o.locator('#pace [data-pace="slow"][aria-pressed="true"]').waitFor();
    await o.locator('#pace [data-pace="veryfast"]').click({force:true,timeout:2000}).catch(()=>{});await o.waitForTimeout(400);assert.equal((await scoutLib.getDevice(getStoreFn,devId)).clientPacing.minMs,30000,'a disabled pace cannot be chosen');
    await o.click('#pace button.link[data-pace=""]');await until(async()=>!(await scoutLib.getDevice(getStoreFn,devId)).clientPacing,5000,'back to Studio’s pace');
+   // The options page writes the returned device view to storage only AFTER the server has answered (then shows its
+   // message), so wait for that message before planting views below; otherwise its late write can replace a planted view.
+   await o.locator('[data-msg]',{hasText:'Nhịp theo Studio.'}).waitFor();
    // 7. Update banner (newer version announced by the server) — guided steps; store link when listed.
+   // The UI checks below plant device views in storage; pause the minute alarms so a heartbeat cannot replace them
+   // mid-check, and let a heartbeat already in flight finish first (v1.7.2 integration: intermittent timeout waiting
+   // for #update[data-update="manual"] when a late heartbeat wrote the server's current view over the planted one).
+   await sw.evaluate(async()=>{const g:any=globalThis;g.chrome.alarms.clearAll();try{await g.beating}catch{}});
    const view=(await storage(['device'])).device;assert.equal(view.update.latest,SC_VERSION,'server announces this build');assert.equal(view.update.outdated,false);
    {const live=scoutLib.liveStatus(await scoutLib.getDevice(getStoreFn,devId),await scoutLib.networkSettings(getStoreFn,env),Date.now());assert.equal(live.outdated,false);assert.equal(live.latestVersion,SC_VERSION)}
-   // The UI checks below plant device views in storage; pause the minute alarms so a heartbeat cannot replace them mid-check.
-   await sw.evaluate(()=>(globalThis as any).chrome.alarms.clearAll());
    const newer={...view,update:{...view.update,latest:'9.9.9'}};
    await setStorage({device:newer});await o.reload();const up=o.locator('#update[data-update="manual"]');await up.waitFor();
    assert.match(await up.locator('h2').innerText(),/^🆕 Có bản mới 9\.9\.9 · Cập nhật \(1 phút\)$/);assert.equal(await up.locator('[data-upd-zip]').getAttribute('href'),APP+'/downloads/famtray-scout.zip');

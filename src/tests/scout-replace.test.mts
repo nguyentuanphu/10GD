@@ -61,7 +61,9 @@ const tl=await J(await call('studio-device-timeline&deviceId='+B,{cookie:henry})
 
 // 2. Declining keeps both; pair with replace:'all' does it in one step.
 clock+=3600000;
-const third=await pair('alice','Chrome · máy tính');assert.deepEqual(third.data.replaceCandidates.map((c:any)=>c.id),[B]);
+// The re-paired extension has its store chosen again (v1.7.2 readiness: Run now refuses a device without a store,
+// code no-stores), so the dedupe below is what keeps the stale old pairing out — not a missing store.
+const third=await pair('alice','Chrome · máy tính',{stores:{woolworths:'Hurstville'}});assert.deepEqual(third.data.replaceCandidates.map((c:any)=>c.id),[B]);
 assert.equal((await dev('heartbeat',tokB,{version:'1.7.0'})).status,200,'declined: old still works');
 assert.equal((await dev('heartbeat',third.data.token,{version:'1.7.0'})).status,200,'declined: new works');
 const C=third.data.device.id;
@@ -74,7 +76,10 @@ ov=(await J(await call('studio-overview',{cookie:henry}))).data;row=ov.devices.f
 assert.deepEqual([...staleDuplicates(await listDevices(getStoreFn),clock).keys()],[B]);
 // 4. Run now on all: the stale old pairing of the same computer is not run.
 await saveNetwork(getStoreFn,{autoScout:'on'},'henrynguyen',clock);await editDevice(getStoreFn,C,(d:any)=>({...d,autoAllowed:true}));await editDevice(getStoreFn,B,(d:any)=>({...d,autoAllowed:true}));
-const run=await studioPost('studio-run-now',{all:true});assert.equal(run.status,200);assert.ok(run.data.devices.includes(C));assert.ok(!run.data.devices.includes(B),'old pairing skipped');
+const run=await studioPost('studio-run-now',{all:true});assert.equal(run.status,200);assert.ok(run.data.devices.includes(C));assert.ok(!run.data.devices.includes(B),'old pairing skipped');assert.deepEqual(run.data.noStores,[]);
+// A live device without a store is refused rather than run (KK no-stores rule), and named in the answer.
+await editDevice(getStoreFn,C,(d:any)=>({...d,stores:{}}));const none=await studioPost('studio-run-now',{all:true});assert.equal(none.status,409);assert.equal(none.data.code,'no-stores');assert.deepEqual(none.data.noStores,[C]);
+await editDevice(getStoreFn,C,(d:any)=>({...d,stores:{woolworths:'Hurstville'}}));
 // 5. Studio "Merge into the newer one" (owner, audited) cleans up an existing duplicate.
 const m=await studioPost('studio-device',{deviceId:B,action:'merge-into',targetId:C});assert.equal(m.status,200);assert.equal(m.data.replaced,B);
 assert.equal((await dev('heartbeat',tokB,{version:'1.7.0'})).status,401);const c=await getDevice(getStoreFn,C);assert.deepEqual(c.replaces.sort(),[A,B].sort());assert.equal(c.name,'Máy tính phòng khách');
