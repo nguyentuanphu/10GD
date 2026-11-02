@@ -15,7 +15,7 @@ let T=(vi:string,en:string)=>vi;
 const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 const state:any={runId:'run-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),pages:0,prices:0,skipped:0,errors:0,blocked:null,stop:null,queue:[],leased:new Set<string>(),started:Date.now(),pacing:null};
 function show(line:string){$('#status').textContent=line;$('#count').textContent=T(`${state.pages} trang · ${state.prices} giá`,`${state.pages} pages · ${state.prices} prices`)}
-async function stopRequested(){const st=await SC.get(['paused','autoEnabled','stopRun']);if(st.paused)return 'paused';if(st.autoEnabled!==true)return 'switched-off';if(st.stopRun&&st.stopRun>state.started)return 'stopped';return null}
+async function stopRequested(){const st=await SC.get(['paused','autoEnabled','stopRun']);if(st.paused)return 'paused';if(st.autoEnabled!==true&&!state.local)return 'switched-off';if(st.stopRun&&st.stopRun>state.started)return 'stopped';return null}
 async function batteryBlock(){try{const b:any=await (navigator as any).getBattery?.();if(b){await SC.set({battery:{charging:b.charging===true,level:b.level,at:Date.now()}});if(b.charging===false&&b.dischargingTime!==Infinity)return true}}catch{}return false}
 async function userInThisWindow(winId:number){try{const idle=await chrome.idle.queryState(60);if(idle!=='active')return false;const w=await chrome.windows.getLastFocused();return w?.id===winId&&w.focused}catch{return false}}
 function waitComplete(tabId:number,ms=45000){return new Promise<boolean>(resolve=>{let done=false;const fin=(ok:boolean)=>{if(done)return;done=true;chrome.tabs.onUpdated.removeListener(on);clearTimeout(t);resolve(ok)};const on=(id:number,info:any)=>{if(id===tabId&&info.status==='complete')fin(true)};const t=setTimeout(()=>fin(false),ms);chrome.tabs.onUpdated.addListener(on)})}
@@ -33,7 +33,7 @@ const paceFor=(retailer:string)=>state.pacing?.byRetailer?.[retailer]||state.pac
 async function run(){
  const lang=await SC.lang();T=(vi,en)=>lang==='en'?en:vi;document.documentElement.lang=lang;$('#title').textContent=T('So Giá tự động đang chạy','Automatic price check running');
  $('#note').textContent=T('Cửa sổ này do FamTray So Giá mở. Bạn có thể đóng hoặc bấm Tạm dừng bất cứ lúc nào.','FamTray Price Check opened this window. You can close it or press Pause at any time.');
- const win=await chrome.windows.getCurrent(),st=await SC.get(['device','testPacing','run']);state.explicit=!!st.run?.explicit;if(st.run?.startedAt)state.started=st.run.startedAt;
+ const win=await chrome.windows.getCurrent(),st=await SC.get(['device','testPacing','run']);state.explicit=!!st.run?.explicit;state.local=!!st.run?.local;if(st.run?.startedAt)state.started=st.run.startedAt;
  const work=await chrome.tabs.create({windowId:win.id,url:'about:blank',active:false});await heartbeatRun({windowId:win.id,workTabId:work.id});
  $('#pause').onclick=async()=>{await SC.set({paused:true})};
  if(await batteryBlock())return finish('on-battery',win.id);

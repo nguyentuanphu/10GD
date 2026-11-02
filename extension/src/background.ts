@@ -24,7 +24,7 @@ function heartbeat(){beating=beating||beat().finally(()=>{beating=null});return 
 async function beat(){const st=await SC.get(['token','autoEnabled','semiEnabled','warnings','run','lastRun','blockedEvents','paused','battery','lastWhy']);if(!st.token)return null;
  let chromeOpen=true,idle:any=null;try{chromeOpen=(await chrome.windows.getAll({windowTypes:['normal']})).length>0}catch{}try{idle=await chrome.idle.queryState(60)}catch{}
  const b=(st.blockedEvents||[])[0],lr=st.lastRun;
- try{const view=await SC.api('heartbeat',{version:SC.BUILD.version,configVersion:(await SC.get(['config'])).config?.version||SC.BUILD.configVersion||null,autoEnabled:st.autoEnabled===true,semiEnabled:st.semiEnabled!==false,running:!!st.run,signedIn:st.warnings.signedIn,storesSeen:st.warnings.storesSeen,storeMismatch:st.warnings.storeMismatch,
+ try{const view=await SC.api('heartbeat',{version:SC.version(),configVersion:(await SC.get(['config'])).config?.version||SC.BUILD.configVersion||null,autoEnabled:st.autoEnabled===true,semiEnabled:st.semiEnabled!==false,running:!!st.run,signedIn:st.warnings.signedIn,storesSeen:st.warnings.storesSeen,storeMismatch:st.warnings.storeMismatch,
    chromeOpen,idle,paused:st.paused===true,why:st.run?null:st.lastWhy||null,battery:st.battery||null,run:st.run?{pages:st.run.pages||0,prices:st.run.prices||0,startedAt:st.run.startedAt}:null,
    lastRun:lr?{at:lr.at,pages:lr.pages,prices:lr.prices,skipped:lr.skipped,errors:lr.errors||0,stop:lr.stop}:null,lastError:b?{at:b.at,retailer:b.retailer,kind:b.kind}:null});
   const {commands,...dev}=view;await SC.set({device:dev,deviceAt:Date.now()});if(dev.configVersion)SC.refreshConfig();
@@ -66,8 +66,13 @@ async function flushSemi(){const st=await SC.get(['pendingSemi','token']);if(!st
 // Run now (v1.7): an explicit, server-granted run skips ONLY the schedule window and the
 // "user is active" wait. Kill switches, pauses, caps, pacing, robots.txt, challenge stop,
 // battery and Chrome-open checks are unchanged (and enforced again by the server).
-async function canStart({explicit=false}:any={}){
- const st=await SC.get(['token','autoEnabled','paused','run','device']);if(!st.token||st.autoEnabled!==true||st.paused)return 'local-off';
+// v1.7.2: a person pressing Run now ON THIS COMPUTER (popup/Settings, `local`) is that person's consent,
+// so it works once steps ①–④ are done (paired, Studio on + allowed, computer prepared) even while
+// the local Auto switch (⑤, consent for scheduled and Studio-started runs) is off. Studio commands
+// and the schedule still need ⑤.
+async function canStart({explicit=false,local=false}:any={}){
+ const st=await SC.get(['token','autoEnabled','paused','run','device','onboarding']);const ob=st.onboarding||{},prepared=!!(ob.profile&&ob.rewards&&ob.store);
+ if(!st.token||st.paused)return 'local-off';if(st.autoEnabled!==true&&!(explicit&&local&&prepared))return 'local-off';
  if(st.run&&Date.now()-st.run.heartbeatAt<5*60000)return 'running';
  const view=(explicit?null:await heartbeat())||(await SC.get(['device'])).device||st.device;if(!view)return 'offline';
  if(view.network?.autoScout!=='on')return 'auto-off';if(view.network?.paused)return 'paused-global';if(!view.autoAllowed)return 'device-not-allowed';if(view.paused)return 'paused-device';
@@ -78,16 +83,16 @@ async function canStart({explicit=false}:any={}){
  return null}
 async function startRun(opts:any={}){const why=await canStart(opts);if(why!=='running')await SC.set({lastWhy:why||null});if(why)return why;
  const win=await chrome.windows.create({url:chrome.runtime.getURL('runner.html'),focused:false,type:'normal',width:900,height:700});
- await SC.set({run:{windowId:win.id,startedAt:Date.now(),heartbeatAt:Date.now(),workTabId:null,explicit:!!opts.explicit}});heartbeat();return null}
+ await SC.set({run:{windowId:win.id,startedAt:Date.now(),heartbeatAt:Date.now(),workTabId:null,explicit:!!opts.explicit,local:!!(opts.explicit&&opts.local)}});heartbeat();return null}
 // Popup "Run now": ask the server for a one-run grant (only works when allowed), then start.
-async function requestRunNow(){try{const view=await SC.api('run-now',{});await SC.set({device:view});return await startRun({explicit:true})}catch(e:any){return e.code||'refused'}}
+async function requestRunNow(local=false){try{const view=await SC.api('run-now',{});await SC.set({device:view});return await startRun({explicit:true,local})}catch(e:any){return e.code||'refused'}}
 chrome.alarms.onAlarm.addListener(async(a:any)=>{if(a.name==='scout-tick')startRun();else if(a.name==='scout-heartbeat')heartbeat();else if(a.name==='scout-flush')flushSemi()});
 chrome.windows.onRemoved.addListener(async(id:number)=>{const st=await SC.get(['run']);if(st.run?.windowId===id)await SC.set({run:null})});
 
 chrome.runtime.onMessage.addListener((msg:any,sender:any,reply:any)=>{
  (async()=>{
   if(msg?.type==='page-result'&&sender.tab)return queueSemi(msg.result,sender.tab.id);
-  if(msg?.type==='run-now')return SC.BUILD.test&&msg.direct?startRun():requestRunNow();
+  if(msg?.type==='run-now')return SC.BUILD.test&&msg.direct?startRun(msg.local?{explicit:true,local:true}:{}):requestRunNow(msg.local===true);
   if(msg?.type==='flush')return flushSemi();
   if(msg?.type==='heartbeat')return heartbeat();
   if(msg?.type==='notify')return chrome.notifications.create('scout-'+Date.now(),{type:'basic',iconUrl:'icon.png',title:msg.title,message:msg.message,priority:2});
@@ -103,7 +108,7 @@ chrome.runtime.onMessage.addListener((msg:any,sender:any,reply:any)=>{
 const sameServer=(a:any,b:any)=>{try{return new URL(a).origin===new URL(b).origin}catch{return false}};
 async function external(msg:any,origin:string){
  const st=await SC.get(['token','server','device','deviceId']),here=!!st.token&&sameServer(st.server,origin);
- const status={ok:true,app:'famtray-scout',version:SC.BUILD.version,paired:!!st.token,pairedHere:here,deviceName:here?(st.device?.name||null):null,deviceId:here?(st.deviceId||null):null};
+ const status={ok:true,app:'famtray-scout',version:SC.version(),paired:!!st.token,pairedHere:here,deviceName:here?(st.device?.name||null):null,deviceId:here?(st.deviceId||null):null};
  if(msg?.type==='ping')return status;
  if(msg?.type==='pair'){
   // Already paired with this app: keep it, unless the server says the device was revoked
@@ -115,7 +120,7 @@ async function external(msg:any,origin:string){
   await SC.set({server:origin});
   try{const r=await SC.api('pair',{code,name,postcode,suburb,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone,version:SC.BUILD.version},{token:''});
    await SC.set({token:r.token,deviceId:r.device.id,device:r.device,pairedVia:'app'});
-   return {ok:true,app:'famtray-scout',version:SC.BUILD.version,paired:true,pairedHere:true,deviceName:r.device?.name||name,deviceId:r.device?.id||null}}
+   return {ok:true,app:'famtray-scout',version:SC.version(),paired:true,pairedHere:true,deviceName:r.device?.name||name,deviceId:r.device?.id||null}}
   catch(e:any){if(!(await SC.get(['token'])).token)await SC.set({server:st.server||''});return {ok:false,app:'famtray-scout',error:e.code||'pair-failed',message:e.message}}}
  return {ok:false,app:'famtray-scout',error:'unsupported'}}
 chrome.runtime.onMessageExternal.addListener((msg:any,sender:any,reply:any)=>{

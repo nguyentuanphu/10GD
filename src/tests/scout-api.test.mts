@@ -86,6 +86,17 @@ assert.equal((await dev('device','x'.repeat(43))).status,401,'unknown token');
 assert.equal((await call('device',{token:tokA,from:'https://evil.example'})).status,403,'web origins refused');
 assert.equal((await dev('device',tokA)).status,200);
 {const hb=await dev('heartbeat',tokA,{autoEnabled:true,semiEnabled:true,version:'1.6.0',signedIn:{woolworths:true},storesSeen:{woolworths:'Hurstville'}});assert.equal(hb.status,200);assert.equal(hb.data.inWindow,true)}
+// ---- v1.7.2 extension update check + readiness fields (Studio “Cần cập nhật” reads outdated/latestVersion)
+{const {EXTENSION_VERSION,versionCmp,isOutdated}=await import('../netlify/lib/scout-version.mjs');const {readFileSync}=await import('node:fs');
+ assert.equal(EXTENSION_VERSION,JSON.parse(readFileSync('extension/manifest.json','utf8')).version,'server announces exactly the version this commit zips');
+ assert.equal(versionCmp('1.7.10','1.7.9'),1);assert.equal(versionCmp('1.7.2','1.7.2'),0);assert.equal(versionCmp('1.7','1.7.0'),0);assert.equal(versionCmp('1.6.9','1.7.0'),-1);assert.equal(versionCmp('2.0.0','1.99.99'),1);
+ assert.equal(isOutdated('1.7.0','1.7.2'),true);assert.equal(isOutdated('1.7.2','1.7.2'),false);assert.equal(isOutdated('1.8.0','1.7.2'),false);assert.equal(isOutdated(null),false,'unknown version is not flagged');assert.equal(isOutdated('dev-build'),false);
+ assert.equal(core.versionCmp('1.7.10','1.7.9'),1);assert.equal(core.versionCmp('1.7.1','1.7.2'),-1);assert.equal(core.versionCmp('1.7.2','1.7.2'),0);
+ const hb=(await dev('heartbeat',tokA,{version:'1.7.0'})).data;assert.equal(hb.update.latest,EXTENSION_VERSION);assert.equal(hb.update.zip,'/downloads/famtray-scout.zip');assert.equal(hb.update.outdated,true);assert.equal(hb.update.reported,'1.7.0');assert.equal(hb.update.storeUrl,null);
+ assert.equal(hb.ownerStudio,false,'alice is not a Studio admin');assert.equal((await dev('device',tokH)).data.ownerStudio,true,'henry is');
+ let ov=(await S('studio-overview')).data,row=ov.devices.find((d:any)=>d.id===devA);assert.equal(ov.extensionLatest,EXTENSION_VERSION);assert.equal(row.outdated,true,'Studio: Cần cập nhật');assert.equal(row.latestVersion,EXTENSION_VERSION);assert.equal(row.live.outdated,true);assert.equal(row.live.latestVersion,EXTENSION_VERSION);
+ await dev('heartbeat',tokA,{version:EXTENSION_VERSION});ov=(await S('studio-overview')).data;row=ov.devices.find((d:any)=>d.id===devA);assert.equal(row.outdated,false,'after reload the chip goes away');assert.equal(row.version,EXTENSION_VERSION);
+ assert.equal((await dev('heartbeat',tokA,{autoEnabled:true,semiEnabled:true,version:'1.6.0',signedIn:{woolworths:true},storesSeen:{woolworths:'Hurstville'}})).status,200)}
 
 // ---- kill switches (autoScout off by default, per-device allow, device toggle, global pause)
 let t=await dev('tasks',tokA,{runId:'run-aaaaaa',autoEnabled:true});assert.equal(t.status,403);assert.equal(t.data.code,'auto-off','server refuses tasks while autoScout is off');

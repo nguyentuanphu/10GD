@@ -39,5 +39,8 @@ async function robotsAllowed(url:string){const u=new URL(url),st=await get(['rob
 function appOriginAllowed(origin:any){let u:URL;try{u=new URL(String(origin||''))}catch{return false}if(u.origin!==String(origin))return false;
  if((BUILD.appOrigins||[]).includes(u.origin))return true;
  return !!BUILD.test&&u.protocol==='http:'&&(BUILD.testAppHosts||[]).includes(u.hostname)}
-root.ScoutClient={BUILD,DEFAULTS,get,set,api,lang,refreshConfig,config,robotsAllowed,serverOk,appOriginAllowed};
+// v1.7.2 update check: the installed version is the manifest's (always read from the folder, even if
+// Chrome briefly keeps an older worker script after the files were replaced).
+function version(){try{return root.chrome?.runtime?.getManifest?.()?.version||BUILD.version}catch{return BUILD.version}}
+root.ScoutClient={version,BUILD,DEFAULTS,get,set,api,lang,refreshConfig,config,robotsAllowed,serverOk,appOriginAllowed};
 })(globalThis);
