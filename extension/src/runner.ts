@@ -40,7 +40,15 @@ async function batteryBlock(){try{const b:any=await (navigator as any).getBatter
 // clicked it). A minimized / unfocused runner window never gets that event (v1.7.2), so it keeps going.
 let focusedHere=false;try{chrome.windows.onFocusChanged.addListener((id:number)=>{focusedHere=!!state.winId&&id===state.winId})}catch{}
 async function userInThisWindow(winId:number){try{state.winId=winId;if(!focusedHere)return false;const idle=await chrome.idle.queryState(60);return idle==='active'}catch{return false}}
-function waitComplete(tabId:number,ms=45000){return new Promise<boolean>(resolve=>{let done=false;const fin=(ok:boolean)=>{if(done)return;done=true;chrome.tabs.onUpdated.removeListener(on);clearTimeout(t);resolve(ok)};const on=(id:number,info:any)=>{if(id===tabId&&info.status==='complete')fin(true)};const t=setTimeout(()=>fin(false),ms);chrome.tabs.onUpdated.addListener(on)})}
+// v1.7.3: start waiting BEFORE the navigation starts. Attaching after `tabs.update` resolved missed the
+// 'complete' event of fast pages, so the run sat out the full 45 s timeout and counted an error.
+// A 'complete' counts only after this navigation began ('loading' seen, or the tab shows the new URL);
+// a status check every second covers events that fired before the listener was attached.
+function waitComplete(tabId:number,url:string,ms=45000){let started=false;const sameUrl=(u:any)=>{try{const a=new URL(String(u)),b=new URL(url);return a.origin===b.origin&&a.pathname===b.pathname&&a.search===b.search}catch{return false}};
+ return new Promise<boolean>(resolve=>{let done=false;const fin=(ok:boolean)=>{if(done)return;done=true;chrome.tabs.onUpdated.removeListener(on);clearTimeout(t);clearInterval(poll);resolve(ok)};
+  const on=(id:number,info:any,tab:any)=>{if(id!==tabId)return;if(info.status==='loading'||info.url||sameUrl(tab?.url))started=true;if(info.status==='complete'&&started)fin(true)};
+  const poll=setInterval(async()=>{try{const tab=await chrome.tabs.get(tabId);if(tab.status==='loading')started=true;if(tab.status==='complete'&&(started||sameUrl(tab.url)))fin(true)}catch{fin(false)}},1000);
+  const t=setTimeout(()=>fin(false),ms);chrome.tabs.onUpdated.addListener(on)})}
 async function extractFrom(tabId:number){for(let i=0;i<3;i++){try{const r=await chrome.tabs.sendMessage(tabId,{type:'extract'});if(r)return r}catch{}await sleep(1500)}return null}
 async function heartbeatRun(extra:any={}){const st=await SC.get(['run']);await SC.set({run:{...(st.run||{}),...extra,heartbeatAt:Date.now(),pages:state.pages,prices:state.prices}})}
 async function release(){const ids=[...state.leased];if(!ids.length)return;try{await SC.api('release',{taskIds:ids})}catch{}state.leased.clear()}
@@ -82,7 +90,7 @@ async function run(){
   let allowed=true;try{allowed=await SC.robotsAllowed(task.url)}catch{allowed=false}
   if(!allowed){state.skipped++;visit(task,'robots');try{await SC.api('results',{mode:'auto',runId:state.runId,items:[{taskId:task.taskId,retailer:task.retailer,url:task.url,status:'robots-disallowed',facts:[]}]})}catch{}state.leased.delete(task.taskId);continue}
   setCurrent(task);
-  const t0=Date.now();await chrome.tabs.update(work.id,{url:task.url});const loaded=await waitComplete(work.id);const took=Date.now()-t0;
+  const t0=Date.now();const loading=waitComplete(work.id,task.url);await chrome.tabs.update(work.id,{url:task.url});const loaded=await loading;const took=Date.now()-t0;
   const res=loaded?await extractFrom(work.id):null;state.pages++;if(!loaded||!res)state.errors++;
   // Automatic back-off: a slow page (> 8 s) drops this retailer to Normal for the rest of the day.
   if((took>8000||!loaded)&&!state.pacing?.byRetailer?.[task.retailer]){try{const b=await SC.api('backoff',{retailer:task.retailer,reason:'slow'});if(b.pacing)state.pacing=b.pacing}catch{}}

@@ -76,7 +76,7 @@ async function render(){
   ${primary}
   ${canRun?`<p class="hint" id="runnow-hint">${T('Chạy một lần ngay, ngoài lịch. Mọi giới hạn vẫn áp dụng.','Runs once now, outside the schedule. All limits still apply.')}</p>`:''}
   ${paired&&!st.notAssigned&&!st.run&&!st.paused&&state.key!=='blocked'&&state.key!=='device-paused'?missingHtml(st):''}
-  ${paired&&!st.run&&st.lastRun&&!missingHtml(st)?UI.visitsHtml(st.lastRun,'pop-last'):''}
+  ${paired&&!st.run&&st.lastRun&&!missingHtml(st)?UI.visitsHtml(st.lastRun,'pop-last',true):''}
   ${paired&&steps.find((x:any)=>x.id==='toggle').ok?`<label class="switch pop-switch"><input type="checkbox" id="auto" checked><span>${T('Tự động trên máy này','Auto on this computer')}</span></label>`:''}
   ${!paired?`<details id="pc-details" class="pop-code-d" ${keep.codeOpen?'open':''}><summary>${T('Hoặc nhập mã ghép','Or enter a pairing code')}</summary>
    <form id="popcode" class="form pop-code" autocomplete="off">
