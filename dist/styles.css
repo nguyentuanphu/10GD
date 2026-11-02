@@ -1344,3 +1344,32 @@ html[data-theme="dark"] .scout-status.unverified{background:#273140;color:#d3dce
 html[data-theme="dark"] .vl-crash-notice{background:#2b2414;border-color:#6b5524;color:#f3e2bd;box-shadow:0 8px 28px #0008}
 html[data-theme="dark"] .vl-crash-close:hover{background:#ffffff14}
 /* === v1.7.2 voice-ios-crash end === */
+/* === v1.7.3 sync-merge start === */
+.sync-pill{position:fixed;z-index:60;left:0;right:0;margin:0 auto;width:fit-content;top:calc(70px + env(safe-area-inset-top));display:flex;align-items:center;gap:8px;max-width:min(560px,calc(100vw - 32px));box-sizing:border-box;padding:6px 6px 6px 14px;min-height:44px;border-radius:18px;background:#fffefa;color:var(--green);border:1px solid #cfe0d3;box-shadow:0 6px 22px #17302414;font-size:14px;line-height:1.3}
+.sync-pill[hidden]{display:none}
+.sync-pill[data-kind=merged]{padding-right:14px}
+.sync-pill[data-kind=conflict]{background:#fff8e8;border-color:#ecd49b;color:#5b4410}
+.sync-pill-text{flex:1 1 auto;min-width:0;overflow-wrap:break-word}
+.sync-pill-text>span:not(.sync-dot){color:inherit;opacity:.85}
+.sync-pill .btn.small{min-height:44px;white-space:nowrap}
+.sync-pill-close{min-width:44px;min-height:44px;border-radius:999px;font-size:20px}
+.sync-pill .btn:focus-visible,.sync-pill-close:focus-visible,.sync-rev-actions .btn:focus-visible,.sync-rev-callout .btn:focus-visible{outline:3px solid var(--green2);outline-offset:2px}
+.sync-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2f9e6a;margin-right:8px;vertical-align:middle;animation:sync-pulse 1.4s ease-in-out 2}
+@keyframes sync-pulse{50%{transform:scale(1.6);opacity:.5}}
+@media(prefers-reduced-motion:reduce){.sync-dot{animation:none}}
+.network-status[data-sync=syncing]::after,.network-status[data-sync=merged]::after{content:'';position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:#2f9e6a}
+.network-status[data-sync=waiting]::after{content:'';position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:#c58a1b}
+.sync-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sync-version{border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0;overflow-wrap:anywhere}
+.sync-version h4{margin:0 0 6px;font-size:13px;color:var(--muted)}
+.sync-ings,.sync-steps{margin:6px 0 0;padding-left:20px;font-size:14px}
+.sync-rev{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
+.sync-rev-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:10px}
+.sync-rev-actions .btn{min-height:44px}
+.sync-rev-callout{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between;margin-bottom:12px}
+.sync-rev-callout .btn{min-height:44px}
+@media(max-width:600px){.sync-compare{grid-template-columns:1fr}.sync-pill{top:calc(62px + env(safe-area-inset-top))}}
+html[data-theme="dark"] .sync-pill{background:#1d2a24;color:#d7eadf;border-color:#35503f;box-shadow:0 8px 28px #0008}
+html[data-theme="dark"] .sync-pill[data-kind=conflict]{background:#2b2414;border-color:#6b5524;color:#f3e2bd}
+html[data-theme="dark"] .sync-version{border-color:#3a4a40}
+/* === v1.7.3 sync-merge end === */
