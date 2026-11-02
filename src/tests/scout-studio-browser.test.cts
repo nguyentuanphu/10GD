@@ -56,10 +56,14 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
  const shot=async(page:any,name:string)=>{await page.waitForTimeout(80);await page.screenshot({path:`${out}/${name}.png`})};
  for(const [size,lang,theme] of [['narrow','vi','light'],['mobile','vi','light'],['tablet','vi','light'],['desktop','vi','light'],['mobile','en','dark'],['tablet','en','dark'],['desktop','en','dark']]){
   const {context,page}=await open(size,lang,theme);
-  const nav=page.locator('#nav a[href="#scout"]');await nav.waitFor();assert.equal(await nav.getAttribute('aria-current'),'page');assert.equal(await page.locator('#main #scout-main').count(),1,'Scout renders as a normal Studio page inside #main');{// Studio (v1.5 speed-up) quietly prefetches the overview AFTER the first page has rendered; it must never load first.
+  const nav=page.locator('#nav a[href="#scout"]');await nav.waitFor({state:'attached'});// v1.7.2: phones/tablets keep the menu in a closed sheet
+assert.equal(await nav.getAttribute('aria-current'),'page');assert.equal(await page.locator('#main #scout-main').count(),1,'Scout renders as a normal Studio page inside #main');{// Studio (v1.5 speed-up) quietly prefetches the overview AFTER the first page has rendered; it must never load first.
    const ov=reqLog.indexOf('studio:overview'),sc=reqLog.findIndex(x=>x.startsWith('scout:'));assert.ok(sc>=0,'Scout page loaded its data');assert.ok(ov===-1||ov>sc,'the overview is not loaded behind the Scout page: '+reqLog.join(' '))}
-  assert.match(await nav.innerText(),lang==='en'?/Price Check network/:/Mạng So Giá/);
-  const body=await page.locator('#scout-main').innerText();
+  assert.match(await nav.textContent(),lang==='en'?/Price Check network/:/Mạng So Giá/);
+  // v1.7.2: Switches and device cards come first; the allowlist and pairing code sit in the collapsed "Access & pairing" card.
+  assert.equal(await page.locator('#sc-access').evaluate((d:any)=>d.open),false,'Access & pairing collapsed by default');
+  assert.ok(await page.evaluate(()=>{const a=document.querySelector('#sc-sw'),b=document.querySelector('#sc-rc'),c=document.querySelector('#sc-access');return !!a&&!!b&&!!c&&!!(a.compareDocumentPosition(b)&4)&&!!(b.compareDocumentPosition(c)&4)}),'Switches, then device cards, then Access & pairing');
+  const body=await page.locator('#scout-main').evaluate((e:any)=>e.textContent.replace(/\s+/g,' '));
   for(const want of (lang==='en'?['Máy bàn nhà Alice','Minh laptop','Henry PC','Auto-paused: parser breakage','Blocked — paused 24 h','Signed in: Coles','Coverage (7 days)','Trusted price checkers','alice','Device blocked — paused 24 h','Accounts allowed to use the extension','Advanced: pairing code','admin · always allowed']:['Máy bàn nhà Alice','Tự dừng: trình đọc lỗi','Bị chặn — tạm dừng 24 giờ','Độ phủ (7 ngày)','Người dò giá tin cậy','Tài khoản được dùng tiện ích','Nâng cao: mã ghép nối'])) assert.ok(body.includes(want),size+' '+lang+' missing: '+want);
   assert.ok(!/netlify|blobs/i.test(body),'no hosting vendor named in UI');
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);if(overflow>1)console.log(await page.evaluate(()=>[...document.querySelectorAll('#scout-main *')].filter((e:any)=>e.getBoundingClientRect().right>innerWidth+1).slice(0,8).map((e:any)=>e.tagName+'.'+e.className+' '+Math.round(e.getBoundingClientRect().right)+' '+(e.textContent||'').slice(0,40))));assert.ok(overflow<=1,`overflow ${overflow} at ${size}`);
@@ -77,7 +81,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
    await page.locator('#sc-pause').click();await page.locator('#sc-pause[aria-pressed="true"]').waitFor();
    await page.locator('#sc-pause').click();await page.locator('#sc-pause[aria-pressed="false"]').waitFor();
    // v1.7.1: the Studio pairing code is an Advanced fallback (collapsed), bound to an assigned account.
-   assert.equal(await page.locator('.sc-advanced').evaluate((d:any)=>d.open),false,'Advanced pairing code collapsed by default');await page.locator('.sc-advanced summary').click();
+   await page.locator('#sc-access > summary').click();assert.equal(await page.locator('.sc-advanced').evaluate((d:any)=>d.open),false,'Advanced pairing code collapsed by default');await page.locator('.sc-advanced summary').click();
    await page.locator('#sc-code').click();await page.locator('#scout-main .code').waitFor();assert.match(await page.locator('#scout-main .code').innerText(),/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);await shot(page,'studio-scout-paircode-en-dark-desktop-1280x800');
    await page.locator(`[data-ret="aldi"][data-act="resume"]`).click();await page.locator(`[data-ret="aldi"][data-act="pause"]`).waitFor();
    await page.locator(`[data-dev="${h.device.id}"][data-act="revoke"]`).click();await page.waitForFunction(()=>document.querySelector('#toast')?.textContent?.includes('revoked'));

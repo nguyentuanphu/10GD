@@ -38,6 +38,7 @@ import {communityStore,mutateShard,mutateDoc,groupIdOf,familyRefOf,productLinks,
 import {postcodeToState} from './geo-resolver.mjs';
 import {platformSettings} from './studio.mjs';
 import masterCatalog from '../../data/master-catalog.json' with {type:'json'};
+import {matchProduct} from './scout-match.mjs';
 const REGION={consistency:'strong',region:'ap-southeast-2'} as const;
 export const scoutStore=(getStoreFn:any)=>getStoreFn({name:'bep-scout',...REGION});
 const h=(x:string)=>createHash('sha256').update(x).digest('hex').slice(0,20);
@@ -56,6 +57,8 @@ const slug=(x:string)=>x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').r
 const text=(v:any,max:number)=>typeof v==='string'?v.replace(/[\u0000-\u001f<>]/g,' ').replace(/\s+/g,' ').trim().slice(0,max):'';
 /** "Woolworths Hurstville" → "Hurstville" (the branch name without the retailer brand). */
 export function branchName(retailer:string,storeLabel:any){const s=text(storeLabel,60).replace(RETAILER_WORDS[retailer]||/^$/,'').replace(/^[\s\-–·:]+/,'').trim();return s||null}
+/** v1.7.2: why a fact has no branch — 'no-postcode' | 'outside-pilot' | 'no-store' (shown as passive status). */
+export function placementGap(obs:any,states:string[]){const pc=postcodeToState(obs?.postcode);if(!pc.valid)return 'no-postcode';if(!states.includes(pc.state))return 'outside-pilot';return branchName(obs.retailer,obs.storeLabel)?'no-branch':'no-store'}
 /** Where a Scout fact lives in the community pool, or null when it cannot be placed. */
 export function scoutPlacement(obs:any,states:string[]){
  const pc=postcodeToState(obs?.postcode);if(!pc.valid||!states.includes(pc.state))return null;
@@ -72,7 +75,8 @@ export function createDefaultAdapter(getStoreFn:any,{env=process.env,nowFn=()=>D
  // Device owner → family vote. Accounts without a family vote as themselves.
  const famCache=new Map<string,{at:number,ref:string}>();
  const familyOf=async(username:string)=>{const hit=famCache.get(username);if(hit&&Date.now()-hit.at<300000)return hit.ref;let id:any=null;try{const a=await accountStore(getStoreFn).get('users/'+username,{type:'json'});id=a?.lastHouseholdId||Object.keys(a?.households||{})[0]||null}catch{}const ref=familyRefOf(id||'account:'+username);famCache.set(username,{at:Date.now(),ref});return ref};
- const itemFor=async(obs:any)=>{if(obs.itemId&&/^[a-z0-9-]{1,60}$/.test(obs.itemId))return obs.itemId;if(!obs.productId)return null;const m=(await links()).find((x:any)=>x.retailer===obs.retailer&&x.productId===obs.productId);return m?.itemId||null};
+ const itemFor=async(obs:any)=>{if(obs.itemId&&/^[a-z0-9-]{1,60}$/.test(obs.itemId))return obs.itemId;if(!obs.productId)return null;// (confident name matches arrive as obs.itemId from ingestResults)
+const m=(await links()).find((x:any)=>x.retailer===obs.retailer&&x.productId===obs.productId);return m?.itemId||null};
  // Legacy/fallback writes inside the Scout store (unplaceable facts).
  const fallbackPublish=async(obs:any,confirmed:boolean,agreeing:number,reason:string)=>{const k='pool/'+obs.observedAt.slice(0,10)+'/'+obs.retailer+'/'+h(obs.key);await editRecord(store(),k,(cur:any)=>({...(cur||{}),...obs,status:confirmed?'confirmed':'pending',agreeing,notInCommunity:reason,updatedAt:new Date().toISOString()}))};
  const fallbackHold=async(obs:any,reason:string,why:string)=>{const k='pool-held/'+obs.observedAt.slice(0,10)+'/'+obs.retailer+'/'+h(obs.key);await store().setJSON(k,{...obs,reason,notInCommunity:why,heldAt:new Date().toISOString()})};
@@ -81,7 +85,7 @@ export function createDefaultAdapter(getStoreFn:any,{env=process.env,nowFn=()=>D
   const p=await pilot();if(!p.enabled)return{placed:false,why:'community-off'};
   if(obs.storeMismatch)return{placed:false,why:'store-mismatch'};
   const itemId=await itemFor(obs);if(!itemId)return{placed:false,why:'no-item'};
-  const place=scoutPlacement(obs,p.states);if(!place)return{placed:false,why:'no-branch'};
+  const place=scoutPlacement(obs,p.states);if(!place)return{placed:false,why:placementGap(obs,p.states)};
   const cp=pool(),who=await contributor(cp,obs.account),familyRef=await familyOf(obs.account),captured=Date.parse(obs.observedAt),day=sydneyDay(captured);
   const id='cs-'+h([obs.key,obs.deviceId,day].join('|'));
   const base:any={itemId,label:text(obs.label,120)||itemId,retailer:obs.retailer,price:obs.price,currency:'AUD',unitPrice:obs.unitBasis?obs.unitPrice??null:null,unitBasis:obs.unitPrice!=null?obs.unitBasis||null:null,packQty:obs.packQty??null,packUnit:obs.packQty?obs.packUnit||null:null,units:obs.packCount??null,promo:obs.promo||null,validUntil:obs.promo&&obs.validUntil?obs.validUntil:null,capturedAt:new Date(captured).toISOString(),observedAt:day,state:place.state,branchId:place.branchId,branchLabel:place.branchLabel,online:false};
@@ -112,6 +116,15 @@ export function createDefaultAdapter(getStoreFn:any,{env=process.env,nowFn=()=>D
    try{const cp=pool();for await(const k of keys(cp,'items/')){const sh=await readJSON(cp,k);for(const s of sh?.submissions||[])if(s.status==='accepted'&&!s.shadow)note(s.itemId,s.retailer,s.observedAt)}}catch{}
    try{for(const r of await readAll(store(),'pool/',5000))note(r.itemId,r.retailer,r.observedAt)}catch{}
    return out},
+  /** v1.7.2 “Giá chưa gắn món”: unplaced Scout facts (no item) of the last days, newest first, with suggestions. */
+  async listUnplaced({days=7,limit=300,now=nowFn()}:any={}){const out:any[]=[];for(let i=0;i<days&&out.length<limit;i++){const day=sydneyDay(now-i*DAY);for(const r of await readAll(store(),'pool/'+day+'/',2000)){if(out.length>=limit)break;if(r.notInCommunity!=='no-item'||r.resolved)continue;const m=matchProduct(r.label||'');out.push({key:'pool/'+day+'/'+r.retailer+'/'+h(r.key),label:r.label,retailer:r.retailer,storeLabel:r.storeLabel,price:r.price,unitPrice:r.unitPrice??null,unitBasis:r.unitBasis||null,productId:r.productId||null,productUrl:r.productUrl||null,observedAt:r.observedAt,mode:r.mode,account:r.account,suggested:m.candidates.slice(0,3),confidence:m.confidence})}}return out},
+  /** Attach (or reject) unplaced facts in bulk; attaching places the price and records a moderator-confirmed product link. */
+  async resolveUnplaced(key:string,{itemId=null,reject=false,actor}:any){if(!/^pool\/\d{4}-\d{2}-\d{2}\/[a-z]+\/[a-f0-9]{20}$/.test(String(key)))return{ok:false,why:'bad-key'};const cur=await readJSON(store(),key);if(!cur||cur.resolved)return{ok:false,why:'gone'};
+   if(reject){await store().setJSON(key,{...cur,resolved:'rejected',resolvedBy:actor,resolvedAt:new Date(nowFn()).toISOString()});return{ok:true,status:'rejected'}}
+   if(!SCOUT_CATALOG.some(c=>c.itemId===itemId))return{ok:false,why:'bad-item'};
+   const r=await writePool({...cur,itemId},{scoutTrusted:cur.status==='confirmed'&&cur.trusted===true});
+   if(cur.productUrl||cur.productId)try{await this.recordMappingCandidate({itemId,retailer:cur.retailer,productUrl:cur.productUrl,productId:cur.productId,packQty:cur.packQty,deviceId:'studio',account:actor,trusted:true})}catch{}
+   await store().setJSON(key,{...cur,itemId,resolved:r.placed?'placed':'attached',notInCommunity:r.placed?null:r.why,resolvedBy:actor,resolvedAt:new Date(nowFn()).toISOString()});return{ok:true,status:r.placed?'placed':'attached',why:r.placed?null:r.why}},
   async catalogItems(){return SCOUT_CATALOG.map(c=>({itemId:c.itemId,name:c.name}))},
   async publishObservation(obs:any,{confirmed,agreeing}:any){const scoutTrusted=confirmed===true&&obs.trusted===true;const r=await writePool(obs,{scoutTrusted});if(!r.placed)await fallbackPublish(obs,!!confirmed,agreeing,r.why);return r},
   async holdObservation(obs:any,reason:string){const r=await writePool(obs,{held:true,holdReason:reason});if(!r.placed)await fallbackHold(obs,reason,r.why);return r},
@@ -124,8 +137,9 @@ export function createDefaultAdapter(getStoreFn:any,{env=process.env,nowFn=()=>D
     let x=doc.candidates.find((y:any)=>y.productId===clean.productId);
     if(!x){x={key:createHash('sha256').update(c.retailer+':'+clean.productId).digest('hex').slice(0,12),productUrl:clean.productUrl,productId:clean.productId,productName:null,packQty:typeof c.packQty==='number'&&c.packQty>0&&c.packQty<=100000?c.packQty:null,packUnit:null,firstSeen:iso,lastConfirmed:null,families:[],status:'candidate',source:'scout-extension'};doc.candidates.push(x);doc.candidates=doc.candidates.slice(-20)}
     if(x.status==='rejected'){out={status:'rejected'};return null}
-    if(x.families.includes(ref)){out={status:x.status,confirmations:x.families.length};return null}
-    x.families.push(ref);if(x.families.length>=2&&x.status!=='confirmed'&&x.status!=='stale'){x.status='confirmed';x.lastConfirmed=iso}
+    // v1.7.2: a trusted price checker / Studio moderator confirming a link on purpose counts at once.
+    if(x.families.includes(ref)&&!(c.trusted===true&&x.status==='candidate')){out={status:x.status,confirmations:x.families.length};return null}
+    if(!x.families.includes(ref))x.families.push(ref);if((x.families.length>=2||c.trusted===true)&&x.status!=='confirmed'&&x.status!=='stale'){x.status='confirmed';x.lastConfirmed=iso}
     out={status:x.status,confirmations:x.families.length};return true});
    linkCache=null;return out}
  };

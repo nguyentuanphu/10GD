@@ -153,6 +153,12 @@ t('large files resume from the last stored 8 MB range after a pause; a server wi
  await run(c,"voiceLocalRemove('small')");c.__fetch=async(u:string,o:any)=>{const r=await base(u,o);if(u.endsWith('.onnx')&&o.headers?.Range?.startsWith('bytes=0-')){const b=Buffer.from(await r.arrayBuffer());b[5]^=1;return new Response(b,{status:206})}return r};
  await assert.rejects(()=>run(c,"voiceLocalDownload('small',null,{fetchFn:__fetch})"),(e:any)=>e.code==='integrity');
  assert.equal([...caches.stores.get('bep-voice-models-v1')!.keys()].filter(k=>k.includes('/__bep-voice-part/')).length,0);
+ // v1.7.2: a server that answers a range with the whole (re-encoded/inflated) file — what jsDelivr does with
+ // Content-Encoding: br — no longer fails with 'không khớp bản gốc': the file is fetched again as one request.
+ await run(c,"voiceLocalRemove('small')");log.length=0;
+ c.__fetch=async(u:string,o:any)=>{if(o.headers?.Range&&u.endsWith('.onnx')){const r=await base(u,{...o,headers:{}});return new Response(await r.arrayBuffer(),{status:206})}return base(u,o)};
+ await run(c,"voiceLocalDownload('small',null,{fetchFn:__fetch})");
+ assert.equal([...caches.stores.get('bep-voice-models-v1')!.keys()].filter(k=>k.includes('/__bep-voice-part/')).length,0,'no stale parts after the fallback');
 });
 
 t('a second caller joins the running download; Pause cancels only when every caller has cancelled',async()=>{

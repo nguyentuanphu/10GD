@@ -86,6 +86,17 @@ assert.equal((await dev('device','x'.repeat(43))).status,401,'unknown token');
 assert.equal((await call('device',{token:tokA,from:'https://evil.example'})).status,403,'web origins refused');
 assert.equal((await dev('device',tokA)).status,200);
 {const hb=await dev('heartbeat',tokA,{autoEnabled:true,semiEnabled:true,version:'1.6.0',signedIn:{woolworths:true},storesSeen:{woolworths:'Hurstville'}});assert.equal(hb.status,200);assert.equal(hb.data.inWindow,true)}
+// ---- v1.7.2 extension update check + readiness fields (Studio “Cần cập nhật” reads outdated/latestVersion)
+{const {EXTENSION_VERSION,versionCmp,isOutdated}=await import('../netlify/lib/scout-version.mjs');const {readFileSync}=await import('node:fs');
+ assert.equal(EXTENSION_VERSION,JSON.parse(readFileSync('extension/manifest.json','utf8')).version,'server announces exactly the version this commit zips');
+ assert.equal(versionCmp('1.7.10','1.7.9'),1);assert.equal(versionCmp('1.7.2','1.7.2'),0);assert.equal(versionCmp('1.7','1.7.0'),0);assert.equal(versionCmp('1.6.9','1.7.0'),-1);assert.equal(versionCmp('2.0.0','1.99.99'),1);
+ assert.equal(isOutdated('1.7.0','1.7.2'),true);assert.equal(isOutdated('1.7.2','1.7.2'),false);assert.equal(isOutdated('1.8.0','1.7.2'),false);assert.equal(isOutdated(null),false,'unknown version is not flagged');assert.equal(isOutdated('dev-build'),false);
+ assert.equal(core.versionCmp('1.7.10','1.7.9'),1);assert.equal(core.versionCmp('1.7.1','1.7.2'),-1);assert.equal(core.versionCmp('1.7.2','1.7.2'),0);
+ const hb=(await dev('heartbeat',tokA,{version:'1.7.0'})).data;assert.equal(hb.update.latest,EXTENSION_VERSION);assert.equal(hb.update.zip,'/downloads/famtray-scout.zip');assert.equal(hb.update.outdated,true);assert.equal(hb.update.reported,'1.7.0');assert.equal(hb.update.storeUrl,null);
+ assert.equal(hb.ownerStudio,false,'alice is not a Studio admin');assert.equal((await dev('device',tokH)).data.ownerStudio,true,'henry is');
+ let ov=(await S('studio-overview')).data,row=ov.devices.find((d:any)=>d.id===devA);assert.equal(ov.extensionLatest,EXTENSION_VERSION);assert.equal(row.outdated,true,'Studio: Cần cập nhật');assert.equal(row.latestVersion,EXTENSION_VERSION);assert.equal(row.live.outdated,true);assert.equal(row.live.latestVersion,EXTENSION_VERSION);
+ await dev('heartbeat',tokA,{version:EXTENSION_VERSION});ov=(await S('studio-overview')).data;row=ov.devices.find((d:any)=>d.id===devA);assert.equal(row.outdated,false,'after reload the chip goes away');assert.equal(row.version,EXTENSION_VERSION);
+ assert.equal((await dev('heartbeat',tokA,{autoEnabled:true,semiEnabled:true,version:'1.6.0',signedIn:{woolworths:true},storesSeen:{woolworths:'Hurstville'}})).status,200)}
 
 // ---- kill switches (autoScout off by default, per-device allow, device toggle, global pause)
 let t=await dev('tasks',tokA,{runId:'run-aaaaaa',autoEnabled:true});assert.equal(t.status,403);assert.equal(t.data.code,'auto-off','server refuses tasks while autoScout is off');
@@ -195,4 +206,20 @@ resetSettingsCache();
 await S('studio-network',{patch:{autoScout:'off'}});clock=Date.parse('2026-11-07T07:00:00+11:00');
 t=await dev('tasks',tokH,{runId:'run-hhhhh2',autoEnabled:true});assert.equal(t.data.code,'auto-off');
 assert.equal((await dev('results',tokH,{mode:'auto',items:[]})).data.code,'auto-off');
+// ---- v1.7.2 planInfo: why a device has nothing to do (never a silent 0-page run)
+{const {planInfoFor,planView,storesOf}=await import('../netlify/lib/scout.mjs');const d={stores:{woolworths:'Hurstville',coles:''}},q=(r:string,st='queued',label='Hurstville')=>({retailer:r,storeLabel:label,status:st,attempts:0,leaseUntil:0});
+ assert.deepEqual(storesOf(d),['woolworths']);
+ assert.equal(planInfoFor({stores:{}},[q('woolworths')],{},clock).reasonIfEmpty,'no-stores');
+ assert.equal(planInfoFor(d,[q('woolworths','queued','Rockdale')],{},clock).reasonIfEmpty,'no-wanted-items','tasks only for another store');
+ assert.equal(planInfoFor(d,[q('woolworths','done')],{},clock).reasonIfEmpty,'all-done');
+ assert.equal(planInfoFor(d,[q('woolworths')],{woolworths:{paused:true}},clock).reasonIfEmpty,'retailer-paused');
+ assert.equal(planInfoFor(d,[q('woolworths')],{},clock,{capped:true}).reasonIfEmpty,'cap');
+ const live=planInfoFor(d,[q('woolworths'),q('woolworths','done'),q('coles')],{},clock);assert.deepEqual([live.reasonIfEmpty,live.tasksToday,live.open,live.done],[null,2,1,1]);
+ assert.equal(planView({stores:{}},clock).reasonIfEmpty,'no-stores');assert.equal(planView({stores:{woolworths:'X'},lastPlan:{...live,day:'2000-01-01'}},clock).tasksToday,null,'yesterday’s answer is not reused');
+ // Run now without a store is refused with a reason instead of a 0-page run.
+ const codeN=(await J(await call('pair-code',{method:'POST',body:{},cookie:alice}))).data;const pn=await dev('pair','',{code:codeN.code,name:'No store PC'});const tokN=pn.data.token;assert.equal(pn.data.device.planInfo.reasonIfEmpty,'no-stores');
+ await S('studio-network',{patch:{autoScout:'on'}});await S('studio-device',{deviceId:pn.data.device.id,action:'allow-auto'});
+ const rn=await dev('run-now',tokN,{});assert.equal(rn.status,409);assert.equal(rn.data.code,'no-stores');
+ const tk=await dev('tasks',tokN,{runId:'run-nostore1',autoEnabled:true});assert.equal(tk.data.stop,'no-stores');assert.equal(tk.data.planInfo.reasonIfEmpty,'no-stores');
+ assert.equal((await dev('unpair',tokN,{})).status,200);await S('studio-network',{patch:{autoScout:'off'}})}
 console.log('Scout API: pairing, auth, kill switches, schedule, leases, caps, priority, results, consensus, breakage, robots, challenge pause, Studio audit — all passed.');

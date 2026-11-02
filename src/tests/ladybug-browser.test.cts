@@ -154,7 +154,7 @@ const dim=(s:string)=>`${sizes[s].width}x${sizes[s].height}`;
   await context.addInitScript(({lang,theme}:any)=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});await context.addCookies([cookieOf(henry)]);
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page,'henrynguyen');
   await page.goto(origin+'/studio.html#feedback');await page.waitForSelector('#feedback-main .fb-list');
-  const nav=page.locator('#nav a[href="#feedback"]');assert.equal(await nav.getAttribute('aria-current'),'page');assert.match(await nav.innerText(),lang==='en'?/Feedback/:/Góp ý/);
+  const nav=page.locator('#nav a[href="#feedback"]');assert.equal(await nav.getAttribute('aria-current'),'page');assert.match(await nav.textContent(),lang==='en'?/Feedback/:/Góp ý/);// v1.7.2: hidden in the closed menu sheet on phones
   const text=await page.locator('#feedback-main').innerText();assert.ok(!/netlify|blobs/i.test(text),'no vendor named');assert.match(text,/tina/);assert.match(text,lang==='en'?/Assigned testers/:/Người được chọn/);
   for(const el of await page.locator('#feedback-main select, #feedback-main button').all()){const b=await el.boundingBox();if(b)assert.ok(b.height>=44,'target ≥44px: '+(await el.innerText()).slice(0,30))}
   await noOverflow(page,`studio ${size} ${lang}`);await shot(page,`studio-feedback-${lang}-${theme}-${size}-${dim(size)}`);shots++;
@@ -173,7 +173,7 @@ const dim=(s:string)=>`${sizes[s].width}x${sizes[s].height}`;
    await page.locator('#fb-mode input[value="everyone"]').check();await page.locator('#fb-mode button[type=submit]').click();await page.waitForTimeout(200);await page.locator('#fb-mode input[value="assigned"]').check();await page.locator('#fb-mode button[type=submit]').click();await page.waitForTimeout(200);
    const audit=(await (await call(studio,'studio','audit',{method:'GET',cookie:henry})).json()).items.map((x:any)=>x.action);
    for(const a of ['feedback_view','feedback_view_shot','feedback_update','feedback_tester_add','feedback_tester_remove','feedback_mode'])assert.ok(audit.includes(a),'audited: '+a)}
-  if(size==='tablet'&&lang==='en'){await page.locator('#lang').click();await page.waitForFunction(()=>/Hộp thư góp ý/.test(document.querySelector('#feedback-main')?.textContent||''));await noOverflow(page,'after switch')}
+  if(size==='tablet'&&lang==='en'){await page.locator('#navbtn').click();await page.locator('#lang').click();await page.waitForFunction(()=>/Hộp thư góp ý/.test(document.querySelector('#feedback-main')?.textContent||''));await noOverflow(page,'after switch')}
   assert.deepEqual(errors,[]);await context.close()}
  console.log(`PASS Studio Feedback: mode, testers add/remove, filters, detail + picture, status, internal note, reply, audit (${shots} screenshots)`);
 

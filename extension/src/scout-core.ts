@@ -123,7 +123,9 @@ function pacing(rand:number=Math.random(),override?:{minMs:number,maxMs:number}|
 const normLabel=(s:any)=>clean(String(s||''),80).toLowerCase().replace(/^(your\s+store|my\s+store|store|shopping at|pick up from|deliver(?:y|ing)? to)\s*[:\-]?\s*/i,'').replace(/[^a-z0-9]+/g,' ').trim();
 function storeMatches(seen:any,assigned:any){const a=normLabel(assigned),s=normLabel(seen);if(!a)return true;if(!s)return false;return s===a||s.includes(a)||a.includes(s)}
 
-const api={RETAILER_IDS,PROMOS,BASIS,FACT_FIELDS,PACING,DEFAULT_SCHEDULE,DEFAULT_CHALLENGE,DEFAULT_PROMO_RULES,parseMoney,parseUnitPrice,parsePackSize,parsePromoEnd,detectPromo,factsOnly,detectChallenge,parseRobots,robotsAllows,inWindow,nextWindowStart,validSchedule,localParts,pacing,normLabel,storeMatches,clean,round};
+// v1.7.2 update check: dotted numeric versions ("1.7.10" > "1.7.9").
+function versionCmp(a:any,b:any){const pa=String(a||'').split('.').map(x=>parseInt(x,10)||0),pb=String(b||'').split('.').map(x=>parseInt(x,10)||0);for(let i=0;i<Math.max(pa.length,pb.length,3);i++){const d=(pa[i]||0)-(pb[i]||0);if(d)return d<0?-1:1}return 0}
+const api={versionCmp,RETAILER_IDS,PROMOS,BASIS,FACT_FIELDS,PACING,DEFAULT_SCHEDULE,DEFAULT_CHALLENGE,DEFAULT_PROMO_RULES,parseMoney,parseUnitPrice,parsePackSize,parsePromoEnd,detectPromo,factsOnly,detectChallenge,parseRobots,robotsAllows,inWindow,nextWindowStart,validSchedule,localParts,pacing,normLabel,storeMatches,clean,round};
 root.ScoutCore=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

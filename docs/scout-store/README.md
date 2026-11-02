@@ -7,6 +7,37 @@ There are two ways to install, and neither needs a command:
 
 You can also download a ready zip from GitHub without commands: Actions → any green **CI** run → Artifacts → **famtray-scout-extension** (kept for 30 days). It contains `dist-extension.zip`, which you unzip and load, and `dist-extension-store.zip`, which is the file to upload to the stores. To have the app address filled in for those zips, add a repository variable named `SCOUT_SERVER_ORIGIN` with your app address, for example `https://<your app address>`. In GitHub, go to Settings → Secrets and variables → Actions → Variables.
 
+## Turning Auto mode on (v1.7.2)
+
+Open the extension's **Cài đặt / Settings**. It is one column with three steps: **1. Ghép máy** (pair), **2. Cửa hàng** (stores), **3. Tự động** (auto). Step 3 shows a checklist. Auto starts only when all five items are green, and every missing item has its own button:
+
+1. **Đã ghép máy**: pair this computer ("Ghép ngay").
+2. **Studio bật "So Giá tự động"**: Studio → Mạng So Giá → switch Auto on for the network. Only a Studio admin can do this, and the checklist says so ("chỉ quản trị viên").
+3. **Studio "Cho phép tự động" cho máy này**: Studio → Mạng So Giá → this computer → "Allow auto". Admin only.
+4. **Chuẩn bị máy**: confirm a separate Chrome profile, no signed-in shopping/rewards account, and stores selected.
+5. **Bật Tự động trên máy này**: the switch on this computer.
+
+Once 1–4 are green, **Chạy ngay / Run now** works from the popup or Settings, even outside the schedule. Scheduled runs and Run now started from Studio also need item 5. The popup shows only the items that are still missing.
+
+## Máy sẽ xem những trang nào / Which pages a computer visits (v1.7.2)
+
+Auto mode visits pages only on the five supported retailers: Woolworths, Coles, ALDI, Chemist Warehouse and Amazon AU. It visits them only for the stores chosen on that computer, one page at a time, at the pace allowed in Studio, and within the page caps. Each day it works from this list:
+
+- **Khuyến mãi / Specials pages** for each retailer, taken from the parser config (for example Woolworths half-price specials, Coles on-special, ALDI special buys, Chemist Warehouse catalogue).
+- **Món gia đình cần giá / Items families need ("Cần săn giá")**: the retailer's search page for each wanted item, or the confirmed product page when a link is known.
+- **Link đã lưu / Confirmed product links** from the community product-link memory.
+- **Giá cũ cần cập nhật / Old prices to refresh**: catalogue items whose last price for that retailer is more than 6 days old, opened through the retailer's search page.
+
+It reads only price facts: name, price, unit price, was-price, promotion, pack size, product id and store. It respects robots.txt, and it stops for 24 hours on any check page, 403 or 429.
+
+A search page lists many products. A product is attached to the item only when its name confidently is that item (catalogue VI/EN names plus a reviewed synonym/exclusion table: *salmon fillets* → Cá hồi; *smoked salmon*, *pink salmon* or *salmon cat food* → not Cá hồi). Everything else is kept as "Giá chưa gắn món" for the Studio review list. Nothing asks the person a question.
+
+The runner window opens minimized: pages only show prices in a real browser tab. It lists today's pages, the page it is reading now, and each page's result. The popup and Settings also show the pages from the last run and a preview of today's list. If a computer has no store chosen, Run now explains this instead of finishing with 0 pages.
+
+## Updating the extension (v1.7.2)
+
+Chrome cannot update a zip or unpacked extension by itself, and Manifest V3 does not allow downloaded code. The parser rules still update from the server as data. For the extension itself, every heartbeat now tells the extension which version this deploy ships (`update.latest`, written to `dist/downloads/famtray-scout.json` together with the zip's checksum). When the computer is behind, the popup shows "Có bản mới … · Cập nhật (1 phút)". Settings then walks through three steps: download the zip, unzip it over the same folder, and press ↻ Reload. Pressing Remove instead would lose the pairing. The pinned key keeps the id, so pairing and settings stay in place. Studio receives `outdated` / `latestVersion` for each device so it can show "Cần cập nhật". Once the store listing exists (`SCOUT_STORE_URL` or the Studio link), the banner links to the store instead, and installs from the store update by themselves.
+
 ## Henry's steps for the Chrome Web Store
 
 1. Go to the Chrome Web Store Developer Dashboard (chrome.google.com/webstore/devconsole) and sign in with the Google account that should own the listing. Pay the **one-time registration fee** and finish the account checks Google asks for, which can include contact email verification.

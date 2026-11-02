@@ -9,7 +9,7 @@
 import {getStore} from '@netlify/blobs';
 import {resolveAccount,editRecord} from '../lib/accounts.mjs';
 import {platformSettings} from '../lib/studio.mjs';
-import {pilotConfig,eligibility,contributor,communityStore,communityPrices,contribute,report,acceptTerms,setShareDefault,shopApply,shopStatus,shopPost,storeHeldPhoto,ipHashOf,RULES,TERMS_VERSION,rewardsFor,setRewardsProfile,leaderboard,recordWanted,wantedFor,rewardConfig,saveProduct,productLinks,reportProduct} from '../lib/community-prices.mjs';
+import {pilotConfig,eligibility,contributor,communityStore,communityPrices,contribute,confirmSeen,report,acceptTerms,setShareDefault,shopApply,shopStatus,shopPost,storeHeldPhoto,ipHashOf,RULES,TERMS_VERSION,rewardsFor,setRewardsProfile,leaderboard,recordWanted,wantedFor,rewardConfig,saveProduct,productLinks,reportProduct} from '../lib/community-prices.mjs';
 const json=(data:any,status=200,cache='no-store')=>Response.json(data,{status,headers:{'Cache-Control':cache,'X-Content-Type-Options':'nosniff'}});
 const PUBLIC_CACHE='public, max-age=60, stale-while-revalidate=60';
 /** Public reads allowed per IP hash per hour. */
@@ -58,6 +58,9 @@ export function createCommunityHandler({getStoreFn=getStore,env=process.env,nowF
     if(!ctx.household)return json({error:'Chọn hoặc tạo gia đình trước.',errorEn:'Choose or create a family first.'},409);
     return json(await contribute(getStoreFn,{context:ctx,observation:b.observation,branch:b.branch,ipHash:ipHashOf(request,env),now,states:pilot.states,rewards}),201);
    }
+   // v1.7.2 "Tôi cũng thấy giá này": another family's one-tap confirmation (counts as their own report).
+   if(op==='confirm'&&method==='POST'){const b=await body(2000);if(b.consent!==true)return json({error:'Cần chọn xác nhận.',errorEn:'Confirmation was not chosen.'},400);if(!ctx.household)return json({error:'Chọn hoặc tạo gia đình trước.',errorEn:'Choose or create a family first.'},409);
+    return json(await confirmSeen(getStoreFn,{context:ctx,body:b,ipHash:ipHashOf(request,env),now,states:pilot.states,rewards}),201)}
    if(op==='photo'&&method==='POST'){
     const id=url.searchParams.get('id')||'',state=url.searchParams.get('state')||'',itemId=url.searchParams.get('item')||'';
     if(!/^cp-[a-z0-9]+-[a-f0-9]{10}$/.test(id)||!pilot.states.includes(state)||!/^[a-z0-9-]{1,60}$/.test(itemId))return json({error:'Không hợp lệ.',errorEn:'Invalid.'},400);

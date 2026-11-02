@@ -63,7 +63,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
   if(size==='mobile'&&lang==='vi'){await tile.scrollIntoViewIfNeeded();await shot(page,`overview-tile-${lang}-${theme}-${size}-${sizes[size].width}x${sizes[size].height}`);shots++}
   // the tile itself navigates (click on its heading, not the link)
   await tile.locator('h3').click();await page.waitForFunction(()=>location.hash==='#urgent');await page.waitForSelector('#urgent-main .ur-list, #urgent-main .empty');
-  const nav=page.locator('#nav a[href="#urgent"]');assert.equal(await nav.getAttribute('aria-current'),'page');assert.match(await nav.innerText(),lang==='en'?/Urgent/:/Tin khẩn/);
+  const nav=page.locator('#nav a[href="#urgent"]');assert.equal(await nav.getAttribute('aria-current'),'page');assert.match(await nav.textContent(),lang==='en'?/Urgent messages/:/Tin nhắn khẩn/);// v1.7.2: merged page; on phones/tablets the link sits in the closed menu sheet
   const text=await page.locator('#urgent-main').innerText(),html=await page.content();
   assert.ok(!html.includes('NỘI DUNG BÍ MẬT'),'message text never shown');assert.ok(!/netlify|blobs/i.test(text),'no vendor named');
   assert.ok(!text.includes('Mẹ Lan')&&!text.includes('Bà Ngoại'),'no member names in the list');
@@ -85,6 +85,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
    assert.equal(await auditCount(),before+1,'drill-down audited');assert.ok(log.includes('studio:urgent-family'));
    await noOverflow(page,'drill-down');await page.evaluate(()=>{const el=document.querySelector('#ur-detail');if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-20)});await shot(page,`studio-urgent-family-${lang}-${theme}-${size}-${sizes[size].width}x${sizes[size].height}`);shots++}
   if(size==='tablet'&&lang==='en'){// language switch re-renders the page in place
+   await page.locator('#navbtn').click();// v1.7.2: on tablets the language button is in the menu sheet
    await page.locator('#lang').click();await page.waitForFunction(()=>/Cách khắc phục/.test(document.querySelector('#urgent-main')?.textContent||''));await noOverflow(page,'after switch')}
   if(size==='mobile'&&lang==='en'){// offline indicator in the shell
    await context.setOffline(true);await page.evaluate(()=>dispatchEvent(new Event('offline')));await page.waitForFunction(()=>/Offline/.test(document.querySelector('#net')?.textContent||''));await context.setOffline(false);await page.evaluate(()=>dispatchEvent(new Event('online')))}
