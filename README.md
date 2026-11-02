@@ -1,4 +1,12 @@
-# FamTray · Bếp Gia Đình · v1.7.3
+# FamTray · Bếp Gia Đình · v1.7.4
+
+## What's new in v1.7.4
+- **On-device “More accurate” voice uses less memory on iPhone (same model, same accuracy):** each weight file is read once into one buffer and freed as soon as the speech engine has copied it, the larger decoder is prepared first, and iPhone/iPad use the smaller engine build (one thread, no WebGPU). Measured in a desktop browser simulation (not an iPhone): the memory peak is about 16–20 % lower (≈1.40 → 1.16 GB) — the real check is the self-check page on the phone.
+- **Kiểm tra giọng chính xác trên máy này / Check accurate voice on this device** (Account & settings → Giọng nói trên máy, or the voice sheet's settings): runs the pack once and shows the device, pass/fail, load and recognition time, model memory and the phase reached; if the phone closes the page, the next start shows the phase it stopped in. “Sao chép kết quả” copies the result; nothing is sent.
+- **After a memory crash nothing reloads the pack by itself.** “Thử lại” is one guarded try (it may reload the page once); a second crash switches accurate voice off on that device until an update. The notice is short: “Giọng chính xác tạm tắt vì máy thiếu bộ nhớ — đang dùng giọng nói thường của máy.”
+- **iPhone tip in every voice sheet** while accurate voice is not in use: “Trên iPhone: chạm vào ô chữ rồi bấm 🎤 trên bàn phím để đọc chính tả (tiếng Việt rất tốt).” with **Mở bàn phím để nói**. **Gỡ gói** says how much space it freed.
+- Fixed: a load without a progress callback was reported finished at the first progress message (the crash marker said “loaded” while the model was still being built).
+- App and Price Check extension version 1.7.4 (no extension changes).
 
 ## What's new in v1.7.3
 - **So Giá finds the store by itself on the real sites (extension 1.7.3):** the store shown in the site's header is read again after the page finishes rendering and whenever it changes — Woolworths “Direct to boot / Pick up / Click & Collect: Wolli Creek”, ALDI “Current store: 2205, Wolli Creek”, Coles' store button next to “When”. Patterns live in the price-reading settings sent from the app, so they can be corrected without an extension update; “Send this page's structure” now includes where the store name is shown. A delivery address (“Delivery to …”, “Deliver to …”) is never read.

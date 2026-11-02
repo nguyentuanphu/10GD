@@ -1344,6 +1344,26 @@ html[data-theme="dark"] .scout-status.unverified{background:#273140;color:#d3dce
 html[data-theme="dark"] .vl-crash-notice{background:#2b2414;border-color:#6b5524;color:#f3e2bd;box-shadow:0 8px 28px #0008}
 html[data-theme="dark"] .vl-crash-close:hover{background:#ffffff14}
 /* === v1.7.2 voice-ios-crash end === */
+/* === v1.7.4 voice-ios-memory: iPhone dictation tip + self-check === */
+.vl-dictate{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:-4px 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--mint);color:var(--text);overflow-wrap:anywhere}
+.vl-dictate p{flex:1 1 220px;margin:0;font-size:14px;line-height:1.45}
+.vl-dictate .btn.small{font-size:14px}.vl-dictate .btn{min-height:44px;padding:0 14px;white-space:normal;text-align:left}
+.btn.small.vl-sc-link{min-height:44px;font-size:14px;margin-top:8px;white-space:normal;text-align:left}
+.vl-sc{overflow-wrap:anywhere}
+.vl-sc-table{display:grid;gap:0;margin:12px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.vl-sc-row{display:grid;grid-template-columns:minmax(110px,38%) 1fr;gap:8px;padding:8px 12px;border-top:1px solid var(--line);font-size:14px;line-height:1.45}
+.vl-sc-row:first-child{border-top:0}
+.vl-sc-row dt{color:var(--muted);font-weight:500}
+.vl-sc-row dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+.vl-sc-status{margin:8px 0;padding:10px 12px;border-radius:12px;background:var(--mint)}
+.vl-sc-status:focus{outline:none}.vl-sc-status:focus-visible{outline:3px solid var(--green2);outline-offset:2px}
+.vl-sc-died{margin:8px 0;padding:10px 12px;border:1px solid var(--warn-border,#e7c27d);border-radius:12px;background:var(--warn-surface,#fff6e5);color:var(--warn-ink,#5a3a00)}
+.vl-sc-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.vl-sc-actions .btn{min-height:44px;white-space:normal}
+@media(max-width:420px){.vl-sc-row{grid-template-columns:1fr;gap:0}.vl-sc-actions .btn{flex:1 1 100%}}
+html[data-theme="dark"] .vl-dictate,html[data-theme="dark"] .vl-sc-status{background:#1d352c;border-color:var(--line);color:var(--text)}
+html[data-theme="dark"] .vl-sc-died{background:#2b2414;border-color:#6b5524;color:#f3e2bd}
+/* === v1.7.4 voice-ios-memory end === */
 /* === v1.7.3 recipe-ingredients start === */
 .ing-empty{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:6px 0 4px;padding:10px 14px;border:1px dashed var(--line);border-radius:8px;color:var(--muted);font-size:14px}
 .ing-empty .ing-empty-add{min-height:44px;min-width:44px}

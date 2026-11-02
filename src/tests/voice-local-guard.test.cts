@@ -55,7 +55,7 @@ t('marker at start-up → failure, one-time notice, browser recogniser; never re
   const c=ctx(store),reg=registry(c);const wf=workerFactory();install(c,wf);
   const f=J(c,'voiceLocalCheckCrash()');assert.equal(f.stage,'crash');assert.equal(f.phase,phase);assert.equal(f.notice,'pending');
   assert.equal(store.has('bep-voice-local-busy'),false);assert.equal(store.has('bep-voice-recognizer'),false,'browser recogniser');assert.equal(store.has('bep-voice-local-selftest'),false,'an earlier self-test no longer counts');
-  assert.match(run(c,'voiceLocalFailText(voiceLocalFailed())'),/hết bộ nhớ và trang bị tải lại — đã chuyển về giọng nói thường của máy/);
+  assert.match(run(c,'voiceLocalFailText(voiceLocalFailed())'),/Giọng chính xác tạm tắt vì máy thiếu bộ nhớ — đang dùng giọng nói thường của máy\./);
   assert.match(run(c,'voiceLocalCrashNoticeHtml(voiceLocalFailed())'),/data-vl-retry="small"[\s\S]*Thử lại[\s\S]*data-vl-remove="small"[\s\S]*Gỡ gói/);
   assert.equal(run(c,"voiceLocalUsable('small')"),false);
   await run(c,'voiceLocalSyncRecognizers()');assert.equal(reg.size,0,'not offered in the selector');
@@ -103,7 +103,7 @@ t('Try again: explicit (warning first), runs the self-test, switches on only whe
  const store=new Map<string,string>([['bep-voice-local-busy',JSON.stringify({pack:'small',phase:'transcribing',at:1,v:2})]]);
  const asked:any[]=[];const c=ctx(store,{confirmDialog:async(o:any)=>{asked.push(o);return asked.length>1},toast:()=>{}}),reg=registry(c);install(c,workerFactory(),{ios:true});
  run(c,'voiceLocalCheckCrash()');
- assert.equal(await run(c,"voiceLocalRetry('small')"),false,'declined');assert.match(asked[0].body,/hết bộ nhớ[\s\S]*tải lại thêm lần nữa/);assert.ok(run(c,'voiceLocalFailed()'),'still marked when declined');
+ assert.equal(await run(c,"voiceLocalRetry('small')"),false,'declined');assert.match(asked[0].body,/thiếu bộ nhớ[\s\S]*tải lại một lần nữa[\s\S]*tắt trên máy này tới bản cập nhật sau/);assert.ok(run(c,'voiceLocalFailed()'),'still marked when declined');
  assert.equal(await run(c,"voiceLocalRetry('small')"),true);assert.equal(run(c,'voiceLocalFailed()'),null);assert.equal(J(c,'voiceLocalSelfTestRecord()').ok,true);assert.equal(store.get('bep-voice-recognizer'),'local-small');assert.ok(reg.has('local-small'));
  // Try again that fails again → marked again, browser kept.
  const store2=new Map<string,string>([['bep-voice-local-busy',JSON.stringify({pack:'small',phase:'self-test',at:1,v:2})]]);const c2=ctx(store2,{confirmDialog:async()=>true,toast:()=>{}});registry(c2);install(c2,workerFactory({loadError:'crash'}),{ios:false});
