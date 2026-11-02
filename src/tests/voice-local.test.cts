@@ -154,7 +154,7 @@ t('worker protocol with a fake engine (handler + client over a fake Worker)',asy
  await h({type:'hello',id:2,v:9});assert.equal(posted.pop().code,'version');
  await h({type:'transcribe',id:3,v:1,audio:new Float32Array(16000),language:'vietnamese'});assert.equal(posted.pop().code,'not-loaded');
  await h({type:'load',id:4,v:1,pack:{id:'base',model:'onnx-community/whisper-base',revision:'x'},runtime:{},cacheName:'bep-voice-models-v1'});
- assert.deepEqual(posted.splice(0),[{type:'progress',id:4,status:'progress',file:'onnx/encoder_model_quantized.onnx',progress:50},{type:'loaded',id:4,ms:0,device:'wasm'}]);
+ assert.deepEqual(posted.splice(0),[{type:'progress',id:4,status:'progress',file:'onnx/encoder_model_quantized.onnx',progress:50},{type:'loaded',id:4,ms:0,device:'wasm',files:[]}]);
  const a=h({type:'transcribe',id:5,v:1,audio:new Float32Array(32000),language:'vietnamese',final:true}),b=h({type:'transcribe',id:6,v:1,audio:new Float32Array(8000),language:null,final:false});await Promise.all([a,b]);
  assert.deepEqual(posted.splice(0).map((m:any)=>[m.type,m.id,m.text,m.seconds]),[['result',5,'len=32000 lang=vietnamese final=true',2],['result',6,'len=8000 lang=null final=false',0.5]],'serial, in order');
  await h({type:'transcribe',id:7,v:1,audio:[1,2,3]});assert.equal(posted.pop().code,'audio');
@@ -190,11 +190,11 @@ t('failure guard: load failure, crash during recognition and reload mid-load fal
  c.__deps={...base,ensure:async()=>{throw Object.assign(Error('oom'),{code:'crash'})}};const ends:any[]=[];c.__e=(i:any)=>ends.push(i.reason);c.__r=()=>{};
  await assert.rejects(()=>run(c,"voiceLocalRecognizer('small',__deps)").start('vi-VN',c.__r,c.__e));
  assert.equal(ends.at(-1),'error');assert.equal(run(c,'voiceLocalChoice()'),'','falls back to the browser recogniser');
- assert.equal(J(c,'voiceLocalFailed("small")').stage,'load');assert.match(run(c,'voiceLocalFailText(voiceLocalFailed())'),/trình duyệt/);assert.ok(notes.includes('loading'),'loading is shown');
+ assert.equal(J(c,'voiceLocalFailed("small")').stage,'load');assert.match(run(c,'voiceLocalFailText(voiceLocalFailed())'),/giọng nói thường/);assert.ok(notes.includes('loading'),'loading is shown');
  assert.match(run(c,'voiceLocalFailureHtml(voiceLocalFailed())'),/data-vl-retry="small"[\s\S]*data-vl-remove="small"/,'Try again + Remove pack');
  // Status in Downloads carries the failure text.
  c.__st=await run(c,"(async()=>{voiceLocalProbe=async()=>({packs:{small:{ok:true,warn:'ios-slow'}}});voiceLocalCap=null;return voiceLocalPackStatus('small')})()");
- assert.equal(c.__st.failed,'load');assert.match(c.__st.failedText,/trình duyệt/);assert.match(c.__st.warnText,/chậm/);
+ assert.equal(c.__st.failed,'load');assert.match(c.__st.failedText,/giọng nói thường/);assert.match(c.__st.warnText,/chậm/);
  run(c,'voiceLocalClearFailed()');assert.equal(run(c,'voiceLocalFailed()'),null);
  // 2. Crash during recognition (the worker dies → transcribe rejects).
  run(c,"voiceLocalSetChoice('small')");let onFrame:any=null;
@@ -207,7 +207,7 @@ t('failure guard: load failure, crash during recognition and reload mid-load fal
  run(c,'voiceLocalClearFailed()');
  // 3. The page died while loading (iOS reloads a tab that runs out of memory): the busy marker turns into a failure.
  run(c,"voiceLocalSetChoice('small')");store.set('bep-voice-local-busy',JSON.stringify({pack:'small',stage:'load',at:1}));
- assert.equal(J(c,'voiceLocalCheckCrash()').stage,'reload-load');assert.equal(run(c,'voiceLocalChoice()'),'');assert.match(run(c,'voiceLocalFailText(voiceLocalFailed())'),/tải lại/);
+ assert.equal(J(c,'voiceLocalCheckCrash()').stage,'crash');assert.equal(J(c,'voiceLocalFailed()').phase,'loading-model','v1.7.1 marker shape still understood');assert.equal(run(c,'voiceLocalChoice()'),'');assert.match(run(c,'voiceLocalFailText(voiceLocalFailed())'),/tải lại/);
  assert.equal(run(c,'voiceLocalCheckCrash()'),null,'checked once');
  // A stored choice of the retired Light pack falls back to the browser recogniser.
  store.set('bep-voice-recognizer','local-base');assert.equal(run(c,'voiceLocalChoice()'),'');assert.equal(store.has('bep-voice-recognizer'),false);

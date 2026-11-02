@@ -1330,3 +1330,17 @@ html[data-theme="dark"] .scout-status.unverified{background:#273140;color:#d3dce
 @media(prefers-reduced-motion:reduce){.rm-voice-row .voice-hold-btn.holding,.rm-voice-row #rm-mic.listening{animation:none}}
 .rm-panel .sr-only,.rm-report .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 /* === v1.7.2 generic-receipts end === */
+/* === v1.7.2 voice-ios-crash start === */
+/* One-time notice after the page died with "More accurate" in memory: non-blocking, above the bottom navigation. */
+.vl-crash-notice{position:fixed;z-index:72;right:16px;bottom:16px;width:min(420px,calc(100vw - 32px));box-sizing:border-box;padding:12px 8px 10px 14px;border:1px solid var(--warn-border,#e7c27d);border-radius:14px;background:var(--warn-surface,#fff6e5);color:var(--warn-ink,#5a3a00);box-shadow:0 8px 28px #3b2a0f26;overflow-wrap:anywhere}
+.vl-crash-text{margin:0 0 8px;font-size:14px;line-height:1.4}
+.vl-crash-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.vl-crash-actions .btn{min-height:44px;padding:0 16px;font-size:14px;white-space:normal}
+.vl-crash-close{margin-left:auto;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:inherit;font-size:22px;line-height:1;cursor:pointer}
+.vl-crash-close:hover{background:#0000000d}
+.vl-crash-close:focus-visible,.vl-crash-actions .btn:focus-visible{outline:3px solid var(--green2);outline-offset:2px}
+.vl-rec-note{display:block;margin-top:4px;overflow-wrap:anywhere}
+@media(max-width:760px){.vl-crash-notice{left:12px;right:12px;width:auto;bottom:calc(84px + env(safe-area-inset-bottom))}}
+html[data-theme="dark"] .vl-crash-notice{background:#2b2414;border-color:#6b5524;color:#f3e2bd;box-shadow:0 8px 28px #0008}
+html[data-theme="dark"] .vl-crash-close:hover{background:#ffffff14}
+/* === v1.7.2 voice-ios-crash end === */
