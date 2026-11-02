@@ -1,4 +1,13 @@
-# FamTray · Bếp Gia Đình · v1.7.1
+# FamTray · Bếp Gia Đình · v1.7.2
+
+## What's new in v1.7.2
+- **Local-grocer receipts (“Ghép giá với giỏ đi chợ”):** Asian grocers, butchers and greengrocers that print only “GROCERY 4.50”, “VEG 3.20”, “MEAT 12.80”, “DEPT 01”, a PLU or just a price. These lines are marked **“Chưa rõ món”** and are never matched automatically. In the receipt form, tap a price, then the item(s) in this week’s shopping list (items ticked “đã mua” come first, in tick order); one price may cover several items, and splitting the money is the family’s choice. Undo for every step. Voice / typed: “dòng 3 là thịt ba chỉ” / “line 3 is pork belly” (hold to talk). Works offline (typing; voice offline needs the on-device pack).
+- **Suggestions to confirm, each with a one-line reason:** the family’s own prices at that store (and nearby stores in the same suburb), So Giá community prices (verified first), $/kg for weighed lines (e.g. 0.85 kg @ $12.99/kg looks like meat), the “đã mua” tick order vs the receipt order, and the printed total (combinations that don’t add up rank lower). Deterministic and unit-tested.
+- **Learns per store:** “store + label/PLU + price band → item”, kept in family data (synced); “Quên” forgets a mapping.
+- **Nothing is lost:** unmatched lines are saved in spending as **“Đồ khác (chưa rõ)”** (own card on Chi tiêu) and stay out of the shopping/pantry reconciliation.
+- **“Báo giá cho cộng đồng”** for an unmatched line of a saved receipt: the family names/picks the catalogue item; never sent without that tap. So Giá shows it as **“Chưa xác minh · 1 người báo”** with the capture time — visible, not used as the comparison price, no points — until another family reports a matching price at the same store/area; then the first reporter gets the points. New one-tap **“Tôi cũng thấy giá này / I saw this price too”** (counts as that family’s report, fresh capture time, own family refused, once per family). Outlier hold, moderation and Studio removal unchanged; Studio lists unverified single reports separately. Privacy page updated.
+
+Evidence: `docs/reviews/v1.7.2/generic-receipts/review.md` (synthetic receipts only; real local-grocer receipts from Henry still to come).
 
 ## What's new in v1.7.1
 - **Voice:** one-tap VI │ EN toggle next to every mic; hold-to-talk is the default (tap mode optional); unclear results ("các bạn") ask to repeat instead of adding junk; "5x" asks "trứng (eggs)?"; iPhone fixes for words lost at session restart and after Stop.

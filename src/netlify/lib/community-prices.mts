@@ -47,7 +47,7 @@ import {readObservations} from './grocery-pricing.mjs';
 const DAY=86400000;
 export const COMMUNITY_STORE='bep-community';
 export const communityStore=(getStoreFn:any)=>getStoreFn({name:COMMUNITY_STORE,consistency:'strong',region:'ap-southeast-2'});
-export const RULES={minAccountDays:7,minFamilyDays:7,accountDaily:30,ipDaily:60,reportDaily:20,captureMaxDays:7,confirmWindowDays:7,regularUsableDays:14,regularVisibleDays:21,shopDays:14,photoDays:14,sanityDays:35,shardKeepDays:40,trustStart:0.5,trustUp:0.05,trustDown:0.15,trustCountMin:0.3,trustReceipt:0.7,matchPct:0.02,matchAbs:0.05,ocrTolerance:0.01,burstNewAccountDays:14,burstCount:3,sharedIpAccounts:3,branchShare:0.8,branchMin:5,maxShopPrices:60} as const;
+export const RULES={minAccountDays:7,minFamilyDays:7,accountDaily:30,ipDaily:60,reportDaily:20,captureMaxDays:7,confirmWindowDays:7,regularUsableDays:14,regularVisibleDays:21,shopDays:14,photoDays:14,sanityDays:35,shardKeepDays:40,trustStart:0.5,trustUp:0.05,trustDown:0.15,trustCountMin:0.3,trustReceipt:0.7,matchPct:0.02,matchAbs:0.05,ocrTolerance:0.01,burstNewAccountDays:14,burstCount:3,sharedIpAccounts:3,branchShare:0.8,branchMin:5,maxShopPrices:60,meTooFreshHours:24} as const;
 export const COMMUNITY_EVIDENCE=['shelf-photo','receipt','screenshot','bookmark'];
 /** Evidence copied from a retailer app/website: labelled "Giá online", never confirmed by a single report. */
 export const ONLINE_EVIDENCE=['screenshot','bookmark'];
@@ -110,7 +110,8 @@ export function groupConsensus(subs:any[],day:string){
   const cluster=countable.filter(x=>pricesMatch(anchor,x)&&withinWindow(anchor,x));
   const families=new Set(cluster.map(x=>x.familyRef)).size;
   // The single trusted-receipt shortcut never applies when the cluster holds app/website prices.
-  const receipt=!cluster.some(x=>ONLINE_EVIDENCE.includes(x.evidence?.type))&&cluster.some(x=>x.evidence?.type==='receipt'&&(x.trustAtSubmit??0)>=RULES.trustReceipt)||scoutTrustedIn(cluster);
+  // v1.7.2: a generic receipt line ("VEG 3.20", item named by the family) never confirms alone, whatever the trust.
+  const receipt=!cluster.some(x=>ONLINE_EVIDENCE.includes(x.evidence?.type))&&cluster.some(x=>x.evidence?.type==='receipt'&&x.evidence?.generic!==true&&(x.trustAtSubmit??0)>=RULES.trustReceipt)||scoutTrustedIn(cluster);
   const score=(families>=2||receipt?1000:0)+families;
   if(!best||score>best.score)best={anchor,cluster,families,receipt,score};
  }
@@ -118,7 +119,7 @@ export function groupConsensus(subs:any[],day:string){
  const cluster=best?best.cluster:shown.filter(x=>pricesMatch(pick,x));
  const confirmed=!!best&&(best.families>=2||best.receipt);
  const lastObserved=cluster.map(x=>x.observedAt).sort().pop()||pick.observedAt,exp=expiryOf({...pick,observedAt:lastObserved},day);
- return{groupId:pick.groupId,itemId:pick.itemId,label:pick.label,retailer:pick.retailer,branchId:pick.branchId,branchLabel:pick.branchLabel,state:pick.state,status:confirmed?'confirmed':'pending',price:pick.price,unitPrice:pick.unitPrice,unitBasis:pick.unitBasis,packQty:pick.packQty,packUnit:pick.packUnit,units:pick.units,promo:pick.promo,validUntil:pick.validUntil,families:new Set(cluster.map(x=>x.familyRef)).size,reports:cluster.length,lastObserved,ageDays:exp.age,usable:confirmed&&exp.usable,faded:exp.faded,online:cluster.some(x=>x.online===true),sources:[...new Set(cluster.map(x=>x.evidence?.type))].filter(Boolean),...capturedOf(cluster)};
+ return{groupId:pick.groupId,itemId:pick.itemId,label:pick.label,retailer:pick.retailer,branchId:pick.branchId,branchLabel:pick.branchLabel,state:pick.state,status:confirmed?'confirmed':cluster.some(x=>x.evidence?.generic===true)?'unverified':'pending',price:pick.price,unitPrice:pick.unitPrice,unitBasis:pick.unitBasis,packQty:pick.packQty,packUnit:pick.packUnit,units:pick.units,promo:pick.promo,validUntil:pick.validUntil,families:new Set(cluster.map(x=>x.familyRef)).size,reports:cluster.length,lastObserved,ageDays:exp.age,usable:confirmed&&exp.usable,faded:exp.faded,online:cluster.some(x=>x.online===true),sources:[...new Set(cluster.map(x=>x.evidence?.type))].filter(Boolean),generic:cluster.some(x=>x.evidence?.generic===true),...capturedOf(cluster)};
 }
 export function shardConsensus(shard:any,day:string){const byGroup=new Map<string,any[]>();for(const s of shard?.submissions||[]){const l=byGroup.get(s.groupId)||[];l.push(s);byGroup.set(s.groupId,l)}const out:any[]=[];for(const [gid,subs] of byGroup){if((shard.hiddenGroups||[]).includes(gid))continue;const c=groupConsensus(subs,day);if(c)out.push(c)}return out}
 
@@ -160,6 +161,7 @@ export function cleanContribution(o:any,branch:any,{now,states}:{now:number,stat
  }else{
   evidence.receiptId=typeof ev.receiptId==='string'&&/^[\w:.-]{1,120}$/.test(ev.receiptId)?ev.receiptId:fail('Thiếu hóa đơn.','Missing receipt.');
   evidence.lineId=typeof ev.lineId==='string'&&/^[\w:.-]{1,120}$/.test(ev.lineId)?ev.lineId:fail('Thiếu dòng hóa đơn.','Missing receipt line.');
+  if(ev.generic===true)evidence.generic=true;
  }
  const branchId=wantsBranch?retailer+':'+pc.postcode+':'+slug(suburb):retailer+':online:'+pc.state;
  const label=text(o.label,120)||itemId;
@@ -221,17 +223,19 @@ async function verifyReceipt(getStoreFn:any,householdId:string,members:any,clean
 }
 
 /** Contribute one observation. Returns {status:'accepted'|'held', id, photoRequested, ...}. */
-export async function contribute(getStoreFn:any,{context,observation,branch,ipHash,now,states,rewards}:any){
+export async function contribute(getStoreFn:any,{context,observation,branch,ipHash,now,states,rewards,prebuilt=null,fingerprintOf=null}:any){
  const cfg=rewardConfig(rewards);
  const store=communityStore(getStoreFn),account=context.account,username=account.username,household=context.household;
  const gate=eligibility(account,household,now);if(!gate.ok)fail('Tài khoản chưa đủ điều kiện chia sẻ giá cộng đồng.','This account is not yet eligible to share community prices.',403,{code:'not-eligible',reasons:gate.reasons});
  let who=await contributor(store,username);
  if(!who?.termsAcceptedAt)fail('Cần đồng ý điều khoản chia sẻ giá trước.','Please accept the sharing terms first.',428,{code:'terms'});
- const clean=cleanContribution(observation,branch,{now,states});
+ const clean=prebuilt||cleanContribution(observation,branch,{now,states});
  // v1.7.1: the verified receipt (read from the family's own saved data, never from the client) carries a salted
  // hash of its printed transaction; a receipt saved twice by one family can never count twice.
  const receipt:any=clean.evidence.type==='receipt'?await verifyReceipt(getStoreFn,household.id,household.members,clean):null;
  if(clean.evidence.type==='receipt'&&!receipt)fail('Không tìm thấy dòng hóa đơn đã xác nhận khớp giá này.','No confirmed receipt line matches this price.',422,{code:'receipt-unconfirmed'});
+ // v1.7.2: whether the line is generic ("VEG 3.20", item named by the family) comes from the saved receipt, not the client.
+ if(receipt){const line=(receipt.items||[]).find((l:any)=>String(l?.id)===clean.evidence.lineId);if(line?.generic===true)clean.evidence.generic=true;else delete clean.evidence.generic}
  // Rate limits (per account 30/day, per IP hash 60/day). Keys expire by day.
  const d=dayKey(now);
  if(!await bump(store,`rate/${d}/acct-${sha(username).slice(0,24)}`,RULES.accountDaily,now))fail('Bạn đã chia sẻ đủ 30 giá hôm nay.','You have shared 30 prices today, the daily limit.',429);
@@ -239,7 +243,7 @@ export async function contribute(getStoreFn:any,{context,observation,branch,ipHa
  // Duplicate evidence → rejected. onlyIfNew makes the check atomic under concurrency.
  const id='cp-'+now.toString(36)+'-'+randomBytes(5).toString('hex');
  // Bookmark captures carry no image, so the same family+item+store+price+day counts as one capture.
- const fingerprint=clean.evidence.imageHash?'img:'+clean.evidence.imageHash:clean.evidence.type==='bookmark'?['bm',household.id,clean.itemId,clean.retailer,clean.branchId,clean.price,clean.observedAt].join(':'):typeof receipt?.receiptKey==='string'&&/^[a-f0-9]{16,64}$/.test(receipt.receiptKey)?['rcptk',household.id,receipt.receiptKey,clean.itemId,clean.price].join(':'):'rcpt:'+household.id+':'+clean.evidence.receiptId+':'+clean.evidence.lineId;
+ const fingerprint=fingerprintOf?fingerprintOf(household.id):clean.evidence.imageHash?'img:'+clean.evidence.imageHash:clean.evidence.type==='bookmark'?['bm',household.id,clean.itemId,clean.retailer,clean.branchId,clean.price,clean.observedAt].join(':'):typeof receipt?.receiptKey==='string'&&/^[a-f0-9]{16,64}$/.test(receipt.receiptKey)?['rcptk',household.id,receipt.receiptKey,clean.itemId,clean.price].join(':'):'rcpt:'+household.id+':'+clean.evidence.receiptId+':'+clean.evidence.lineId;
  const dedupe=await store.setJSON('dedupe/'+sha(fingerprint),{id,at:new Date(now).toISOString()},{onlyIfNew:true});
  if(dedupe?.modified===false)fail('Ảnh/hóa đơn này đã được chia sẻ trước đó.','This photo or receipt line was already shared.',409,{code:'duplicate'});
  // Conflict-of-interest signals (flag for moderation; never auto-ban).
@@ -259,6 +263,8 @@ export async function contribute(getStoreFn:any,{context,observation,branch,ipHa
  let shard:any;
  try{({shard}=await mutateShard(store,clean.state,clean.itemId,sh=>{
   effects.clear();awards=[];penalties=[];prune(sh,now);
+  // v1.7.2 "Tôi cũng thấy giá này": a family can never confirm its own price (checked again inside the write).
+  if(clean.evidence.type==='confirm'&&sh.submissions.some((x:any)=>x.groupId===record.groupId&&x.familyRef===familyRef&&x.status!=='rejected'))fail('Gia đình bạn đã báo giá này — cần một gia đình khác xác nhận.','Your family already reported this price — another family needs to confirm it.',409,{code:'self-confirm'});
   // A "gap" = no usable confirmed price for this item in the state before this report.
   const gapBefore=!shardConsensus(sh,today(now)).some(c=>c.status==='confirmed'&&c.usable);
   // competitor comparison for the single-branch signal
@@ -291,6 +297,28 @@ export async function contribute(getStoreFn:any,{context,observation,branch,ipHa
 
 /** Held-item photo for moderation: only for the contributor's own held shelf-photo submission,
  *  and only when the uploaded bytes hash to the stored evidence hash. Deleted after 14 days. */
+/** v1.7.2 "Tôi cũng thấy giá này / I saw this price too": one tap by ANOTHER family confirms a shown price group.
+ *  It counts as that family's own report (fresh capture time, same price facts as the group), so the existing
+ *  consensus (≥2 families), points (first reporter on verification; the confirmer gets the corroborate points),
+ *  one-family-once dedupe, rate limits, outlier hold and moderation all apply unchanged. */
+export async function confirmSeen(getStoreFn:any,{context,body,ipHash,now,states,rewards}:any){
+ const store=communityStore(getStoreFn),state=states.includes(body?.state)?body.state:fail('Bang không hợp lệ.','Invalid state.');
+ const itemId=typeof body?.itemId==='string'&&/^[a-z0-9-]{1,60}$/.test(body.itemId)?body.itemId:fail('Món không hợp lệ.','Invalid item.');
+ const groupId=typeof body?.groupId==='string'&&/^[a-f0-9]{16}$/.test(body.groupId)?body.groupId:fail('Giá không hợp lệ.','Invalid price.');
+ const at=typeof body?.capturedAt==='string'&&body.capturedAt.length<=40?Date.parse(body.capturedAt):NaN;
+ if(!Number.isFinite(at))fail('Thiếu thời điểm bạn thấy giá.','Missing the time you saw the price.');
+ if(at>now+5*60000)fail('Thời điểm ở tương lai.','The time is in the future.',422,{code:'future'});
+ if(at<now-RULES.meTooFreshHours*3600000)fail('Chỉ xác nhận giá bạn vừa thấy (trong 24 giờ).','Only confirm a price you saw in the last 24 hours.',422,{code:'too-old'});
+ const shard=await readJSON(store,shardKey(state,itemId));const subs=(shard?.submissions||[]).filter((x:any)=>x.groupId===groupId);
+ const c=(shard?.hiddenGroups||[]).includes(groupId)?null:groupConsensus(subs,today(now));
+ if(!c)fail('Không tìm thấy giá.','Price not found.',404);
+ const familyRef=familyRefOf(context.household?.id||'');
+ if(subs.some((x:any)=>x.familyRef===familyRef&&x.status!=='rejected'))fail('Gia đình bạn đã báo giá này — cần một gia đình khác xác nhận.','Your family already reported this price — another family needs to confirm it.',409,{code:'self-confirm'});
+ const prebuilt={itemId,label:c.label,retailer:c.retailer,price:c.price,currency:'AUD',unitPrice:c.unitPrice??null,unitBasis:c.unitBasis??null,packQty:c.packQty??null,packUnit:c.packUnit??null,units:c.units??null,promo:c.promo??null,validUntil:c.validUntil??null,capturedAt:new Date(at).toISOString(),observedAt:today(at),state,branchId:c.branchId,branchLabel:c.branchLabel,online:!!c.online,evidence:{type:'confirm',of:groupId,imageHash:null,ocrPrice:null,ocrMatches:null}};
+ if(groupIdOf(prebuilt)!==groupId)fail('Giá đã hết hạn.','The price has expired.',409);
+ return contribute(getStoreFn,{context,observation:null,branch:null,ipHash,now,states,rewards,prebuilt,fingerprintOf:(hid:string)=>['confirm',hid,state,itemId,groupId].join(':')});
+}
+
 export async function storeHeldPhoto(getStoreFn:any,{username,state,itemId,id,bytes,now}:any){
  const store=communityStore(getStoreFn),shard=await readJSON(store,shardKey(state,itemId)),s=shard?.submissions?.find((x:any)=>x.id===id);
  if(!s||s.account!==username||s.status!=='held'||s.evidence?.type!=='shelf-photo')fail('Không cần ảnh cho giá này.','No photo is needed for this price.',404);
@@ -362,14 +390,16 @@ export async function shopPrices(getStoreFn:any,{state,now,includeHidden=false}:
 }
 
 // ---------- moderation (Studio) ----------
-const publicSub=(s:any,c:any)=>({id:s.id,groupId:s.groupId,itemId:s.itemId,label:s.label,retailer:s.retailer,branchLabel:s.branchLabel,branchId:s.branchId,state:s.state,price:s.price,unitPrice:s.unitPrice,unitBasis:s.unitBasis,packQty:s.packQty,packUnit:s.packUnit,promo:s.promo,validUntil:s.validUntil,capturedAt:s.capturedAt,submittedAt:s.submittedAt,status:s.status,holdReason:s.holdReason,flags:s.flags||[],approved:s.approved,shadow:!!s.shadow,counted:s.counted,evidence:{type:s.evidence?.type,ocrPrice:s.evidence?.ocrPrice??null,ocrMatches:s.evidence?.ocrMatches??null,hash:s.evidence?.imageHash?String(s.evidence.imageHash).slice(0,12):null},photo:!!s.photo,contributor:{account:s.account,trust:c?.trust??null,banned:!!c?.banned,flags:c?.flags||[],submissions:c?.submissions||0}});
+const publicSub=(s:any,c:any)=>({id:s.id,groupId:s.groupId,itemId:s.itemId,label:s.label,retailer:s.retailer,branchLabel:s.branchLabel,branchId:s.branchId,state:s.state,price:s.price,unitPrice:s.unitPrice,unitBasis:s.unitBasis,packQty:s.packQty,packUnit:s.packUnit,promo:s.promo,validUntil:s.validUntil,capturedAt:s.capturedAt,submittedAt:s.submittedAt,status:s.status,holdReason:s.holdReason,flags:s.flags||[],approved:s.approved,shadow:!!s.shadow,counted:s.counted,evidence:{type:s.evidence?.type,generic:s.evidence?.generic===true,of:s.evidence?.of||null,ocrPrice:s.evidence?.ocrPrice??null,ocrMatches:s.evidence?.ocrMatches??null,hash:s.evidence?.imageHash?String(s.evidence.imageHash).slice(0,12):null},photo:!!s.photo,contributor:{account:s.account,trust:c?.trust??null,banned:!!c?.banned,flags:c?.flags||[],submissions:c?.submissions||0}});
 export async function moderationData(getStoreFn:any,now:number){
- const store=communityStore(getStoreFn),day=today(now),queue:any[]=[],stats:any={submissions:0,confirmed:0,pending:0,held:0,reportsOpen:0,contributors:0,banned:0,trust:{'<0.3':0,'0.3–0.7':0,'≥0.7':0},hidden:0,rejected:0};const contributors=new Map<string,any>();
+ const store=communityStore(getStoreFn),day=today(now),queue:any[]=[],stats:any={submissions:0,confirmed:0,pending:0,unverified:0,held:0,reportsOpen:0,contributors:0,banned:0,trust:{'<0.3':0,'0.3–0.7':0,'≥0.7':0},hidden:0,rejected:0};const contributors=new Map<string,any>();
  for await(const k of listKeys(store,'contributors/')){const c=await readJSON(store,k);if(!c)continue;contributors.set(c.account,c);if(!c.submissions)continue;stats.contributors++;if(c.banned)stats.banned++;stats.trust[c.trust<0.3?'<0.3':c.trust<0.7?'0.3–0.7':'≥0.7']++}
  for await(const k of listKeys(store,'items/')){const sh=await readJSON(store,k);if(!sh)continue;
   for(const s of sh.submissions||[]){stats.submissions++;if(s.status==='held')stats.held++;if(s.status==='hidden')stats.hidden++;if(s.status==='rejected')stats.rejected++;
    if(s.status==='held'||s.status==='accepted'&&(s.flags||[]).length&&!s.approved)queue.push({kind:s.status==='held'?'held':'flagged',state:sh.state,...publicSub(s,contributors.get(s.account))})}
-  for(const c of shardConsensus(sh,day))stats[c.status]++;
+  for(const c of shardConsensus(sh,day)){stats[c.status]++;
+   // v1.7.2: single-family reports of a generic receipt line ("VEG 3.20", item named by the family) are listed distinctly.
+   if(c.status==='unverified'){const subs=(sh.submissions||[]).filter((s:any)=>s.groupId===c.groupId&&isShown(s));const first=subs.slice().sort((a:any,b:any)=>String(a.submittedAt).localeCompare(String(b.submittedAt)))[0];if(first)queue.push({kind:'unverified',state:sh.state,...publicSub(first,contributors.get(first.account)),families:c.families,reportsCount:subs.length})}}
   const open=(sh.reports||[]).filter((r:any)=>r.status==='open');stats.reportsOpen+=open.length;
   const byGroup=new Map<string,any[]>();for(const r of open){const l=byGroup.get(r.groupId)||[];l.push(r);byGroup.set(r.groupId,l)}
   for(const [gid,reps] of byGroup){const subs=(sh.submissions||[]).filter((s:any)=>s.groupId===gid);const c=groupConsensus(subs,day);queue.push({kind:'reported',state:sh.state,itemId:sh.itemId,groupId:gid,label:c?.label||subs[0]?.label,retailer:c?.retailer||subs[0]?.retailer,branchLabel:c?.branchLabel||subs[0]?.branchLabel,price:c?.price??subs[0]?.price,status:c?.status||'hidden',families:c?.families||0,hiddenGroup:(sh.hiddenGroups||[]).includes(gid),reports:reps.map(r=>({id:r.id,reason:r.reason,note:r.note,at:r.at})),submissions:subs.slice(-10).map((s:any)=>publicSub(s,contributors.get(s.account)))})}

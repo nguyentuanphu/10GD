@@ -41,6 +41,7 @@ function lineHint(it){
  if(it.fromTwin)h.push(T('tên/cỡ lấy từ dòng giống hệt','name/size from the identical line'));
  if(it.priceRepaired)h.push(T('giá cắt mép, điền theo tổng in — kiểm tra','clipped price filled from the printed total — check'));
  if(it.priceMissing&&it.price==null)h.push(T('chưa đọc được giá — nhập tay','price not read — enter it'));
+ if(it.kind==='item'&&it.generic)h.push(T('Hoá đơn không ghi tên món — ghép ở “Ghép giá với giỏ đi chợ”, app không tự đoán','The receipt prints no item name — match it in “Match prices to the shopping basket”; nothing is guessed'));
  if(it.kind==='item'&&(it.nonFood||it.snack))h.push(it.nonFood?T('không phải thực phẩm — chỉ tính chi tiêu','not food — spending only'):T('đồ ăn vặt — không đối ứng nguyên liệu','snack — not matched to an ingredient'));
  return h;
 }
@@ -48,10 +49,10 @@ function draftFromParsed(parsed,text){
  const memory=state.aliases||{};
  const items=parsed.items.map(it=>{
   let m=RP.matchIngredient(it,{ingredients:INGREDIENTS,aliases:typeof INGREDIENT_ALIASES!=='undefined'?INGREDIENT_ALIASES:{},memory,retailer:parsed.retailer});
-  if(!m.match&&it.kind==='item'&&!it.snack&&!it.nonFood&&typeof inferIngredient==='function'){const old=inferIngredient(it.name,state);if(old.confidence==='learned')m={match:old.match,confidence:'learned'}}
+  if(!m.match&&it.kind==='item'&&!it.snack&&!it.nonFood&&!it.generic&&typeof inferIngredient==='function'){const old=inferIngredient(it.name,state);if(old.confidence==='learned')m={match:old.match,confidence:'learned'}}
   const q=formQuantity(it,m.match),value=it.price==null?0:Math.round(((it.price||0)+(it.discount||0))*100)/100;
-  const extra={lineKind:it.kind};if(it.code)extra.code=it.code;if(it.size)extra.size=it.size;if(it.weight){extra.weightKg=it.weight.qty;extra.perKg=it.perKg}if(it.multi)extra.multi=it.multi;if(it.discount)extra.discount=it.discount;if(it.nonFood)extra.nonFood=true;
-  return{id:uid(),label:it.name.slice(0,200),total:value,match:it.kind==='item'?(m.match.startsWith?.('recipe:')?'':m.match):'',confidence:m.confidence==='suggested'?'suggested':'',qty:q.qty,unit:q.unit,include:true,extra,hint:lineHint(it),memKeys:it.kind==='item'?RP.memoryKeys(it,parsed.retailer):[]};
+  const extra={lineKind:it.kind};if(it.code)extra.code=it.code;if(it.size)extra.size=it.size;if(it.weight){extra.weightKg=it.weight.qty;extra.perKg=it.perKg}if(it.multi)extra.multi=it.multi;if(it.discount)extra.discount=it.discount;if(it.nonFood)extra.nonFood=true;if(it.generic){extra.generic=true;extra.genericKey=it.genericKey||'price';if(it.plu)extra.plu=it.plu}
+  return{id:uid(),label:(it.name||(it.generic?(it.weight?`${it.weight.qty} kg @ ${(+it.perKg).toFixed(2)}/kg`:(it.price!=null?(+it.price).toFixed(2):'?')):'')).slice(0,200),total:value,match:it.kind==='item'?(m.match.startsWith?.('recipe:')?'':m.match):'',confidence:m.confidence==='suggested'?'suggested':'',qty:q.qty,unit:q.unit,include:true,extra,hint:lineHint(it),memKeys:it.kind==='item'?RP.memoryKeys(it,parsed.retailer):[]};
  });
  return{items,meta:{retailer:parsed.retailer,storeNo:parsed.storeNo,time:parsed.time,printedCount:parsed.printedCount,countRead:parsed.countRead,printedTotal:parsed.printedTotal,refund:parsed.refund,warnings:parsed.warnings,txRaw:parsed.txRaw,store:parsed.store,date:parsed.date,currency:parsed.currency}};
 }
@@ -122,13 +123,15 @@ receiptEditor=function(){
 };
 
 // Editing a saved receipt keeps its receipt facts (refund, printed time / count, hash, reconciliation).
-const RECORD_KEYS=['retailer','refund','printed','source','receiptKey','reconciled'],LINE_KEYS=['lineKind','code','size','weightKg','perKg','multi','discount','nonFood'];
+const RECORD_KEYS=['retailer','refund','printed','source','receiptKey','reconciled'],LINE_KEYS=['lineKind','code','size','weightKg','perKg','multi','discount','nonFood','generic','genericKey','plu','unknown','covers','basket','splitFrom'];
 const oldOpen=openReceipt;
 openReceipt=async function(id){
  await oldOpen(id);const r=state.receipts.find(x=>x.id===id),d=receiptDraft;if(!r||!d||d.id!==id)return;
  d.extra={};for(const k of RECORD_KEYS)if(r[k]!==undefined)d.extra[k]=r[k];d.refund=!!r.refund;d.dupDecided=true;
  for(const it of d.items){const src=(r.items||[]).find(x=>x.id===it.id);if(!src)continue;const e={};for(const k of LINE_KEYS)if(src[k]!==undefined)e[k]=src[k];it.extra=e;
-  it.hint=lineHint({kind:e.lineKind||'item',weight:e.weightKg?{qty:e.weightKg}:null,perKg:e.perKg,multi:e.multi,discount:e.discount,nonFood:e.nonFood})}
+  it.hint=lineHint({kind:e.lineKind||'item',weight:e.weightKg?{qty:e.weightKg}:null,perKg:e.perKg,multi:e.multi,discount:e.discount,nonFood:e.nonFood,generic:e.generic});
+   // v1.7.2: a generic line saved as "Đồ khác (chưa rõ)" opens unmatched again, so it can still be matched
+   if(e.generic&&e.unknown&&it.match==='other')it.match=''}
  receiptEditor();
 };
 

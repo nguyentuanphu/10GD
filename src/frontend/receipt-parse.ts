@@ -293,7 +293,7 @@ function parseReceipt(text,opts={}){
   if(/\bnet\b.*\b(gst|vat)\b|^\W*[ab]\s+\d+[.,]\d\s*%/i.test(line))continue;
   if(section==='head'){
    if(i<=bodyStart||bodyStart<0&&SKIP_RE.test(n)){head.push(line);if(i===bodyStart)section='body';continue}
-   if(bodyStart<0){const p=priceOf(line,aldi);if(!(p&&/[A-Za-z]{2}/.test(p.label)||WEIGHT_RE.test(line))){head.push(line);if(/[A-Za-z]{3}/.test(line)&&!SKIP_RE.test(n))pending={text:line};continue}}
+   if(bodyStart<0){const p=priceOf(line,aldi);if(!(p&&/[A-Za-z]{2}/.test(p.label)||WEIGHT_RE.test(line))){head.push(line);if(/[A-Za-z]{3}/.test(line)&&!SKIP_RE.test(n))pending={text:line,head:true};continue}}
    section='body';
   }
   if(section==='pay')continue;
@@ -303,7 +303,9 @@ function parseReceipt(text,opts={}){
   if(w){const kg=+w[1].replace(/\s/g,'').replace(',','.'),per=+w[2].replace(',','.'),p=priceOf(line.slice(w.index+w[0].length),aldi);
    let target=null;
    if(pending&&section==='body'){const c=cleanLabel(pending.text,det.id);if(/[A-Za-z]{2}/.test(c.label))target=add(makeItem(c.label,c.code,p?p.price:null,p?.gst,pending.text,!p))}
-   else if(lastItem&&lastItem.weight==null)target=lastItem;
+   else if(lastItem&&lastItem.weight==null&&!(!det.id&&p&&lastItem.price!=null&&Math.abs(lastItem.price-p.price)>0.015))target=lastItem;
+    // v1.7.2 local grocer: "0.850kg @ 12.99/kg 11.04" with its own price is its own (generic) line
+    else if(!det.id&&p&&section==='body'){target=add(makeItem('',null,p.price,p.gst,line,false));target.genericKey='w'}
    pending=null;
    if(target&&kg>0&&kg<50){target.weight={qty:kg,unit:'kg'};target.perKg=per;target.raw+=' / '+line;if(target.price==null&&p){target.price=p.price;target.priceMissing=false}target.qty=kg;target.unit='kg';target.size=null}
    continue}
@@ -319,7 +321,9 @@ function parseReceipt(text,opts={}){
    continue}
   const p=priceOf(line,aldi);
   if(!p||!/[A-Za-z]{2}/.test(p.label)){
-   if(p&&pending&&section==='body'){const c=cleanLabel(pending.text,det.id);if(/[A-Za-z]{2}/.test(c.label))add(makeItem(c.label,c.code,p.price,p.gst,pending.text+' '+line,false));pending=null;continue}
+   // v1.7.2 local grocer: a price on its own ("3.50") or a PLU only ("4011 2.10") is a generic line
+    if(p&&!det.id&&section==='body'&&(!pending||pending.head)){const g=genericLabel(p.label);if(g){add(makeItem(p.label.replace(/[^0-9A-Za-z ]+/g,' ').trim(),null,p.price,p.gst,line,false));pending=null;continue}}
+    if(p&&pending&&section==='body'){const c=cleanLabel(pending.text,det.id);if(/[A-Za-z]{2}/.test(c.label))add(makeItem(c.label,c.code,p.price,p.gst,pending.text+' '+line,false));pending=null;continue}
    const cp=clippedPrice(line);
    if(cp&&/[A-Za-z]{2}/.test(cp.label)){const c=cleanLabel(cp.label,det.id);if(c.label&&(section==='body'||c.code)){const it=add(makeItem(c.label,c.code,null,null,line,true));it.pricePattern=cp.pattern}pending=null;continue}
    keepPending();
@@ -381,8 +385,23 @@ function makeItem(label,code,price,gst,raw,missing){
  const s=extractSize(label);let name=s.text,qty=null,unit=null;
  const each=/\b(ea|each)$/i.test(name);if(each){name=name.replace(/\s*\b(ea|each)$/i,'').trim();qty=1;unit='each'}
  if(s.size){qty=s.size.qty;unit=s.size.unit}
- const expanded=expandAbbrev(name);
- return{kind:'item',name,code:code||null,price:price??null,gst:gst||null,size:s.size,pack:s.pack,repaired:s.repaired,qty,unit,weight:null,perKg:null,multi:null,each,expanded,snack:isSnack(expanded),nonFood:isNonFood(expanded),raw:String(raw||''),priceMissing:!!missing||price==null,dup:null};
+ const expanded=expandAbbrev(name),g=genericLabel(name);
+ return{kind:'item',name,code:code||null,price:price??null,gst:gst||null,size:s.size,pack:s.pack,repaired:s.repaired,qty,unit,weight:null,perKg:null,multi:null,each,expanded,snack:isSnack(expanded),nonFood:isNonFood(expanded),raw:String(raw||''),priceMissing:!!missing||price==null,dup:null,generic:!!g,genericKey:g?g.key:null,plu:g?g.plu:null};
+}
+// v1.7.2 generic / local-grocer lines: a department word ("GROCERY", "VEG", "MEAT", "DEPT 01", "MISC"), a PLU
+// on its own, or only a price. They name no item, so they are never matched automatically ("Chưa rõ món").
+// Returns {key, plu} (key = stable learning key: "l:veg", "d:01", "p:4011", "price") or null.
+const GENERIC_WORDS='groceries|grocery|grocer|produce|veg|vege|veges|vegs|vegie|vegies|veggie|veggies|vegetable|vegetables|fruit|fruits|fruit veg|fruit and veg|fruit n veg|f v|fv|meat|meats|deli|delicatessen|seafood|sea food|misc|miscellaneous|sundry|sundries|general|item|items|open price|dept|department';
+const GENERIC_RE=new RegExp(`^(${GENERIC_WORDS})(?: no)?(?: ?(\\d{1,6}))?$`);
+function genericLabel(name){
+ const n=norm(name).replace(/\b(x ?1|qty ?1|1 x)\b/g,'').replace(/\s+/g,' ').trim();
+ if(!n)return{key:'price',plu:null};
+ if(/^\d{1,4}(?: \d{2})?$/.test(n)&&/^\s*-?\$?\s?\d{1,4}[.,]\d{2}\s*$/.test(String(name)))return{key:'price',plu:null};
+ let m=n.match(/^(?:plu|plu no|plu code|code) ?(\d{2,6})$/)||n.match(/^(\d{3,6})$/);if(m)return{key:'p:'+m[1],plu:m[1]};
+ m=n.match(/^(?:dept|department|d) ?(\d{1,3})$/);if(m)return{key:'d:'+m[1].padStart(2,'0'),plu:null};
+ m=n.match(GENERIC_RE);if(m){const w=m[1].replace(/^(groceries|grocer)$/,'grocery').replace(/^(vege|veges|vegs|vegie|vegies|veggie|veggies|vegetable|vegetables)$/,'veg').replace(/^(fruits)$/,'fruit').replace(/^(fruit veg|fruit and veg|fruit n veg|f v|fv)$/,'fruit veg').replace(/^meats$/,'meat').replace(/^delicatessen$/,'deli').replace(/^sea food$/,'seafood').replace(/^(miscellaneous|sundry|sundries|general|open price)$/,'misc').replace(/^items$/,'item').replace(/^department$/,'dept');
+  return{key:w==='dept'&&m[2]?'d:'+m[2].padStart(2,'0'):'l:'+w+(m[2]&&w!=='dept'?' '+m[2]:''),plu:null}}
+ return null;
 }
 
 // ---------------------------------------------------------------- warnings (VI/EN)
@@ -420,7 +439,7 @@ function looksLikeReceipt(text){const r=typeof text==='string'?parseReceipt(text
 const EN_ALIASES={salmon:['salmon'],corn:['sweet corn','corn kernels','corn cob'],milk:['milk','full cream milk','lite milk','skim milk'],yogurt:['yogurt','yoghurt','greek yoghurt'],cream:['cream whipped','whipped cream','thickened cream','cooking cream','pure cream','whipping cream'],butter:['butter','unsalted butter'],mozzarella:['mozzarella'],parmesan:['parmesan'],feta:['feta'],bread:['bread','white bread','sourdough','rolls','bread rolls','wraps','white wraps'],wholeBread:['wholemeal bread','wholemeal','hi fibre','grain bread'],flour:['plain flour','flour'],oats:['rolled oats','oats'],lemon:['lemon','lemons'],lettuce:['lettuce','iceberg lettuce','cos lettuce'],zucchini:['zucchini'],eggplant:['eggplant'],bellPepper:['capsicum','capsicums'],asparagus:['asparagus'],avocado:['avocado','avocados'],apple:['apple','apples','apple jazz','apple pink lady'],orange:['orange','oranges','mandarins','mandarin'],tuna:['tuna'],spaghetti:['spaghetti'],penne:['penne'],chickpea:['chickpeas'],peanut:['peanuts'],almond:['almonds'],walnut:['walnuts'],oil:['canola oil','olive oil','vegetable oil','sunflower oil'],carrot:['carrots','carrot'],onion:['onions','brown onions','red onions'],potato:['potatoes','brushed potatoes','washed potatoes'],broccoli:['broccoli'],egg:['eggs','free range eggs','cage eggs','cage 12pk','cage free'],spinach:['baby spinach','spinach'],tomato:['tomato','tomatoes','tomato gourmet','cherry tomatoes'],mushroom:['mushrooms','mushroom oyster','mushroom']};
 // Returns {match, confidence:'learned'|'high'|'suggested'|'unknown'} for one parsed line.
 function matchIngredient(item,{ingredients={},aliases={},extraAliases={},memory={},retailer=null}={}){
- if(item.kind!=='item')return{match:'',confidence:'unknown'};
+ if(item.kind!=='item'||item.generic)return{match:'',confidence:'unknown'};
  for(const k of memoryKeys(item,retailer)){const v=memory[k];if(v&&(v==='other'||Object.hasOwn(ingredients,v)))return{match:v,confidence:'learned'}}
  if(item.snack||item.nonFood)return{match:'',confidence:'unknown'};
  const words=norm(item.expanded||item.name).replace(/\b\d+(\.\d+)?(kg|g|ml|l|pk|pack|gram|litre)?\b/g,' ').replace(/\b(pack|bag|each|loose|cut|bottle|carton|per kg|perkg|kg)\b/g,' ').replace(/\s+/g,' ').trim();
@@ -436,7 +455,7 @@ function matchIngredient(item,{ingredients={},aliases={},extraAliases={},memory=
  return{match:best,confidence:score>=100||cover>=0.6?'high':'suggested'};
 }
 // Key(s) for the family's confirmed mapping: retailer + item code when printed, and retailer + name.
-function memoryKeys(item,retailer){const r=norm(retailer||'any')||'any',out=[];if(item.code)out.push('receipt '+r+' c '+item.code);const n=norm(item.name||item.label);if(n)out.push('receipt '+r+' n '+n);return out}
+function memoryKeys(item,retailer){if(item.generic)return[];const r=norm(retailer||'any')||'any',out=[];if(item.code)out.push('receipt '+r+' c '+item.code);const n=norm(item.name||item.label);if(n)out.push('receipt '+r+' n '+n);return out}
 
 // Canonical quantity of one line (g / ml / each) — only from what is printed, else null.
 function lineQuantity(item){
@@ -651,6 +670,6 @@ async function recognize(file,{lang='eng',status=null,createWorker=null,original
  }finally{if(worker)try{await worker.terminate()}catch{}}
 }
 
-const api={readScore,preferOther,RETAILERS,ABBREVIATIONS,EN_ALIASES,KNOWN_WORDS,addWords,detectRetailer,detectCurrency,expandAbbrev,splitGlued,isSnack,isNonFood,extractSize,repairNumber,plausible,tidy,cleanLabel,priceOf,clippedPrice,parseReceipt,warningsFor,warningText,looksLikeReceipt,differenceNote,redact,isSensitive,matchIngredient,memoryKeys,lineQuantity,fingerprint,receiptKey,sha256Hex,findDuplicate,sameStore,reconcile,findDate,preprocess,toGray,otsu,charAccuracy,prepareImage,recognize,norm,warpField};
+const api={genericLabel,GENERIC_WORDS,readScore,preferOther,RETAILERS,ABBREVIATIONS,EN_ALIASES,KNOWN_WORDS,addWords,detectRetailer,detectCurrency,expandAbbrev,splitGlued,isSnack,isNonFood,extractSize,repairNumber,plausible,tidy,cleanLabel,priceOf,clippedPrice,parseReceipt,warningsFor,warningText,looksLikeReceipt,differenceNote,redact,isSensitive,matchIngredient,memoryKeys,lineQuantity,fingerprint,receiptKey,sha256Hex,findDuplicate,sameStore,reconcile,findDate,preprocess,toGray,otsu,charAccuracy,prepareImage,recognize,norm,warpField};
 root.ReceiptParse=api;
 })(globalThis);
