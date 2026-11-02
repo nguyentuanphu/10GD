@@ -324,10 +324,12 @@ dialog::backdrop{background:#0008}
 #scanlist-main .sl-list li,#scanlist-main .sl-cat li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);min-width:0;overflow-wrap:anywhere}
 #scanlist-main .sl-list li>span,#scanlist-main .sl-cat li>span{flex:1 1 200px;min-width:0}
 #scanlist-main .sl-cat{max-height:520px;overflow:auto}
-#scanlist-main .sl-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin-top:10px}
-#scanlist-main .sl-form label{flex:1 1 200px}
+#scanlist-main .sl-form{display:grid;gap:10px;margin-top:12px;max-width:640px}
+#scanlist-main .sl-form label{display:flex;flex-direction:column;gap:4px;font-weight:600}
+#scanlist-main .sl-form .btn{justify-self:start}
+#scanlist-main .sl-rets legend{font-weight:600;padding:0;margin-bottom:2px}
 #scanlist-main .sl-rets{display:flex;flex-wrap:wrap;gap:4px 12px;border:0;padding:0;margin:0}
-#scanlist-main .sl-rets .check{min-height:44px;display:inline-flex;align-items:center;gap:6px}
+#scanlist-main .sl-rets .check{min-height:44px;display:inline-flex;flex-direction:row;align-items:center;gap:6px;font-weight:400}
 #scanlist-main .sl-sp{margin:10px 0}#scanlist-main .sl-sp h3{margin:0 0 4px;font-size:1rem}
 #scanlist-main .sl-sp-add input{flex:1 1 220px;min-width:0}
 #scanlist-main .sl-search{display:flex;flex-direction:column;gap:4px;max-width:420px;margin-bottom:8px}

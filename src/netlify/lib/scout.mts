@@ -498,6 +498,6 @@ export async function scanList(getStoreFn:any,{now,env=process.env,adapter}:any)
  return{day,autoScout:s.autoScout,planAt:(await readJSON(scoutStore(getStoreFn),'plan/'+day))?.at||null,totals,emptyReason,groups:order.filter(k=>groups[k]).map(k=>({...groups[k],stores:Object.values(groups[k].stores)})),
   sources:{pinned:Object.entries<any>(pinned).map(([itemId,p])=>({itemId,name:nameOf.get(itemId)?.name||itemId,nameVi:nameOf.get(itemId)?.nameVi||null,retailers:p.retailers||null,by:p.by,at:p.at})),
    specials:Object.fromEntries(RETAILERS.map(r=>[r,{urls:(s.specials?.[r]||config?.retailers?.[r]?.specials||[]),source:s.specials?.[r]?'studio':'config',hosts:config?.retailers?.[r]?.hosts||[]}])),
-   links:links.map((l:any)=>({itemId:l.itemId,name:nameOf.get(l.itemId)?.name||l.itemId,retailer:l.retailer,productUrl:l.productUrl})),
+   links:links.filter((l:any)=>typeof l.productUrl==='string'&&l.productUrl).map((l:any)=>({itemId:l.itemId,name:nameOf.get(l.itemId)?.name||l.itemId,retailer:l.retailer,productUrl:l.productUrl})),
    catalog:SCOUT_CATALOG.map(c=>({itemId:c.itemId,name:c.name,nameVi:c.nameVi,add:syn[c.itemId]?.add||[],exclude:syn[c.itemId]?.exclude||[]})),
    wanted:Object.fromEntries(Object.entries<any>(wantedRows).map(([st,rows])=>[st,rows.map((r:any)=>({...r,name:nameOf.get(r.itemId)?.name||r.itemId}))]))}}}

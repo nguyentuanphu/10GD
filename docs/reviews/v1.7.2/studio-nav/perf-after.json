@@ -7,8 +7,8 @@
    "server": 350
   },
   "cold": {
-   "firstPaintMs": 288,
-   "firstContentMs": 847,
+   "firstPaintMs": 276,
+   "firstContentMs": 834,
    "staticRequests": 3,
    "scriptRequests": 1,
    "scriptKB": 144,
@@ -21,7 +21,7 @@
    ]
   },
   "warmReload": {
-   "firstContentMs": 501,
+   "firstContentMs": 492,
    "apiBeforeContent": 2
   },
   "switches": [
@@ -35,14 +35,14 @@
    {
     "page": "overview",
     "visit": "again",
-    "ms": 43,
+    "ms": 37,
     "api": [],
     "scripts": []
    },
    {
     "page": "accounts",
     "visit": "first",
-    "ms": 47,
+    "ms": 40,
     "api": [],
     "scripts": []
    },
@@ -56,7 +56,7 @@
    {
     "page": "families",
     "visit": "first",
-    "ms": 482,
+    "ms": 474,
     "api": [
      "studio:families"
     ],
@@ -65,14 +65,14 @@
    {
     "page": "families",
     "visit": "again",
-    "ms": 41,
+    "ms": 45,
     "api": [],
     "scripts": []
    },
    {
     "page": "urgent",
     "visit": "first",
-    "ms": 602,
+    "ms": 623,
     "api": [
      "studio:urgent"
     ],
@@ -83,14 +83,14 @@
    {
     "page": "urgent",
     "visit": "again",
-    "ms": 63,
+    "ms": 40,
     "api": [],
     "scripts": []
    },
    {
     "page": "scout",
     "visit": "first",
-    "ms": 631,
+    "ms": 637,
     "api": [
      "scout:studio-overview",
      "scout:studio-coverage"
@@ -102,14 +102,14 @@
    {
     "page": "scout",
     "visit": "again",
-    "ms": 68,
+    "ms": 51,
     "api": [],
     "scripts": []
    },
    {
     "page": "usage",
     "visit": "first",
-    "ms": 608,
+    "ms": 602,
     "api": [
      "usage:studio-usage-overview"
     ],
@@ -120,14 +120,14 @@
    {
     "page": "usage",
     "visit": "again",
-    "ms": 39,
+    "ms": 38,
     "api": [],
     "scripts": []
    },
    {
     "page": "settings",
     "visit": "first",
-    "ms": 928,
+    "ms": 938,
     "api": [
      "studio:settings",
      "scout:studio-auto"
@@ -139,14 +139,14 @@
    {
     "page": "settings",
     "visit": "again",
-    "ms": 37,
+    "ms": 41,
     "api": [],
     "scripts": []
    },
    {
     "page": "community",
     "visit": "first",
-    "ms": 506,
+    "ms": 497,
     "api": [
      "studio:community"
     ],
@@ -155,14 +155,14 @@
    {
     "page": "community",
     "visit": "again",
-    "ms": 40,
+    "ms": 38,
     "api": [],
     "scripts": []
    },
    {
     "page": "feedback",
     "visit": "first",
-    "ms": 587,
+    "ms": 589,
     "api": [
      "feedback:studio-inbox"
     ],
@@ -173,14 +173,14 @@
    {
     "page": "feedback",
     "visit": "again",
-    "ms": 44,
+    "ms": 38,
     "api": [],
     "scripts": []
    },
    {
     "page": "voice",
     "visit": "first",
-    "ms": 582,
+    "ms": 583,
     "api": [
      "voice-stats:studio-overview"
     ],
@@ -191,15 +191,15 @@
    {
     "page": "voice",
     "visit": "again",
-    "ms": 38,
+    "ms": 40,
     "api": [],
     "scripts": []
    }
   ],
   "summary": {
-   "medianFirstVisitMs": 587,
-   "medianCachedSwitchMs": 41,
-   "maxCachedSwitchMs": 68
+   "medianFirstVisitMs": 589,
+   "medianCachedSwitchMs": 40,
+   "maxCachedSwitchMs": 51
   }
  },
  "slow": {
@@ -210,8 +210,8 @@
    "server": 700
   },
   "cold": {
-   "firstPaintMs": 824,
-   "firstContentMs": 2442,
+   "firstPaintMs": 812,
+   "firstContentMs": 2426,
    "staticRequests": 3,
    "scriptRequests": 1,
    "scriptKB": 144,
@@ -224,14 +224,14 @@
    ]
   },
   "warmReload": {
-   "firstContentMs": 1788,
+   "firstContentMs": 1797,
    "apiBeforeContent": 2
   },
   "switches": [
    {
     "page": "overview",
     "visit": "first",
-    "ms": 39,
+    "ms": 38,
     "api": [],
     "scripts": []
    },
@@ -245,21 +245,21 @@
    {
     "page": "accounts",
     "visit": "first",
-    "ms": 46,
+    "ms": 41,
     "api": [],
     "scripts": []
    },
    {
     "page": "accounts",
     "visit": "again",
-    "ms": 39,
+    "ms": 38,
     "api": [],
     "scripts": []
    },
    {
     "page": "families",
     "visit": "first",
-    "ms": 1067,
+    "ms": 1059,
     "api": [
      "studio:families"
     ],
@@ -268,14 +268,14 @@
    {
     "page": "families",
     "visit": "again",
-    "ms": 38,
+    "ms": 42,
     "api": [],
     "scripts": []
    },
    {
     "page": "urgent",
     "visit": "first",
-    "ms": 1472,
+    "ms": 1464,
     "api": [
      "studio:urgent"
     ],
@@ -286,14 +286,14 @@
    {
     "page": "urgent",
     "visit": "again",
-    "ms": 52,
+    "ms": 68,
     "api": [],
     "scripts": []
    },
    {
     "page": "scout",
     "visit": "first",
-    "ms": 1695,
+    "ms": 1689,
     "api": [
      "scout:studio-overview",
      "scout:studio-coverage"
@@ -305,14 +305,14 @@
    {
     "page": "scout",
     "visit": "again",
-    "ms": 38,
+    "ms": 49,
     "api": [],
     "scripts": []
    },
    {
     "page": "usage",
     "visit": "first",
-    "ms": 1456,
+    "ms": 1454,
     "api": [
      "usage:studio-usage-overview"
     ],
@@ -323,14 +323,14 @@
    {
     "page": "usage",
     "visit": "again",
-    "ms": 38,
+    "ms": 39,
     "api": [],
     "scripts": []
    },
    {
     "page": "settings",
     "visit": "first",
-    "ms": 2033,
+    "ms": 2039,
     "api": [
      "studio:settings",
      "scout:studio-auto"
@@ -342,14 +342,14 @@
    {
     "page": "settings",
     "visit": "again",
-    "ms": 44,
+    "ms": 39,
     "api": [],
     "scripts": []
    },
    {
     "page": "community",
     "visit": "first",
-    "ms": 1214,
+    "ms": 1218,
     "api": [
      "studio:community"
     ],
@@ -358,14 +358,14 @@
    {
     "page": "community",
     "visit": "again",
-    "ms": 38,
+    "ms": 46,
     "api": [],
     "scripts": []
    },
    {
     "page": "feedback",
     "visit": "first",
-    "ms": 1439,
+    "ms": 1443,
     "api": [
      "feedback:studio-inbox"
     ],
@@ -376,14 +376,14 @@
    {
     "page": "feedback",
     "visit": "again",
-    "ms": 43,
+    "ms": 38,
     "api": [],
     "scripts": []
    },
    {
     "page": "voice",
     "visit": "first",
-    "ms": 1395,
+    "ms": 1405,
     "api": [
      "voice-stats:studio-overview"
     ],
@@ -400,9 +400,9 @@
    }
   ],
   "summary": {
-   "medianFirstVisitMs": 1439,
-   "medianCachedSwitchMs": 38,
-   "maxCachedSwitchMs": 52
+   "medianFirstVisitMs": 1443,
+   "medianCachedSwitchMs": 39,
+   "maxCachedSwitchMs": 68
   }
  }
 }
