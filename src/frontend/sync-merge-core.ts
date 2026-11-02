@@ -30,7 +30,10 @@ function syncHash(s){let h=0x811c9dc5;for(let i=0;i<s.length;i++){h^=s.charCodeA
 const syncClone=x=>x===undefined?undefined:JSON.parse(JSON.stringify(x));
 // Path helpers. A path is a list of keys; inside id-keyed arrays the segment is the item id.
 function syncIsMealPath(p){return p.length===5&&p[0]==='weeks'&&p[2]==='days'}
-function syncIsItemPath(p,inKeyed){return inKeyed||p.length===0||syncIsMealPath(p)||p.length===2&&p[0]==='weeks'||p.length===1&&(p[0]==='preferences'||p[0]==='settings')}
+// v1.7.3 family calendar: one availability entry (availability/<member>/<date>/<meal>) is an item and merges whole —
+// status, portion flag, note and reporter always come from the same save (never a mix of two devices' entries).
+function syncIsAvailabilityPath(p){return p.length===4&&p[0]==='availability'}
+function syncIsItemPath(p,inKeyed){return inKeyed||p.length===0||syncIsMealPath(p)||syncIsAvailabilityPath(p)||p.length===2&&p[0]==='weeks'||p.length===1&&(p[0]==='preferences'||p[0]==='settings')}
 function syncAtomicPath(p){const k=p[p.length-1];return SYNC_ATOMIC.has(k)||k==='recipes'&&p.length===6&&p[0]==='weeks'}
 function syncKeyedArray(...lists){let any=false;for(const a of lists){if(a===undefined||a===null)continue;if(!Array.isArray(a))return false;const seen=new Set();for(const x of a){if(!syncIsObj(x)||!(typeof x.id==='string'&&x.id||typeof x.id==='number'))return false;const k=String(x.id);if(seen.has(k))return false;seen.add(k)}any=true}return any}
 const syncPrimitiveList=a=>Array.isArray(a)&&a.every(x=>x===null||typeof x!=='object');
@@ -77,6 +80,7 @@ function syncM(b,l,r,path,ctx,tl,tr,inKeyed){
  if(path.length===1&&(key==='syncTombstones'))return l;// merged at the end
  if(path.length===1&&key==='deletedRecipeIds'&&Array.isArray(l)&&Array.isArray(r))return syncMergeList(b,l,r).filter((x,i,a)=>a.indexOf(x)===i);
  if(syncIsObj(l)&&syncIsObj(r)){
+  if(syncIsAvailabilityPath(path))return syncPick(l,r,tl,tr);
   if(path.length===2&&path[0]==='recipes'&&inKeyed)return syncMergeRecipe(syncIsObj(b)?b:undefined,l,r,path,ctx,tl,tr);
   return syncMergeObject(syncIsObj(b)?b:undefined,l,r,path,ctx,tl,tr,item)}
  if(Array.isArray(l)&&Array.isArray(r)&&!syncAtomicPath(path)){

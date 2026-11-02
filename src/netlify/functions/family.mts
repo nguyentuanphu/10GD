@@ -6,6 +6,7 @@ import { getStore } from '@netlify/blobs';
 import {recordEvent,recordSync,isFamilySuspended,familyLimits} from '../lib/studio.mjs';
 import {pushDetailOf} from '../lib/urgent-report.mjs';
 import {droppedItems} from '../lib/sync-guard.mjs';
+import {notifyAvailabilityChange} from '../lib/availability-notify.mjs';
 const json=(data,status=200,extra={})=>Response.json(data,{status,headers:{'Cache-Control':'no-store',...extra}});
 function validState(s){return s&&s.version===1&&Array.isArray(s.members)&&s.members.length>0&&s.members.length<=12&&Array.isArray(s.recipes)&&s.weeks&&typeof s.weeks==='object'&&Array.isArray(s.pantry)&&s.preferences&&(!s.receipts||Array.isArray(s.receipts))}
 export function createFamilyHandler({getStoreFn=getStore,pushSend=null,reminderThrottleMs=60000}={}){
@@ -14,6 +15,9 @@ const sendOpt=pushSend?{send:pushSend}:{};
 // in the background and at most once a minute per family per instance, so a reminder set for "now" is not held for the next tick.
 const reminderRuns=new Map();
 const remindersAfterSave=(runtime,store,familyId,state,origin)=>{if(typeof runtime?.waitUntil!=='function')return;const now=Date.now();if(now-(reminderRuns.get(familyId)||0)<reminderThrottleMs)return;reminderRuns.set(familyId,now);if(reminderRuns.size>500)reminderRuns.delete(reminderRuns.keys().next().value);runtime.waitUntil(scheduledReminders(store,new Date(now),{subject:origin,state,...sendOpt}).catch(e=>console.warn('Reminders after save failed',e?.name)))};
+// v1.7.3 family calendar: a write that changes someone's busy/away entries notifies the rest of the family at once
+// (lib/availability-notify: built from the stored data, deduped, category + quiet hours respected). Background only.
+const availabilityAfterSave=(runtime,store,prev,next,accountMemberId,origin)=>{if(typeof runtime?.waitUntil!=='function'||!prev)return;runtime.waitUntil(notifyAvailabilityChange(store,prev,next,{accountMemberId,subject:origin,...sendOpt}).catch(()=>{}))};
 const familyStore=()=>getStoreFn({name:'bep-family-data',consistency:'strong',region:'ap-southeast-2'});
 return async(request,runtime=undefined)=>{
  // Owner-console hooks never throw; with waitUntil they finish after the response so sync/push latency is unchanged.
@@ -66,15 +70,16 @@ return async(request,runtime=undefined)=>{
   // v1.7.3 merging clients (sync:2): a stale write gets the stored copy back in the 409 so the device merges and retries
   // without another read; a write that would drop items the stored copy has (and the new state does not tombstone) is
   // refused. The conditional write below (onlyIfMatch / onlyIfNew) still decides every race.
-  const merging=body.sync===2,merge=body.merge&&typeof body.merge==='object'?body.merge:null;
+  const merging=body.sync===2,merge=body.merge&&typeof body.merge==='object'?body.merge:null;let previous=null;
   if(merging){const current=await store.getWithMetadata('state',{type:'json'}),etag=current?.etag||null;
    if((body.etag||null)!==etag){await later(recordSync(getStoreFn,accountContext.household.id,{stale:true}));return json({error:'Another device changed this data.',reason:'stale',state:current?.data||null,etag},409)}
    const dropped=current?.data?droppedItems(current.data,body.state):[];
-   if(dropped.length){await later(recordSync(getStoreFn,accountContext.household.id,{conflict:true}));return json({error:'This change would remove items another device added.',reason:'would_drop',dropped:dropped.slice(0,20),state:current.data,etag},409)}}
+   if(dropped.length){await later(recordSync(getStoreFn,accountContext.household.id,{conflict:true}));return json({error:'This change would remove items another device added.',reason:'would_drop',dropped:dropped.slice(0,20),state:current.data,etag},409)}
+   previous=current?.data||null}
   const options=body.etag?{onlyIfMatch:body.etag}:{onlyIfNew:true};const result=await store.setJSON('state',body.state,options);
   if(!result.modified){if(merging){const current=await store.getWithMetadata('state',{type:'json'});await later(recordSync(getStoreFn,accountContext.household.id,{stale:true}));return json({error:'Another device changed this data.',reason:'stale',state:current?.data||null,etag:current?.etag||null},409)}await later(recordSync(getStoreFn,accountContext.household.id,{conflict:true}));return json({error:'Another device changed this data. Reload and resolve.'},409)}
   const contentConflicts=Number.isInteger(merge?.conflicts)&&merge.conflicts>0?Math.min(merge.conflicts,50):0;
-  await later(recordSync(getStoreFn,accountContext.household.id,{bytes:Buffer.byteLength(raw),merged:merge?.merged===true,contentConflicts}));remindersAfterSave(runtime,store,accountContext.household.id,body.state,url.origin);return json({etag:result.etag})}
+  await later(recordSync(getStoreFn,accountContext.household.id,{bytes:Buffer.byteLength(raw),merged:merge?.merged===true,contentConflicts}));remindersAfterSave(runtime,store,accountContext.household.id,body.state,url.origin);availabilityAfterSave(runtime,store,previous,body.state,accountContext.member?.memberId||null,url.origin);return json({etag:result.etag})}
  if(op==='photo'){const id=url.searchParams.get('id');if(!id||!/^[a-zA-Z0-9-]{1,100}$/.test(id))return json({error:'Invalid receipt id.'},400);const key='receipt-photo/'+id;if(request.method==='PUT'){if(!request.headers.get('content-type')?.startsWith('image/jpeg'))return json({error:'JPEG required.'},400);const bytes=await request.arrayBuffer();if(bytes.byteLength>3500000)return json({error:'Image exceeds 3.5 MB.'},413);const view=new Uint8Array(bytes);if(view[0]!==255||view[1]!==216||view[2]!==255)return json({error:'Invalid JPEG.'},400);await store.set(key,bytes,{metadata:{type:'image/jpeg'}});return json({saved:true})}if(request.method==='GET'){const bytes=await store.get(key,{type:'arrayBuffer'});return bytes?new Response(bytes,{headers:{'Content-Type':'image/jpeg','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}}):json({error:'Image not found.'},404)}}
  return json({error:'Unsupported operation.'},405);
  }catch(e){console.error('Family storage operation failed',e.name);await later(recordEvent(getStoreFn,'error',{area:'family',op}));return json({error:'Family storage unavailable. Local data is retained.'},503)}
