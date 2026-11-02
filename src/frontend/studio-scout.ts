@@ -86,12 +86,11 @@ const tl:any={};
 const capRel=(v:any)=>{const m=Math.max(0,Math.floor((Date.now()-Date.parse(v))/60000)),h=Math.floor(m/60),d=Math.floor(h/24);return m<1?T('vừa xong','just now'):m<60?T(m+' phút trước',m+' min ago'):h<24?T(h+' giờ trước',h+' h ago'):d===1?T('hôm qua','yesterday'):T(d+' ngày trước',d+' days ago')};
 const capAbs=(v:any)=>{const t=new Date(v),dow=t.toLocaleDateString('en-US',{weekday:'short'}),p=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(t).map(x=>[x.type,x.value]));return lang()==='en'?`${dow} ${p.day} ${p.month} ${p.hour}:${p.minute}`:`${['CN','T2','T3','T4','T5','T6','T7'][t.getDay()]} ${String(t.getDate()).padStart(2,'0')}/${String(t.getMonth()+1).padStart(2,'0')} ${p.hour}:${p.minute}`};
 // ---------- v1.7.2 device readiness: why "Run now" is (not) available, with the fix on the card ----------
-// Latest extension version: the server's field when it sends one (device.latestVersion / outdated, or a network-wide
-// latest), otherwise the version this release ships (dist/build.json → extension).
-let shipped:string|null=null,shippedAsked=false;
-function askShipped(){if(shippedAsked)return;shippedAsked=true;fetch('/build.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then((b:any)=>{if(b&&typeof b.extension==='string'){shipped=b.extension;if(data&&host.isConnected)render()}}).catch(()=>{})}
+// Latest extension version: ONE source — the server's EXTENSION_VERSION (src/netlify/lib/scout-version.mts, which the
+// build checks against extension/manifest.json), sent on every device row as latestVersion/outdated and as the
+// overview's extensionLatest. (v1.7.2 integration: the earlier /build.json fallback was a second source and is gone.)
 const newer=(a:any,b:any)=>{const x=String(a||'').split('.').map(n=>parseInt(n,10)||0),y=String(b||'').split('.').map(n=>parseInt(n,10)||0);for(let i=0;i<Math.max(x.length,y.length);i++)if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0);return false};
-function readiness(d:any,s:any){const l=d.live||{},ver=l.version||d.version||null,latest=d.latestVersion||data?.latestVersion||data?.extension?.latestVersion||data?.installInfo?.latestVersion||shipped||null;
+function readiness(d:any,s:any){const l=d.live||{},ver=l.version||d.version||null,latest=d.latestVersion||data?.extensionLatest||null;
  const outdated=typeof d.outdated==='boolean'?d.outdated:!!(ver&&latest&&newer(latest,ver)),why:{text:string,blocks:boolean}[]=[];
  if(s.autoScout!=='on')why.push({text:T('Cần bật Tự động cho cả mạng (mục Công tắc).','Auto must be switched on network-wide (Switches).'),blocks:true});
  if(s.paused)why.push({text:T('Cả mạng đang tạm dừng.','The whole network is paused.'),blocks:true});
@@ -117,7 +116,7 @@ function readyHtml(d:any,r:any){const id=esc(d.id);
 function dupHtml(d:any){const p=d.possibleOld;if(!p)return '';
  return `<div class="rc-dup" role="note"><p><strong>${p.stale?T('Có thể là máy cũ','Possibly an old pairing'):T('Trùng tên với một máy ghép sau','Same name as a later pairing')}</strong> · ${esc(T(`máy mới: “${p.newerName}” #${p.newerShortId}`,`newer: “${p.newerName}” #${p.newerShortId}`))}${p.stale?' · '+esc(T('không liên lạc hơn 24 giờ; “Chạy ngay mọi máy” bỏ qua máy này','silent for over 24 h; “Run now on all” skips it')):''}</p>
   <div class="row wrap"><button class="btn small primary" type="button" data-merge="${esc(d.id)}" data-into="${esc(p.newerId)}">${T('Gộp vào máy mới','Merge into the newer one')}</button><button class="btn small danger" type="button" data-dup-revoke="${esc(d.id)}">${T('Thu hồi','Revoke')}</button></div></div>`}
-function remoteHtml(devs:any[]){const s=data.settings,n=s.notify||{};askShipped();
+function remoteHtml(devs:any[]){const s=data.settings,n=s.notify||{};
  return `<section class="card" aria-labelledby="sc-rc"><h2 id="sc-rc">${T('Điều khiển từ xa','Remote control')}</h2>
   <p class="muted">${T('Lệnh được giao ở lần máy liên lạc tiếp theo (mỗi phút khi Chrome đang chạy). Máy đang ngủ, tắt hoặc đóng Chrome thì không thể đánh thức từ xa — lệnh chờ tối đa 30 phút.','Commands are delivered at the computer’s next check-in (every minute while Chrome runs). A computer that is asleep, off or has Chrome closed cannot be woken remotely — commands wait up to 30 minutes.')}</p>
   <div class="rc-btns"><button class="btn primary" type="button" id="sc-runall" ${s.autoScout!=='on'||s.paused?'disabled':''}>${T('▶ Chạy ngay mọi máy được phép','▶ Run now on all allowed computers')}</button></div>

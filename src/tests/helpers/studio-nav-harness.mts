@@ -25,7 +25,8 @@ export async function studioWorld({devices=true,feedback=true}:any={}){
  const lib=await import('../../netlify/lib/scout.mjs');
  const getStoreFn=memoryStores(),env:any={STUDIO_ADMINS:'henrynguyen',SCOUT_DEV:'1'};
  const {cookie}=await seedStudioLoad(getStoreFn,{events:300});
- const adapter={async wantedItems(){return[{itemId:'nuoc-mam',name:'Fish sauce',families:6}]},async productMappings(){return[]},async lastSeen(){return{}},async catalogItems(){return[]},async publishObservation(){},async holdObservation(){},async recordMappingCandidate(){}};
+ const adapter={async wantedItems(){return[{itemId:'nuoc-mam',name:'Fish sauce',families:6}]},async productMappings(){return[]},async lastSeen(){return{}},async catalogItems(){return[]},async publishObservation(){},async holdObservation(){},async recordMappingCandidate(){},
+  async listUnplaced(){return[]},async resolveUnplaced(){return{ok:false,why:'gone'}}};// v1.7.2 unplaced ops (the real adapter is used in section 3b-real)
  const handlers:any={
   accounts:createAccountsHandler({getStoreFn}),
   studio:createStudioHandler({getStoreFn,env,limits:{all:100000,mutate:100000},mailer:{configured:()=>false,async send(){}}}),
@@ -64,7 +65,7 @@ export async function openStudio(browser:any,world:any,{viewport={width:1280,hei
  await page.route(origin+'/**',async(route:any)=>{const req=route.request(),url=new URL(req.url()),t0=Date.now();const fn=url.pathname.match(/^\/\.netlify\/functions\/([\w-]+)/);
   // Stand-in for the Price Check "unplaced prices" ops until the extension work lands (documented shape).
   if(fn&&fn[1]==='scout'&&world.unplaced&&/^studio-unplaced/.test(url.searchParams.get('op')||'')){const op=url.searchParams.get('op');log.push({kind:'api',fn:'scout',op,method:req.method(),at:t0});let body:any={items:world.unplaced.items};
-   if(req.method()==='POST'){const b=JSON.parse(req.postData()||'{}');world.unplaced.posts.push({op,body:b});const gone=new Set(op==='studio-unplaced-resolve'?(b.keys||[]):[]);world.unplaced.items=world.unplaced.items.filter((x:any)=>!gone.has(x.factId));body={ok:true}}
+   if(req.method()==='POST'){const b=JSON.parse(req.postData()||'{}');world.unplaced.posts.push({op,body:b});const gone=new Set(op==='studio-unplaced-resolve'?(b.keys||[]):[]);world.unplaced.items=world.unplaced.items.filter((x:any)=>!gone.has(x.factId));body={results:[...gone].map(key=>({key,ok:true,status:b.action==='reject'?'rejected':'placed'}))}}// the real op's answer shape
    if(net.rtt)await sleep(net.rtt);try{await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)})}catch{}return}
   if(fn&&world.handlers[fn[1]]){const entry={kind:'api',fn:fn[1],op:url.searchParams.get('op')||'',fresh:url.searchParams.get('fresh')==='1',method:req.method(),at:t0};log.push(entry);
    const hdr=await req.allHeaders();const r=await world.handlers[fn[1]](new Request(url.href,{method:req.method(),headers:hdr,body:['GET','HEAD'].includes(req.method())?undefined:req.postDataBuffer()}));const body=Buffer.from(await r.arrayBuffer());

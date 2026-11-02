@@ -20,6 +20,9 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 (async()=>{
  const {studioWorld,openStudio,ready,measure}=await import('./helpers/studio-nav-harness.mjs');
  const {listLog,dayKey}=await import('../netlify/lib/studio.mjs');
+ // v1.7.2 integration: the latest extension version has ONE source — EXTENSION_VERSION in scout-version.mts (the build
+ // checks it against extension/manifest.json); the server sends it on every device row as latestVersion/outdated.
+ const {EXTENSION_VERSION}=await import('../netlify/lib/scout-version.mjs');const LATEST=EXTENSION_VERSION.replace(/\./g,'\\.');
  const world=await studioWorld();const browser=await chromium.launch();
  const scripts=(log:any[])=>log.filter(x=>x.kind==='static'&&/\.js$/.test(x.path)).map(x=>x.path);
  const hashIs=async(page:any,h:string)=>{await page.waitForFunction((h:string)=>location.hash===h,h);await sleep(80)};// hashchange runs after the hash updates
@@ -92,9 +95,9 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
  // 3. Price Check device cards: readiness, the audited "Allow auto" fix, reasons for disabled actions, version.
  {const {context,page,errors}=await openStudio(browser,world,{hash:'#scout'});await ready(page);await page.waitForSelector('#sc-rc');
   const card=(id:string)=>page.locator(`article.rc-dev:has([data-id="${id}"])`),run=(id:string)=>page.locator(`[data-cmd="run-now"][data-id="${id}"]`);
-  await page.waitForFunction(()=>/v1\.7\.0/.test(document.querySelector('[aria-labelledby="sc-rc"]')?.textContent||''),null,{timeout:5000});
+  await page.waitForFunction((v:string)=>new RegExp('v'+v).test(document.querySelector('[aria-labelledby="sc-rc"]')?.textContent||''),LATEST,{timeout:5000});
   const old=await card(world.ids.old).innerText();
-  assert.match(old,/Tự động cho máy này:\s*Chưa cho phép/);assert.match(old,/Cần cho phép tự động cho máy này/);assert.match(old,/tiện ích cũ v1\.6\.0 — cần cập nhật \(mới nhất v1\.7\.0\)/);assert.match(old,/Cần cập nhật/);
+  assert.match(old,/Tự động cho máy này:\s*Chưa cho phép/);assert.match(old,/Cần cho phép tự động cho máy này/);assert.match(old,new RegExp('tiện ích cũ v1\\.6\\.0 — cần cập nhật \\(mới nhất v'+LATEST+'\\)'));assert.match(old,/Cần cập nhật/);
   assert.equal(await run(world.ids.old).isDisabled(),true);assert.equal(await run(world.ids.old).getAttribute('aria-describedby'),'why-'+world.ids.old);
   const ok=await card(world.ids.ok).innerText();assert.match(ok,/Đã cho phép/);assert.match(ok,/Sẵn sàng chạy ngay/);assert.match(ok,/Mới nhất/);assert.equal(await run(world.ids.ok).isEnabled(),true);
   await page.evaluate(()=>{const el=document.querySelector('#sc-rc');if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-10)});await shot(page,'scout-readiness-vi-light-desktop-1280x800');
@@ -150,6 +153,36 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
   assert.deepEqual(world.unplaced.posts.at(-1),{op:'studio-unplaced-resolve',body:{keys:['f4'],action:'reject'}});assert.equal(await page.locator('#nav [data-badge="unplaced"]').evaluate((b:any)=>b.hidden),true);
   await page.setViewportSize(sizes.mobile);await noOverflow(page,'unplaced mobile');
   assert.deepEqual(errors,[]);await context.close();delete world.unplaced}
+
+ // 3b-real (v1.7.2 integration). The same page against the REAL Price Check ops — scout handler with the default adapter on
+ // the shared in-memory stores: a paired computer captures two prices the matcher cannot place (a tie, and no match),
+ // studio-unplaced lists them, the page shows suggestion NAMES from the catalogue (not ids, no “NaN%”), Attach and Skip
+ // resolve them on the server, and both are in the Studio audit log. Synthetic products and prices only.
+ {const {createScoutHandler}=await import('../netlify/functions/scout.mjs');const stub=world.handlers.scout;world.handlers.scout=createScoutHandler({getStoreFn:world.getStoreFn,env:world.env});
+  try{const A='https://kitchen.test/.netlify/functions/scout?op=',EXT='chrome-extension://mjeoekikdicoojgoppnfibjbfpcfngja';
+   const send=async(op:string,token:string,body:any)=>(await world.handlers.scout(new Request(A+op,{method:'POST',headers:{Origin:EXT,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body)}))).json();
+   const list=async()=>(await (await world.handlers.scout(new Request(A+'studio-unplaced',{headers:{Cookie:world.cookie}}))).json()).items;
+   const {code}=await world.lib.createPairCode(world.getStoreFn,'henrynguyen',Date.now(),world.env);
+   const p=await send('pair','',{code,name:'QA giá chưa gắn',suburb:'Hurstville',postcode:'2220',stores:{woolworths:'Hurstville'},version:EXTENSION_VERSION});
+   const pg=(id:string,name:string,price:number)=>{const url='https://www.woolworths.com.au/shop/productdetails/'+id+'/synthetic';return{retailer:'woolworths',url,status:'ok',storeLabel:'Hurstville',facts:[{name,price,productId:id,productUrl:url}]}};
+   const r=await send('results',p.token,{mode:'semi',items:[pg('660001','Synthetic Pork and Beef Mince 500g',7.5),pg('660002','Synthetic Smoked Salmon Slices 100g',6.5)]});
+   assert.deepEqual(r.placement?.unplaced,{'no-item':2},'both stay unplaced: '+JSON.stringify(r.placement));
+   const before=await list(),mince=before.find((x:any)=>x.productId==='660001'),salmon=before.find((x:any)=>x.productId==='660002');
+   assert.ok(mince&&salmon,'listed by the real op');assert.deepEqual(mince.suggested,['thit-bo-xay','thit-heo-xay']);assert.equal(mince.confidence,'low');assert.deepEqual(salmon.suggested,[]);
+   const {context,page,errors}=await openStudio(browser,world,{hash:'#unplaced'});await ready(page);await page.waitForSelector('#unplaced-main .up-item');
+   assert.equal(await page.locator('#unplaced-main .up-item').count(),2);
+   const row=(k:string)=>page.locator(`li.up-item[data-fact="${k}"]`);const mt=await row(mince.key).innerText();
+   assert.match(mt,/Synthetic Pork and Beef Mince 500g/);assert.match(mt,/Woolworths · Hurstville/);assert.match(mt,/\$7\.50/);
+   assert.match(mt,/Gợi ý: Thịt bò xay Chưa chắc/,'suggestion name + matcher level');assert.match(mt,/khác: Thịt heo xay/);assert.doesNotMatch(await page.locator('#unplaced-main').innerText(),/NaN|thit-/);
+   assert.match(await row(salmon.key).innerText(),/Chưa có gợi ý/);assert.equal(await row(salmon.key).locator('[data-attach]').isDisabled(),true);
+   await row(mince.key).locator('[data-attach]').click();await page.waitForFunction(()=>/Đã gắn 1 giá\./.test(document.querySelector('#toast')?.textContent||''));await row(mince.key).waitFor({state:'detached'});
+   await row(salmon.key).locator('[data-skip]').click();await page.waitForFunction(()=>/Đã bỏ qua 1 giá\./.test(document.querySelector('#toast')?.textContent||''));await page.waitForSelector('#unplaced-main .empty');
+   assert.deepEqual((await list()).filter((x:any)=>['660001','660002'].includes(x.productId)),[],'resolved on the server');
+   const log=(await listLog(world.getStoreFn,'audit',{now:Date.now(),limit:300,from:dayKey(Date.now()-86400000)})).items;
+   const att=log.find((x:any)=>x.action==='scout_unplaced_attach'),rej=log.find((x:any)=>x.action==='scout_unplaced_reject');
+   assert.ok(att&&rej,'attach + reject audited');assert.equal(att.details.itemId,'thit-bo-xay');assert.equal(att.details.done,1);assert.equal(rej.details.done,1);
+   assert.deepEqual(errors,[]);await context.close();
+  }finally{world.handlers.scout=stub}}
 
  // 3c. Scan list: today's plan (re-plan), sources (pin, specials validation, keywords), owner audit.
  {const {context,page,errors}=await openStudio(browser,world,{hash:'#scanlist'});await ready(page);await page.waitForSelector('#scanlist-main .sl-totals');
