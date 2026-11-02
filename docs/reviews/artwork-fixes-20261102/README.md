@@ -19,8 +19,10 @@ Các bản công thức gốc còn nguyên được cập nhật cả trong thư
 - [Gallery 740 món, có trước/sau và bộ lọc](gallery.html) — mở từ checkout repo để ảnh tương đối được tải. GitHub không trực tiếp render HTML.
 - [Kiểm kê từng món và SHA-256 ảnh cuối](verification.json).
 - [Danh sách 42 hình thay](replaced-ids.json), [5 bản sửa dữ liệu và chữ ký mẫu cũ](catalog-repairs.json).
+- [Tinh chỉnh nhóm xào gừng](ginger-refinement.txt): bỏ toàn bộ hạt gia vị băm gây nhầm tỏi, giữ gừng sợi và đúng rau/đậu của từng công thức.
 - Bộ ảnh sau sửa: [1](after-1.jpg), [2](after-2.jpg), [3](after-3.jpg).
 - Giao diện: [mobile 375×812](mobile-corrected-family-v3-37.png), [tablet 820×1100](tablet-corrected-family-v3-37.png), [PC 1280×800](desktop-corrected-family-v3-2.png).
+- Gừng sợi trên giao diện: [mobile](mobile-corrected-family-v3-330.png), [tablet](tablet-corrected-family-v3-330.png), [PC](desktop-corrected-family-v3-330.png).
 - [Audit trước sửa](../artwork-audit-20261102/README.md) được giữ nguyên làm hồ sơ lịch sử; trạng thái hiện tại nằm trong verification.json.
 
 ## Kiểm tra

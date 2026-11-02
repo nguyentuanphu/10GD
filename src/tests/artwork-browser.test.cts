@@ -3,7 +3,7 @@ const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),ass
 await page.goto('https://kitchen.test/#recipes');await page.locator('#family-recipe-search').waitFor({timeout:15000});await page.locator('[data-fm="samples"]').first().click();await page.locator('#toast.visible').waitFor({state:'hidden',timeout:10000});await page.screenshot({path:`${dir}/${name}-catalog.png`});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'app overflow '+name);
 await page.locator('#family-recipe-search').fill('Sườn rim');await page.waitForTimeout(300);await page.locator('[data-action="recipe-detail"]').first().click({timeout:3000});await page.locator('.recipe-detail-hero').waitFor();await page.screenshot({path:`${dir}/${name}-detail.png`});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'detail overflow');await page.locator('[data-action="close-modal"]').first().click();
 // Verify the correction is used by list and full detail at every responsive size.
-for(const [query,id] of [['Thịt heo xào đậu Hà Lan','family-v3-37'],['Mì Ý cá hồi nấm sốt tỏi nước dùng','family-v3-2']]){
+for(const [query,id] of [['Thịt heo xào đậu Hà Lan','family-v3-37'],['Mì Ý cá hồi nấm sốt tỏi nước dùng','family-v3-2'],['Bắp cải và hành tây xào gừng','family-v3-330']]){
  await page.locator('#family-recipe-search').fill(query);await page.waitForTimeout(300);
  const art=page.locator('.recipe-visual [data-art-src]').first();assert.equal(await art.getAttribute('data-art-src'),'artwork/cells/'+id+'.webp');
  await page.locator('[data-action="recipe-detail"]').first().click();await page.locator('.recipe-detail-hero').waitFor();
