@@ -188,7 +188,7 @@ globalThis.VoiceRecipe={segmentRecipe,formLine:vrFormLine};
 const vrT=(vi,en)=>typeof tr==='function'?tr(vi,en):vi;
 const vrEsc=s=>typeof esc==='function'?esc(s):String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 const VR_DRAFT_KEY='bep-recipe-dictation-v1';
-let vrState={text:'',takes:0,lang:null,take:null,parsed:null};
+let vrState={using:false,text:'',takes:0,lang:null,take:null,parsed:null};
 function vrStore(){try{const st=typeof familyStorage!=='undefined'?familyStorage:localStorage;return st}catch{return null}}
 function vrLoadDraft(){try{const d=JSON.parse(vrStore()?.getItem(VR_DRAFT_KEY)||'null');if(d&&typeof d.text==='string'){vrState.text=d.text;vrState.takes=d.takes||0}}catch{}}
 function vrSaveDraft(){try{vrStore()?.setItem(VR_DRAFT_KEY,JSON.stringify({text:vrState.text,takes:vrState.takes}))}catch{}}
@@ -234,17 +234,31 @@ function vrRenderReview(p){
 function vrUnitInfo(u){const l=String(u||'').trim().toLowerCase();if(!l)return null;const e=VR_UNITS.find(e=>e[0]===l)||VR_UNITS.find(e=>(e[1]===l||e[2]===l)&&e[4]===1)||VR_UNITS.find(e=>VR.key(e[0])===VR.key(l));return e?{form:e[3],factor:e[4]}:null}
 function vrCollect(){const p=vrState.parsed||{raw:vrState.text};const ings=[...document.querySelectorAll('.vr-ing')].map(li=>{const name=li.querySelector('.vr-ing-name').value.trim(),q=li.querySelector('.vr-ing-qty').value.trim().replace(',','.'),unit=li.querySelector('.vr-ing-unit').value.trim();const qty=q===''||!Number.isFinite(+q)||+q<=0?null:+q;const u=vrUnitInfo(unit);return{name,qty,unit,formUnit:u?.form||null,factor:u?.factor||1,note:li.dataset.note||''}}).filter(i=>i.name);
  return{title:(document.getElementById('vr-title')?.value||'').trim(),servings:+document.getElementById('vr-servings')?.value||null,time:document.getElementById('vr-time')?.value===''?null:+document.getElementById('vr-time')?.value,ingredients:ings,steps:[...document.querySelectorAll('.vr-steps textarea')].map(t=>t.value.trim()).filter(Boolean),raw:p.raw||vrState.text}}
+// v1.7.4: on a fresh start the family recipe editor first waits for the recipe library (offline-downloads wraps it and
+// returns a promise, v1.7.3). "Use this" filled the form before it existed, so the dictated recipe was lost and an empty
+// form opened. The dictation is read now, the form is filled once it has opened, and the button shows the wait.
 function vrUse(){
+ if(vrState.using)return;
  const c=vrCollect();vrState.take?.stop(true);
  if(typeof familyRecipeEditor!=='function')return;
- familyRecipeEditor();
- const f=document.getElementById('family-recipe-form');if(!f)return;
+ const use=document.getElementById('vr-use');
+ if(use&&typeof catalogLoaded==='function'&&!catalogLoaded()){use.disabled=true;use.setAttribute('aria-busy','true');use.classList.add('vr-use-wait');use.textContent='⏳ '+vrT('Đang tải kho món ăn…','Loading the recipe library…')}
+ vrState.using=true;let out;
+ try{out=familyRecipeEditor()}catch(e){vrState.using=false;throw e}
+ const done=()=>{vrState.using=false;vrFillForm(c)};
+ if(out&&typeof out.then==='function')return out.then(done,e=>{vrState.using=false;console.error('recipe form',e)});
+ done();
+}
+function vrFillForm(c){
+ const f=document.getElementById('family-recipe-form');if(!f||f.dataset.dictated==='yes')return;
  f.dataset.dictated='yes';f.querySelector('.vr-entry')?.remove();
  if(c.title)f.name.value=c.title.slice(0,150);
  if(c.servings&&c.servings>0)f.yield.value=c.servings;
  if(c.time!=null&&c.time>=0&&c.time<=600)f.time.value=c.time;
  f.ingredients.value=c.ingredients.map(vrFormLine).filter(Boolean).join('\n');
  f.steps.value=c.steps.join('\n');
+ // the ingredient rows (recipe-community) are built from the box when the form opens; rebuild them from the dictation
+ if(f.dataset.rc&&typeof rcBuildRows==='function')try{rcBuildRows(f)}catch(e){console.error('recipe rows',e)}
  const t=f.querySelector('input[name="transcript"]');if(t)t.value=String(c.raw||'').slice(0,20000);
  const dup=vrDuplicate(c.title);
  const note=document.createElement('div');note.className='vr-form-note';
