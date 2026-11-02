@@ -22,17 +22,17 @@ function note(m:string){document.querySelector('[data-pop-note]')?.remove();$('#
 const openSettings=(hash='')=>{if(hash)chrome.tabs.create({url:chrome.runtime.getURL('options.html#'+hash)});else chrome.runtime.openOptionsPage();window.close?.()};
 // Missing readiness steps only (the full checklist is in Settings → 3. Tự động).
 function missingHtml(st:any){const steps=UI.readiness(st),miss=steps.map((s:any,i:number)=>({...s,n:i})).filter((s:any)=>!s.ok);if(!miss.length)return '';
- const first=miss[0].id,prepOk=steps[0].ok&&steps[3].ok;
+ const first=miss[0].id,prepOk=UI.toggleReady(st);
  return `<div class="pop-ready" data-readiness><p class="pop-ready-head">${esc(T(`Để bật Tự động còn ${miss.length} bước:`,`${miss.length} step${miss.length>1?'s':''} left for Auto:`))}</p><ol class="ready-list compact">${miss.map((s:any)=>{
   const fix=s.fix==='toggle'?`<label class="switch mini"><input type="checkbox" id="auto" ${prepOk?'':'disabled'} aria-describedby="r-toggle"><span class="sr-only">${esc(s.title)}</span></label>`
    :`<button type="button" class="btn small ${s.id===first?'primary':''}" data-fix="${s.fix}" data-fix-step="${s.id}">${esc(s.fixLabel)}<span class="sr-only"> · ${esc(s.title)}</span></button>`;
   return `<li data-step="${s.id}" data-ok="false"><span class="n" aria-hidden="true">${UI.NUM[s.n]}</span><span class="t" id="r-${s.id}">${esc(s.short||s.title)}${s.adminOnly?` <small class="tag">${T('chỉ quản trị viên','admin only')}</small>`:''}</span>${fix}</li>`}).join('')}</ol>
-  ${steps.slice(0,4).every((s:any)=>s.ok)?`<p class="hint">${T('Chạy ngay vẫn dùng được, kể cả ngoài lịch.','Run now works already, even outside the schedule.')}</p>`:''}</div>`}
+  ${steps.slice(0,5).every((s:any)=>s.ok)?`<p class="hint">${T('Chạy ngay vẫn dùng được, kể cả ngoài lịch.','Run now works already, even outside the schedule.')}</p>`:''}</div>`}
 async function render(){
  const st=await SC.get(),v=st.device,paired=!!st.token,warn=UI.storeWarnings(st),state=UI.state(st),steps=UI.readiness(st);
  const server=String(st.server||SC.BUILD.server||'');
  // Storage changes re-render the popup; keep what the person is typing in the code form.
- const keep={code:($('#pc-code') as any)?.value||'',server:($('#pc-server') as any)?.value||'',focus:(document.activeElement as any)?.id||'',codeOpen:!!($('#pc-details') as any)?.open};
+ const keep={lastOpen:!!($('#pop-last') as any)?.open,code:($('#pc-code') as any)?.value||'',server:($('#pc-server') as any)?.value||'',focus:(document.activeElement as any)?.id||'',codeOpen:!!($('#pc-details') as any)?.open};
  const capture=UI.lastCapture(st.lastSemi);
  const canRun=paired&&UI.runNowReady(st)&&!st.run;
  let primary='';
@@ -55,8 +55,8 @@ async function render(){
   ${primary}
   ${canRun?`<p class="hint" id="runnow-hint">${T('Chạy một lần ngay, ngoài lịch. Mọi giới hạn vẫn áp dụng.','Runs once now, outside the schedule. All limits still apply.')}</p>`:''}
   ${paired&&!st.notAssigned&&!st.run&&!st.paused&&state.key!=='blocked'&&state.key!=='device-paused'?missingHtml(st):''}
-  ${paired&&state.key==='ready'&&st.lastRun?`<p class="muted pop-sub" data-last-run>${esc(T('Lần trước: ','Last run: ')+UI.short(st.lastRun.at)+' · '+T(`${st.lastRun.pages} trang, ${st.lastRun.prices} giá`,`${st.lastRun.pages} pages, ${st.lastRun.prices} prices`))}</p>`:''}
-  ${paired&&steps[4].ok?`<label class="switch pop-switch"><input type="checkbox" id="auto" checked><span>${T('Tự động trên máy này','Auto on this computer')}</span></label>`:''}
+  ${paired&&!st.run&&st.lastRun&&!missingHtml(st)?UI.visitsHtml(st.lastRun,'pop-last'):''}
+  ${paired&&steps.find((x:any)=>x.id==='toggle').ok?`<label class="switch pop-switch"><input type="checkbox" id="auto" checked><span>${T('Tự động trên máy này','Auto on this computer')}</span></label>`:''}
   ${!paired?`<details id="pc-details" class="pop-code-d" ${keep.codeOpen?'open':''}><summary>${T('Hoặc nhập mã ghép','Or enter a pairing code')}</summary>
    <form id="popcode" class="form pop-code" autocomplete="off">
     <label for="pc-code" class="sr-only">${T('Mã ghép nối','Pairing code')}</label><div class="pop-code-row"><input id="pc-code" name="code" required minlength="8" maxlength="9" autocapitalize="characters" spellcheck="false" placeholder="ABCD-2345" aria-describedby="pc-hint"><button class="btn" type="submit">${T('Ghép','Pair')}</button></div>
@@ -66,6 +66,7 @@ async function render(){
  ${paired?storeAsk(st):''}
  ${warn.map((w:string)=>`<p class="banner warn" role="alert">${esc(w)}</p>`).join('')}
  <div class="pop-foot"><button id="opts2" class="btn ghost small" type="button">⚙ ${T('Cài đặt','Settings')}</button>${paired&&tabRetailer?`<label class="switch pop-switch pop-site"><input type="checkbox" id="site" ${st.semiSites?.[tabRetailer]!==false?'checked':''}><span>${esc(T('Ghi giá trên ','Capture on ')+UI.LABEL[tabRetailer])}</span></label>`:''}</div>`;
+ if(keep.lastOpen&&$('#pop-last'))$('#pop-last').open=true;
  if($('#pc-code')){if(keep.code)$('#pc-code').value=keep.code;if(keep.server)$('#pc-server').value=keep.server}if(keep.focus&&document.getElementById(keep.focus))document.getElementById(keep.focus)!.focus();
  document.querySelectorAll('[data-lang]').forEach((b:any)=>b.addEventListener('click',async()=>{if(UI.lang===b.dataset.lang)return;UI.lang=b.dataset.lang;await SC.set({lang:UI.lang});document.documentElement.lang=UI.lang;render()}));
  // Pair now: open the family app's one-tap pairing (#pair-extension; the app asks for a tap to confirm). No address known → Settings.
@@ -84,13 +85,14 @@ async function render(){
  document.querySelectorAll('[data-fix]').forEach((b:any)=>b.addEventListener('click',()=>{const k=b.dataset.fix;
   if(k==='pair')return pairNow();
   if(k==='studio'){const u=UI.studioUrl(st);if(u){chrome.tabs.create({url:u});window.close?.()}else openSettings('step-pair');return}
-  if(k==='prep')return openSettings('prep')}));
+  if(k==='prep')return openSettings('prep');
+  if(k==='stores')return openSettings('step-stores')}));
  $('#runnow')?.addEventListener('click',async(e:any)=>{e.target.disabled=true;const why=await chrome.runtime.sendMessage({type:'run-now',local:true});if(why){note(UI.reason(why));e.target.disabled=false}});
  $('#stoprun')?.addEventListener('click',async(e:any)=>{e.target.disabled=true;await chrome.runtime.sendMessage({type:'stop-run',server:true})});
  $('#opts2')?.addEventListener('click',()=>openSettings());
  $('#upd-open')?.addEventListener('click',()=>openSettings('update'));
  $('#site')?.addEventListener('change',async(e:any)=>{const s=(await SC.get(['semiSites'])).semiSites;s[tabRetailer!]=e.target.checked;await SC.set({semiSites:s});render()});
- $('#auto')?.addEventListener('change',async(e:any)=>{const on=e.target.checked;if(on&&!UI.onboarded(await SC.get(['onboarding']))){e.target.checked=false;note(T('Hãy hoàn tất bước ④ Chuẩn bị máy trước khi bật tự động.','Finish step ④ Prepare this computer before switching Auto on.'));return}
+ $('#auto')?.addEventListener('change',async(e:any)=>{const on=e.target.checked;if(on&&!UI.toggleReady(await SC.get())){e.target.checked=false;note(T('Cần ① ghép máy, ④ ít nhất 1 cửa hàng và ⑤ chuẩn bị máy trước khi bật tự động.','Needs ① paired, ④ at least one store and ⑤ a prepared computer before Auto can be switched on.'));return}
   await SC.set({autoEnabled:on});if(!on)chrome.runtime.sendMessage({type:'stop-run'}).catch(()=>{});chrome.runtime.sendMessage({type:'heartbeat'}).catch(()=>{});render()});
 }
 chrome.storage.onChanged.addListener(()=>render());

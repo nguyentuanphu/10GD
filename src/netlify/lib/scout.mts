@@ -127,7 +127,7 @@ export function liveStatus(d:any,s:any,now:number){const hb=d.lastHeartbeat?Date
  const state=d.revokedAt?'revoked':blocked?'blocked':paused||c.paused?'paused':!online?'offline':c.running?'running':runNowActive(d,now)?'run-now-waiting':c.why==='outside-window'?'waiting-window':c.why==='user-active'?'waiting-user':'idle';
  return{online,lastHeartbeat:d.lastHeartbeat||null,heartbeatAgeMin:hb?Math.floor((now-hb)/MIN):null,chromeOpen:online?c.chromeOpen!==false:null,battery:c.battery||null,idle:c.idle||null,state,why:c.why||null,
   run:c.running?{pages:c.run?.pages||0,prices:c.run?.prices||0,cap:caps.pagesPerRun,startedAt:c.run?.startedAt||null}:null,pausedUntil:paused?new Date(d.pausedUntil).toISOString():null,pauseReason:paused?d.pauseReason||null:null,
-  pace:effectivePacing(d,s,now),lastRun:c.lastRun||null,lastError:c.lastError||null,version:c.version||null,configVersion:c.configVersion||null,latestVersion:EXTENSION_VERSION,outdated:isOutdated(c.version),
+  pace:effectivePacing(d,s,now),lastRun:c.lastRun||null,lastError:c.lastError||null,version:c.version||null,configVersion:c.configVersion||null,latestVersion:EXTENSION_VERSION,outdated:isOutdated(c.version),planInfo:planView(d,now),
   runNow:runNowActive(d,now)?{until:new Date(d.runNow.until).toISOString(),runId:d.runNow.runId||null}:null,commands:expireCommands(d.commands,now).slice(-6).reverse().map((x:any)=>({id:x.id,type:x.type,status:x.status,createdAt:new Date(x.createdAt).toISOString(),receivedAt:x.receivedAt?new Date(x.receivedAt).toISOString():null,doneAt:x.doneAt?new Date(x.doneAt).toISOString():null,result:x.result}))}}
 /** The last 50 events of one device (types, times, retailer, counts — never page contents). */
 export async function deviceTimeline(getStoreFn:any,deviceId:string,now:number){return (await listEvents(getStoreFn,{days:14,limit:1000,now})).filter((e:any)=>e.deviceId===deviceId).slice(0,50).map((e:any)=>({type:e.type,at:e.at,retailer:e.retailer||null,kind:e.kind||null,command:e.command||null,by:e.by||null,pages:e.pages??null,prices:e.prices??null,stop:e.stop||null,result:e.result||null}))}
@@ -259,7 +259,7 @@ export async function deviceView(getStoreFn:any,d:any,s:any,now:number,env:any=p
  return{id:d.id,name:d.name,owner:d.owner,postcode:d.postcode,suburb:d.suburb,timeZone:d.timeZone,stores:d.stores||{},schedule:d.schedule||s.schedule,scheduleSource:d.schedule?'device':'network',caps:effectiveCaps(d,s),autoAllowed:d.autoAllowed===true,paused:d.pausedUntil&&d.pausedUntil>now?{until:new Date(d.pausedUntil).toISOString(),reason:d.pauseReason||'paused'}:null,trusted:await isTrusted(getStoreFn,d.owner,env),
   network:{autoScout:s.autoScout,semiAuto:s.semiAuto,paused:s.paused,robots:'respect',pacing:effectivePacing(d,s,now)},runNow:runNowActive(d,now)?{until:new Date(d.runNow.until).toISOString(),runId:d.runNow.runId||null}:null,stopRequestedAt:d.stopRequestedAt||null,retailerPaused:paused,configVersion:cfg?.version||null,inWindow:inWindow(now,d.schedule||s.schedule,d.timeZone),
   // v1.7.2: is the account a Studio admin (readiness checklist says “chỉ quản trị viên” otherwise), and the update check.
-  ownerStudio:roleFor(d.owner,env)==='owner',update:updateInfo(d,s,env)}}
+  ownerStudio:roleFor(d.owner,env)==='owner',update:updateInfo(d,s,env),planInfo:planView(d,now)}}
 /** v1.7.2 update check for the extension: newest version in this deploy, the zip on the app, and the store links (store installs update by themselves). */
 export function updateInfo(d:any,s:any,env:any=process.env){const i=publicInstallInfo(s,env);return{latest:EXTENSION_VERSION,zip:EXTENSION_ZIP_PATH,storeUrl:i.storeUrl,edgeStoreUrl:i.edgeStoreUrl,reported:d?.client?.version||null,outdated:isOutdated(d?.client?.version)}}
 
@@ -313,14 +313,37 @@ export async function refusal(getStoreFn:any,device:any,s:any,body:any,now:numbe
  // Stop requested (Studio / popup) after this run started → the runner stops.
  if(device.stopRequestedAt&&body?.startedAt&&device.stopRequestedAt>=Number(body.startedAt))return 'stopped';
  if(!inWindow(now,device.schedule||s.schedule,device.timeZone)&&!runNowActive(device,now,body?.runId))return 'outside-window';return null}
+// v1.7.2 (owner: “Run now ran but checked 0 pages · No more tasks”): the planner only makes tasks for
+// retailers where an Auto-allowed device has a store, and a device only gets tasks for ITS stores.
+// planInfo says why a device has nothing to do, so the extension and Studio can explain it.
+export const storesOf=(d:any)=>RETAILERS.filter(r=>typeof d?.stores?.[r]==='string'&&d.stores[r].trim());
+/** reasonIfEmpty: 'no-stores' | 'cap' | 'retailer-paused' | 'no-wanted-items' (nothing planned for its stores) | 'all-done' | null (work remains). */
+export function planInfoFor(device:any,tasks:any[],health:any,now:number,{capped=false,leased=0}:any={}){
+ const retailersWithStore=storesOf(device),mine=tasks.filter(t=>retailersWithStore.includes(t.retailer)&&storeMatches(t.storeLabel,device.stores[t.retailer]));
+ const open=mine.filter(t=>(t.status==='queued'||t.status==='leased'&&t.leaseUntil<=now)&&t.attempts<3),openLive=open.filter(t=>!retailerPaused(health?.[t.retailer],now));
+ const reasonIfEmpty=leased?null:!retailersWithStore.length?'no-stores':capped?'cap':open.length&&!openLive.length?'retailer-paused':!mine.length?'no-wanted-items':!openLive.length?'all-done':null;
+ return{day:dayKey(now),retailersWithStore,tasksToday:mine.length,open:openLive.length,done:mine.filter(t=>t.status==='done'||t.status==='skipped').length,reasonIfEmpty,at:new Date(now).toISOString()}}
+async function rememberPlan(getStoreFn:any,device:any,info:any){const prev=device.lastPlan;if(prev&&prev.day===info.day&&prev.reasonIfEmpty===info.reasonIfEmpty&&prev.tasksToday===info.tasksToday&&prev.open===info.open)return;await editDevice(getStoreFn,device.id,(d:any)=>({...d,lastPlan:info}))}
+/** Cheap view for heartbeats / Studio: the stores the device has now + the last plan answer of today. */
+export function planView(d:any,now:number){const lp=d?.lastPlan&&d.lastPlan.day===dayKey(now)?d.lastPlan:null,retailersWithStore=storesOf(d);return{retailersWithStore,tasksToday:lp?lp.tasksToday:null,open:lp?lp.open:null,reasonIfEmpty:!retailersWithStore.length?'no-stores':lp?.reasonIfEmpty??null,at:lp?.at||null}}
+/** v1.7.2 “what will this computer look at today”: this device's tasks (its stores only), newest plan,
+ *  URLs reduced to host + path (no query string), plus planInfo. Read-only apart from building today's plan. */
+export async function devicePlan(getStoreFn:any,{device,settings:s,now,adapter,limit=300}:any){
+ if(storesOf(device).length&&device.autoAllowed===true)await ensurePlan(getStoreFn,{settings:s,now,adapter});
+ const tasks=await listTasks(getStoreFn,dayKey(now)),health=await retailerHealth(getStoreFn),info=planInfoFor(device,tasks,health,now);await rememberPlan(getStoreFn,device,info);
+ const mine=tasks.filter(t=>info.retailersWithStore.includes(t.retailer)&&storeMatches(t.storeLabel,device.stores[t.retailer])).sort(taskOrder).slice(0,limit);
+ const short=(u:string)=>{try{const x=new URL(u);return{host:x.hostname.replace(/^www\./,''),path:x.pathname.slice(0,80)}}catch{return{host:'',path:''}}};
+ return{planInfo:info,tasks:mine.map(t=>({taskId:t.taskId,retailer:t.retailer,kind:t.kind,name:t.name||null,itemId:t.itemId||null,storeLabel:t.storeLabel,...short(t.url),search:t.kind!=='specials'&&!t.mapped,status:t.status==='leased'&&t.leaseUntil<=now?'queued':t.status,mine:t.leasedBy===device.id,retailerPaused:retailerPaused(health[t.retailer],now)}))}}
 export async function leaseTasks(getStoreFn:any,{device,settings:s,runId,max=5,now,adapter}:any){
- const day=dayKey(now),store=scoutStore(getStoreFn);await ensurePlan(getStoreFn,{settings:s,now,adapter});
+ const day=dayKey(now),store=scoutStore(getStoreFn);
+ if(!storesOf(device).length){const info=planInfoFor(device,[],{},now);await rememberPlan(getStoreFn,device,info);return{tasks:[],stop:'no-stores',planInfo:info}}
+ await ensurePlan(getStoreFn,{settings:s,now,adapter});
  const caps=effectiveCaps(device,s),dc=await readJSON(store,`count/${day}/device/${device.id}`)||{},runUsed=dc.runs?.[runId]||0;
- if(runUsed>=caps.pagesPerRun)return{tasks:[],stop:'cap-run'};if((dc.leased||0)>=caps.pagesPerDay)return{tasks:[],stop:'cap-day'};
+ if(runUsed>=caps.pagesPerRun||(dc.leased||0)>=caps.pagesPerDay){const info=planInfoFor(device,await listTasks(getStoreFn,day),await retailerHealth(getStoreFn),now,{capped:true});return{tasks:[],stop:runUsed>=caps.pagesPerRun?'cap-run':'cap-day',planInfo:info}}
  const room=Math.max(0,Math.min(10,max|0||5,caps.pagesPerRun-runUsed,caps.pagesPerDay-(dc.leased||0)));
  const health=await retailerHealth(getStoreFn),leaseMs=s.leaseMinutes*MIN,capped=new Set<string>(),leased:any[]=[];
  const eligible=(t:any)=>(t.status==='queued'||t.status==='leased'&&t.leaseUntil<=now)&&t.attempts<3&&device.stores?.[t.retailer]&&storeMatches(t.storeLabel,device.stores[t.retailer])&&!retailerPaused(health[t.retailer],now);
- const all=(await listTasks(getStoreFn,day)).filter(eligible).sort(taskOrder);
+ const today=await listTasks(getStoreFn,day),all=today.filter(eligible).sort(taskOrder);
  for(const t of all){if(leased.length>=room)break;if(capped.has(t.retailer))continue;
   const cap=s.caps.retailerPagesPerDay[t.retailer]??0;let ok=true;
   await editRecord(store,`count/${day}/retailer/${t.retailer}`,(c:any)=>{if((c?.leased||0)>=cap){ok=false;return undefined}return{...(c||{}),leased:(c?.leased||0)+1}});
@@ -330,7 +353,8 @@ export async function leaseTasks(getStoreFn:any,{device,settings:s,runId,max=5,n
   leased.push(got)}
  if(leased.length)await bump(getStoreFn,`count/${day}/device/${device.id}`,{leased:leased.length,runs:{[runId]:leased.length}});
  if(leased.length&&runNowActive(device,now,runId)&&!device.runNow.runId&&!inWindow(now,device.schedule||s.schedule,device.timeZone))await editDevice(getStoreFn,device.id,(d:any)=>d.runNow&&!d.runNow.runId?{...d,runNow:{...d.runNow,runId}}:undefined);
- return{tasks:leased.map(t=>({taskId:t.taskId,retailer:t.retailer,url:t.url,itemId:t.itemId,name:t.name||null,kind:t.kind,storeLabel:t.storeLabel,leaseUntil:new Date(t.leaseUntil).toISOString()})),stop:leased.length?null:(capped.size?'cap-retailer':'no-tasks')}}
+ const planInfo=planInfoFor(device,today,health,now,{capped:!leased.length&&capped.size>0,leased:leased.length});if(!leased.length)await rememberPlan(getStoreFn,device,planInfo);
+ return{tasks:leased.map(t=>({taskId:t.taskId,retailer:t.retailer,url:t.url,itemId:t.itemId,name:t.name||null,kind:t.kind,storeLabel:t.storeLabel,leaseUntil:new Date(t.leaseUntil).toISOString()})),stop:leased.length?null:(capped.size?'cap-retailer':'no-tasks'),planInfo}}
 export async function releaseTasks(getStoreFn:any,device:any,ids:any[],now:number){const day=dayKey(now),store=scoutStore(getStoreFn);let n=0;
  for(const id of (Array.isArray(ids)?ids:[]).slice(0,50)){if(!/^t[a-f0-9]{15}$/.test(String(id)))continue;let rel:any=null;await editRecord(store,`tasks/${day}/${id}`,(t:any)=>{if(!t||t.status!=='leased'||t.leasedBy!==device.id)return undefined;rel=t;return{...t,status:'queued',leasedBy:null,leaseUntil:null}});
   if(rel){n++;await bump(getStoreFn,`count/${day}/retailer/${rel.retailer}`,{leased:-1});await bump(getStoreFn,`count/${day}/device/${device.id}`,{leased:-1,runs:{[rel.runId]:-1}})}}

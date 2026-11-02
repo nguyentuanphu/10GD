@@ -13,13 +13,13 @@ import {getStore} from '@netlify/blobs';
 import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount} from '../lib/accounts.mjs';
 import {platformSettings,roleFor,csrfFor,writeAudit,recordEvent,readIndex} from '../lib/studio.mjs';
-import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,extensionAllowlist,isExtensionAllowed,setExtensionAllowed,NOT_ASSIGNED,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo,effectivePacing,validPacing,grantRunNow,stopRun,runNowActive,backoffRetailer,dayKey,queueCommand,takeCommands,commandResult,deviceTimeline,logEvent,scoutHooks} from '../lib/scout.mjs';
+import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,extensionAllowlist,isExtensionAllowed,setExtensionAllowed,NOT_ASSIGNED,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo,effectivePacing,validPacing,grantRunNow,stopRun,runNowActive,storesOf,devicePlan,backoffRetailer,dayKey,queueCommand,takeCommands,commandResult,deviceTimeline,logEvent,scoutHooks} from '../lib/scout.mjs';
 import {notifyOwners,notifyAssigned} from '../lib/scout-notify.mjs';
 
 const BASE_HEADERS={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const ids=(env:any)=>String(env.SCOUT_EXTENSION_IDS||'').split(',').map((x:string)=>x.trim()).filter(Boolean);
 export function extensionOriginAllowed(origin:string,env:any){if(!origin.startsWith('chrome-extension://'))return false;const id=origin.slice(19),list=ids(env);if(list.length)return list.includes(id);return env.SCOUT_DEV==='1'}
-const REFUSALS:any={'auto-off':['Chế độ tự động đang tắt trong Studio.','Auto mode is switched off in Studio.'],'paused-global':['Mạng So Giá đang tạm dừng.','The Price Check network is paused.'],'device-not-allowed':['Studio chưa cho phép máy này chạy tự động.','Studio has not allowed this device to run Auto mode.'],'device-toggle-off':['Chế độ tự động đang tắt trên máy này.','Auto mode is off on this device.'],'paused-device':['Máy này đang tạm dừng.','This device is paused.'],'outside-window':['Ngoài khung giờ chạy.','Outside the schedule window.'],stopped:['Đã yêu cầu dừng lần chạy này.','This run was asked to stop.']};
+const REFUSALS:any={'no-stores':['Máy này chưa chọn cửa hàng nào — cần ít nhất 1 cửa hàng để chạy tự động.','This computer has no store yet — Auto needs at least one store.'],'auto-off':['Chế độ tự động đang tắt trong Studio.','Auto mode is switched off in Studio.'],'paused-global':['Mạng So Giá đang tạm dừng.','The Price Check network is paused.'],'device-not-allowed':['Studio chưa cho phép máy này chạy tự động.','Studio has not allowed this device to run Auto mode.'],'device-toggle-off':['Chế độ tự động đang tắt trên máy này.','Auto mode is off on this device.'],'paused-device':['Máy này đang tạm dừng.','This device is paused.'],'outside-window':['Ngoài khung giờ chạy.','Outside the schedule window.'],stopped:['Đã yêu cầu dừng lần chạy này.','This run was asked to stop.']};
 
 export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()=>Date.now(),adapter,notify,assignedPush}:any={}){
  const pushAssigned=assignedPush||((u:string)=>notifyAssigned(getStoreFn,u));
@@ -43,7 +43,7 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    if(op==='public'&&isRead)return json(publicInstallInfo(settings,env),200,{'Cache-Control':'public, max-age=300'});
 
    // ----- extension (device token) -----
-   const deviceOps=['pair','heartbeat','device','device-settings','tasks','results','release','block','unpair','run-now','run-stop','backoff','command-result'];
+   const deviceOps=['plan','pair','heartbeat','device','device-settings','tasks','results','release','block','unpair','run-now','run-stop','backoff','command-result'];
    if(deviceOps.includes(op)){
     if(origin&&!ext&&origin!==url.origin)return json({error:'Nguồn không được phép.',errorEn:'Origin not allowed.'},403);
     // Cookies are never consulted for device ops: the bearer token is the only credential.
@@ -64,6 +64,8 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
       if(lastRun&&lastRun.at!==prevRunAt)await logEvent(getStoreFn,'run_finished',{deviceId:device.id,account:device.owner,name:device.name,pages:lastRun.pages,prices:lastRun.prices,skipped:lastRun.skipped,stop:lastRun.stop},now);
       const view=await deviceView(getStoreFn,await getDevice(getStoreFn,device.id),settings,now,env);return json({...view,commands:await takeCommands(getStoreFn,device.id,now)})}
      return json(await deviceView(getStoreFn,{...device},settings,now,env))}
+    // v1.7.2: what this computer will look at today (runner page, Settings preview).
+    if(op==='plan'&&isRead)return json(await devicePlan(getStoreFn,{device,settings,now,adapter:ad}));
     if(op==='command-result'&&method==='POST')return json(await commandResult(getStoreFn,device.id,await body(2000),now));
     if(op==='device-settings'&&method==='POST'){const b=await body(8000);const patch:any={};if(b.name!==undefined)patch.name=String(b.name||'').replace(/\s+/g,' ').trim().slice(0,40)||device.name;if(b.postcode!==undefined)patch.postcode=/^\d{4}$/.test(String(b.postcode||''))?String(b.postcode):null;if(b.suburb!==undefined)patch.suburb=String(b.suburb||'').trim().slice(0,40)||null;if(b.stores!==undefined)patch.stores=cleanStores(b.stores);
      if(b.schedule!==undefined){if(b.schedule!==null&&!validSchedule(b.schedule))return json({error:'Khung giờ không hợp lệ.',errorEn:'Invalid schedule.'},400);patch.schedule=b.schedule}
@@ -77,8 +79,8 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
      const runId=/^[\w-]{6,40}$/.test(String(b.runId||''))?String(b.runId):'run-unknown';const r=await leaseTasks(getStoreFn,{device,settings,runId,max:b.max,now,adapter:ad});
      return json({...r,pacing:effectivePacing(await getDevice(getStoreFn,device.id),settings,now),runNow:runNowActive(device,now,runId),robots:'respect'})}
     // Run now from the popup: only for an Auto-allowed device while Auto is on and nothing is paused.
-    if(op==='run-now'&&method==='POST'){const why=settings.autoScout!=='on'?'auto-off':settings.paused?'paused-global':device.autoAllowed!==true?'device-not-allowed':device.pausedUntil&&device.pausedUntil>now?'paused-device':null;
-     if(why)return json({error:REFUSALS[why][0],errorEn:REFUSALS[why][1],code:why},403);
+    if(op==='run-now'&&method==='POST'){const why=settings.autoScout!=='on'?'auto-off':settings.paused?'paused-global':device.autoAllowed!==true?'device-not-allowed':device.pausedUntil&&device.pausedUntil>now?'paused-device':!storesOf(device).length?'no-stores':null;
+     if(why)return json({error:REFUSALS[why][0],errorEn:REFUSALS[why][1],code:why},why==='no-stores'?409:403);
      await rate(getStoreFn,'runnow:'+device.id,6,now);const d=await grantRunNow(getStoreFn,device.id,'device:'+device.id,now);await recordEvent(getStoreFn,'scout_run_now',{account:device.owner,by:'device'},now);await logEvent(getStoreFn,'run_now',{deviceId:device.id,by:'device'},now);return json(await deviceView(getStoreFn,d,settings,now,env))}
     if(op==='run-stop'&&method==='POST'){const d=await stopRun(getStoreFn,device.id,now);return json(await deviceView(getStoreFn,d,settings,now,env))}
     // Automatic back-off: 429 / slow pages (> 8 s) / challenge marker → Normal pace for that retailer today.
@@ -121,7 +123,7 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    if(op==='studio-network'&&method==='POST'){const patch=validateNetworkPatch(b.patch||{},await scoutConfig(getStoreFn));await saveNetwork(getStoreFn,patch,actor,now);await audit('scout_network',{type:'scout',id:'network'},{details:patch,reason:reasonOf()||undefined});return json(await studioOverview(getStoreFn,{now,env}))}
    // Remote control: queue a command for one device (delivered with its next heartbeat).
    if(op==='studio-command'&&method==='POST'){const d=await getDevice(getStoreFn,b.deviceId),type=String(b.type||'');if(d.revokedAt)return json({error:'Máy đã bị thu hồi.',errorEn:'Device revoked.'},409);
-    if(type==='run-now'){if(settings.autoScout!=='on'||settings.paused)return json({error:REFUSALS[settings.paused?'paused-global':'auto-off'][0],errorEn:REFUSALS[settings.paused?'paused-global':'auto-off'][1],code:settings.paused?'paused-global':'auto-off'},409);if(d.autoAllowed!==true)return json({error:REFUSALS['device-not-allowed'][0],errorEn:REFUSALS['device-not-allowed'][1],code:'device-not-allowed'},409);await grantRunNow(getStoreFn,d.id,actor,now)}
+    if(type==='run-now'){if(settings.autoScout!=='on'||settings.paused)return json({error:REFUSALS[settings.paused?'paused-global':'auto-off'][0],errorEn:REFUSALS[settings.paused?'paused-global':'auto-off'][1],code:settings.paused?'paused-global':'auto-off'},409);if(d.autoAllowed!==true)return json({error:REFUSALS['device-not-allowed'][0],errorEn:REFUSALS['device-not-allowed'][1],code:'device-not-allowed'},409);if(!storesOf(d).length)return json({error:REFUSALS['no-stores'][0],errorEn:REFUSALS['no-stores'][1],code:'no-stores'},409);await grantRunNow(getStoreFn,d.id,actor,now)}
     else if(type==='stop')await stopRun(getStoreFn,d.id,now);
     else if(type==='pause')await editDevice(getStoreFn,d.id,(x:any)=>({...x,pausedUntil:now+30*86400000,pauseReason:'studio',stopRequestedAt:now}));
     else if(type==='resume')await editDevice(getStoreFn,d.id,(x:any)=>({...x,pausedUntil:null,pauseReason:null}));
@@ -132,9 +134,9 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    // Run now for one device or all Auto-allowed devices (time-boxed grant, audited).
    if(op==='studio-run-now'&&method==='POST'){if(settings.autoScout!=='on'||settings.paused)return json({error:settings.paused?REFUSALS['paused-global'][0]:REFUSALS['auto-off'][0],errorEn:settings.paused?REFUSALS['paused-global'][1]:REFUSALS['auto-off'][1],code:settings.paused?'paused-global':'auto-off'},409);
     const list=b.all===true?(await listDevices(getStoreFn)).filter(d=>!d.revokedAt&&d.autoAllowed===true&&!(d.pausedUntil>now)):[await getDevice(getStoreFn,b.deviceId)];
-    const ok:string[]=[];for(const d of list){if(d.revokedAt||d.autoAllowed!==true)continue;await grantRunNow(getStoreFn,d.id,actor,now);await queueCommand(getStoreFn,d.id,'run-now',{},actor,now);ok.push(d.id)}
-    if(!ok.length)return json({error:'Không có máy nào được phép chạy tự động.',errorEn:'No device is allowed to run Auto.'},409);
-    await audit('scout_run_now',{type:b.all===true?'scout':'scout-device',id:b.all===true?'all':ok[0]},{details:{devices:ok},reason:reasonOf()||undefined});return json({ok:true,devices:ok})}
+    const ok:string[]=[],noStores:string[]=[];for(const d of list){if(d.revokedAt||d.autoAllowed!==true)continue;if(!storesOf(d).length){noStores.push(d.id);continue}await grantRunNow(getStoreFn,d.id,actor,now);await queueCommand(getStoreFn,d.id,'run-now',{},actor,now);ok.push(d.id)}
+    if(!ok.length)return json(noStores.length?{error:REFUSALS['no-stores'][0],errorEn:REFUSALS['no-stores'][1],code:'no-stores',noStores}:{error:'Không có máy nào được phép chạy tự động.',errorEn:'No device is allowed to run Auto.'},409);
+    await audit('scout_run_now',{type:b.all===true?'scout':'scout-device',id:b.all===true?'all':ok[0]},{details:{devices:ok},reason:reasonOf()||undefined});return json({ok:true,devices:ok,noStores})}
    if(op==='studio-device'&&method==='POST'){const d=await getDevice(getStoreFn,b.deviceId),action=String(b.action||'');let patch:any;
     if(action==='pause')patch={pausedUntil:now+(Number.isInteger(b.hours)&&b.hours>0&&b.hours<=720?b.hours:24*30)*3600000,pauseReason:'studio'};
     else if(action==='resume')patch={pausedUntil:null,pauseReason:null};

@@ -32,7 +32,7 @@ async function beat(){const st=await SC.get(['token','autoEnabled','semiEnabled'
   if(dev.stopRequestedAt&&st.run&&dev.stopRequestedAt>=st.run.startedAt)await stopNow();
   return dev}catch{return null}}
 // ---------- remote commands from Studio (delivered with the heartbeat) ----------
-async function stopNow(){await SC.set({stopRun:Date.now()});setTimeout(async()=>{const st=await SC.get(['run']);if(st.run?.windowId)try{await chrome.windows.remove(st.run.windowId)}catch{}},10000)}
+async function stopNow(){await SC.set({stopRun:Date.now()});setTimeout(async()=>{const st=await SC.get(['run']);if(st.run?.windowId)try{const tabs=await chrome.tabs.query({windowId:st.run.windowId}),runner=chrome.runtime.getURL('runner.html'),mine=tabs.filter((t:any)=>t.id===st.run.workTabId||String(t.url||'').startsWith(runner));if(mine.length===tabs.length)await chrome.windows.remove(st.run.windowId);else await chrome.tabs.remove(mine.map((t:any)=>t.id));await SC.set({run:null})}catch{}},10000)}
 async function recheckStores(){const w=(await SC.get(['warnings'])).warnings;w.storesSeen={};w.storeMismatch={};await SC.set({warnings:w});let n=0;
  for(const t of await chrome.tabs.query({}))try{const r=await chrome.tabs.sendMessage(t.id,{type:'extract'});if(r){await queueSemi(r,t.id);n++}}catch{}return n}
 async function runCommands(list:any[]){for(const c of list.slice(0,10)){let ok=true,result='';
@@ -76,13 +76,21 @@ async function canStart({explicit=false,local=false}:any={}){
  if(st.run&&Date.now()-st.run.heartbeatAt<5*60000)return 'running';
  const view=(explicit?null:await heartbeat())||(await SC.get(['device'])).device||st.device;if(!view)return 'offline';
  if(view.network?.autoScout!=='on')return 'auto-off';if(view.network?.paused)return 'paused-global';if(!view.autoAllowed)return 'device-not-allowed';if(view.paused)return 'paused-device';
+ // v1.7.2: no store → the server has nothing to plan for this computer; say so instead of a 0-page run.
+ if(!Object.values(view.stores||{}).some((x:any)=>typeof x==='string'&&x.trim()))return 'no-stores';
  const runNow=!!view.runNow&&!view.runNow.runId&&Date.parse(view.runNow.until)>Date.now();
  if(!runNow&&!CORE.inWindow(Date.now(),view.schedule,view.timeZone))return 'outside-window';
  const wins=await chrome.windows.getAll({windowTypes:['normal']});if(!wins.length)return 'no-window';// only while Chrome is open with a window
  if(!runNow){const idle=await chrome.idle.queryState(60);if(idle==='active'&&!SC.BUILD.test)return 'user-active'}// wait for the user to step away
  return null}
+async function openRunnerWindow(){const url=chrome.runtime.getURL('runner.html');
+ try{const w=await chrome.windows.create({url,type:'normal',state:'minimized'});await SC.set({runnerWindowMode:'minimized'});return w}
+ catch{const w=await chrome.windows.create({url,type:'normal',focused:false,width:480,height:360,left:0,top:0});await SC.set({runnerWindowMode:'unfocused'});return w}}
 async function startRun(opts:any={}){const why=await canStart(opts);if(why!=='running')await SC.set({lastWhy:why||null});if(why)return why;
- const win=await chrome.windows.create({url:chrome.runtime.getURL('runner.html'),focused:false,type:'normal',width:900,height:700});
+ // v1.7.2 (owner: “why a window?”): pages must render in a real browser tab, so the runner keeps ONE
+ // window, created minimized so it never covers the person's work or takes focus; where Chrome refuses
+ // a minimized window, a small unfocused one instead.
+ const win=await openRunnerWindow();
  await SC.set({run:{windowId:win.id,startedAt:Date.now(),heartbeatAt:Date.now(),workTabId:null,explicit:!!opts.explicit,local:!!(opts.explicit&&opts.local)}});heartbeat();return null}
 // Popup "Run now": ask the server for a one-run grant (only works when allowed), then start.
 async function requestRunNow(local=false){try{const view=await SC.api('run-now',{});await SC.set({device:view});return await startRun({explicit:true,local})}catch(e:any){return e.code||'refused'}}
@@ -94,6 +102,8 @@ chrome.runtime.onMessage.addListener((msg:any,sender:any,reply:any)=>{
   if(msg?.type==='page-result'&&sender.tab)return queueSemi(msg.result,sender.tab.id);
   if(msg?.type==='run-now')return SC.BUILD.test&&msg.direct?startRun(msg.local?{explicit:true,local:true}:{}):requestRunNow(msg.local===true);
   if(msg?.type==='flush')return flushSemi();
+  // The runner page (minimized → throttled timers) waits here between pages; the worker stays awake while a reply is pending.
+  if(msg?.type==='sleep'&&sender.id===chrome.runtime.id){await new Promise(r=>setTimeout(r,Math.max(0,Math.min(120000,Number(msg.ms)||0))));return true}
   if(msg?.type==='heartbeat')return heartbeat();
   if(msg?.type==='notify')return chrome.notifications.create('scout-'+Date.now(),{type:'basic',iconUrl:'icon.png',title:msg.title,message:msg.message,priority:2});
   // Graceful stop: the runner sees stopRun, releases its leases and closes its window.

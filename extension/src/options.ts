@@ -12,25 +12,28 @@ let msg='',msgBad=false,dirty=false;
 const RET=['woolworths','coles','aldi','chemist','amazon'];
 const say=(m:string,bad=false)=>{msg=m;msgBad=bad};
 const open=new Set<string>();// finished steps the person re-opened with “Sửa”
-let edit:any=null;// unsaved schedule editor state {preset, windows}
+let edit:any=null;
+let preview:any=null;// today's plan for this computer (loaded when “Xem trước” opens)
+const CFG=await SC.config();// unsaved schedule editor state {preset, windows}
 const hashTarget=()=>String(location.hash||'').slice(1);
 {const h=hashTarget();if(h==='step-pair')open.add('pair');if(h==='prep'||h==='step-auto')open.add('auto');if(h==='step-stores')open.add('stores')}
 const clone=(x:any)=>JSON.parse(JSON.stringify(x));
 function stepHead(id:string,n:string,title:string,done:boolean,collapsed:boolean){
  return `<header class="step-head"><span class="step-n ${done?'done':''}" aria-hidden="true">${done?'✓':n}</span><h2 id="h-${id}">${n?`<span class="sr-only">${n}. </span>`:''}${esc(title)}</h2>${done?`<span class="chip">${T('Xong','Done')}</span>`:''}${done?`<button type="button" class="btn small ghost step-edit" data-edit="${id}" aria-expanded="${collapsed?'false':'true'}" aria-controls="body-${id}">${collapsed?T('Sửa','Edit'):T('Thu gọn','Collapse')}<span class="sr-only"> ${esc(title)}</span></button>`:''}</header>`}
-function readyHtml(st:any){const steps=UI.readiness(st),studio=UI.studioUrl(st),ob=st.onboarding||{},paired=!!st.token,prepOk=steps[0].ok&&steps[3].ok;
+function readyHtml(st:any){const steps=UI.readiness(st),studio=UI.studioUrl(st),ob=st.onboarding||{},paired=!!st.token,prepOk=UI.toggleReady(st);
  return `<ol class="ready-list" id="ready" aria-label="${T('Điều kiện để chạy tự động','What Auto mode needs')}">${steps.map((s:any,i:number)=>{
   let fix='';
   if(!s.ok&&s.fix==='pair')fix=`<button type="button" class="btn small primary" data-goto="step-pair">${esc(s.fixLabel)}</button>`;
   if(!s.ok&&s.fix==='studio')fix=studio&&paired?`<a class="btn small ${steps.findIndex((x:any)=>!x.ok)===i?'primary':''}" href="${esc(studio)}" target="_blank" rel="noopener" data-fix-studio="${s.id}">${esc(s.fixLabel)} ↗</a>`:`<span class="muted">${T('Ghép máy trước','Pair first')}</span>`;
+  if(s.fix==='stores'&&paired){const mine=st.device?.stores||{};fix=`<ul class="store-chips" data-store-status>${RET.map(r=>mine[r]?`<li class="chip" data-ready="${r}">✓ ${esc(UI.LABEL[r])}: ${esc(mine[r])}</li>`:`<li><button type="button" class="btn small" data-open-retailer="${r}">${esc(T('Mở ','Open ')+UI.LABEL[r])} ↗</button></li>`).join('')}</ul>${s.ok?'':`<button type="button" class="btn small primary" data-goto="step-stores">${esc(s.fixLabel)}</button>`}`}
   if(s.fix==='prep')fix=`<details class="prep-d" id="prep-d" ${s.ok&&hashTarget()!=='prep'?'':'open'}><summary>${s.ok?T('Xem 3 xác nhận','See the 3 confirmations'):T('3 xác nhận','3 confirmations')}</summary><div class="prep-list">
    <label class="switch"><input type="checkbox" data-ob="profile" ${ob.profile?'checked':''}><span>${T('Tôi dùng một hồ sơ Chrome RIÊNG cho FamTray So Giá (Chrome → biểu tượng hồ sơ → Thêm).','I use a SEPARATE Chrome profile for FamTray Price Check (Chrome → profile icon → Add).')}</span></label>
    <label class="switch"><input type="checkbox" data-ob="rewards" ${ob.rewards?'checked':''}><span>${T('Hồ sơ này KHÔNG đăng nhập Everyday Rewards, Flybuys hay tài khoản mua sắm nào.','This profile is NOT signed in to Everyday Rewards, Flybuys or any shopping account.')}</span></label>${Object.values(st.warnings?.signedIn||{}).some(Boolean)?`<p class="hint warn">${T('Phát hiện dấu hiệu đang đăng nhập — hãy đăng xuất hoặc dùng hồ sơ khác.','A signed-in indicator was detected — sign out or use another profile.')}</p>`:''}
    <label class="switch"><input type="checkbox" data-ob="store" ${ob.store?'checked':''}><span>${T('Tôi đã mở từng trang siêu thị một lần và chọn cửa hàng gần nhà (bước 2).','I opened each supermarket site once and selected my nearby store (step 2).')}</span></label></div></details>`;
-  if(s.fix==='toggle')fix=`<label class="switch"><input type="checkbox" id="auto" ${st.autoEnabled?'checked':''} ${paired?'':'disabled'}><span>${T('Tự động trên máy này','Auto on this computer')}${prepOk?'':` <small class="muted">${T('(cần ① và ④)','(needs ① and ④)')}</small>`}</span></label>`;
-  return `<li data-step="${s.id}" data-ok="${s.ok}" ${s.id==='prep'?'id="prep"':''}><span class="n ${s.ok?'ok':''}" aria-hidden="true">${s.ok?'✓':UI.NUM[i]}</span><div class="t"><strong>${esc(s.title)}</strong><span class="sr-only"> — ${s.ok?T('xong','done'):T('còn thiếu','missing')}</span>${s.adminOnly&&!s.ok?` <small class="tag">${T('chỉ quản trị viên','admin only')}</small>`:''}${s.ok||s.fix==='prep'||s.fix==='toggle'?'':`<small class="muted">${esc(s.todo)}</small>`}${s.adminOnly&&!s.ok?`<small class="muted">${T('Tài khoản này không phải quản trị viên Studio — nhờ quản trị viên bật giúp.','This account is not a Studio admin — ask the admin to do this.')}</small>`:''}${fix?`<div class="fix">${fix}</div>`:''}</div></li>`}).join('')}</ol>
+  if(s.fix==='toggle')fix=`<label class="switch"><input type="checkbox" id="auto" ${st.autoEnabled?'checked':''} ${paired?'':'disabled'}><span>${T('Tự động trên máy này','Auto on this computer')}${prepOk?'':` <small class="muted">${T('(cần ①, ④ và ⑤)','(needs ①, ④ and ⑤)')}</small>`}</span></label>`;
+  return `<li data-step="${s.id}" data-ok="${s.ok}" ${s.id==='prep'?'id="prep"':''}><span class="n ${s.ok?'ok':''}" aria-hidden="true">${s.ok?'✓':UI.NUM[i]}</span><div class="t"><strong>${esc(s.title)}</strong><span class="sr-only"> — ${s.ok?T('xong','done'):T('còn thiếu','missing')}</span>${s.adminOnly&&!s.ok?` <small class="tag">${T('chỉ quản trị viên','admin only')}</small>`:''}${s.ok||s.fix==='prep'||s.fix==='toggle'?'':`<small class="muted" data-todo>${esc(s.todo)}</small>`}${s.adminOnly&&!s.ok?`<small class="muted">${T('Tài khoản này không phải quản trị viên Studio — nhờ quản trị viên bật giúp.','This account is not a Studio admin — ask the admin to do this.')}</small>`:''}${fix?`<div class="fix">${fix}</div>`:''}</div></li>`}).join('')}</ol>
  ${steps.every((s:any)=>s.ok)?`<p class="banner ok" data-auto-ready role="status">${esc(T('Tự động đã sẵn sàng. ','Auto is ready. ')+(UI.nextRun(st)?T('Lần chạy tới: ','Next run: ')+UI.short(UI.nextRun(st)):''))}</p>`:''}
- <p class="hint" data-runnow-note>${T('Chạy ngay dùng được khi ①–④ xong, kể cả ngoài lịch (không cần bật ⑤). Lịch chạy tự động cần đủ ①–⑤.','Run now works once ①–④ are done, even outside the schedule (⑤ not needed). Scheduled runs need ①–⑤.')}</p>`}
+ <p class="hint" data-runnow-note>${T('Chạy ngay dùng được khi ①–⑤ xong, kể cả ngoài lịch (không cần bật ⑥). Lịch chạy tự động cần đủ ①–⑥.','Run now works once ①–⑤ are done, even outside the schedule (⑥ not needed). Scheduled runs need ①–⑥.')}</p>`}
 function schedHtml(st:any){const v=st.device,saved=v?.schedule||CORE.DEFAULT_SCHEDULE,caps=v?.caps||{pagesPerRun:150,pagesPerDay:300};
  if(!edit)edit={preset:UI.presetOf(saved),windows:clone(saved)};
  const custom=edit.preset==='custom';
@@ -53,7 +56,7 @@ function storesHtml(st:any){const v=st.device,seen=st.warnings?.storesSeen||{},m
  <ul class="stores">${RET.map(r=>{const s=seen[r],m=mine[r],suggest=s&&s!==m;
   return `<li class="store-row" data-retailer="${r}"><div class="store-main"><strong>${UI.LABEL[r]}</strong><span class="${m?'':'muted'}" data-store-current>${m?'✓ '+esc(m):T('Chưa chọn cửa hàng','No store yet')}</span>
    ${suggest?`<span class="store-seen">${esc(T('Trang đang hiển thị: ','Site shows: '))}“${esc(s)}”</span><button type="button" class="btn small primary" data-use="${r}">${T('Dùng tên này','Use this name')}<span class="sr-only"> ${esc(UI.LABEL[r]+' '+s)}</span></button>`
-    :m?'':`<small class="muted">${esc(T(`Mở trang ${UI.LABEL[r]}, chọn cửa hàng gần nhà — tên sẽ hiện ở đây.`,`Open ${UI.LABEL[r]}, pick your nearby store — its name appears here.`))}</small>`}</div>
+    :m?'':`<small class="muted">${esc(T(`Mở trang ${UI.LABEL[r]}, chọn cửa hàng gần nhà — tên sẽ hiện ở đây.`,`Open ${UI.LABEL[r]}, pick your nearby store — its name appears here.`))}</small><button type="button" class="btn small" data-open-retailer="${r}">${esc(T('Mở ','Open ')+UI.LABEL[r])} ↗</button>`}</div>
    <label class="switch mini site-sw"><input type="checkbox" data-site="${r}" ${st.semiSites?.[r]!==false?'checked':''}><span>${T('Ghi giá','Capture')}<span class="sr-only"> ${UI.LABEL[r]}</span></span></label></li>`}).join('')}</ul>
  <details class="store-manual" id="store-manual"><summary>${T('Nhập tên cửa hàng bằng tay','Type store names by hand')}</summary>
   <form id="stores" class="form"><p class="hint">${T('Chỉ khi trang không hiển thị tên: gõ đúng như trang siêu thị ghi. Nếu trang hiển thị cửa hàng khác, giá sẽ bị gắn cờ.','Only if the site does not show it: type it exactly as the site shows. If the site shows another store, prices are flagged.')}</p>${RET.map(r=>`<label>${UI.LABEL[r]}<input name="${r}" maxlength="60" value="${esc(mine[r]||'')}"></label>`).join('')}
@@ -104,10 +107,12 @@ async function render(){
  <section class="card step" id="step-status" aria-labelledby="h-status"><header class="step-head"><h2 id="h-status">${T('Trạng thái & nhật ký','Status & log')}</h2></header>
   <p class="summary" data-state="${state.key}" role="status">${esc(state.line)}</p>
   <dl class="kv"><dt>${T('Lần chạy tới','Next run')}</dt><dd>${UI.nextRun(st)?esc(UI.when(UI.nextRun(st))):'—'}</dd>
-  <dt>${T('Lần chạy trước','Last run')}</dt><dd>${st.lastRun?esc(UI.when(st.lastRun.at)+' · '+T(`${st.lastRun.pages} trang, ${st.lastRun.prices} giá`,`${st.lastRun.pages} pages, ${st.lastRun.prices} prices`)+' · '+UI.reason(st.lastRun.stop)):T('chưa có','never')}</dd>
+  <dt>${T('Lần chạy trước','Last run')}</dt><dd data-last-run>${esc(UI.lastRunText(st.lastRun))}</dd>
   <dt>${T('Ghi giá gần nhất','Last capture')}</dt><dd>${st.lastSemi?.count?esc(UI.lastCapture(st.lastSemi)):'—'}</dd>
   <dt>${T('Nhịp','Pace')}</dt><dd data-pace-label>${esc(UI.paceLabel(pace))}</dd>
   <dt>${T('Bị chặn','Blocked events')}</dt><dd>${(st.blockedEvents||[]).length?esc((st.blockedEvents||[]).slice(0,3).map((b:any)=>UI.LABEL[b.retailer]+' · '+b.kind+' · '+UI.when(b.at)).join('; ')):'0'}</dd></dl>
+  ${st.lastRun?UI.visitsHtml(st.lastRun,'last-run'):''}
+  ${paired?`<details class="visits" id="preview"><summary>${T('Xem trước hôm nay sẽ xem gì','Preview what it will look at today')}</summary><div id="preview-body">${UI.previewHtml(preview)}</div></details>`:''}
   <div class="row"><button id="pause" class="btn ${st.paused?'primary':'danger'}" type="button" aria-pressed="${st.paused?'true':'false'}">${st.paused?T('▶ Tiếp tục','▶ Resume'):T('⏸ Tạm dừng tất cả','⏸ Pause everything')}</button>${paired&&UI.runNowReady(st)&&!st.run?`<button id="runnow" class="btn" type="button">▶ ${T('Chạy ngay','Run now')}</button>`:''}</div>
  </section>
  <details class="card step rules" id="rules"><summary><h2 id="h-rules">${T('Quy tắc an toàn','Safety rules')}</h2></summary>
@@ -134,7 +139,7 @@ async function render(){
  document.querySelectorAll('[data-use]').forEach((el:any)=>el.onclick=async()=>{el.disabled=true;const cur=await SC.get(['device','warnings']),r=el.dataset.use;await saveStores({...(cur.device?.stores||{}),[r]:cur.warnings.storesSeen[r]},T('Đã lưu cửa hàng.','Stores saved.'))});
  $('#semi')?.addEventListener('change',async(e:any)=>SC.set({semiEnabled:e.target.checked}));
  $('#open-app')?.addEventListener('click',()=>chrome.tabs.create({url:UI.appBase(st)+'/#pair-extension'}));
- $('#auto')?.addEventListener('change',async(e:any)=>{const on=e.target.checked;if(on){const o=(await SC.get(['onboarding'])).onboarding;if(!o.profile||!o.rewards||!o.store){e.target.checked=false;say(T('Hãy hoàn tất bước ④ Chuẩn bị máy trước khi bật tự động.','Finish step ④ Prepare this computer before switching Auto on.'),true);return rerender()}}await SC.set({autoEnabled:on});if(!on)chrome.runtime.sendMessage({type:'stop-run'}).catch(()=>{});chrome.runtime.sendMessage({type:'heartbeat'}).catch(()=>{});say(on?T('Đã bật tự động trên máy này.','Auto switched on for this device.'):T('Đã tắt tự động.','Auto switched off.'));rerender()});
+ $('#auto')?.addEventListener('change',async(e:any)=>{const on=e.target.checked;if(on){if(!UI.toggleReady(await SC.get())){e.target.checked=false;say(T('Cần ① ghép máy, ④ ít nhất 1 cửa hàng và ⑤ chuẩn bị máy trước khi bật tự động.','Needs ① paired, ④ at least one store and ⑤ a prepared computer before Auto can be switched on.'),true);return rerender()}}await SC.set({autoEnabled:on});if(!on)chrome.runtime.sendMessage({type:'stop-run'}).catch(()=>{});chrome.runtime.sendMessage({type:'heartbeat'}).catch(()=>{});say(on?T('Đã bật tự động trên máy này.','Auto switched on for this device.'):T('Đã tắt tự động.','Auto switched off.'));rerender()});
  $('#pause').onclick=async()=>{const p=!(await SC.get(['paused'])).paused;await SC.set({paused:p});if(p)chrome.runtime.sendMessage({type:'stop-run'}).catch(()=>{});rerender()};
  $('#runnow')?.addEventListener('click',async()=>{const why=await chrome.runtime.sendMessage({type:'run-now',local:true,direct:!!SC.BUILD.test});say(why?UI.reason(why):T('Đã bắt đầu.','Started.'),!!why);rerender()});
  $('#unpair')?.addEventListener('click',async()=>{if(!confirm(T('Hủy ghép nối máy này?','Unpair this device?')))return;try{await SC.api('unpair',{})}catch{}await SC.set({token:'',deviceId:'',device:null,autoEnabled:false});open.clear();edit=null;say(T('Đã hủy ghép nối.','Unpaired.'));rerender()});
@@ -157,6 +162,8 @@ async function render(){
  document.querySelectorAll('[data-pace]').forEach((b:any)=>b.onclick=async()=>{if(b.disabled)return;const k=b.dataset.pace||null;try{const view=await SC.api('device-settings',{pacing:k});await SC.set({device:view});say(k?T('Đã đổi nhịp: ','Pace set: ')+UI.PACE_SHORT()[k][0]:T('Nhịp theo Studio.','Pace follows Studio.'))}catch(err:any){say(err.message,true)}rerender()});
  ['#stores','#pair'].forEach(s=>$(s)?.addEventListener('input',()=>{dirty=true}));
  UI.bindUpdate(document);
+ document.querySelectorAll('[data-open-retailer]').forEach((b:any)=>b.onclick=()=>chrome.tabs.create({url:UI.retailerUrl(b.dataset.openRetailer,CFG)}));
+ const pv=$('#preview');pv?.addEventListener('toggle',async()=>{if(!pv.open)return;try{preview=await SC.api('plan')}catch(e:any){preview={tasks:[],planInfo:null,error:e.message}}const body=$('#preview-body');if(body)body.innerHTML=UI.previewHtml(preview)});
 }
 chrome.storage.onChanged.addListener((_c:any,area:string)=>{if(area==='local'&&!dirty&&!document.activeElement?.matches?.('input,select,textarea'))render()});
 await render();

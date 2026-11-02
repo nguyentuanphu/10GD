@@ -206,4 +206,20 @@ resetSettingsCache();
 await S('studio-network',{patch:{autoScout:'off'}});clock=Date.parse('2026-11-07T07:00:00+11:00');
 t=await dev('tasks',tokH,{runId:'run-hhhhh2',autoEnabled:true});assert.equal(t.data.code,'auto-off');
 assert.equal((await dev('results',tokH,{mode:'auto',items:[]})).data.code,'auto-off');
+// ---- v1.7.2 planInfo: why a device has nothing to do (never a silent 0-page run)
+{const {planInfoFor,planView,storesOf}=await import('../netlify/lib/scout.mjs');const d={stores:{woolworths:'Hurstville',coles:''}},q=(r:string,st='queued',label='Hurstville')=>({retailer:r,storeLabel:label,status:st,attempts:0,leaseUntil:0});
+ assert.deepEqual(storesOf(d),['woolworths']);
+ assert.equal(planInfoFor({stores:{}},[q('woolworths')],{},clock).reasonIfEmpty,'no-stores');
+ assert.equal(planInfoFor(d,[q('woolworths','queued','Rockdale')],{},clock).reasonIfEmpty,'no-wanted-items','tasks only for another store');
+ assert.equal(planInfoFor(d,[q('woolworths','done')],{},clock).reasonIfEmpty,'all-done');
+ assert.equal(planInfoFor(d,[q('woolworths')],{woolworths:{paused:true}},clock).reasonIfEmpty,'retailer-paused');
+ assert.equal(planInfoFor(d,[q('woolworths')],{},clock,{capped:true}).reasonIfEmpty,'cap');
+ const live=planInfoFor(d,[q('woolworths'),q('woolworths','done'),q('coles')],{},clock);assert.deepEqual([live.reasonIfEmpty,live.tasksToday,live.open,live.done],[null,2,1,1]);
+ assert.equal(planView({stores:{}},clock).reasonIfEmpty,'no-stores');assert.equal(planView({stores:{woolworths:'X'},lastPlan:{...live,day:'2000-01-01'}},clock).tasksToday,null,'yesterday’s answer is not reused');
+ // Run now without a store is refused with a reason instead of a 0-page run.
+ const codeN=(await J(await call('pair-code',{method:'POST',body:{},cookie:alice}))).data;const pn=await dev('pair','',{code:codeN.code,name:'No store PC'});const tokN=pn.data.token;assert.equal(pn.data.device.planInfo.reasonIfEmpty,'no-stores');
+ await S('studio-network',{patch:{autoScout:'on'}});await S('studio-device',{deviceId:pn.data.device.id,action:'allow-auto'});
+ const rn=await dev('run-now',tokN,{});assert.equal(rn.status,409);assert.equal(rn.data.code,'no-stores');
+ const tk=await dev('tasks',tokN,{runId:'run-nostore1',autoEnabled:true});assert.equal(tk.data.stop,'no-stores');assert.equal(tk.data.planInfo.reasonIfEmpty,'no-stores');
+ assert.equal((await dev('unpair',tokN,{})).status,200);await S('studio-network',{patch:{autoScout:'off'}})}
 console.log('Scout API: pairing, auth, kill switches, schedule, leases, caps, priority, results, consensus, breakage, robots, challenge pause, Studio audit — all passed.');

@@ -92,6 +92,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
  try{ctx=await chromium.launchPersistentContext(profile,{channel:'chromium',headless:true,viewport:{width:1280,height:800},args:['--disable-extensions-except='+ext,'--load-extension='+ext,'--host-resolver-rules=MAP *.scout.test 127.0.0.1, MAP kitchen.localhost 127.0.0.1']})}
  catch(e:any){if(process.env.CI){throw e}console.log('SKIP scout-extension-browser: extensions cannot be loaded in this environment: '+String(e?.message||e).split('\n')[0]);server.close();return}
  try{
+  if(process.env.DEBUG_RUNNER)ctx.on('page',(p:any)=>{p.on('console',(m:any)=>console.log('[page]',p.url().slice(-30),m.text()));p.on('pageerror',(e:any)=>console.log('[pageerror]',p.url().slice(-30),e.message))});
   let [sw]=ctx.serviceWorkers();if(!sw)sw=await ctx.waitForEvent('serviceworker',{timeout:20000});
   const id=new URL(sw.url()).host;assert.equal(id,'mjeoekikdicoojgoppnfibjbfpcfngja','pinned extension id from the manifest key');
   const storage=(keys:any)=>sw.evaluate((k:any)=>(globalThis as any).chrome.storage.local.get(k),keys);
@@ -106,7 +107,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
   const paired=await storage(['token','deviceId']);assert.match(paired.token,/^[\w-]{43}$/);const deviceId=paired.deviceId;
   assert.equal(await opt.locator('#step-pair.collapsed .step-sum').innerText(),'Đã ghép nối: E2E Chrome','finished step collapses to one line');assert.equal(await opt.locator('#store-manual').getAttribute('open'),null,'typed store names are only a fallback');await opt.click('#store-manual summary');await opt.fill('input[name=woolworths]','Hurstville');await opt.click('#stores button[type=submit]');await opt.getByText('Đã lưu cửa hàng',{exact:false}).waitFor();
   // Auto toggle is refused until the onboarding checklist is complete.
-  await opt.click('#auto');await opt.getByText('Hãy hoàn tất bước ④ Chuẩn bị máy trước khi bật tự động.',{exact:true}).waitFor();assert.equal((await storage(['autoEnabled'])).autoEnabled,false);
+  await opt.click('#auto');await opt.getByText('Cần ① ghép máy, ④ ít nhất 1 cửa hàng và ⑤ chuẩn bị máy trước khi bật tự động.',{exact:true}).waitFor();assert.equal((await storage(['autoEnabled'])).autoEnabled,false);
   for(const k of ['profile','rewards','store'])await opt.check(`[data-ob=${k}]`);
   await opt.check('#auto');await opt.getByText('Đã bật tự động',{exact:false}).waitFor();assert.equal((await storage(['autoEnabled'])).autoEnabled,true);
 
@@ -125,7 +126,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
   await setStorage({testPacing:{minMs:1500,maxMs:1800}});
   const before=visits.length;
   const why=await sw.evaluate(()=>(globalThis as any).scoutDebug.startRun());assert.equal(why,null,'run started: '+why);
-  const lastRun=await until(async()=>(await storage(['lastRun'])).lastRun,90000,'auto run to finish');
+  const lastRun=await until(async()=>(await storage(['lastRun'])).lastRun,90000,'auto run to finish').catch(async(e:any)=>{const rp=ctx.pages().find((p:any)=>p.url().includes('runner.html'));throw new Error(e.message+' · runner: '+(rp?await rp.evaluate(()=>document.body.innerText.slice(0,400)).catch((x:any)=>x.message):'none')+' · '+JSON.stringify(await storage(['run','runnerWindowMode','lastWhy'])))});
   assert.equal(lastRun.stop,'no-tasks',JSON.stringify(lastRun));assert.equal(lastRun.pages,2,'two pages visited');assert.equal(lastRun.skipped,1,'robots-disallowed search skipped');
   const autoVisits=visits.slice(before).filter(v=>v.host==='woolworths.scout.test');
   assert.equal(autoVisits.length,2,'only the two allowed pages were requested: '+JSON.stringify(autoVisits));assert.ok(!autoVisits.some(v=>v.path.startsWith('/shop/search')),'robots Disallow respected');
@@ -145,6 +146,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
   const events=await scoutLib.listEvents(getStoreFn,{now:Date.now()});assert.ok(events.some((e:any)=>e.type==='device_blocked'));
   assert.equal((await scoutLib.listTasks(getStoreFn,scoutLib.dayKey(Date.now()))).filter((t:any)=>t.status==='leased').length,0,'leases released after block');
   assert.ok((await storage(['blockedEvents'])).blockedEvents.length>=1);
+  await until(async()=>(await ctx.pages()).every((p:any)=>!p.url().includes('runner.html')),15000,'runner window closed after the challenge');
 
   // ---------- screenshots (popup-like 375 width; options at tablet and desktop; VI/EN, light/dark) ----------
   await setStorage({lastRun:{...lr2},theme:'light',lang:'vi'});
@@ -232,7 +234,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    await scoutLib.saveNetwork(getStoreFn,{autoScout:'on'},'henrynguyen',Date.now());
    await scoutLib.editDevice(getStoreFn,devId,(d:any)=>({...d,autoAllowed:true,stores:{woolworths:'Hurstville'},schedule:[{days:[dow],start:'00:00',end:'00:30'}],pacing:{minMs:3000,maxMs:3500}}));// outside its window; Very fast pace
    await setStorage({autoEnabled:true,testPacing:null,lastRun:null,stopRun:0});
-   cfg.version='e2e-3';cfg.retailers.woolworths.specials=[3,4,5,6].map(n=>base('woolworths')+'/shop/browse/specials/half-price?page='+n);await store.setJSON('config/override',{config:cfg});
+   cfg.version='e2e-3';cfg.retailers.woolworths.specials=[3,4,5,6,7,8,9,10].map(n=>base('woolworths')+'/shop/browse/specials/half-price?page='+n);await store.setJSON('config/override',{config:cfg});
    // Retire the earlier challenge fixture task (released when the first device was blocked).
    {const day=scoutLib.dayKey(Date.now());await scoutLib.ensurePlan(getStoreFn,{settings:await scoutLib.networkSettings(getStoreFn,env),now:Date.now(),adapter});for(const t of await scoutLib.listTasks(getStoreFn,day))if(t.url.includes('/challenge'))await store.setJSON(`tasks/${day}/${t.taskId}`,{...t,status:'done'})}
    assert.equal(await sw.evaluate(()=>(globalThis as any).scoutDebug.canStart()),'outside-window','no grant → waits for its window');
@@ -244,13 +246,27 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    try{await until(async()=>visits.slice(v0).filter(v=>v.host==='woolworths.scout.test').length>=2||(await storage(['lastRun'])).lastRun,40000,'two pages at the fast pace')}
    catch(e:any){const st=await storage(['run','lastRun','paused','pausedUntil','autoEnabled']).catch(()=>({}));let why='';try{why=await sw.evaluate(()=>(globalThis as any).scoutDebug.canStart())}catch{}throw new Error(e.message+' · state '+JSON.stringify(st)+' · canStart '+why+' · visits '+JSON.stringify(visits.slice(v0).map((v:any)=>v.host+(v.path||v.url||''))))}
    {const early=(await storage(['lastRun'])).lastRun;assert.equal(early,null,'run ended before two pages: '+JSON.stringify(early)+' tasks '+JSON.stringify((await scoutLib.listTasks(getStoreFn,scoutLib.dayKey(Date.now()))).map((t:any)=>[t.status,t.url.slice(-30),t.leasedBy===devId])))}
-   const pop3=await ctx.newPage();await pop3.setViewportSize({width:375,height:700});await pop3.goto(`chrome-extension://${id}/popup.html`);await pop3.locator('[data-run-status]').waitFor();assert.match(await pop3.locator('[data-run-status]').innerText(),/Đang chạy · \d+\/150 trang/);assert.equal(await pop3.locator('#stoprun').count(),1);
+   // v1.7.2: the runner window opens minimized (or small + unfocused) and its page explains what it is doing.
+   {const w=await sw.evaluate(async()=>{const c=(globalThis as any).chrome,st=await c.storage.local.get(['run','runnerWindowMode']);const win=await c.windows.get(st.run.windowId);return{mode:st.runnerWindowMode,state:win.state,focused:win.focused}});
+    // Chrome accepted the minimized request (headless Chromium ignores window states, so the state itself is not checked here; the runner also no longer treats it as “in use”).
+    assert.ok(w.mode==='minimized'||w.mode==='unfocused','runner window requested minimized (or small + unfocused): '+JSON.stringify(w));
+    const rp=ctx.pages().find((p:any)=>p.url().includes('/runner.html'));assert.ok(rp,'runner page open');
+    await rp.locator('#plan li[data-task]').first().waitFor();
+    assert.match(await rp.locator('#title').innerText(),/So Giá đang xem giá giúp bạn · có thể thu nhỏ hoặc đóng/);assert.match(await rp.locator('#note').innerText(),/tiện ích không chạy ẩn được/);
+    await until(async()=>/^Đang xem: Woolworths · Hurstville · trang khuyến mãi · trang \d+\/\d+$/.test(String(await rp.locator('#status').textContent()))||(await storage(['lastRun'])).lastRun,15000,'current item line');
+    const rows=await rp.evaluate(()=>[...document.querySelectorAll('#plan li[data-task]')].map((li:any)=>li.dataset.status));assert.ok(rows.length>=4,'today’s tasks listed: '+rows.length);assert.ok(rows.some((x:string)=>x==='viewing'||x==='saved'),'row statuses: '+rows.join(','));
+    const txt=async(sel:string)=>String(await rp.locator(sel).first().textContent()).replace(/\s+/g,' ').trim();assert.match(await txt('#plan .plan-group summary'),/^Khuyến mãi · \d+/);assert.match(await txt('#plan li[data-task] small'),/^woolworths\.scout\.test\/shop\/browse\/specials\/half-price$/,'host + path only, no query');
+    await rp.setViewportSize({width:820,height:900});await rp.screenshot({path:'docs/reviews/v1.7.2/extension-ux/runner-vi-light-820x900.png'})}
+   const pop3=await ctx.newPage();await pop3.setViewportSize({width:375,height:700});await pop3.goto(`chrome-extension://${id}/popup.html`);// (Playwright may open this page as a background tab of the runner window, so attached + textContent.)
+   await pop3.locator('[data-run-status]').waitFor({state:'attached'});assert.match(String(await pop3.locator('[data-run-status]').textContent()),/Đang chạy · \d+\/150 trang/);assert.equal(await pop3.locator('#stoprun').count(),1);
    // Studio: Stop → obeyed within one heartbeat.
    await scoutLib.stopRun(getStoreFn,devId,Date.now());await scoutLib.queueCommand(getStoreFn,devId,'stop',{},'henrynguyen',Date.now());await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());
    const lr=await until(async()=>(await storage(['lastRun'])).lastRun,20000,'run stopped');assert.equal(lr.stop,'stopped',JSON.stringify(lr));
-   const fast=visits.slice(v0).filter(v=>v.host==='woolworths.scout.test');assert.ok(fast.length>=2&&fast.length<4,'stopped before the end: '+fast.length);
+   const fast=visits.slice(v0).filter(v=>v.host==='woolworths.scout.test');assert.ok(fast.length>=2&&fast.length<8,'stopped before the end: '+fast.length);
    for(let i=1;i<fast.length;i++){const gap=fast[i].at-fast[i-1].at;assert.ok(gap>=3000,'still paced ≥ 3 s, one page at a time: '+gap)}
    assert.equal(new Set(fast.map(v=>v.path)).size,fast.length,'each page once');
+   // “Lần chạy gần nhất”: the pages visited with prices per page.
+   assert.ok(lr.visits.length>=2&&lr.visits.every((v:any)=>v.retailer==='woolworths'&&v.host==='woolworths.scout.test'&&!/\?/.test(v.path)),JSON.stringify(lr.visits));assert.ok(lr.visits.some((v:any)=>v.status==='saved'&&v.prices>0));
    await until(async()=>(await ctx.pages()).every((p:any)=>!p.url().includes('runner.html')),15000,'runner window closed');
    // The live status reached the server (heartbeat each minute; here forced).
    await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());const live=scoutLib.liveStatus(await scoutLib.getDevice(getStoreFn,devId),await scoutLib.networkSettings(getStoreFn,env),Date.now());
@@ -316,7 +332,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    const {code:c2}=await scoutLib.createPairCode(getStoreFn,'scoutfamily',Date.now(),env);
    await o.fill('input[name=server]',APP);await o.fill('input[name=code]',c2);await o.fill('input[name=name]','UX Chrome');await o.click('#pair button[type=submit]');await o.locator('#step-pair.collapsed').waitFor({timeout:15000});
    const {deviceId:devId,token:tok}=await storage(['deviceId','token']);
-   await scoutLib.editDevice(getStoreFn,devId,(d:any)=>({...d,autoAllowed:false,stores:{woolworths:'Hurstville'},schedule:null,pacing:null,clientPacing:null}));
+   await scoutLib.editDevice(getStoreFn,devId,(d:any)=>({...d,autoAllowed:false,stores:{},schedule:null,pacing:null,clientPacing:null}));
    const refresh=()=>sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());
    const steps=(p:any)=>p.evaluate(()=>[...document.querySelectorAll('#ready li[data-step]')].map((li:any)=>li.dataset.step+':'+li.dataset.ok));
    const popMissing=(p:any)=>p.evaluate(()=>[...document.querySelectorAll('[data-readiness] li[data-step]')].map((li:any)=>li.dataset.step));
@@ -324,38 +340,53 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    const openPop=async()=>{await pop.goto(POP);await pop.locator('#pop-state').waitFor()};
    // 1. Nothing done in Studio, computer not prepared, Auto off.
    await refresh();await o.reload();await o.locator('#ready').waitFor();
-   assert.deepEqual(await steps(o),['pair:true','network:false','device:false','prep:false','toggle:false'],'checklist shows each step in order');
+   assert.deepEqual(await steps(o),['pair:true','network:false','device:false','stores:false','prep:false','toggle:false'],'checklist shows each step in order');
+   assert.equal(await o.locator('#ready li[data-step="stores"] [data-todo]').innerText(),'Chưa chọn cửa hàng — mở trang Woolworths/Coles/ALDI một lần và bấm “Dùng tên này”, hoặc nhập tên cửa hàng.');
+   await o.evaluate(()=>{const g:any=globalThis;g.__tabs=[];g.chrome.tabs.create=(x:any)=>{g.__tabs.push(x.url)}});await o.click('#ready [data-open-retailer="coles"]');assert.deepEqual(await o.evaluate(()=>(globalThis as any).__tabs),['https://www.coles.com.au/'],'a button per retailer opens its site');
    assert.equal(await o.locator('[data-fix-studio="network"]').getAttribute('href'),APP+'/studio.html#scout','② fix opens Studio → Mạng So Giá');
    assert.equal(await o.locator('[data-fix-studio="device"]').getAttribute('href'),APP+'/studio.html#scout','③ fix opens Studio → Mạng So Giá');
    assert.match(await o.locator('#ready li[data-step="network"]').innerText(),/chỉ quản trị viên/,'not a Studio admin → “chỉ quản trị viên”');
    assert.equal(await o.locator('#ready li[data-step="device"] .tag').innerText(),'chỉ quản trị viên');
    assert.equal(await o.locator('#ready li[data-step="prep"] details').getAttribute('open'),'','④ shows its three confirmations');
-   assert.match(await o.locator('[data-runnow-note]').innerText(),/Chạy ngay dùng được khi ①–④ xong, kể cả ngoài lịch/);
+   assert.match(await o.locator('[data-runnow-note]').innerText(),/Chạy ngay dùng được khi ①–⑤ xong, kể cả ngoài lịch/);
    assert.equal(await o.getByText('Studio: chưa cho phép máy này.').count(),0,'the old far-away “not allowed yet” line is now step ③');
    await openPop();assert.equal(await pop.locator('#pop-state').innerText(),'Đã ghép · Bán tự động đang bật');assert.equal(await pop.locator('#semi-summary').innerText(),'Đã lưu 24 giá · Woolworths Hurstville');
-   assert.deepEqual(await popMissing(pop),['network','device','prep','toggle'],'popup lists exactly the missing steps, in order');
+   assert.deepEqual(await popMissing(pop),['network','device','stores','prep','toggle'],'popup lists exactly the missing steps, in order');
    assert.equal(await pop.locator('#runnow').count(),0,'no Run now before ①–④');
    assert.equal(await pop.locator('.pop-card .btn.primary').count(),1,'one primary action');assert.match(String(await pop.locator('[data-fix-step="network"]').getAttribute('class')),/primary/,'it is the first missing step');
    await pop.evaluate(()=>{(globalThis as any).__tabs=[];(globalThis as any).chrome.tabs.create=(x:any)=>{(globalThis as any).__tabs.push(x.url)};window.close=()=>{}});
-   await pop.click('[data-fix-step="network"]');await pop.click('[data-fix-step="device"]');await pop.click('[data-fix-step="prep"]');
-   assert.deepEqual(await pop.evaluate(()=>(globalThis as any).__tabs),[APP+'/studio.html#scout',APP+'/studio.html#scout',`chrome-extension://${id}/options.html#prep`],'each fix opens its target');
+   await pop.click('[data-fix-step="network"]');await pop.click('[data-fix-step="device"]');await pop.click('[data-fix-step="stores"]');await pop.click('[data-fix-step="prep"]');
+   assert.deepEqual(await pop.evaluate(()=>(globalThis as any).__tabs),[APP+'/studio.html#scout',APP+'/studio.html#scout',`chrome-extension://${id}/options.html#step-stores`,`chrome-extension://${id}/options.html#prep`],'each fix opens its target');
    // 2. Studio switches the network on, then allows this computer.
    await scoutLib.saveNetwork(getStoreFn,{autoScout:'on'},'henrynguyen',Date.now());await refresh();
-   await openPop();assert.deepEqual(await popMissing(pop),['device','prep','toggle']);
+   await openPop();assert.deepEqual(await popMissing(pop),['device','stores','prep','toggle']);
    await scoutLib.editDevice(getStoreFn,devId,(d:any)=>({...d,autoAllowed:true}));await refresh();
-   await openPop();assert.deepEqual(await popMissing(pop),['prep','toggle']);assert.equal(await pop.locator('#auto').isDisabled(),true,'⑤ waits for ④');
+   await openPop();assert.deepEqual(await popMissing(pop),['stores','prep','toggle']);assert.equal(await pop.locator('#auto').isDisabled(),true,'⑥ waits for ④ and ⑤');
    // 3. ④ from its link: Settings opens at the three confirmations.
    const prep=await ctx.newPage();await prep.setViewportSize({width:820,height:900});await prep.goto(OPT+'#prep');await prep.locator('#prep details[open] [data-ob="profile"]').waitFor();
    assert.ok(await prep.evaluate(()=>{const r=document.getElementById('prep')!.getBoundingClientRect();return r.top>=0&&r.top<innerHeight}),'④ is scrolled into view');
    for(const k of ['profile','rewards','store']){await prep.locator(`[data-ob=${k}]`).check();await until(async()=>(await storage(['onboarding'])).onboarding[k]===true,5000,'confirmation '+k)}
    await prep.close();
+   // No store: no Run now, the server refuses with “no-stores”, a lease says why — never a silent 0-page run.
+   await openPop();assert.deepEqual(await popMissing(pop),['stores','toggle']);assert.equal(await pop.locator('#runnow').count(),0,'no Run now without a store');
+   assert.equal(await sw.evaluate(()=>(globalThis as any).scoutDebug.canStart({explicit:true,local:true})),'no-stores');
+   assert.equal(await sw.evaluate(()=>(globalThis as any).scoutDebug.requestRunNow(true)),'no-stores','server refuses Run now without a store');
+   {const d0=await scoutLib.getDevice(getStoreFn,devId),s0=await scoutLib.networkSettings(getStoreFn,env);const l=await scoutLib.leaseTasks(getStoreFn,{device:d0,settings:s0,runId:'run-nostore',now:Date.now(),adapter});assert.equal(l.stop,'no-stores');assert.equal(l.tasks.length,0);assert.equal(l.planInfo.reasonIfEmpty,'no-stores');
+    await refresh();assert.equal((await storage(['device'])).device.planInfo.reasonIfEmpty,'no-stores','heartbeat carries planInfo');assert.equal(await pop.evaluate(()=>(globalThis as any).ScoutUI.reason('no-stores')),'Cần ít nhất 1 cửa hàng')}
+   await scoutLib.editDevice(getStoreFn,devId,(d:any)=>({...d,stores:{woolworths:'Hurstville'}}));await refresh();
+   {const p=await scoutLib.devicePlan(getStoreFn,{device:await scoutLib.getDevice(getStoreFn,devId),settings:await scoutLib.networkSettings(getStoreFn,env),now:Date.now(),adapter});assert.ok(p.planInfo.tasksToday>0,'with a store, tasks are planned: '+JSON.stringify(p.planInfo));assert.deepEqual(p.planInfo.retailersWithStore,['woolworths']);assert.ok(p.tasks.every((t:any)=>t.retailer==='woolworths'&&!t.path.includes('?')))}
    await openPop();assert.deepEqual(await popMissing(pop),['toggle']);await pop.locator('#runnow').waitFor();assert.match(await pop.locator('[data-readiness] .hint').innerText(),/Chạy ngay vẫn dùng được/);
    // Run now from THIS computer works with ①–④ (⑤ off); scheduled and Studio-started runs still need ⑤.
    assert.notEqual(await sw.evaluate(()=>(globalThis as any).scoutDebug.canStart({explicit:true,local:true})),'local-off');
    assert.equal(await sw.evaluate(()=>(globalThis as any).scoutDebug.canStart({explicit:true})),'local-off');
    assert.equal(await sw.evaluate(()=>(globalThis as any).scoutDebug.canStart()),'local-off');
    await setStorage({onboarding:{profile:true,rewards:false,store:true}});assert.equal(await sw.evaluate(()=>(globalThis as any).scoutDebug.canStart({explicit:true,local:true})),'local-off','an unprepared computer never runs');await setStorage({onboarding:{profile:true,rewards:true,store:true}});
-   await o.reload();await o.locator('#ready').waitFor();assert.deepEqual(await steps(o),['pair:true','network:true','device:true','prep:true','toggle:false']);
+   await o.reload();await o.locator('#ready').waitFor();assert.deepEqual(await steps(o),['pair:true','network:true','device:true','stores:true','prep:true','toggle:false']);
+   assert.match(await o.locator('#ready [data-ready="woolworths"]').innerText(),/✓ Woolworths: Hurstville/,'which retailers are ready');
+   // Preview of today's list; an empty run explains why.
+   await o.click('#preview summary');await o.locator('#preview [data-kind="specials"]').waitFor();assert.match(await o.locator('#preview [data-plan-count]').innerText(),/^\d+ trang cho cửa hàng của máy này · còn \d+ chưa xem$/);
+   await setStorage({lastRun:{at:Date.now(),pages:0,prices:0,skipped:0,errors:0,stop:'no-tasks',empty:'no-wanted-items',visits:[]}});await o.reload();
+   assert.equal(await o.locator('[data-last-run]').innerText().then((t:string)=>t.split(' · ').slice(2).join(' · ')),'Hết việc — Hôm nay chưa có gì để xem cho cửa hàng của máy này (chưa có món cần giá, link đã lưu hay trang khuyến mãi).','an empty run says why');await setStorage({lastRun:null});
    // 4. ⑤ in the popup → ready.
    await openPop();await pop.locator('#auto').check();await pop.locator('[data-pop-state="ready"]').waitFor();
    assert.match(await pop.locator('#pop-state').innerText(),/^Tự động: sẵn sàng · lần chạy tới (CN|T[2-7]) \d\d:\d\d$/);assert.equal(await pop.locator('[data-readiness]').count(),0);await pop.locator('#runnow').waitFor();assert.equal(await pop.locator('[data-update]').count(),0,'current version: no update banner');
