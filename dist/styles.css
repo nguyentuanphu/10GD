@@ -1466,3 +1466,16 @@ html[data-theme="dark"] .availability-form .calendar-day.focused{outline-color:#
 /* === v1.7.3 family calendar end === */
 /* v1.7.4: the mobile "Thêm / More" tab lines up with the other tabs (icon and label start at the same height) */
 @media(max-width:760px){.sidebar nav .mobile-more{justify-content:flex-start;padding:5px 3px;line-height:15px;font-size:12px}.sidebar nav .mobile-more .nav-icon{font-size:24px;line-height:1}.sidebar nav .mobile-more .nav-icon svg{width:25px;height:25px;display:block}}
+/* v1.7.4 "Các mục khác / More tools": aligned rows — line icon, label, chevron; ≥ 52 px tall */
+.more-tools{display:grid;gap:8px}
+.more-tools .more-row{display:flex;align-items:center;gap:14px;width:100%;min-height:52px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--white);color:var(--text);font:inherit;font-size:16px;font-weight:600;text-align:left;text-decoration:none;cursor:pointer}
+.more-tools .more-row:hover{background:var(--mint)}
+.more-tools .more-row:focus-visible{outline:3px solid var(--green2);outline-offset:2px}
+.more-tools .more-icon{flex:none;display:inline-flex;width:24px;height:24px;color:var(--green2)}
+.more-tools .more-icon svg{width:24px;height:24px;display:block}
+.more-tools .more-label{flex:1;min-width:0}
+.more-tools .more-chev{flex:none;font-size:22px;line-height:1;color:var(--muted)}
+html[data-theme="dark"] .more-tools .more-row{background:var(--card,#1d2621);border-color:var(--border-strong,#33403a);color:var(--text)}
+html[data-theme="dark"] .more-tools .more-icon{color:var(--accent-ink,#9fd3b4)}
+/* the floating ladybug never covers an open dialog */
+html:has(#modal-root .modal-backdrop) #ladybug{visibility:hidden}
