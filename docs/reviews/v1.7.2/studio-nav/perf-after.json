@@ -7,11 +7,11 @@
    "server": 350
   },
   "cold": {
-   "firstPaintMs": 260,
-   "firstContentMs": 819,
+   "firstPaintMs": 288,
+   "firstContentMs": 847,
    "staticRequests": 3,
    "scriptRequests": 1,
-   "scriptKB": 143,
+   "scriptKB": 144,
    "apiRequests": 4,
    "api": [
     "studio:me",
@@ -21,42 +21,42 @@
    ]
   },
   "warmReload": {
-   "firstContentMs": 502,
-   "apiBeforeContent": 1
+   "firstContentMs": 501,
+   "apiBeforeContent": 2
   },
   "switches": [
    {
     "page": "overview",
     "visit": "first",
-    "ms": 36,
+    "ms": 38,
     "api": [],
     "scripts": []
    },
    {
     "page": "overview",
     "visit": "again",
-    "ms": 53,
+    "ms": 43,
     "api": [],
     "scripts": []
    },
    {
     "page": "accounts",
     "visit": "first",
-    "ms": 39,
+    "ms": 47,
     "api": [],
     "scripts": []
    },
    {
     "page": "accounts",
     "visit": "again",
-    "ms": 38,
+    "ms": 39,
     "api": [],
     "scripts": []
    },
    {
     "page": "families",
     "visit": "first",
-    "ms": 478,
+    "ms": 482,
     "api": [
      "studio:families"
     ],
@@ -65,14 +65,14 @@
    {
     "page": "families",
     "visit": "again",
-    "ms": 39,
+    "ms": 41,
     "api": [],
     "scripts": []
    },
    {
     "page": "urgent",
     "visit": "first",
-    "ms": 606,
+    "ms": 602,
     "api": [
      "studio:urgent"
     ],
@@ -83,14 +83,14 @@
    {
     "page": "urgent",
     "visit": "again",
-    "ms": 47,
+    "ms": 63,
     "api": [],
     "scripts": []
    },
    {
     "page": "scout",
     "visit": "first",
-    "ms": 623,
+    "ms": 631,
     "api": [
      "scout:studio-overview",
      "scout:studio-coverage"
@@ -102,14 +102,14 @@
    {
     "page": "scout",
     "visit": "again",
-    "ms": 74,
+    "ms": 68,
     "api": [],
     "scripts": []
    },
    {
     "page": "usage",
     "visit": "first",
-    "ms": 599,
+    "ms": 608,
     "api": [
      "usage:studio-usage-overview"
     ],
@@ -120,14 +120,14 @@
    {
     "page": "usage",
     "visit": "again",
-    "ms": 41,
+    "ms": 39,
     "api": [],
     "scripts": []
    },
    {
     "page": "settings",
     "visit": "first",
-    "ms": 1036,
+    "ms": 928,
     "api": [
      "studio:settings",
      "scout:studio-auto"
@@ -139,14 +139,14 @@
    {
     "page": "settings",
     "visit": "again",
-    "ms": 36,
+    "ms": 37,
     "api": [],
     "scripts": []
    },
    {
     "page": "community",
     "visit": "first",
-    "ms": 507,
+    "ms": 506,
     "api": [
      "studio:community"
     ],
@@ -155,14 +155,14 @@
    {
     "page": "community",
     "visit": "again",
-    "ms": 44,
+    "ms": 40,
     "api": [],
     "scripts": []
    },
    {
     "page": "feedback",
     "visit": "first",
-    "ms": 595,
+    "ms": 587,
     "api": [
      "feedback:studio-inbox"
     ],
@@ -173,14 +173,14 @@
    {
     "page": "feedback",
     "visit": "again",
-    "ms": 38,
+    "ms": 44,
     "api": [],
     "scripts": []
    },
    {
     "page": "voice",
     "visit": "first",
-    "ms": 589,
+    "ms": 582,
     "api": [
      "voice-stats:studio-overview"
     ],
@@ -191,15 +191,218 @@
    {
     "page": "voice",
     "visit": "again",
-    "ms": 39,
+    "ms": 38,
     "api": [],
     "scripts": []
    }
   ],
   "summary": {
-   "medianFirstVisitMs": 595,
+   "medianFirstVisitMs": 587,
    "medianCachedSwitchMs": 41,
-   "maxCachedSwitchMs": 74
+   "maxCachedSwitchMs": 68
+  }
+ },
+ "slow": {
+  "profile": "slow",
+  "net": {
+   "rtt": 300,
+   "bps": 200000,
+   "server": 700
+  },
+  "cold": {
+   "firstPaintMs": 824,
+   "firstContentMs": 2442,
+   "staticRequests": 3,
+   "scriptRequests": 1,
+   "scriptKB": 144,
+   "apiRequests": 4,
+   "api": [
+    "studio:me",
+    "studio:overview",
+    "studio:accounts",
+    "studio:nav-badges"
+   ]
+  },
+  "warmReload": {
+   "firstContentMs": 1788,
+   "apiBeforeContent": 2
+  },
+  "switches": [
+   {
+    "page": "overview",
+    "visit": "first",
+    "ms": 39,
+    "api": [],
+    "scripts": []
+   },
+   {
+    "page": "overview",
+    "visit": "again",
+    "ms": 38,
+    "api": [],
+    "scripts": []
+   },
+   {
+    "page": "accounts",
+    "visit": "first",
+    "ms": 46,
+    "api": [],
+    "scripts": []
+   },
+   {
+    "page": "accounts",
+    "visit": "again",
+    "ms": 39,
+    "api": [],
+    "scripts": []
+   },
+   {
+    "page": "families",
+    "visit": "first",
+    "ms": 1067,
+    "api": [
+     "studio:families"
+    ],
+    "scripts": []
+   },
+   {
+    "page": "families",
+    "visit": "again",
+    "ms": 38,
+    "api": [],
+    "scripts": []
+   },
+   {
+    "page": "urgent",
+    "visit": "first",
+    "ms": 1472,
+    "api": [
+     "studio:urgent"
+    ],
+    "scripts": [
+     "/studio-urgent.js"
+    ]
+   },
+   {
+    "page": "urgent",
+    "visit": "again",
+    "ms": 52,
+    "api": [],
+    "scripts": []
+   },
+   {
+    "page": "scout",
+    "visit": "first",
+    "ms": 1695,
+    "api": [
+     "scout:studio-overview",
+     "scout:studio-coverage"
+    ],
+    "scripts": [
+     "/studio-scout.js"
+    ]
+   },
+   {
+    "page": "scout",
+    "visit": "again",
+    "ms": 38,
+    "api": [],
+    "scripts": []
+   },
+   {
+    "page": "usage",
+    "visit": "first",
+    "ms": 1456,
+    "api": [
+     "usage:studio-usage-overview"
+    ],
+    "scripts": [
+     "/studio-usage.js"
+    ]
+   },
+   {
+    "page": "usage",
+    "visit": "again",
+    "ms": 38,
+    "api": [],
+    "scripts": []
+   },
+   {
+    "page": "settings",
+    "visit": "first",
+    "ms": 2033,
+    "api": [
+     "studio:settings",
+     "scout:studio-auto"
+    ],
+    "scripts": [
+     "/studio-update.js"
+    ]
+   },
+   {
+    "page": "settings",
+    "visit": "again",
+    "ms": 44,
+    "api": [],
+    "scripts": []
+   },
+   {
+    "page": "community",
+    "visit": "first",
+    "ms": 1214,
+    "api": [
+     "studio:community"
+    ],
+    "scripts": []
+   },
+   {
+    "page": "community",
+    "visit": "again",
+    "ms": 38,
+    "api": [],
+    "scripts": []
+   },
+   {
+    "page": "feedback",
+    "visit": "first",
+    "ms": 1439,
+    "api": [
+     "feedback:studio-inbox"
+    ],
+    "scripts": [
+     "/studio-feedback.js"
+    ]
+   },
+   {
+    "page": "feedback",
+    "visit": "again",
+    "ms": 43,
+    "api": [],
+    "scripts": []
+   },
+   {
+    "page": "voice",
+    "visit": "first",
+    "ms": 1395,
+    "api": [
+     "voice-stats:studio-overview"
+    ],
+    "scripts": [
+     "/studio-voice.js"
+    ]
+   },
+   {
+    "page": "voice",
+    "visit": "again",
+    "ms": 38,
+    "api": [],
+    "scripts": []
+   }
+  ],
+  "summary": {
+   "medianFirstVisitMs": 1439,
+   "medianCachedSwitchMs": 38,
+   "maxCachedSwitchMs": 52
   }
  }
 }

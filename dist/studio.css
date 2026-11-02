@@ -292,4 +292,19 @@ dialog::backdrop{background:#0008}
 #scout-main .sc-access[open]>summary::before,#scout-main .sc-advanced[open]>summary::before{content:'▾'}
 #scout-main .sc-sub{margin:12px 0}
 #scout-main .sc-sub h3{margin:0 0 6px}
+#scout-main .rc-id{margin:0 0 6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px}
+#scout-main .rc-id .btn,#scout-main .rc-dup .btn{min-height:44px}
+#scout-main .rc-dup{margin:6px 0;padding:10px;border-radius:10px;border:1px solid var(--warn);background:var(--warnbg);font-size:14px}
+#scout-main .rc-dup p{margin:0 0 6px;overflow-wrap:anywhere}
+/* Unplaced Price Check prices (batch review). */
+#unplaced-main .up-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+#unplaced-main .up-all,#unplaced-main .up-sel{display:inline-flex;align-items:center;gap:8px;min-height:44px;min-width:44px;justify-content:center;cursor:pointer}
+#unplaced-main input[type=checkbox]{width:22px;height:22px;margin:0}
+#unplaced-main .up-list{list-style:none;margin:12px 0;padding:0;display:grid;gap:10px}
+#unplaced-main .up-item{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--panel);min-width:0}
+#unplaced-main .up-body{flex:1;min-width:0;overflow-wrap:anywhere}
+#unplaced-main .up-body h3{margin:0 0 2px;font-size:1rem}
+#unplaced-main .up-body p{margin:2px 0}
+#unplaced-main .up-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+#unplaced-main .btn{min-height:44px}
 /* === v1.7.2 studio-nav end === */

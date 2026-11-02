@@ -62,6 +62,10 @@ export async function openStudio(browser:any,world:any,{viewport={width:1280,hei
  const page=await context.newPage(),log:any[]=[],errors:string[]=[],net=PROFILES[profile]||PROFILES.none;
  page.on('pageerror',(e:any)=>errors.push(e.message));page.on('dialog',(d:any)=>d.accept(d.type()==='prompt'?'QA':undefined));
  await page.route(origin+'/**',async(route:any)=>{const req=route.request(),url=new URL(req.url()),t0=Date.now();const fn=url.pathname.match(/^\/\.netlify\/functions\/([\w-]+)/);
+  // Stand-in for the Price Check "unplaced prices" ops until the extension work lands (documented shape).
+  if(fn&&fn[1]==='scout'&&world.unplaced&&/^studio-unplaced/.test(url.searchParams.get('op')||'')){const op=url.searchParams.get('op');log.push({kind:'api',fn:'scout',op,method:req.method(),at:t0});let body:any={items:world.unplaced.items};
+   if(req.method()==='POST'){const b=JSON.parse(req.postData()||'{}');world.unplaced.posts.push({op,body:b});const gone=new Set(op==='studio-unplaced-confirm'?(b.items||[]).map((x:any)=>x.factId):b.factIds||[]);world.unplaced.items=world.unplaced.items.filter((x:any)=>!gone.has(x.factId));body={ok:true}}
+   if(net.rtt)await sleep(net.rtt);try{await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)})}catch{}return}
   if(fn&&world.handlers[fn[1]]){const entry={kind:'api',fn:fn[1],op:url.searchParams.get('op')||'',fresh:url.searchParams.get('fresh')==='1',method:req.method(),at:t0};log.push(entry);
    const hdr=await req.allHeaders();const r=await world.handlers[fn[1]](new Request(url.href,{method:req.method(),headers:hdr,body:['GET','HEAD'].includes(req.method())?undefined:req.postDataBuffer()}));const body=Buffer.from(await r.arrayBuffer());
    const wait=net.rtt+net.server+(net.bps?body.length/net.bps*1000:0)-(Date.now()-t0);if(wait>0)await sleep(wait);

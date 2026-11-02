@@ -30,7 +30,7 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
  // 1. Desktop: groups, lazy modules, badges, collapse, hover prefetch, old hashes, merged urgent page, Ctrl+K.
  {const {context,page,log,errors}=await openStudio(browser,world,{hash:'#overview',profile:'typical'});await ready(page);await sleep(3500);
   const groups=await page.$$eval('#nav .ngroup',(gs:any[])=>gs.map(g=>[g.dataset.group,[...g.querySelectorAll('a[data-nav]')].map((a:any)=>a.dataset.nav)]));
-  assert.deepEqual(groups,[['home',['overview','urgent','notifications','health']],['people',['accounts','families','invites']],['content',['community','recipes','feedback']],['price',['scout','catalog']],['stats',['usage','voice']],['release',['settings','broadcast','rollout','logs']]],'6 groups, every page once');
+  assert.deepEqual(groups,[['home',['overview','urgent','notifications','health']],['people',['accounts','families','invites']],['content',['community','recipes','feedback']],['price',['scout','unplaced','catalog']],['stats',['usage','voice']],['release',['settings','broadcast','rollout','logs']]],'6 groups, every page once');
   assert.equal(await page.locator('#nav a[href="#messages"]').count(),0,'old daily urgent page is not a separate menu item');
   assert.equal(await page.locator('#nav a[aria-current="page"]').getAttribute('href'),'#overview');
   assert.deepEqual(scripts(log),['/studio.js'],'only studio.js before any page module opens: '+scripts(log).join(' '));
@@ -106,7 +106,49 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
   await page.locator('#sc-pause').click();await page.locator('#sc-pause[aria-pressed="false"]').waitFor();assert.equal(await run(world.ids.ok).isEnabled(),true);
   assert.equal(await page.locator('#sc-access').evaluate((d:any)=>d.open),false,'Access & pairing collapsed');
   await world.lib.editDevice(world.getStoreFn,world.ids.old,(x:any)=>({...x,autoAllowed:false}));
+  // Same computer paired again (extension removed and installed): the older card says so and offers merge / revoke;
+  // owner rename; pairing date + short id tell the cards apart.
+  {const {code}=await world.lib.createPairCode(world.getStoreFn,'henrynguyen',Date.now(),world.env);
+   const r=await world.handlers.scout(new Request('https://kitchen.test/.netlify/functions/scout?op=pair',{method:'POST',headers:{Origin:'chrome-extension://mjeoekikdicoojgoppnfibjbfpcfngja','Content-Type':'application/json'},body:JSON.stringify({code,name:'Máy bàn mới',version:'9.9.9'})}));const p=await r.json();
+   assert.deepEqual(p.replaceCandidates.map((c:any)=>c.id),[world.ids.ok],'pairing answer offers the earlier pairing');
+   await page.reload();await ready(page);await page.waitForSelector('#sc-rc');
+   const dup=card(world.ids.ok).locator('.rc-dup');await dup.waitFor();assert.match(await dup.innerText(),/Trùng tên với một máy ghép sau/);assert.match(await dup.innerText(),new RegExp('#'+p.device.id.slice(4,10)));
+   assert.match((await card(world.ids.ok).locator('.rc-id').textContent()).replace(/\s+/g,' '),/Ghép ngày .* · #[a-f0-9]{6}/);
+   await page.evaluate((id:string)=>document.querySelector(`[data-merge="${id}"]`)?.scrollIntoView({block:'center'}),world.ids.ok);await shot(page,'scout-duplicate-vi-light-desktop-1280x800');
+   // The new pairing has no stores yet: Run now is off and the card says why and how to fix it.
+   assert.match(await card(p.device.id).innerText(),/Chưa có cửa hàng nào — máy sẽ không có việc để chạy/);assert.equal(await run(p.device.id).isDisabled(),true);
+   assert.match(await card(world.ids.ok).locator('.rc-stores').innerText(),/Woolworths: Hurstville/);
+   await card(world.ids.ok).locator('[data-merge]').click();await page.waitForFunction(()=>/Đã gộp vào máy mới/.test(document.querySelector('#toast')?.textContent||''));
+   await page.waitForFunction((id:string)=>!document.querySelector(`[data-cmd][data-id="${id}"]`),world.ids.ok);
+   const nc=card(p.device.id);assert.match(await nc.innerText(),/Đã cho phép/,'auto permission carried over');assert.match(await nc.innerText(),/thay cho 1 lần ghép trước/);assert.match(await nc.locator('.rc-stores').innerText(),/Woolworths: Hurstville/,'stores carried over');assert.equal(await run(p.device.id).isEnabled(),true,'ready after the merge');
+   await nc.locator('[data-rename]').click();await page.waitForFunction(()=>/Đã đổi tên/.test(document.querySelector('#toast')?.textContent||''));await page.waitForFunction((id:string)=>/^QA/.test(document.querySelector(`#rc-${id}`)?.textContent||''),p.device.id);
+   const acts=(await listLog(world.getStoreFn,'audit',{now:Date.now(),limit:300,from:dayKey(Date.now()-86400000)})).items.map((x:any)=>x.action);assert.ok(acts.includes('scout_device_replaced')&&acts.includes('scout_device_update'),'merge + rename audited')}
   assert.deepEqual(errors,[]);await context.close()}
+
+ // 3b. Unplaced Price Check prices: batch review against the documented shape (stand-in server until merged).
+ {const now=new Date().toISOString();world.unplaced={posts:[],items:[
+   {factId:'f1',name:'Woolworths Fish Sauce 500ml',retailer:'woolworths',storeLabel:'Hurstville',price:4.5,unitPrice:0.9,unitBasis:'per_100ml',capturedAt:now,suggestions:[{itemId:'nuoc-mam',name:'Nước mắm',confidence:0.92}]},
+   {factId:'f2',name:'Coles Water Spinach Bunch',retailer:'coles',storeLabel:'Kogarah',price:2.9,capturedAt:now,suggestions:[{itemId:'rau-thom',name:'Rau thơm các loại',confidence:0.41}]},
+   {factId:'f3',name:'ALDI Jasmine Rice 5kg',retailer:'aldi',storeLabel:'Hurstville',price:11,capturedAt:now,suggestions:[{itemId:'gao',name:'Gạo',confidence:0.7}]},
+   {factId:'f4',name:'Mystery item',retailer:'coles',storeLabel:'Kogarah',price:1,capturedAt:now,suggestions:[]}]};
+  const {context,page,errors,log}=await openStudio(browser,world,{hash:'#overview'});await ready(page);
+  assert.ok(!scripts(log).includes('/studio-unplaced.js'),'not loaded before it opens');
+  await page.locator('#nav a[href="#unplaced"]').click();await hashIs(page,'#unplaced');await ready(page);await page.waitForSelector('#unplaced-main .up-item');
+  assert.equal(await page.locator('#unplaced-main .up-item').count(),4);assert.equal(await page.locator('#nav [data-badge="unplaced"]').evaluate((b:any)=>b.hidden?'':b.firstChild?.textContent),'4','badge follows the list');
+  const t=await page.locator('#unplaced-main').innerText();assert.match(t,/Woolworths · Hurstville/);assert.match(t,/\$4\.50/);assert.match(t,/\$0\.90 \/100ml/);assert.match(t,/Nước mắm/);assert.match(t,/92%/);assert.match(t,/Chưa có gợi ý/);
+  assert.equal(await page.locator('[data-attach="f4"]').isDisabled(),true,'no suggestion: choose another item first');
+  await shot(page,'unplaced-vi-light-desktop-1280x800');
+  await page.locator('[data-attach="f1"]').click();await page.waitForFunction(()=>!document.querySelector('[data-fact="f1"]'));
+  assert.deepEqual(world.unplaced.posts.at(-1),{op:'studio-unplaced-confirm',body:{items:[{factId:'f1',itemId:'nuoc-mam'}]}});
+  await page.locator('[data-other="f2"]').click();await page.locator('#ask[open] input[name=item]').fill('Rau muống');await page.locator('#ask button[value=ok]').click();
+  await page.waitForFunction(()=>/bạn chọn/.test(document.querySelector('[data-fact="f2"]')?.textContent||''));
+  await page.locator('#up-all').check();assert.match(await page.locator('#up-count').innerText(),/Đã chọn 2/,'f2 + f3 (f4 has no item)');await page.locator('#up-confirm').click();
+  await page.waitForFunction(()=>document.querySelectorAll('#unplaced-main .up-item').length===1);
+  assert.deepEqual(world.unplaced.posts.at(-1),{op:'studio-unplaced-confirm',body:{items:[{factId:'f2',itemId:'rau-muong'},{factId:'f3',itemId:'gao'}]}},'bulk confirm with the chosen item');
+  await page.locator('[data-skip="f4"]').click();await page.waitForFunction(()=>!!document.querySelector('#unplaced-main .empty'));
+  assert.deepEqual(world.unplaced.posts.at(-1),{op:'studio-unplaced-reject',body:{factIds:['f4']}});assert.equal(await page.locator('#nav [data-badge="unplaced"]').evaluate((b:any)=>b.hidden),true);
+  await page.setViewportSize(sizes.mobile);await noOverflow(page,'unplaced mobile');
+  assert.deepEqual(errors,[]);await context.close();delete world.unplaced}
 
  // 4. Phones/tablets: menu sheet; every size in VI light and EN dark: no overflow, ≥44 px targets, screenshots.
  for(const [size,lang,theme] of [['narrow','vi','light'],['mobile','vi','light'],['tablet','vi','light'],['desktop','vi','light'],['narrow','en','dark'],['mobile','en','dark'],['tablet','en','dark'],['desktop','en','dark']] as any[]){

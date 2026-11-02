@@ -316,7 +316,7 @@ async function familyDetail(id:string){try{const d=await api('family',{id}),f=d.
 // ---------- v1.7.2 navigation: grouped menu, lazy page modules, old hashes ----------
 // Pages that live in their own script are listed here with their menu label; the script is downloaded only when
 // the page opens (or the pointer / keyboard focus rests on its link), then it replaces this entry with the real page.
-const MODULES:any={scout:['studio-scout.js','Mạng So Giá','Price Check network','◎'],voice:['studio-voice.js','Giọng nói','Voice','🎙'],usage:['studio-usage.js','Mức sử dụng','Usage','📈'],recipes:['studio-recipes.js','Món ăn cộng đồng','Community recipes','🍲'],feedback:['studio-feedback.js','Góp ý','Feedback','🐞']};
+const MODULES:any={scout:['studio-scout.js','Mạng So Giá','Price Check network','◎'],voice:['studio-voice.js','Giọng nói','Voice','🎙'],usage:['studio-usage.js','Mức sử dụng','Usage','📈'],recipes:['studio-recipes.js','Món ăn cộng đồng','Community recipes','🍲'],feedback:['studio-feedback.js','Góp ý','Feedback','🐞'],unplaced:['studio-unplaced.js','Giá chưa gắn món','Unplaced prices','⧉']};
 for(const [k,[src,vi,en,icon]] of Object.entries<any>(MODULES))if(!pages[k])pages[k]={vi,en,icon,lazy:src};
 // Settings carries the "Automatic price check" card (studio-scout.js) and the "App updates" card (studio-update.js).
 pages.settings.needs=['studio-scout.js','studio-update.js'];
@@ -330,7 +330,7 @@ const GROUPS=[
  {id:'home',vi:'Tổng quan',en:'Overview',icon:'◧',pages:['overview','urgent','notifications','health']},
  {id:'people',vi:'Người dùng & gia đình',en:'People & families',icon:'☺',pages:['accounts','families','invites']},
  {id:'content',vi:'Nội dung & cộng đồng',en:'Content & community',icon:'⚖',pages:['community','recipes','feedback']},
- {id:'price',vi:'So Giá',en:'Price Check',icon:'◎',pages:['scout','catalog']},
+ {id:'price',vi:'So Giá',en:'Price Check',icon:'◎',pages:['scout','unplaced','catalog']},
  {id:'stats',vi:'Phân tích',en:'Analytics',icon:'📈',pages:['usage','voice']},
  {id:'release',vi:'Cài đặt & phát hành',en:'Settings & release',icon:'⚙',pages:['settings','broadcast','rollout','logs']}];
 // Old links keep working: #messages (the old daily page) opens its tab in the merged page.
@@ -348,7 +348,7 @@ const need=(list:string[])=>Promise.all(list.map(loadScript));
 // tab's saved copy (then refreshed in the background, like the core pages); every answer refreshes the saved copy;
 // any change (POST) clears all saved copies; `me` is answered from the copy Studio already has. Detail views,
 // photos, exports and audited drill-downs are never kept.
-const MOD_CACHE=/^\/\.netlify\/functions\/(studio\?op=(urgent|settings)|scout\?op=studio-(overview|coverage|auto)|usage\?op=studio-usage-overview|voice-stats\?op=studio-overview|feedback\?op=studio-inbox|community-recipes\?op=studio-list)(&|$)/;
+const MOD_CACHE=/^\/\.netlify\/functions\/(studio\?op=(urgent|settings)|scout\?op=studio-(overview|coverage|auto|unplaced)|usage\?op=studio-usage-overview|voice-stats\?op=studio-overview|feedback\?op=studio-inbox|community-recipes\?op=studio-list)(&|$)/;
 let activeView:any=null;
 const jsonResponse=(d:any)=>new Response(JSON.stringify(d),{status:200,headers:{'Content-Type':'application/json'}});
 function modKey(u:URL){const q=u.searchParams;q.delete('fresh');const s=u.pathname+'?'+q.toString();if(!MOD_CACHE.test(s))return '';return u.pathname===API?q.toString():'m:'+s}
@@ -364,7 +364,7 @@ window.fetch=function(input:any,init?:any){let u:URL;try{u=new URL(typeof input=
 
 // ---------- badges: what needs attention (counts only) ----------
 let badges:any={},badgeTimer:any=0;
-const BADGE_HELP:any={urgent:()=>T('tin khẩn không gửi được','urgent messages not delivered'),community:()=>T('giá chờ kiểm duyệt','prices awaiting moderation'),recipes:()=>T('món chờ duyệt hoặc bị báo','recipes awaiting review or reported'),feedback:()=>T('góp ý mới','new feedback')};
+const BADGE_HELP:any={urgent:()=>T('tin khẩn không gửi được','urgent messages not delivered'),community:()=>T('giá chờ kiểm duyệt','prices awaiting moderation'),recipes:()=>T('món chờ duyệt hoặc bị báo','recipes awaiting review or reported'),feedback:()=>T('góp ý mới','new feedback'),unplaced:()=>T('giá chưa gắn món','unplaced prices')};
 function paintBadges(root:any=document){for(const b of $$('[data-badge]',root)){const n=+badges[b.dataset.badge]||0;b.hidden=!n;b.innerHTML=n?`${n>99?'99+':n}<span class="sr-only"> ${esc(BADGE_HELP[b.dataset.badge]?.()||'')}</span>`:''}
  for(const b of $$('[data-gbadge]',root)){const g=GROUPS.find(x=>x.id===b.dataset.gbadge),n=(g?.pages||[]).reduce((s:number,k:string)=>s+(+badges[k]||0),0);b.hidden=!n;b.innerHTML=n?`${n>99?'99+':n}<span class="sr-only"> ${T('cần xem','need attention')}</span>`:''}
  const all=Object.keys(BADGE_HELP).reduce((s,k)=>s+(+badges[k]||0),0),nb=$('#navbtn-badge');if(nb){nb.hidden=!all;nb.textContent=all?(all>99?'99+':String(all)):''}}
@@ -430,17 +430,19 @@ const rememberUrls=(key:string,used:any[])=>{const urls=[...new Set(used.filter(
  *  background and the tab is redrawn only if the data changed and nothing is being edited. */
 async function route(opts:any={}){let info=hashInfo();const to=OLD_HASH[info.key]||(!pages[info.key]||pages[info.key].hidden?'overview':'');
  if(to){history.replaceState(null,'','#'+to);info=hashInfo()}
- const key=info.key,main=$('#main'),n=++routing,fromNav=!!document.activeElement?.closest?.('#nav')||!!opts.fromNav;
+ const key=info.key,main=$('#main'),n=++routing,t0=Date.now(),fromNav=!!document.activeElement?.closest?.('#nav')||!!opts.fromNav;
  closeNav();ctrl?.abort();ctrl=new AbortController();shell();dirty=false;main.setAttribute('aria-busy','true');
  const box=document.createElement('div');box.className='view';box.innerHTML=skeleton();main.replaceChildren(box);
  const v=newView(n,{cacheFirst:!opts.force,force:!!opts.force});
- try{const deps=depsOf(key,info.sub);if(deps.length){await need(deps);if(n!==routing)return;shell()}const page=pages[key];
+ try{const deps=depsOf(key,info.sub);if(deps.length){if(PRELOAD[key]&&!opts.force&&!cacheRead(PRELOAD[key]))shared(API+'?'+PRELOAD[key]).catch(()=>{});// data and page scripts in parallel
+  await need(deps);if(n!==routing)return;shell()}const page=pages[key];
   view=v;activeView=v;const p=page.render(box);view=null;await p;if(n!==routing){if(activeView===v)activeView=null;return}main.removeAttribute('aria-busy');const h=$('h1',box);if(fromNav)h?.focus();
   afterRender(key,box);if(activeView===v)activeView=null;rememberUrls(key,v.used);
   box.addEventListener('input',()=>{dirty=true});box.addEventListener('change',()=>{dirty=true});
-  const seen=new Set<string>(),saved=v.used.filter((u:any)=>!u.live&&!seen.has(u.path)&&!!seen.add(u.path)),oldest=Math.min(Date.now(),...v.used.map((u:any)=>u.at));
+  const seen=new Set<string>(),saved=v.used.filter((u:any)=>!u.live&&u.at<t0&&!seen.has(u.path)&&!!seen.add(u.path)),oldest=Math.min(Date.now(),...v.used.map((u:any)=>u.at));
   if(!v.used.length)return;
-  if(!saved.length||Date.now()-oldest<FRESH_MS){freshness(box,oldest);return}
+  // A reload always checks saved copies again (even very recent ones); tab switches skip copies under 10 s old.
+  if(!saved.length||!opts.boot&&Date.now()-oldest<FRESH_MS){freshness(box,oldest);return}
   freshness(box,oldest,{pending:true});revalidate(n,key,box,saved,oldest)}
  catch(e:any){view=null;if(activeView===v)activeView=null;if(n!==routing||e?.name==='AbortError')return;main.removeAttribute('aria-busy');box.innerHTML=`<div class="card notice"><h1 tabindex="-1">${T('Không tải được','Could not load')}</h1><p>${esc(e.message)}</p>${e.load?`<p><button class="btn primary" type="button" id="retry">↻ ${T('Thử lại','Try again')}</button></p>`:''}</div>`;$('#retry',box)?.addEventListener('click',()=>route());if(e.status===401||e.status===403)cacheClear()}}
 async function revalidate(n:number,key:string,box:any,saved:any[],oldest:number){
@@ -474,9 +476,9 @@ const PRELOAD:any={overview:'op=overview',settings:'op=settings',notifications:'
 function denied(e:any){cacheClear();keepMe(null);me=null;const d=e.data||{};$('#main').removeAttribute('aria-busy');$('#main').innerHTML=`<div class="card notice"><h1>${e.status===401?T('Cần đăng nhập','Sign in required'):d.disabled?T('Studio đang tắt','Studio is disabled'):T('Không có quyền','No access')}</h1><p>${esc(e.message)}</p>${e.status===401?`<p><a class="btn primary" href="/login?return=/studio.html">${T('Đăng nhập','Sign in')}</a></p>`:''}<p><a href="/">${T('← Về ứng dụng','← Back to the app')}</a></p></div>`;$('#nav').innerHTML='';navSig=''}
 async function boot(){shell();$('#main').innerHTML=`<div class="view">${skeleton()}</div>`;
  const meP=api('me');meReady=meP.catch(()=>null);const was=savedMe(),key=OLD_HASH[hashInfo().key]||hashInfo().key;
- if(was){me=was;cacheUser=was.username+'.'+was.role;route()}
+ if(was){me=was;cacheUser=was.username+'.'+was.role;route({boot:true})}
  else if(PRELOAD[key])shared(API+'?'+PRELOAD[key]).catch(()=>{});
- try{const m=await meP;const prev=cacheUser;me=m;keepMe(m);cacheUser=m.username+'.'+m.role;if(!was)await route();else if(prev!==cacheUser){cacheClear();await route()}else shell()}catch(e:any){routing++;denied(e);return}
+ try{const m=await meP;const prev=cacheUser;me=m;keepMe(m);cacheUser=m.username+'.'+m.role;if(!was)await route({boot:true});else if(prev!==cacheUser){cacheClear();await route()}else shell()}catch(e:any){routing++;denied(e);return}
  const idle=(window as any).requestIdleCallback||((f:any)=>setTimeout(f,1200));idle(()=>{prefetch();loadBadges()},{timeout:3000});setInterval(()=>{if(!document.hidden)loadBadges()},120000)}
 $('#lang').onclick=()=>{lang=lang==='en'?'vi':'en';store.set('studio-lang',lang);me?route():boot()};
 $('#theme').onclick=()=>{themePref=({auto:'light',light:'dark',dark:'auto'} as any)[themePref];store.set('studio-theme',themePref);applyTheme();shell()};
