@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>salmon | Woolworths</title></head>
+<body>
+<!-- SYNTHETIC fixture mirroring the owner's real search page of 2 Nov 2026: each tile is a <wc-product-tile> whose
+     fields live in its OPEN shadow root (div.title, div.primary, span.price-per-cup, span.was-price, span.save-price). -->
+<main id="tiles"></main>
+<script>
+const tiles=[
+ {id:'111111',name:'Regal New Zealand Beech Wood Smoked Salmon Slices 100g',price:'$10.00',unit:'$100.00 / 1KG',was:'$12.50',promo:'SAVE $2.50'},
+ {id:'222222',name:'Fresh Tasmanian Atlantic Skin On Salmon Fillets per 200g',price:'$6.00 / 200G',unit:'$30.00 / 1KG',was:'$8.80/ 200G',promo:'SAVE $2.80'},
+ {id:'333333',name:'Woolworths Salmon Portions 460g',price:'$15.00',unit:'$32.61 / 1KG',was:'',promo:''}];
+class Tile extends HTMLElement{connectedCallback(){const t=JSON.parse(this.dataset.t);const r=this.attachShadow({mode:'open'});
+ r.innerHTML='<div class="product-tile-content"><a href="/shop/productdetails/'+t.id+'/x"><div class="title">'+t.name+'</div></a><div class="product-tile-price"><div class="primary">'+t.price+'</div><span class="price-per-cup">'+t.unit+'</span>'+(t.was?'<div class="label-price-promotion"><span class="save-price">'+t.promo+'</span> <span class="was-price">Was '+t.was+'</span></div>':'')+'</div><wc-add-to-cart></wc-add-to-cart><wc-save-to-list></wc-save-to-list></div>'}}
+customElements.define('wc-product-tile',Tile);
+for(const t of tiles){const d=document.createElement('div');d.className='product-tile_component_product-tile__rcGmj';const e=document.createElement('wc-product-tile');e.dataset.t=JSON.stringify(t);d.appendChild(e);document.getElementById('tiles').appendChild(d)}
+</script>
+</body></html>

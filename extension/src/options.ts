@@ -25,7 +25,7 @@ function readyHtml(st:any){const steps=UI.readiness(st),studio=UI.studioUrl(st),
   let fix='';
   if(!s.ok&&s.fix==='pair')fix=`<button type="button" class="btn small primary" data-goto="step-pair">${esc(s.fixLabel)}</button>`;
   if(!s.ok&&s.fix==='studio')fix=studio&&paired?`<a class="btn small ${steps.findIndex((x:any)=>!x.ok)===i?'primary':''}" href="${esc(studio)}" target="_blank" rel="noopener" data-fix-studio="${s.id}">${esc(s.fixLabel)} ↗</a>`:`<span class="muted">${T('Ghép máy trước','Pair first')}</span>`;
-  if(s.fix==='stores'&&paired){const mine=st.device?.stores||{};fix=`<ul class="store-chips" data-store-status>${RET.map(r=>mine[r]?`<li class="chip" data-ready="${r}">✓ ${esc(UI.LABEL[r])}: ${esc(mine[r])}</li>`:`<li><button type="button" class="btn small" data-open-retailer="${r}">${esc(T('Mở ','Open ')+UI.LABEL[r])} ↗</button></li>`).join('')}</ul>${s.ok?'':`<button type="button" class="btn small primary" data-goto="step-stores">${esc(s.fixLabel)}</button>`}`}
+  if(s.fix==='stores'&&paired){const mine=st.device?.stores||{};fix=`<ul class="store-chips" data-store-status>${RET.map(r=>mine[r]||UI.onlineOn(st).includes(r)?`<li class="chip" data-ready="${r}">✓ ${esc(UI.LABEL[r])}: ${esc(mine[r]?UI.storeText(mine[r]):UI.ONLINE())}</li>`:`<li><button type="button" class="btn small" data-open-retailer="${r}">${esc(T('Mở ','Open ')+UI.LABEL[r])} ↗</button></li>`).join('')}</ul>${s.ok?'':`<button type="button" class="btn small primary" data-goto="step-stores">${esc(s.fixLabel)}</button>`}`}
   if(s.fix==='prep')fix=`<details class="prep-d" id="prep-d" ${s.ok&&hashTarget()!=='prep'?'':'open'}><summary>${s.ok?T('Xem 3 xác nhận','See the 3 confirmations'):T('3 xác nhận','3 confirmations')}</summary><div class="prep-list">
    <label class="switch"><input type="checkbox" data-ob="profile" ${ob.profile?'checked':''}><span>${T('Tôi dùng một hồ sơ Chrome RIÊNG cho FamTray So Giá (Chrome → biểu tượng hồ sơ → Thêm).','I use a SEPARATE Chrome profile for FamTray Price Check (Chrome → profile icon → Add).')}</span></label>
    <label class="switch"><input type="checkbox" data-ob="rewards" ${ob.rewards?'checked':''}><span>${T('Hồ sơ này KHÔNG đăng nhập Everyday Rewards, Flybuys hay tài khoản mua sắm nào.','This profile is NOT signed in to Everyday Rewards, Flybuys or any shopping account.')}</span></label>${Object.values(st.warnings?.signedIn||{}).some(Boolean)?`<p class="hint warn">${T('Phát hiện dấu hiệu đang đăng nhập — hãy đăng xuất hoặc dùng hồ sơ khác.','A signed-in indicator was detected — sign out or use another profile.')}</p>`:''}
@@ -53,25 +53,35 @@ function paceHtml(st:any){const p=st.device?.network?.pacing,limit=p?.studioLimi
   <small class="hint" id="pace-limit">${esc(T('Chỉ chọn được bằng hoặc chậm hơn mức Studio cho phép','Only Studio’s pace or slower')+(limit?' ('+UI.paceLabel(limit)+')':'')+'. '+T('Luôn một trang mỗi lần.','Always one page at a time.'))}${choice?` <button type="button" class="link" data-pace="">${T('Theo Studio','As Studio allows')}</button>`:` <span data-pace-source>${T('Đang theo Studio.','Following Studio.')}</span>`}</small></fieldset>`}
 function storesHtml(st:any){const v=st.device,seen=st.warnings?.storesSeen||{},mine=v?.stores||{};
  return `<label class="switch"><input type="checkbox" id="semi" ${st.semiEnabled!==false?'checked':''}><span><strong>${T('Ghi giá khi bạn xem trang','Capture while you browse')}</strong> — ${T('bán tự động, chỉ trên trang BẠN mở.','semi-auto, only on pages YOU open.')}</span></label>
- <ul class="stores">${RET.map(r=>{const s=seen[r],m=mine[r],suggest=s&&s!==m;
-  return `<li class="store-row" data-retailer="${r}"><div class="store-main"><strong>${UI.LABEL[r]}</strong><span class="${m?'':'muted'}" data-store-current>${m?'✓ '+esc(m):T('Chưa chọn cửa hàng','No store yet')}</span>
+ <ul class="stores">${RET.map(r=>{const s=seen[r],m=mine[r],suggest=s&&s!==m,online=UI.isOnline(r,st)&&!m;
+  // v1.7.3: Amazon AU / Chemist Warehouse — national online prices, no store to choose.
+  const body=online?`<span data-store-current data-online="${r}">✓ ${esc(UI.ONLINE())}</span><small class="muted">${esc(T('Giá trực tuyến toàn quốc — không cần chọn cửa hàng.','National online prices — no store needed.'))}</small>`
+   :`<span class="${m?'':'muted'}" data-store-current>${m?'✓ '+esc(UI.storeText(m)):T('Chưa chọn cửa hàng','No store yet')}</span>
    ${suggest?`<span class="store-seen">${esc(T('Trang đang hiển thị: ','Site shows: '))}“${esc(s)}”</span><button type="button" class="btn small primary" data-use="${r}">${T('Dùng tên này','Use this name')}<span class="sr-only"> ${esc(UI.LABEL[r]+' '+s)}</span></button>`
-    :m?'':`<small class="muted">${esc(T(`Mở trang ${UI.LABEL[r]}, chọn cửa hàng gần nhà — tên sẽ hiện ở đây.`,`Open ${UI.LABEL[r]}, pick your nearby store — its name appears here.`))}</small><button type="button" class="btn small" data-open-retailer="${r}">${esc(T('Mở ','Open ')+UI.LABEL[r])} ↗</button>`}</div>
-   <label class="switch mini site-sw"><input type="checkbox" data-site="${r}" ${st.semiSites?.[r]!==false?'checked':''}><span>${T('Ghi giá','Capture')}<span class="sr-only"> ${UI.LABEL[r]}</span></span></label></li>`}).join('')}</ul>
- <details class="store-manual" id="store-manual"><summary>${T('Nhập tên cửa hàng bằng tay','Type store names by hand')}</summary>
-  <form id="stores" class="form"><p class="hint">${T('Chỉ khi trang không hiển thị tên: gõ đúng như trang siêu thị ghi. Nếu trang hiển thị cửa hàng khác, giá sẽ bị gắn cờ.','Only if the site does not show it: type it exactly as the site shows. If the site shows another store, prices are flagged.')}</p>${RET.map(r=>`<label>${UI.LABEL[r]}<input name="${r}" maxlength="60" value="${esc(mine[r]||'')}"></label>`).join('')}
+    :m?'':`<small class="muted">${esc(T(`Mở trang ${UI.LABEL[r]} — tên cửa hàng bạn chọn trên trang sẽ tự hiện ở đây.`,`Open ${UI.LABEL[r]} — the store chosen on the site appears here by itself.`))}</small><button type="button" class="btn small" data-open-retailer="${r}">${esc(T('Mở ','Open ')+UI.LABEL[r])} ↗</button>
+    <form class="store-inline" data-store-form="${r}" novalidate><label for="st-in-${r}">${esc(T('Nhập tên cửa hàng','Type the store name'))}<span class="sr-only"> ${esc(UI.LABEL[r])}</span></label><span class="store-inline-row"><input id="st-in-${r}" name="store" maxlength="60" autocomplete="off" spellcheck="false" placeholder="${esc(T('ví dụ: Wolli Creek','e.g. Wolli Creek'))}"><button class="btn small primary" type="submit">${T('Lưu','Save')}<span class="sr-only"> ${esc(UI.LABEL[r])}</span></button></span></form>`}`;
+  return `<li class="store-row" data-retailer="${r}"><div class="store-main"><strong>${UI.LABEL[r]}</strong>${body}</div>
+   <label class="switch mini site-sw"><input type="checkbox" id="site-${r}" data-site="${r}" ${st.semiSites?.[r]!==false?'checked':''}><span>${T('Ghi giá','Capture')}<span class="sr-only"> ${UI.LABEL[r]}</span></span></label></li>`}).join('')}</ul>
+ <details class="store-manual" id="store-manual"><summary>${T('Sửa tên cửa hàng bằng tay','Edit store names by hand')}</summary>
+  <form id="stores" class="form"><p class="hint">${T('Gõ đúng như trang siêu thị ghi. Nếu trang hiển thị cửa hàng khác, giá sẽ bị gắn cờ. Để trống Amazon AU / Chemist Warehouse = trực tuyến.','Type it exactly as the site shows. If the site shows another store, prices are flagged. Leave Amazon AU / Chemist Warehouse empty = online.')}</p>${RET.map(r=>`<label for="sm-${r}">${UI.LABEL[r]}<input id="sm-${r}" name="${r}" maxlength="60" autocomplete="off" value="${esc(mine[r]||'')}" ${UI.isOnline(r,st)?`placeholder="${esc(UI.ONLINE())}"`:''}></label>`).join('')}
   <button class="btn" type="submit">${T('Lưu cửa hàng','Save stores')}</button></form></details>`}
 async function render(){
  const st=await SC.get(),v=st.device,paired=!!st.token,warn=UI.storeWarnings(st),steps=UI.readiness(st),state=UI.state(st);
  document.title=T('Cài đặt FamTray So Giá','FamTray Price Check settings');
- const storesDone=paired&&Object.values(v?.stores||{}).some(Boolean)&&!RET.some(r=>st.warnings?.storesSeen?.[r]&&!v?.stores?.[r]);
+ // Step 2 stays open until a supermarket store is set (online-only retailers satisfy Auto step ④ but the
+ // store boxes for Woolworths/Coles/ALDI stay visible) — or until capture is off for every store-based retailer.
+ const physical=RET.filter(r=>!UI.isOnline(r,st)&&st.semiSites?.[r]!==false);
+ const storesDone=paired&&(RET.some(r=>!UI.isOnline(r,st)&&v?.stores?.[r])||!physical.length&&UI.onlineOn(st).length>0)&&!RET.some(r=>st.warnings?.storesSeen?.[r]&&!v?.stores?.[r]&&!UI.isOnline(r,st));
  const autoDone=steps.every((s:any)=>s.ok);
  const c={pair:paired&&!open.has('pair'),stores:storesDone&&!open.has('stores'),auto:autoDone&&!open.has('auto')};
  const pace=v?.network?.pacing;
- const storeSum=RET.filter(r=>v?.stores?.[r]).map(r=>UI.LABEL[r]+': '+v.stores[r]).join(' · ');
+ const storeSum=RET.filter(r=>v?.stores?.[r]||UI.onlineOn(st).includes(r)).map(r=>UI.LABEL[r]+': '+(v?.stores?.[r]?UI.storeText(v.stores[r]):UI.ONLINE())).join(' · ');
  const nav=[['step-pair','1',T('Ghép máy','Pair'),paired],['step-stores','2',T('Cửa hàng','Stores'),storesDone],['step-auto','3',T('Tự động','Auto'),autoDone],['step-status','',T('Trạng thái','Status'),false],['rules','',T('Quy tắc','Rules'),false]];
  // Re-renders (storage changes) keep every disclosure as the person left it.
  const disclosures=new Map([...document.querySelectorAll('#app details[id]')].map((d:any)=>[d.id,d.open]));
+ // v1.7.3 (owner: “it won't let me type and save Wolli Creek”): typed text, focus and caret survive re-renders.
+ const typed=new Map([...document.querySelectorAll('#app input[id]:not([type=checkbox]):not([type=radio])')].filter((i:any)=>i.value!==i.defaultValue).map((i:any)=>[i.id,i.value]));
+ const ae:any=document.activeElement,focusId=ae&&ae.id&&ae.closest?.('#app')?ae.id:'',caret=focusId&&typeof ae.selectionStart==='number'?[ae.selectionStart,ae.selectionEnd]:null;
  $('#app').innerHTML=`
  <header class="bar opt-bar"><h1><span class="logo" aria-hidden="true">◎</span> ${esc(T('FamTray So Giá','FamTray Price Check'))}</h1>
   <div class="row opt-tools"><div class="seg" role="group" aria-label="${T('Ngôn ngữ','Language')}"><button type="button" class="seg-btn" data-lang="vi" lang="vi" aria-pressed="${UI.lang!=='en'}">VI</button><button type="button" class="seg-btn" data-lang="en" lang="en" aria-pressed="${UI.lang==='en'}">EN</button></div>
@@ -128,14 +138,21 @@ async function render(){
    ${paired?`<p class="muted">${esc(T('Máy: ','Device: ')+(v?.name||'')+' · '+st.deviceId)}<br>${esc(st.server)}</p><button id="unpair" class="btn danger" type="button">${T('Hủy ghép nối máy này','Unpair this device')}</button>`:`<p class="muted">${T('Chưa ghép nối.','Not paired.')}</p>`}
   </details></footer>`;
  for(const [k,isOpen] of disclosures){const d=document.getElementById(k) as any;if(d)d.open=isOpen}
+ for(const [k,val] of typed){const i=document.getElementById(k) as any;if(i)i.value=val}
+ if(focusId){const f=document.getElementById(focusId) as any;if(f){f.focus({preventScroll:true});if(caret)try{f.setSelectionRange(caret[0],caret[1])}catch{}}}
  const rerender=()=>{dirty=false;render()};
  document.querySelectorAll('[data-lang]').forEach((b:any)=>b.onclick=async()=>{if(UI.lang===b.dataset.lang)return;UI.lang=b.dataset.lang;await SC.set({lang:UI.lang});document.documentElement.lang=UI.lang;rerender()});
- document.querySelectorAll('[data-theme]').forEach((b:any)=>b.onclick=async()=>{UI.theme=b.dataset.theme;await SC.set({theme:UI.theme});UI.applyTheme();rerender()});
+ // v1.7.3 root cause: '[data-theme]' also matched <html data-theme>, so EVERY click re-rendered the page
+ // (the typed store name vanished and focus was lost). Only the theme buttons inside the page.
+ document.querySelectorAll('#app button[data-theme]').forEach((b:any)=>b.onclick=async()=>{UI.theme=b.dataset.theme;await SC.set({theme:UI.theme});UI.applyTheme();rerender()});
  document.querySelectorAll('[data-edit]').forEach((b:any)=>b.onclick=()=>{const id=b.dataset.edit;if(open.has(id))open.delete(id);else open.add(id);if(id==='auto')edit=null;rerender();$('#step-'+id)?.scrollIntoView({block:'start'});($('#step-'+id+' [data-edit]') as any)?.focus()});
  document.querySelectorAll('[data-goto]').forEach((b:any)=>b.onclick=()=>{const t=$('#'+b.dataset.goto);t?.scrollIntoView({block:'start'});(t?.querySelector('input,button,a') as any)?.focus()});
  document.querySelectorAll('[data-ob]').forEach((el:any)=>el.onchange=async()=>{const o=(await SC.get(['onboarding'])).onboarding;o[el.dataset.ob]=el.checked;await SC.set({onboarding:o});rerender()});
  document.querySelectorAll('[data-site]').forEach((el:any)=>el.onchange=async()=>{const s=(await SC.get(['semiSites'])).semiSites;s[el.dataset.site]=el.checked;await SC.set({semiSites:s})});
- const saveStores=async(stores:any,done:string)=>{try{const view=await SC.api('device-settings',{stores});await SC.set({device:view});const w=(await SC.get(['warnings'])).warnings;w.storeMismatch={};await SC.set({warnings:w});say(done)}catch(err:any){say(err.message,true)}rerender()};
+ const saveStores=async(stores:any,done:string,clear?:()=>void)=>{try{const view=await SC.api('device-settings',{stores});await SC.set({device:view});const w=(await SC.get(['warnings'])).warnings;w.storeMismatch={};await SC.set({warnings:w});clear?.();say(done)}catch(err:any){say(T('Chưa lưu được cửa hàng: ','Store not saved: ')+(UI.lang==='en'?err.data?.errorEn||err.message:err.data?.error||err.message),true)}rerender()};
+ document.querySelectorAll('[data-store-form]').forEach((f:any)=>f.addEventListener('submit',async(e:any)=>{e.preventDefault();const r=f.dataset.storeForm,inp=f.elements.store,name=String(inp.value||'').replace(/\s+/g,' ').trim();
+  if(name.length<2){say(T(`Nhập tên cửa hàng ${UI.LABEL[r]} (ít nhất 2 ký tự).`,`Type the ${UI.LABEL[r]} store name (at least 2 characters).`),true);return rerender()}
+  f.querySelector('button').disabled=true;const cur=await SC.get(['device']);await saveStores({...(cur.device?.stores||{}),[r]:name},T(`Đã lưu cửa hàng ${UI.LABEL[r]}: ${name}.`,`Saved the ${UI.LABEL[r]} store: ${name}.`),()=>{inp.value=inp.defaultValue})}));
  document.querySelectorAll('[data-use]').forEach((el:any)=>el.onclick=async()=>{el.disabled=true;const cur=await SC.get(['device','warnings']),r=el.dataset.use;await saveStores({...(cur.device?.stores||{}),[r]:cur.warnings.storesSeen[r]},T('Đã lưu cửa hàng.','Stores saved.'))});
  $('#semi')?.addEventListener('change',async(e:any)=>SC.set({semiEnabled:e.target.checked}));
  $('#open-app')?.addEventListener('click',()=>chrome.tabs.create({url:UI.appBase(st)+'/#pair-extension'}));
@@ -148,7 +165,7 @@ async function render(){
   await SC.set({server});
   try{const r=await SC.api('pair',{code:f.code.value,name:f.elements.namedItem('name').value,postcode:f.postcode.value,suburb:f.suburb.value,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone,version:SC.BUILD.version},{token:''});await SC.set({token:r.token,deviceId:r.device.id,device:r.device});say(T('Đã ghép nối. Tiếp theo: bước 2 — cửa hàng.','Paired. Next: step 2 — stores.'))}
   catch(err:any){say(T('Không ghép nối được: ','Could not pair: ')+(UI.lang==='en'?err.data?.errorEn||err.message:err.data?.error||err.message),true)}rerender()});
- $('#stores')?.addEventListener('submit',async(e:any)=>{e.preventDefault();const stores:any={};for(const r of RET)stores[r]=e.target.elements[r].value.trim();await saveStores(stores,T('Đã lưu cửa hàng.','Stores saved.'))});
+ $('#stores')?.addEventListener('submit',async(e:any)=>{e.preventDefault();const f=e.target,stores:any={};for(const r of RET)stores[r]=f.elements[r].value.replace(/\s+/g,' ').trim();await saveStores(stores,T('Đã lưu cửa hàng.','Stores saved.'),()=>{for(const r of RET)f.elements[r].defaultValue=f.elements[r].value})});
  // Schedule editor: presets write the same stored format as the custom editor.
  const sched=$('#sched');
  if(sched){const readCustom=()=>edit.windows.map((_:any,i:number)=>({days:[...sched.querySelectorAll(`input[name=d${i}]:checked`)].map((x:any)=>+x.value),start:sched[`s${i}`].value,end:sched[`e${i}`].value}));
@@ -160,12 +177,13 @@ async function render(){
    if(!CORE.validSchedule(windows)||!windows.length){say(T('Khung giờ không hợp lệ: chọn ít nhất một ngày, giờ kết thúc sau giờ bắt đầu.','Invalid schedule: pick at least one day, and an end time after the start.'),true);return render()}
    try{const view=await SC.api('device-settings',{schedule:windows,caps:{pagesPerRun:+f.run.value|0,pagesPerDay:+f.day.value|0}});await SC.set({device:view});edit=null;say(T('Đã lưu lịch.','Schedule saved.'))}catch(err:any){say(err.message,true)}rerender()})}
  document.querySelectorAll('[data-pace]').forEach((b:any)=>b.onclick=async()=>{if(b.disabled)return;const k=b.dataset.pace||null;try{const view=await SC.api('device-settings',{pacing:k});await SC.set({device:view});say(k?T('Đã đổi nhịp: ','Pace set: ')+UI.PACE_SHORT()[k][0]:T('Nhịp theo Studio.','Pace follows Studio.'))}catch(err:any){say(err.message,true)}rerender()});
- ['#stores','#pair'].forEach(s=>$(s)?.addEventListener('input',()=>{dirty=true}));
+ ['#stores','#pair','[data-store-form]'].forEach(s=>document.querySelectorAll('#app '+s).forEach((el:any)=>el.addEventListener('input',()=>{dirty=true})));
  UI.bindUpdate(document);
  document.querySelectorAll('[data-open-retailer]').forEach((b:any)=>b.onclick=()=>chrome.tabs.create({url:UI.retailerUrl(b.dataset.openRetailer,CFG)}));
  const pv=$('#preview');pv?.addEventListener('toggle',async()=>{if(!pv.open)return;try{preview=await SC.api('plan')}catch(e:any){preview={tasks:[],planInfo:null,error:e.message}}const body=$('#preview-body');if(body)body.innerHTML=UI.previewHtml(preview)});
 }
-chrome.storage.onChanged.addListener((_c:any,area:string)=>{if(area==='local'&&!dirty&&!document.activeElement?.matches?.('input,select,textarea'))render()});
+// Typed text, focus and caret are kept by render() (v1.7.3); still no redraw while the person is mid-way in a text box.
+chrome.storage.onChanged.addListener((_c:any,area:string)=>{if(area==='local'&&!dirty&&!document.activeElement?.matches?.('input:not([type=checkbox]):not([type=radio]),select,textarea'))render()});
 await render();
 {const h=hashTarget();if(h){const el=document.getElementById(h);el?.scrollIntoView({block:'start'})}}
 })();

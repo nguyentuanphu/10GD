@@ -52,7 +52,7 @@ export const dayKey=(ms:number)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Aust
 const sydneyDow=(ms:number)=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(new Intl.DateTimeFormat('en-US',{timeZone:'Australia/Sydney',weekday:'short'}).format(new Date(ms)));
 const fail=(vi:string,en:string,status=400,code?:string):never=>{throw Object.assign(Error(vi),{status,en,code})};
 const clean=(s:any,max=200)=>typeof s==='string'?s.replace(/\s+/g,' ').trim().slice(0,max):'';
-const normLabel=(s:any)=>clean(String(s||''),80).toLowerCase().replace(/^(your\s+store|my\s+store|store|shopping at|pick up from|deliver(?:y|ing)? to)\s*[:\-]?\s*/i,'').replace(/[^a-z0-9]+/g,' ').trim();
+const normLabel=(s:any)=>{const x=clean(String(s||''),80).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/^(your\s+store|my\s+store|store|shopping at|pick up from|deliver(?:y|ing)? to)\s*[:\-]?\s*/i,'').replace(/[^a-z0-9]+/g,' ').trim();return /^(online|truc tuyen|truc tuyen online|online truc tuyen)$/.test(x)?'online':x};// v1.7.3: “Trực tuyến” = Online
 export const storeMatches=(seen:any,assigned:any)=>{const a=normLabel(assigned),s=normLabel(seen);if(!a)return true;if(!s)return false;return s===a||s.includes(a)||a.includes(s)};
 async function* keys(store:any,prefix:string){for await(const page of store.list({prefix,paginate:true}))for(const b of page.blobs)yield b.key as string}
 async function readJSON(store:any,key:string){try{return await store.get(key,{type:'json'})}catch{return null}}
@@ -181,7 +181,8 @@ export async function saveNetwork(getStoreFn:any,patch:any,actor:string,now:numb
 export async function scoutConfig(getStoreFn:any){const o=await readJSON(scoutStore(getStoreFn),'config/override');return o?.config?.retailers?o.config:scoutDefaultConfig}
 export function validateConfig(c:any){if(!c||typeof c!=='object'||typeof c.version!=='string'||!/^[\w.-]{1,40}$/.test(c.version)||!c.retailers||typeof c.retailers!=='object')fail('Cấu hình không hợp lệ.','Invalid config.');if(JSON.stringify(c).length>120000)fail('Cấu hình quá lớn.','Config too large.',413);for(const [r,x] of Object.entries<any>(c.retailers)){if(!RETAILERS.includes(r)||!Array.isArray(x.hosts))fail('Cấu hình không hợp lệ: '+r,'Invalid config: '+r)}
  // Data only: every regex string must compile; no functions can exist in JSON.
- const walk=(v:any,k='')=>{if(typeof v==='string'&&/(^|\.)(re|path|productIdFromUrl|promoEndRe)$/.test(k))try{new RegExp(v)}catch{fail('Biểu thức không hợp lệ: '+k,'Invalid pattern: '+k)}if(v&&typeof v==='object')for(const [kk,vv] of Object.entries(v))walk(vv,kk)};walk(c);return c}
+ const walk=(v:any,k='')=>{if(k==='re'&&Array.isArray(v))for(const x of v)if(typeof x!=='string'){fail('Biểu thức không hợp lệ: '+k,'Invalid pattern: '+k)}else try{new RegExp(x)}catch{fail('Biểu thức không hợp lệ: '+k,'Invalid pattern: '+k)}
+  if(typeof v==='string'&&/(^|\.)(re|path|productIdFromUrl|promoEndRe)$/.test(k))try{new RegExp(v)}catch{fail('Biểu thức không hợp lệ: '+k,'Invalid pattern: '+k)}if(v&&typeof v==='object')for(const [kk,vv] of Object.entries(v))walk(vv,kk)};walk(c);return c}
 
 // ---------- events ----------
 export async function logEvent(getStoreFn:any,type:string,data:any={},now=Date.now()){try{const t=String(type).replace(/[^a-z0-9_]/gi,'').slice(0,40);await scoutStore(getStoreFn).setJSON(`events/${dayKey(now)}/${String(now).padStart(13,'0')}-${t}-${randomBytes(3).toString('hex')}`,{type:t,at:new Date(now).toISOString(),...data},{onlyIfNew:true});
@@ -285,7 +286,7 @@ export function effectiveCaps(device:any,s:any){const c=device?.caps||{};return{
 export async function deviceView(getStoreFn:any,d:any,s:any,now:number,env:any=process.env){
  const health=await retailerHealth(getStoreFn),paused:any={};for(const r of RETAILERS){const h=health[r];if(retailerPaused(h,now))paused[r]=h.reason||'paused'}
  const cfg=await scoutConfig(getStoreFn);
- return{id:d.id,name:d.name,owner:d.owner,postcode:d.postcode,suburb:d.suburb,timeZone:d.timeZone,stores:d.stores||{},schedule:d.schedule||s.schedule,scheduleSource:d.schedule?'device':'network',caps:effectiveCaps(d,s),autoAllowed:d.autoAllowed===true,paused:d.pausedUntil&&d.pausedUntil>now?{until:new Date(d.pausedUntil).toISOString(),reason:d.pauseReason||'paused'}:null,trusted:await isTrusted(getStoreFn,d.owner,env),
+ return{id:d.id,name:d.name,owner:d.owner,postcode:d.postcode,suburb:d.suburb,timeZone:d.timeZone,stores:d.stores||{},storesEffective:effectiveStores(d),online:ONLINE_RETAILERS,schedule:d.schedule||s.schedule,scheduleSource:d.schedule?'device':'network',caps:effectiveCaps(d,s),autoAllowed:d.autoAllowed===true,paused:d.pausedUntil&&d.pausedUntil>now?{until:new Date(d.pausedUntil).toISOString(),reason:d.pauseReason||'paused'}:null,trusted:await isTrusted(getStoreFn,d.owner,env),
   network:{autoScout:s.autoScout,semiAuto:s.semiAuto,paused:s.paused,robots:'respect',pacing:effectivePacing(d,s,now)},runNow:runNowActive(d,now)?{until:new Date(d.runNow.until).toISOString(),runId:d.runNow.runId||null}:null,stopRequestedAt:d.stopRequestedAt||null,retailerPaused:paused,configVersion:cfg?.version||null,inWindow:inWindow(now,d.schedule||s.schedule,d.timeZone),
   // v1.7.2: is the account a Studio admin (readiness checklist says “chỉ quản trị viên” otherwise), and the update check.
   ownerStudio:roleFor(d.owner,env)==='owner',update:updateInfo(d,s,env),planInfo:planView(d,now)}}
@@ -328,7 +329,7 @@ function searchUrl(config:any,retailer:string,q:string){const t=config?.retailer
 export async function ensurePlan(getStoreFn:any,{settings,now,adapter}:any){
  const day=dayKey(now),store=scoutStore(getStoreFn),config=await scoutConfig(getStoreFn);
  const devices=(await listDevices(getStoreFn)).filter(d=>!d.revokedAt&&d.autoAllowed===true),targets=new Map<string,{retailer:string,storeLabel:string}>();
- for(const d of devices)for(const [r,label] of Object.entries<any>(d.stores||{}))if(RETAILERS.includes(r)&&label)targets.set(r+'|'+normLabel(label),{retailer:r,storeLabel:label});
+ for(const d of devices)for(const [r,label] of Object.entries<any>(effectiveStores(d)))if(RETAILERS.includes(r)&&label)targets.set(r+'|'+normLabel(label),{retailer:r,storeLabel:label});
  const pinned=await pinnedItems(getStoreFn),pinSig=Object.keys(pinned).sort().map(k=>k+':'+(pinned[k].retailers||[]).join('+')).join(',');
  const signature=sha([...targets.keys()].sort().join(',')+'|'+(config?.version||'')+(pinSig?'|pin:'+pinSig:'')).slice(0,16),marker=await readJSON(store,'plan/'+day);
  if(marker?.signature===signature)return{planned:false,count:marker.count};
@@ -361,10 +362,17 @@ export async function refusal(getStoreFn:any,device:any,s:any,body:any,now:numbe
 // v1.7.2 (owner: “Run now ran but checked 0 pages · No more tasks”): the planner only makes tasks for
 // retailers where an Auto-allowed device has a store, and a device only gets tasks for ITS stores.
 // planInfo says why a device has nothing to do, so the extension and Studio can explain it.
-export const storesOf=(d:any)=>RETAILERS.filter(r=>typeof d?.stores?.[r]==='string'&&d.stores[r].trim());
+/** v1.7.3: online prices of these retailers are national — no store to choose; their store is “Online”. */
+export const ONLINE_RETAILERS=['chemist','amazon'];
+export const ONLINE_LABEL='Online';
+/** The stores a device works for: the stores it chose, plus “Online” for each online-priced retailer the
+ *  extension (1.7.3+) reports as switched on (heartbeat `online`). A typed store always wins. */
+export function effectiveStores(d:any){const out:any={};for(const r of RETAILERS){const v=d?.stores?.[r];if(typeof v==='string'&&v.trim())out[r]=v}
+ const on=Array.isArray(d?.client?.online)?d.client.online:[];for(const r of ONLINE_RETAILERS)if(!out[r]&&on.includes(r))out[r]=ONLINE_LABEL;return out}
+export const storesOf=(d:any)=>{const e=effectiveStores(d);return RETAILERS.filter(r=>e[r])};
 /** reasonIfEmpty: 'no-stores' | 'cap' | 'retailer-paused' | 'no-wanted-items' (nothing planned for its stores) | 'all-done' | null (work remains). */
 export function planInfoFor(device:any,tasks:any[],health:any,now:number,{capped=false,leased=0}:any={}){
- const retailersWithStore=storesOf(device),mine=tasks.filter(t=>retailersWithStore.includes(t.retailer)&&storeMatches(t.storeLabel,device.stores[t.retailer]));
+ const retailersWithStore=storesOf(device),eff=effectiveStores(device),mine=tasks.filter(t=>retailersWithStore.includes(t.retailer)&&storeMatches(t.storeLabel,eff[t.retailer]));
  const open=mine.filter(t=>(t.status==='queued'||t.status==='leased'&&t.leaseUntil<=now)&&t.attempts<3),openLive=open.filter(t=>!retailerPaused(health?.[t.retailer],now));
  const reasonIfEmpty=leased?null:!retailersWithStore.length?'no-stores':capped?'cap':open.length&&!openLive.length?'retailer-paused':!mine.length?'no-wanted-items':!openLive.length?'all-done':null;
  return{day:dayKey(now),retailersWithStore,tasksToday:mine.length,open:openLive.length,done:mine.filter(t=>t.status==='done'||t.status==='skipped').length,reasonIfEmpty,at:new Date(now).toISOString()}}
@@ -376,7 +384,7 @@ export function planView(d:any,now:number){const lp=d?.lastPlan&&d.lastPlan.day=
 export async function devicePlan(getStoreFn:any,{device,settings:s,now,adapter,limit=300}:any){
  if(storesOf(device).length&&device.autoAllowed===true)await ensurePlan(getStoreFn,{settings:s,now,adapter});
  const tasks=await listTasks(getStoreFn,dayKey(now)),health=await retailerHealth(getStoreFn),info=planInfoFor(device,tasks,health,now);await rememberPlan(getStoreFn,device,info);
- const mine=tasks.filter(t=>info.retailersWithStore.includes(t.retailer)&&storeMatches(t.storeLabel,device.stores[t.retailer])).sort(taskOrder).slice(0,limit);
+ const eff=effectiveStores(device),mine=tasks.filter(t=>info.retailersWithStore.includes(t.retailer)&&storeMatches(t.storeLabel,eff[t.retailer])).sort(taskOrder).slice(0,limit);
  const short=(u:string)=>{try{const x=new URL(u);return{host:x.hostname.replace(/^www\./,''),path:x.pathname.slice(0,80)}}catch{return{host:'',path:''}}};
  return{planInfo:info,tasks:mine.map(t=>({taskId:t.taskId,retailer:t.retailer,kind:t.kind,name:t.name||null,itemId:t.itemId||null,storeLabel:t.storeLabel,...short(t.url),search:t.kind!=='specials'&&!t.mapped,status:t.status==='leased'&&t.leaseUntil<=now?'queued':t.status,mine:t.leasedBy===device.id,retailerPaused:retailerPaused(health[t.retailer],now)}))}}
 export async function leaseTasks(getStoreFn:any,{device,settings:s,runId,max=5,now,adapter}:any){
@@ -387,7 +395,7 @@ export async function leaseTasks(getStoreFn:any,{device,settings:s,runId,max=5,n
  if(runUsed>=caps.pagesPerRun||(dc.leased||0)>=caps.pagesPerDay){const info=planInfoFor(device,await listTasks(getStoreFn,day),await retailerHealth(getStoreFn),now,{capped:true});return{tasks:[],stop:runUsed>=caps.pagesPerRun?'cap-run':'cap-day',planInfo:info}}
  const room=Math.max(0,Math.min(10,max|0||5,caps.pagesPerRun-runUsed,caps.pagesPerDay-(dc.leased||0)));
  const health=await retailerHealth(getStoreFn),leaseMs=s.leaseMinutes*MIN,capped=new Set<string>(),leased:any[]=[];
- const eligible=(t:any)=>(t.status==='queued'||t.status==='leased'&&t.leaseUntil<=now)&&t.attempts<3&&device.stores?.[t.retailer]&&storeMatches(t.storeLabel,device.stores[t.retailer])&&!retailerPaused(health[t.retailer],now);
+ const eff=effectiveStores(device),eligible=(t:any)=>(t.status==='queued'||t.status==='leased'&&t.leaseUntil<=now)&&t.attempts<3&&eff[t.retailer]&&storeMatches(t.storeLabel,eff[t.retailer])&&!retailerPaused(health[t.retailer],now);
  const today=await listTasks(getStoreFn,day),all=today.filter(eligible).sort(taskOrder);
  for(const t of all){if(leased.length>=room)break;if(capped.has(t.retailer))continue;
   const cap=s.caps.retailerPagesPerDay[t.retailer]??0;let ok=true;
@@ -439,7 +447,8 @@ export function validFact(f:any,retailer:string,config:any){
  o.packCount=Number.isInteger(f.packCount)&&f.packCount>0&&f.packCount<1000?f.packCount:null;
  o.productId=typeof f.productId==='string'&&/^[\w.-]{1,40}$/.test(f.productId)?f.productId:null;
  o.productUrl=f.productUrl&&hostOk(f.productUrl,retailer,config)?String(f.productUrl).split('#')[0].slice(0,400):null;
- o.storeLabel=clean(f.storeLabel,80)||null;
+ // v1.7.3: online-priced retailers (national prices): the store is always “Online” — a delivery suburb is never stored.
+ o.storeLabel=ONLINE_RETAILERS.includes(retailer)?ONLINE_LABEL:clean(f.storeLabel,80)||null;
  // pack sanity: price per kg/L implied by pack must be plausible
  if(o.packQty&&o.packUnit){const per=o.packUnit==='g'?o.price/o.packQty*1000:o.packUnit==='kg'?o.price/o.packQty:o.packUnit==='mL'?o.price/o.packQty*1000:o.packUnit==='L'?o.price/o.packQty:o.price/o.packQty;if(per>5000||per<0.0005)return{ok:false,reason:'pack'}}
  return{ok:true,fact:o}}
@@ -497,7 +506,7 @@ export async function ingestResults(getStoreFn:any,{device,settings:s,body,now,a
 export async function studioOverview(getStoreFn:any,{now,env=process.env}:any){
  const s=await networkSettings(getStoreFn,env),devices=await listDevices(getStoreFn),day=dayKey(now),{retailers,devices:dc}=await counters(getStoreFn,day),health=await retailerHealth(getStoreFn),trusted=await trustedList(getStoreFn),cfg=await scoutConfig(getStoreFn),allow=(await extensionAllowlist(getStoreFn,now)).users,admins=adminNames(env),assigned=(u:any)=>admins.includes(String(u||'').toLowerCase())||!!allow[String(u||'').toLowerCase()];
  const live:any={};for(const d of devices)live[d.id]=liveStatus(d,s,now);const stale=staleDuplicates(devices,now);
- const rows=devices.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).map(d=>{const t=d.totals||{},today=dc[d.id]||{};const pages=t.pages||0;const twin=d.revokedAt?null:newerTwin(devices,d);return{id:d.id,shortId:shortId(d.id),pairedAt:d.createdAt||null,replaces:(d.replaces||[]).length,possibleOld:twin?{newerId:twin.id,newerName:twin.name,newerShortId:shortId(twin.id),stale:stale.has(d.id)}:null,name:d.name,owner:d.owner,postcode:d.postcode,suburb:d.suburb,stores:d.stores||{},lastHeartbeat:d.lastHeartbeat,lastRunAt:d.lastRunAt,lastSemiAt:d.lastSemiAt||null,pages,prices:t.prices||0,blocked:t.blocked||0,successRate:pages?Math.round((1-(t.parseFail||0)/pages)*100)/100:null,today:{pages:today.pages||0,leased:today.leased||0,prices:today.prices||0},autoAllowed:d.autoAllowed===true,autoEnabled:d.client?.autoEnabled===true,semiEnabled:d.client?.semiEnabled!==false,signedInWarning:Object.keys(d.client?.signedIn||{}).filter(r=>d.client.signedIn[r]),storeMismatch:d.client?.storeMismatch||{},version:d.client?.version||null,latestVersion:EXTENSION_VERSION,outdated:isOutdated(d.client?.version),configVersion:d.client?.configVersion||null,caps:effectiveCaps(d,s),schedule:d.schedule||null,status:d.revokedAt?'revoked':!assigned(d.owner)?'access-removed':d.pausedUntil&&d.pausedUntil>now?(String(d.pauseReason||'').startsWith('blocked')?'blocked':'paused'):'active',pausedUntil:d.pausedUntil&&d.pausedUntil>now?new Date(d.pausedUntil).toISOString():null,pauseReason:d.pauseReason||null,live:live[d.id]}});
+ const rows=devices.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).map(d=>{const t=d.totals||{},today=dc[d.id]||{};const pages=t.pages||0;const twin=d.revokedAt?null:newerTwin(devices,d);return{id:d.id,shortId:shortId(d.id),pairedAt:d.createdAt||null,replaces:(d.replaces||[]).length,possibleOld:twin?{newerId:twin.id,newerName:twin.name,newerShortId:shortId(twin.id),stale:stale.has(d.id)}:null,name:d.name,owner:d.owner,postcode:d.postcode,suburb:d.suburb,stores:d.stores||{},storesEffective:effectiveStores(d),lastHeartbeat:d.lastHeartbeat,lastRunAt:d.lastRunAt,lastSemiAt:d.lastSemiAt||null,pages,prices:t.prices||0,blocked:t.blocked||0,successRate:pages?Math.round((1-(t.parseFail||0)/pages)*100)/100:null,today:{pages:today.pages||0,leased:today.leased||0,prices:today.prices||0},autoAllowed:d.autoAllowed===true,autoEnabled:d.client?.autoEnabled===true,semiEnabled:d.client?.semiEnabled!==false,signedInWarning:Object.keys(d.client?.signedIn||{}).filter(r=>d.client.signedIn[r]),storeMismatch:d.client?.storeMismatch||{},version:d.client?.version||null,latestVersion:EXTENSION_VERSION,outdated:isOutdated(d.client?.version),configVersion:d.client?.configVersion||null,caps:effectiveCaps(d,s),schedule:d.schedule||null,status:d.revokedAt?'revoked':!assigned(d.owner)?'access-removed':d.pausedUntil&&d.pausedUntil>now?(String(d.pauseReason||'').startsWith('blocked')?'blocked':'paused'):'active',pausedUntil:d.pausedUntil&&d.pausedUntil>now?new Date(d.pausedUntil).toISOString():null,pauseReason:d.pauseReason||null,live:live[d.id]}});
  const retailerRows=RETAILERS.map(r=>{const h=health[r]||{},c=retailers[r]||{};return{retailer:r,label:RETAILER_LABELS[r],paused:retailerPaused(h,now),reason:retailerPaused(h,now)?h.reason:null,until:h.until?new Date(h.until).toISOString():null,successRate:h.successRate??null,samples:(h.recent||[]).length,today:{leased:c.leased||0,pages:c.pages||0,prices:c.prices||0,parseFail:c.parseFail||0,blocked:c.blocked||0,robots:c.robots||0,semiPages:c.semiPages||0},cap:s.caps.retailerPagesPerDay[r]??0}});
  const tasks=await listTasks(getStoreFn,day),byStatus:any={};for(const t of tasks)byStatus[t.status]=(byStatus[t.status]||0)+1;
  return{extensionLatest:EXTENSION_VERSION,settings:s,installInfo:{...publicInstallInfo(s,env),envStoreUrl:!!validStoreUrl(env?.SCOUT_STORE_URL,'chrome'),envEdgeStoreUrl:!!validStoreUrl(env?.SCOUT_EDGE_STORE_URL,'edge')},devices:rows,retailers:retailerRows,trusted:Object.entries<any>(trusted).map(([username,v])=>({username,...v})),extensionUsers:Object.entries<any>(allow).map(([username,v])=>({username,...v})).sort((a:any,b:any)=>a.username.localeCompare(b.username)),admins,tasks:{total:tasks.length,byStatus},configVersion:cfg?.version||null,events:await listEvents(getStoreFn,{days:7,limit:40,now}),day}}
@@ -536,7 +545,7 @@ export async function replanToday(getStoreFn:any,{settings,now,adapter}:any){awa
 const KIND_GROUP:any={specials:'specials',pinned:'pinned',wanted:'wanted',mapped:'mapped',stale:'stale',rest:'rest'};
 export async function scanList(getStoreFn:any,{now,env=process.env,adapter}:any){
  const s=await networkSettings(getStoreFn,env),day=dayKey(now),config=await scoutConfig(getStoreFn),devices=await listDevices(getStoreFn),names=new Map(devices.map(d=>[d.id,d.name]));
- const tasks=await listTasks(getStoreFn,day),{retailers:rc}=await counters(getStoreFn,day),allowed=devices.filter(d=>!d.revokedAt&&d.autoAllowed===true),withStores=allowed.filter(d=>Object.values(d.stores||{}).some(Boolean));
+ const tasks=await listTasks(getStoreFn,day),{retailers:rc}=await counters(getStoreFn,day),allowed=devices.filter(d=>!d.revokedAt&&d.autoAllowed===true),withStores=allowed.filter(d=>storesOf(d).length>0);
  const host=(u:string)=>{try{const x=new URL(u);return x.host+x.pathname}catch{return String(u||'').slice(0,80)}};
  const status=(t:any)=>t.status==='leased'?{code:'leased',device:names.get(t.leasedBy)||null}:t.status==='done'?{code:t.parse==='failed'?'failed':'done',prices:t.prices||0}:t.status==='skipped'?{code:t.reason==='robots-disallowed'?'robots':'skipped'}:((rc[t.retailer]?.leased||0)>=(s.caps.retailerPagesPerDay[t.retailer]??0)?{code:'cap'}:{code:'queued'});
  const groups:any={},totals:any={all:tasks.length,queued:0,leased:0,done:0,failed:0,robots:0,skipped:0,cap:0,prices:0};

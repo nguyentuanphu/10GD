@@ -1,4 +1,13 @@
-# FamTray · Bếp Gia Đình · v1.7.2
+# FamTray · Bếp Gia Đình · v1.7.3
+
+## What's new in v1.7.3
+- **So Giá finds the store by itself on the real sites (extension 1.7.3):** the store shown in the site's header is read again after the page finishes rendering and whenever it changes — Woolworths “Direct to boot / Pick up / Click & Collect: Wolli Creek”, ALDI “Current store: 2205, Wolli Creek”, Coles' store button next to “When”. Patterns live in the price-reading settings sent from the app, so they can be corrected without an extension update; “Send this page's structure” now includes where the store name is shown. A delivery address (“Delivery to …”, “Deliver to …”) is never read.
+- **Amazon AU and Chemist Warehouse need no store:** their online prices are national, shown as **“Trực tuyến / Online”** and placed by the computer's postcode area. Step ④ “At least one store” is done as soon as one of them is switched on.
+- **Typing a store name works again:** in Settings every click re-drew the page, so a typed name vanished before “Save”. Fixed; each retailer without a store now has its own **“Nhập tên cửa hàng”** box with **Lưu**, the popup offers the same box on a supermarket tab, and typed text and focus survive updates.
+- **Studio → So Giá → device card → “Sửa cửa hàng”:** the owner can set a computer's stores (audited); the computer picks them up at its next check-in (about a minute).
+- **No false “signed in” warning:** “My Account · Login or Sign up” on Chemist Warehouse is now read as signed out, and a warning only shows on its own retailer's tab.
+- The update banner appears for computers on extension 1.7.2.
+
 
 ## What's new in v1.7.2
 - **Local-grocer receipts (“Ghép giá với giỏ đi chợ”):** Asian grocers, butchers and greengrocers that print only “GROCERY 4.50”, “VEG 3.20”, “MEAT 12.80”, “DEPT 01”, a PLU or just a price. These lines are marked **“Chưa rõ món”** and are never matched automatically. In the receipt form, tap a price, then the item(s) in this week’s shopping list (items ticked “đã mua” come first, in tick order); one price may cover several items, and splitting the money is the family’s choice. Undo for every step. Voice / typed: “dòng 3 là thịt ba chỉ” / “line 3 is pork belly” (hold to talk). Works offline (typing; voice offline needs the on-device pack).

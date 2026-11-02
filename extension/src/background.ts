@@ -9,9 +9,14 @@ declare const chrome:any;
 // The build prepends build info, parser config, ScoutCore and ScoutClient to this file
 // (one bundled background.js, v1.7.1); no importScripts.
 const SC=(globalThis as any).ScoutClient,CORE=(globalThis as any).ScoutCore;
+/** v1.7.3: retailers whose online prices are national (parser config `online`) and whose capture is on here — they need no store. */
+async function onlineOn(sites?:any){const cfg=await SC.config(),s=sites||(await SC.get(['semiSites'])).semiSites||{};return Object.keys(cfg?.retailers||{}).filter(r=>cfg.retailers[r]?.online===true&&s[r]!==false)}
 const LABEL:any={woolworths:'Woolworths',coles:'Coles',aldi:'ALDI',chemist:'Chemist Warehouse',amazon:'Amazon AU'};
 
-chrome.runtime.onInstalled.addListener(async()=>{const st=await chrome.storage.local.get(null);const init:any={};for(const [k,v] of Object.entries(SC.DEFAULTS))if(st[k]===undefined)init[k]=v;await chrome.storage.local.set(init);setup()});
+chrome.runtime.onInstalled.addListener(async(d:any)=>{const st=await chrome.storage.local.get(null);const init:any={};for(const [k,v] of Object.entries(SC.DEFAULTS))if(st[k]===undefined)init[k]=v;
+ // v1.7.3: signed-in flags saved by 1.7.2 came from too-loose markers (e.g. “My Account” next to “Login or Sign up”); start clean, pages re-check.
+ if(d?.reason==='update'&&st.warnings&&CORE.versionCmp(d.previousVersion||'0',SC.version())<0)init.warnings={...st.warnings,signedIn:{}};
+ await chrome.storage.local.set(init);setup()});
 chrome.runtime.onStartup.addListener(setup);
 // v1.7 remote control: heartbeat every minute while Chrome runs (the chrome.alarms
 // minimum) and once right away on startup/wake, so Studio commands arrive within ~1 min.
@@ -21,10 +26,10 @@ try{chrome.idle.onStateChanged.addListener((s:string)=>{if(s==='active')heartbea
 
 var beating:Promise<any>|null=null;// var: setup() above calls heartbeat() before this line runs
 function heartbeat(){beating=beating||beat().finally(()=>{beating=null});return beating}
-async function beat(){const st=await SC.get(['token','autoEnabled','semiEnabled','warnings','run','lastRun','blockedEvents','paused','battery','lastWhy']);if(!st.token)return null;
+async function beat(){const st=await SC.get(['token','autoEnabled','semiEnabled','warnings','run','lastRun','blockedEvents','paused','battery','lastWhy','semiSites']);if(!st.token)return null;const online=await onlineOn(st.semiSites);
  let chromeOpen=true,idle:any=null;try{chromeOpen=(await chrome.windows.getAll({windowTypes:['normal']})).length>0}catch{}try{idle=await chrome.idle.queryState(60)}catch{}
  const b=(st.blockedEvents||[])[0],lr=st.lastRun;
- try{const view=await SC.api('heartbeat',{version:SC.version(),configVersion:(await SC.get(['config'])).config?.version||SC.BUILD.configVersion||null,autoEnabled:st.autoEnabled===true,semiEnabled:st.semiEnabled!==false,running:!!st.run,signedIn:st.warnings.signedIn,storesSeen:st.warnings.storesSeen,storeMismatch:st.warnings.storeMismatch,
+ try{const view=await SC.api('heartbeat',{version:SC.version(),configVersion:(await SC.get(['config'])).config?.version||SC.BUILD.configVersion||null,autoEnabled:st.autoEnabled===true,semiEnabled:st.semiEnabled!==false,running:!!st.run,signedIn:st.warnings.signedIn,storesSeen:st.warnings.storesSeen,storeMismatch:st.warnings.storeMismatch,online,
    chromeOpen,idle,paused:st.paused===true,why:st.run?null:st.lastWhy||null,battery:st.battery||null,run:st.run?{pages:st.run.pages||0,prices:st.run.prices||0,startedAt:st.run.startedAt}:null,
    lastRun:lr?{at:lr.at,pages:lr.pages,prices:lr.prices,skipped:lr.skipped,errors:lr.errors||0,stop:lr.stop}:null,lastError:b?{at:b.at,retailer:b.retailer,kind:b.kind}:null});
   const {commands,...dev}=view;await SC.set({device:dev,deviceAt:Date.now()});if(dev.configVersion)SC.refreshConfig();
@@ -49,7 +54,7 @@ async function runCommands(list:any[]){for(const c of list.slice(0,10)){let ok=t
 let flushTimer:any=null;
 async function queueSemi(result:any,tabId:number){
  const st=await SC.get(['token','semiEnabled','semiSites','paused','pendingSemi','warnings','run','device']);
- if(result.signedIn!==undefined||result.storeLabel){const w=st.warnings;if(result.signedIn===true)w.signedIn[result.retailer]=true;else if(result.signedIn===false&&w.signedIn[result.retailer])delete w.signedIn[result.retailer];if(result.storeLabel){w.storesSeen[result.retailer]=result.storeLabel;const want=st.device?.stores?.[result.retailer];w.storeMismatch[result.retailer]=!!want&&!CORE.storeMatches(result.storeLabel,want)}await SC.set({warnings:w})}
+ if(result.signedIn!==undefined||result.storeLabel){const w=st.warnings;if(result.signedIn===true)w.signedIn[result.retailer]=true;else if(result.signedIn===false&&w.signedIn[result.retailer])delete w.signedIn[result.retailer];if(result.storeLabel&&result.online!==true){w.storesSeen[result.retailer]=result.storeLabel;const want=st.device?.stores?.[result.retailer];w.storeMismatch[result.retailer]=!!want&&!CORE.storeMatches(result.storeLabel,want)}await SC.set({warnings:w})}
  if(st.run&&st.run.workTabId===tabId)return;// the auto runner reports its own pages
  // v1.7.2: the popup always says what happened on this tab (never silent).
  const why=result.challenge?'challenge':!result.facts?.length?(result.pageType==='other'?'page-type':'no-facts'):!st.token?'not-paired':st.paused?'paused':st.semiEnabled===false?'semi-off':st.semiSites[result.retailer]===false?'site-off':null;
@@ -81,7 +86,7 @@ async function canStart({explicit=false,local=false}:any={}){
  const view=(explicit?null:await heartbeat())||(await SC.get(['device'])).device||st.device;if(!view)return 'offline';
  if(view.network?.autoScout!=='on')return 'auto-off';if(view.network?.paused)return 'paused-global';if(!view.autoAllowed)return 'device-not-allowed';if(view.paused)return 'paused-device';
  // v1.7.2: no store → the server has nothing to plan for this computer; say so instead of a 0-page run.
- if(!Object.values(view.stores||{}).some((x:any)=>typeof x==='string'&&x.trim()))return 'no-stores';
+ if(!Object.values(view.storesEffective||view.stores||{}).some((x:any)=>typeof x==='string'&&x.trim()))return 'no-stores';
  const runNow=!!view.runNow&&!view.runNow.runId&&Date.parse(view.runNow.until)>Date.now();
  if(!runNow&&!CORE.inWindow(Date.now(),view.schedule,view.timeZone))return 'outside-window';
  const wins=await chrome.windows.getAll({windowTypes:['normal']});if(!wins.length)return 'no-window';// only while Chrome is open with a window

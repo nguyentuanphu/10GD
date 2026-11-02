@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "FamTray So Giá · Price Check",
   "short_name": "So Giá",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "Ghi lại giá trên trang siêu thị bạn đang xem cho Bếp Gia Đình · Saves the shelf prices you view for your family kitchen.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyLYMfoK8WR087TAsKSLcFm40q/kw5nnZKq08bdUPFj5XVBK53kA7/7sZXALRw0tOR9AJ/Cx+gjeEiKImKBI+2OtlR/UhpDnMBY5vBBQAepeuV+nEIbdfwpyJiQigfHt+7gP3EtmpbGHZXQSUExoqUvOUjKAmA6/q2Qk9RGgTLYHLRV/iMfvogD2g6M79247Tl3HZZM3psxRrCpBlzKvUOjIMcmgmCjUpzAS5vRX9Wp9ZksfYFkFpsN1iuRGgRl0siAA2qSFMm7wdCr4sNnmogPXF2LZDFwxWYGsKk7zHg/nNzQZybzwzpqyYcxQFaIVY4WroDG59SCGFOIl58Df0hwIDAQAB",
   "minimum_chrome_version": "116",

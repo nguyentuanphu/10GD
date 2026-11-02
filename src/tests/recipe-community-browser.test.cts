@@ -148,7 +148,9 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
  {const {context,page,errors,tap}=await openApp({account:true});
   const seed=async(name:string,withPhoto=true)=>page.evaluate(async([name,withPhoto]:any)=>{const r:any={id:'qa-'+Math.random().toString(36).slice(2),name,category:'main',protein:'chicken',time:35,servings:4,yield:4,purposes:['main'],ingredients:[{id:'chicken',qty:500},{id:'scallion',qty:50}],missingIngredients:['Gừng 1 nhánh'],prep:'Ướp 20 phút',steps:['Phi hành','Kho gà nhỏ lửa'],custom:true,origin:'family',favorite:false};
    if(withPhoto){const c=document.createElement('canvas');c.width=640;c.height=480;const g=c.getContext('2d')!;g.fillStyle='#c87649';g.fillRect(0,0,640,480);const blob:any=await new Promise(res=>c.toBlob(res,'image/jpeg',.8));const key='recipe-qa'+Math.random().toString(36).slice(2);await localPhoto(key,{blob,uploaded:false});r.photo={key,updatedAt:new Date().toISOString()}}
-   state.recipes.push(r);save();render();return r.id},[name,withPhoto]);
+   state.recipes.push(r);save();render();
+   // flush the seed's own sync stamp now (it is debounced) so snapshots taken next are stable
+   if(typeof syncStampLocal==='function')syncStampLocal();return r.id},[name,withPhoto]);
   const openDetail=async(id:string)=>{await page.evaluate((id:string)=>showRecipe(id),id);await page.locator('.rc-share-card').waitFor()};
   const r1=await seed('Gà kho QA cộng đồng'),orig=await page.evaluate((id:string)=>JSON.stringify(state.recipes.find((x:any)=>x.id===id)),r1);
   await openDetail(r1);await page.locator('.rc-share-card [data-rc="share"]').waitFor();await tap(page.locator('.rc-share-card [data-rc="share"]'));await page.locator('#rc-share-form').waitFor();

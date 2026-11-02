@@ -99,7 +99,10 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
   const id=new URL(sw.url()).host;assert.equal(id,'mjeoekikdicoojgoppnfibjbfpcfngja','pinned extension id from the manifest key');
   const storage=(keys:any)=>sw.evaluate((k:any)=>(globalThis as any).chrome.storage.local.get(k),keys);
   const setStorage=(v:any)=>sw.evaluate((x:any)=>(globalThis as any).chrome.storage.local.set(x),v);
-  await until(async()=>(await storage(['semiSites'])).semiSites,10000,'install defaults');await setStorage({lang:'vi'});
+  await until(async()=>(await storage(['semiSites'])).semiSites,10000,'install defaults');
+  // v1.7.3: Amazon AU / Chemist Warehouse capture is on by default and makes them “Online” stores the planner would visit;
+  // this suite's fake world only has the Woolworths fixtures, so they are switched off here (covered by scout-store tests).
+  await setStorage({semiSites:{woolworths:true,coles:true,aldi:true,chemist:false,amazon:false}});await setStorage({lang:'vi'});
   // ---------- pairing via the options page ----------
   const opt=await ctx.newPage();await opt.goto(`chrome-extension://${id}/options.html`);
   await opt.locator('#step-pair [data-easy-pair]').waitFor();assert.equal(await opt.locator('#step-pair .step-n').innerText(),'1');
@@ -343,7 +346,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    // 1. Nothing done in Studio, computer not prepared, Auto off.
    await refresh();await o.reload();await o.locator('#ready').waitFor();
    assert.deepEqual(await steps(o),['pair:true','network:false','device:false','stores:false','prep:false','toggle:false'],'checklist shows each step in order');
-   assert.equal(await o.locator('#ready li[data-step="stores"] [data-todo]').innerText(),'Chưa chọn cửa hàng — mở trang Woolworths/Coles/ALDI một lần và bấm “Dùng tên này”, hoặc nhập tên cửa hàng.');
+   assert.equal(await o.locator('#ready li[data-step="stores"] [data-todo]').innerText(),'Chưa chọn cửa hàng — mở trang Woolworths/Coles/ALDI (tên cửa hàng tự hiện), hoặc nhập tên cửa hàng. Amazon AU và Chemist Warehouse dùng giá trực tuyến, không cần cửa hàng.');
    await o.evaluate(()=>{const g:any=globalThis;g.__tabs=[];g.chrome.tabs.create=(x:any)=>{g.__tabs.push(x.url)}});await o.click('#ready [data-open-retailer="coles"]');assert.deepEqual(await o.evaluate(()=>(globalThis as any).__tabs),['https://www.coles.com.au/'],'a button per retailer opens its site');
    assert.equal(await o.locator('[data-fix-studio="network"]').getAttribute('href'),APP+'/studio.html#scout','② fix opens Studio → Mạng So Giá');
    assert.equal(await o.locator('[data-fix-studio="device"]').getAttribute('href'),APP+'/studio.html#scout','③ fix opens Studio → Mạng So Giá');
@@ -366,7 +369,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    await openPop();assert.deepEqual(await popMissing(pop),['stores','prep','toggle']);assert.equal(await pop.locator('#auto').isDisabled(),true,'⑥ waits for ④ and ⑤');
    // 3. ④ from its link: Settings opens at the three confirmations.
    const prep=await ctx.newPage();await prep.setViewportSize({width:820,height:900});await prep.goto(OPT+'#prep');await prep.locator('#prep details[open] [data-ob="profile"]').waitFor();
-   assert.ok(await prep.evaluate(()=>{const r=document.getElementById('prep')!.getBoundingClientRect();return r.top>=0&&r.top<innerHeight}),'④ is scrolled into view');
+   {const dbg=await prep.evaluate(()=>{const r=document.getElementById('prep')!.getBoundingClientRect();return {top:r.top,y:scrollY,h:document.body.scrollHeight,ae:document.activeElement?.id||document.activeElement?.tagName}});assert.ok(dbg.top>=-1&&dbg.top<900,'④ is scrolled into view (sub-pixel tolerance) '+JSON.stringify(dbg))}
    for(const k of ['profile','rewards','store']){await prep.locator(`[data-ob=${k}]`).check();await until(async()=>(await storage(['onboarding'])).onboarding[k]===true,5000,'confirmation '+k)}
    await prep.close();
    // No store: no Run now, the server refuses with “no-stores”, a lease says why — never a silent 0-page run.
