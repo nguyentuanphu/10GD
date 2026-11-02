@@ -40,6 +40,43 @@ Branch `agent-kk/extension-ux`. Extension manifest version **1.7.2** (package.js
 - The Web Store screenshots are regenerated.
 - The in-app guide text in `scout-pair-ui.ts` now points to "1. Ghép máy" and "Nâng cao → Hủy ghép nối".
 
+## Later additions in this release (coordinator follow-ups from Henry's real tests)
+
+**Stores and empty runs**
+- "Có ít nhất 1 cửa hàng" is now a required readiness step, so the checklist runs ①–⑥. Each retailer has an open button and a ready chip.
+- `canStart`, `run-now`, Studio run-now and `leaseTasks` refuse with `no-stores` ("Cần ít nhất 1 cửa hàng") instead of running to 0 pages.
+- The server adds `planInfo` {retailersWithStore, tasksToday, open, done, reasonIfEmpty: no-stores | no-wanted-items | all-done | retailer-paused | cap}. It is returned on leases and in device views/heartbeats, and Studio live status gets `devices[].live.planInfo`.
+- The last-run text explains an empty run.
+
+**Runner**
+- The window is created minimized, with a small unfocused window as fallback. It never counts as "in use" unless focus moves into it.
+- It closes only its own tabs. Waits between pages run in the worker, so throttled timers in a minimized page do not stretch the pace.
+- runner.html explains why it exists and shows the current item (Đang xem: Woolworths · Hurstville · … · trang n/N). It lists today's pages by kind (Khuyến mãi / Món gia đình cần giá / Link đã lưu / Giá cũ cần cập nhật) with host+path only and each row's status, plus totals and the empty-state reason.
+- New device op `plan`. The popup and Settings show "Lần chạy gần nhất" (pages with prices per page) and "Xem trước hôm nay sẽ xem gì".
+
+**No questions: confident placement only** (`src/netlify/lib/scout-match.mts`)
+- A fact is attached to an item only on that item's own confirmed product page, or when its name confidently is that item. Matching uses VI/EN names, aliases and a synonym/exclusion table plus generic variant words (smoked, canned, cat food, chips, …).
+- Anything else stays "Giá chưa gắn món". Product-link votes come only from confident matches.
+- Results return `placement` {placed, unplaced:{no-item|no-store|no-postcode|outside-pilot|community-off|store-mismatch}, facts}.
+- The popup on a retailer tab says passively what happened ("Đã đọc N giá trên trang này" / "Chưa đọc được giá…: reason" / "…nhưng chưa gửi: reason") and why prices are not shown yet. "N giá chưa gắn món · Xem" opens a one-tap "Gắn" with suggestions and the catalogue (device op `catalog`). Gắn sends `results{attach:{itemId}}`: a trusted price checker confirms the link at once, anyone else counts as one family vote, and the price is placed.
+- Studio ops for LL to render: `studio-unplaced` (list + suggestions) and `studio-unplaced-resolve` {keys, itemId | action:'reject'} (bulk, audited, moderator-confirmed link).
+
+**Page samples**
+- "Gửi mẫu trang để sửa" builds a sanitised structure sample in the content script (`ScoutParse.diagnose`). It holds: URL origin+path(+searchTerm), page type, JSON-LD types and trimmed Product/ItemList, price meta, selector match counts incl. open shadow roots, custom elements, ≤ 30 price-like texts with short CSS paths and nearby headings, parse result, timing, and versions.
+- Emails, phones, long numbers, form fields, account menus and cookies are excluded.
+- The popup shows a preview, and the sample is sent only on a tap (device op `diagnose`, rate-limited, sanitised again on the server, 30-day retention). Studio op `studio-diagnostics` lists the samples.
+
+**SPA navigation**
+- The content script re-reads after client-side route changes (URL polling, popstate/hashchange, MutationObserver) with retries at 0.6/2/5 s for lazily rendered prices.
+- An e2e fixture navigates by pushState from a no-price page to a product rendered 1.2 s later.
+
+**Placement tests (scout-community)**
+- Salmon fillets → Cá hồi. Smoked, pink, cat-food and flavoured salmon → not placed.
+- No store label → `no-store`.
+- Attach: another family's vote stays a candidate, while a trusted checker's vote is confirmed; the price is placed in both cases.
+- Studio list/attach/reject.
+- Diagnostics are sanitised, refused for non-retailer pages, and pruned after 30 days.
+
 ## Verification (local, Chromium 1243 headless via Playwright; the real MV3 extension loaded)
 `test:scout:browser` (scout-extension-browser), new v1.7.2 blocks:
 - The checklist shows each missing step in order, with its fix target: Studio href, admin-only note, Settings#prep scrolled into view, and ⑤ disabled until ④.

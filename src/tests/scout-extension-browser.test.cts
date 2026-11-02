@@ -49,6 +49,8 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
   if(host.endsWith('.scout.test')){
    if(path==='/robots.txt'){res.writeHead(200,{'Content-Type':'text/plain'});res.end(robotsTxt);return}
    if(path.startsWith('/favicon')){res.writeHead(404);res.end();return}
+   // v1.7.2 SPA fixture: starts as a page with no prices; #go changes the route with pushState and renders the product a moment later (lazy).
+   if(path.startsWith('/spa/')){const body=fixture('woolworths-product.html').replace(/^[\s\S]*?<body[^>]*>/i,'').replace(/<\/body>[\s\S]*$/i,'');res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(`<!doctype html><title>SPA</title><body><main id="root"><h1>Search</h1><button id="go">Open product</button></main><script>const P=${JSON.stringify(body).replace(/</g,'\\u003c')};document.getElementById('go').onclick=()=>{history.pushState({},'','/shop/productdetails/123456/squid-brand-fish-sauce');document.getElementById('root').innerHTML='<p>Loading…</p>';setTimeout(()=>{document.getElementById('root').innerHTML=P},1200)}</script></body>`);return}
    visits.push({host,path,at:Date.now()});const p=pages[path.split('?')[0]];
    if(p){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(fixture(p));return}
   }
@@ -429,6 +431,26 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    await pop.evaluate(()=>{const g:any=globalThis;g.__tabs=[];g.chrome.tabs.create=(x:any)=>{g.__tabs.push(x.url)};window.close=()=>{}});await pop.click('#upd-open');assert.deepEqual(await pop.evaluate(()=>(globalThis as any).__tabs),[`chrome-extension://${id}/options.html#update`]);
    await setStorage({device:{...newer,update:{...newer.update,storeUrl:'https://chromewebstore.google.com/detail/famtray/abcdefghijklmnopabcdefghijklmnop'}}});await o.reload();await o.locator('[data-update-store] a[href^="https://chromewebstore.google.com/"]').waitFor();
    await setStorage({device:view});await o.reload();await o.locator('#step-auto').waitFor();assert.equal(await o.locator('[data-update]').count(),0,'no banner on the current version');
+   // 7b. Single-page apps: a client-side route change is read again; the popup always says what happened on the tab.
+   {await setStorage({...{token:tok,deviceId:devId,device:view},semiEnabled:true,paused:false,semiSites:{woolworths:true,coles:true,aldi:true,chemist:true,amazon:true},lang:'vi'});
+    const spa=await ctx.newPage();await spa.goto(`http://woolworths.scout.test:${PORT}/spa/start`);
+    const tabId=await sw.evaluate(async()=>{const c=(globalThis as any).chrome;const [t]=await c.tabs.query({url:'http://woolworths.scout.test/spa/*'});return t.id});
+    const tabSt=async()=>(await storage(['tabStatus'])).tabStatus?.[tabId];
+    await until(async()=>(await tabSt())?.why==='page-type',15000,'first page read (not a product page)');
+    const tp=await ctx.newPage();await tp.setViewportSize({width:360,height:600});await tp.goto(POP+'?tab='+tabId);
+    assert.equal(await tp.locator('#tab-line').innerText(),'Chưa đọc được giá trên trang này: chưa nhận ra loại trang này (không phải trang sản phẩm, tìm kiếm hay khuyến mãi)');
+    await setStorage({lastSemi:null});
+    await spa.click('#go');
+    await until(async()=>{const t=await tabSt();return t?.count===1&&/\/shop\/productdetails\/123456/.test(t.url)&&!t.why},15000,'re-read after pushState + lazy render').catch(async(e:any)=>{const t=await tabSt();throw new Error(e.message+' '+JSON.stringify({...t,facts:undefined})+' url '+spa.url())});
+    await tp.reload();assert.equal(await tp.locator('#tab-line').innerText(),'Đã đọc 1 giá trên trang này');assert.equal(await tp.locator('[data-tab-status="read"]').count(),1);
+    await until(async()=>{const l=(await storage(['lastSemi'])).lastSemi;return l?.accepted>=1&&/\/shop\/productdetails\/123456/.test(l.url||'')},15000,'SPA product captured and accepted by the server');
+    // Semi-auto off → still says why.
+    await setStorage({semiEnabled:false});await spa.evaluate(()=>{history.pushState({},'','/shop/productdetails/123456/squid-brand-fish-sauce?again=1')});
+    await until(async()=>(await tabSt())?.why==='semi-off',15000,'reason recorded');await tp.reload();assert.equal(await tp.locator('#tab-line').innerText(),'Đã đọc 1 giá nhưng chưa gửi: bán tự động đang tắt');
+    // “Gửi mẫu trang để sửa”: preview first, sent only on a tap.
+    await setStorage({semiEnabled:true});await tp.reload();await tp.click('#pop-diag summary');await tp.locator('[data-diag-preview]').waitFor();assert.match(await tp.locator('[data-diag-preview]').innerText(),/"retailer": "woolworths"/);
+    const n0=(await scoutLib.listDiagnostics(getStoreFn,{now:Date.now()})).length;await tp.click('#diag-send');await tp.getByText('Đã gửi — cảm ơn!',{exact:false}).waitFor();assert.equal((await scoutLib.listDiagnostics(getStoreFn,{now:Date.now()})).length,n0+1,'one sample stored after the tap');
+    await tp.screenshot({path:`${xdir}/popup-tab-status-vi-light-360.png`});await tp.close();await spa.close()}
    // 8. Popup fits 360 × 480 without scrolling in every state, at 100 % and 150 % scaling; VI/EN, light/dark screenshots.
    const cdp=await ctx.newCDPSession(pop);
    const base={token:tok,deviceId:devId,device:view,server:APP,autoEnabled:true,onboarding:{profile:true,rewards:true,store:true},paused:false,run:null,notAssigned:false,warnings:{signedIn:{},storesSeen:{},storeMismatch:{}}};
@@ -473,7 +495,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    await o.close();await pop.close();await setStorage({...base,lang:'vi',theme:'light'});
    await sw.evaluate(()=>{const a=(globalThis as any).chrome.alarms;for(const n of ['scout-tick','scout-heartbeat','scout-flush'])a.create(n,{periodInMinutes:1})});
    assert.deepEqual(pageErrors,[]);
-   console.log('PASS v1.7.2 extension UX: readiness checklist ①–⑤ (each missing step + its fix: pair, Studio link, admin-only note, ④ confirmations, ⑤ switch), Run now from this computer after ①–④, popup state + one primary action fits 360×480 in 7 states at 100 %/150 %, one-column Settings at 360/820/1280, schedule presets = stored format, segmented pace within Studio’s limit, update banner (guided steps, store link)')}
+   console.log('PASS v1.7.2 extension UX: readiness checklist ①–⑥ (each missing step + its fix: pair, Studio link, admin-only note, store per retailer, confirmations, switch), no-store refusal + planInfo, Run now from this computer after ①–⑤, SPA re-read + tab status + page sample, popup state + one primary action fits 360×480 in 7 states at 100 %/150 %, one-column Settings at 360/820/1280, schedule presets = stored format, segmented pace within Studio’s limit, update banner (guided steps, store link)')}
 
   // ================= v1.7.2: updating the unpacked folder keeps the id, storage and pairing =================
   {const dir=mkdtempSync(join(tmpdir(),'scout-upd-ext-')),prof=mkdtempSync(join(tmpdir(),'scout-upd-prof-'));cpSync(ext,dir,{recursive:true});

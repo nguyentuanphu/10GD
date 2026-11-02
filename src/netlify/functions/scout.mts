@@ -13,8 +13,9 @@ import {getStore} from '@netlify/blobs';
 import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount} from '../lib/accounts.mjs';
 import {platformSettings,roleFor,csrfFor,writeAudit,recordEvent,readIndex} from '../lib/studio.mjs';
-import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,extensionAllowlist,isExtensionAllowed,setExtensionAllowed,NOT_ASSIGNED,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo,effectivePacing,validPacing,grantRunNow,stopRun,runNowActive,storesOf,devicePlan,backoffRetailer,dayKey,queueCommand,takeCommands,commandResult,deviceTimeline,logEvent,scoutHooks} from '../lib/scout.mjs';
+import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,extensionAllowlist,isExtensionAllowed,setExtensionAllowed,NOT_ASSIGNED,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo,effectivePacing,validPacing,grantRunNow,stopRun,runNowActive,storesOf,devicePlan,saveDiagnostic,listDiagnostics,backoffRetailer,dayKey,queueCommand,takeCommands,commandResult,deviceTimeline,logEvent,scoutHooks} from '../lib/scout.mjs';
 import {notifyOwners,notifyAssigned} from '../lib/scout-notify.mjs';
+import {catalogItems} from '../lib/scout-match.mjs';
 
 const BASE_HEADERS={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const ids=(env:any)=>String(env.SCOUT_EXTENSION_IDS||'').split(',').map((x:string)=>x.trim()).filter(Boolean);
@@ -43,7 +44,7 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    if(op==='public'&&isRead)return json(publicInstallInfo(settings,env),200,{'Cache-Control':'public, max-age=300'});
 
    // ----- extension (device token) -----
-   const deviceOps=['plan','pair','heartbeat','device','device-settings','tasks','results','release','block','unpair','run-now','run-stop','backoff','command-result'];
+   const deviceOps=['catalog','diagnose','plan','pair','heartbeat','device','device-settings','tasks','results','release','block','unpair','run-now','run-stop','backoff','command-result'];
    if(deviceOps.includes(op)){
     if(origin&&!ext&&origin!==url.origin)return json({error:'Nguồn không được phép.',errorEn:'Origin not allowed.'},403);
     // Cookies are never consulted for device ops: the bearer token is the only credential.
@@ -65,6 +66,10 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
       const view=await deviceView(getStoreFn,await getDevice(getStoreFn,device.id),settings,now,env);return json({...view,commands:await takeCommands(getStoreFn,device.id,now)})}
      return json(await deviceView(getStoreFn,{...device},settings,now,env))}
     // v1.7.2: what this computer will look at today (runner page, Settings preview).
+    // v1.7.2: a sanitised page-structure sample the person chose to send (selector fixes go out as data-only config).
+    if(op==='diagnose'&&method==='POST'){await rate(getStoreFn,'diag:'+device.id,10,now);const r=await saveDiagnostic(getStoreFn,device,await body(90000),now);await logEvent(getStoreFn,'page_sample',{deviceId:device.id,account:device.owner},now);return json({ok:true,...r},201)}
+    // v1.7.2: catalogue names for “Gắn với món” (ids + VI/EN names only; cacheable).
+    if(op==='catalog'&&isRead)return json({items:catalogItems().map(c=>({itemId:c.itemId,nameVi:c.nameVi,nameEn:c.nameEn}))},200,{'Cache-Control':'private, max-age=3600'});
     if(op==='plan'&&isRead)return json(await devicePlan(getStoreFn,{device,settings,now,adapter:ad}));
     if(op==='command-result'&&method==='POST')return json(await commandResult(getStoreFn,device.id,await body(2000),now));
     if(op==='device-settings'&&method==='POST'){const b=await body(8000);const patch:any={};if(b.name!==undefined)patch.name=String(b.name||'').replace(/\s+/g,' ').trim().slice(0,40)||device.name;if(b.postcode!==undefined)patch.postcode=/^\d{4}$/.test(String(b.postcode||''))?String(b.postcode):null;if(b.suburb!==undefined)patch.suburb=String(b.suburb||'').trim().slice(0,40)||null;if(b.stores!==undefined)patch.stores=cleanStores(b.stores);
@@ -108,6 +113,11 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    if(!isRead){const token=request.headers.get('x-studio-csrf')||'',want=csrfFor(ctx.sessionKey);if(token.length!==want.length||!timingSafeEqual(Buffer.from(token),Buffer.from(want)))return json({error:'Phiên Studio đã hết hạn. Tải lại trang.',errorEn:'Studio session token mismatch. Reload the page.'},403);if(role!=='owner')return json({error:'Vai trò hỗ trợ chỉ được xem.',errorEn:'Support role is read-only.'},403);b=await body(150000)}
    const audit=(action:string,target:any=null,extra:any={})=>writeAudit(getStoreFn,{actor,role,action,target,...extra},now);
    const reasonOf=()=>String(b.reason||'').trim().slice(0,300);
+   // v1.7.2 Studio lists (LL renders): page samples sent from devices; “Giá chưa gắn món” with bulk attach/reject.
+   if(op==='studio-diagnostics'&&isRead)return json({samples:await listDiagnostics(getStoreFn,{now})});
+   if(op==='studio-unplaced'&&isRead)return json({items:await ad.listUnplaced({now})});
+   if(op==='studio-unplaced-resolve'&&method==='POST'){const ks=(Array.isArray(b.keys)?b.keys:[]).slice(0,100),reject=b.action==='reject',itemId=typeof b.itemId==='string'?b.itemId:null;if(!ks.length||!reject&&!itemId)return json({error:'Thiếu dữ liệu.',errorEn:'Missing keys or item.'},400);
+    const results:any[]=[];for(const k of ks)results.push({key:k,...await ad.resolveUnplaced(String(k),{itemId,reject,actor})});await audit(reject?'scout_unplaced_reject':'scout_unplaced_attach',{type:'scout',id:'unplaced'},{details:{count:ks.length,itemId,done:results.filter(r=>r.ok).length},reason:reasonOf()||undefined});return json({results})}
    if(op==='studio-overview'&&isRead)return json(await studioOverview(getStoreFn,{now,env}));
    if(op==='studio-auto'&&isRead)return json({autoScout:settings.autoScout,source:settings.autoScoutSource||'default'});
    if(op==='studio-coverage'&&isRead)return json(await coverage(getStoreFn,{now}));

@@ -51,15 +51,19 @@ async function queueSemi(result:any,tabId:number){
  const st=await SC.get(['token','semiEnabled','semiSites','paused','pendingSemi','warnings','run','device']);
  if(result.signedIn!==undefined||result.storeLabel){const w=st.warnings;if(result.signedIn===true)w.signedIn[result.retailer]=true;else if(result.signedIn===false&&w.signedIn[result.retailer])delete w.signedIn[result.retailer];if(result.storeLabel){w.storesSeen[result.retailer]=result.storeLabel;const want=st.device?.stores?.[result.retailer];w.storeMismatch[result.retailer]=!!want&&!CORE.storeMatches(result.storeLabel,want)}await SC.set({warnings:w})}
  if(st.run&&st.run.workTabId===tabId)return;// the auto runner reports its own pages
+ // v1.7.2: the popup always says what happened on this tab (never silent).
+ const why=result.challenge?'challenge':!result.facts?.length?(result.pageType==='other'?'page-type':'no-facts'):!st.token?'not-paired':st.paused?'paused':st.semiEnabled===false?'semi-off':st.semiSites[result.retailer]===false?'site-off':null;
+ await noteTab(tabId,{url:result.url,retailer:result.retailer,pageType:result.pageType||null,count:result.facts?.length||0,why,storeLabel:result.storeLabel||null,facts:(result.facts||[]).slice(0,20)});
  if(result.challenge||!result.facts?.length){chrome.action.setBadgeText({tabId,text:''});return}
  chrome.action.setBadgeBackgroundColor({color:'#1f7a4d'});chrome.action.setBadgeText({tabId,text:String(Math.min(999,result.facts.length))});
  if(!st.token||st.paused||st.semiEnabled===false||st.semiSites[result.retailer]===false)return;
  const mismatch=!!st.warnings.storeMismatch[result.retailer];
  const pending=st.pendingSemi.filter((p:any)=>p.url!==result.url);pending.push({retailer:result.retailer,url:result.url,capturedAt:result.capturedAt||new Date().toISOString(),pageType:result.pageType,storeLabel:result.storeLabel||st.device?.stores?.[result.retailer]||null,storeMismatch:mismatch,status:result.status,facts:result.facts.slice(0,200),tabId});
  await SC.set({pendingSemi:pending.slice(-30)});clearTimeout(flushTimer);flushTimer=setTimeout(flushSemi,pending.reduce((n:number,p:any)=>n+p.facts.length,0)>=60?200:4000)}
+async function noteTab(tabId:number,info:any){const t=(await SC.get(['tabStatus'])).tabStatus||{};t[tabId]={...info,at:Date.now()};const ids=Object.keys(t).sort((a,b)=>t[b].at-t[a].at).slice(0,12);await SC.set({tabStatus:Object.fromEntries(ids.map(k=>[k,t[k]]))})}
 async function flushSemi(){const st=await SC.get(['pendingSemi','token']);if(!st.token||!st.pendingSemi.length)return;await SC.set({pendingSemi:[]});
  const items=st.pendingSemi.map(({tabId,...x}:any)=>x);
- try{const r=await SC.api('results',{mode:'semi',items});const last=items[items.length-1];await SC.set({lastSemi:{at:Date.now(),count:(r.accepted||0)+(r.duplicates||0),accepted:r.accepted||0,retailer:last.retailer,retailerLabel:LABEL[last.retailer],store:last.storeLabel||null,pages:items.length}})}
+ try{const r=await SC.api('results',{mode:'semi',items});const last=items[items.length-1];await SC.set({lastSemi:{at:Date.now(),count:(r.accepted||0)+(r.duplicates||0),accepted:r.accepted||0,retailer:last.retailer,retailerLabel:LABEL[last.retailer],store:last.storeLabel||null,pages:items.length,placement:r.placement||null,url:last.url}})}
  catch(e:any){if(e.status>=500||!e.status){const again=(await SC.get(['pendingSemi'])).pendingSemi;await SC.set({pendingSemi:[...items,...again].slice(-30)})}else await SC.set({lastSemi:{at:Date.now(),count:0,error:e.code||e.message}})}}
 
 // ---------- auto ----------
@@ -95,6 +99,7 @@ async function startRun(opts:any={}){const why=await canStart(opts);if(why!=='ru
 // Popup "Run now": ask the server for a one-run grant (only works when allowed), then start.
 async function requestRunNow(local=false){try{const view=await SC.api('run-now',{});await SC.set({device:view});return await startRun({explicit:true,local})}catch(e:any){return e.code||'refused'}}
 chrome.alarms.onAlarm.addListener(async(a:any)=>{if(a.name==='scout-tick')startRun();else if(a.name==='scout-heartbeat')heartbeat();else if(a.name==='scout-flush')flushSemi()});
+chrome.tabs.onRemoved.addListener(async(id:number)=>{const t=(await SC.get(['tabStatus'])).tabStatus||{};if(t[id]){delete t[id];await SC.set({tabStatus:t})}});
 chrome.windows.onRemoved.addListener(async(id:number)=>{const st=await SC.get(['run']);if(st.run?.windowId===id)await SC.set({run:null})});
 
 chrome.runtime.onMessage.addListener((msg:any,sender:any,reply:any)=>{

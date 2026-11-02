@@ -10,14 +10,30 @@ declare const chrome:any;
 'use strict';
 const G:any=globalThis,SC=G.ScoutClient,UI=G.ScoutUI,T=UI.T,esc=UI.esc,$=UI.$;
 await UI.init();
-let tabRetailer:string|null=null;
-try{const [tab]=await chrome.tabs.query({active:true,currentWindow:true});const cfg=await SC.config();if(tab?.url&&/^https?:/.test(tab.url))tabRetailer=G.ScoutParse?.retailerFor?.(new URL(tab.url).hostname,cfg)||null}catch{}
+let tabRetailer:string|null=null,tabId:number|null=null,CFG:any=null,catalog:any=null,diag:any=null;
+try{const [tab]=await chrome.tabs.query({active:true,currentWindow:true});CFG=await SC.config();tabId=tab?.id??null;let url=tab?.url;
+ // Test builds only: popup.html?tab=<id> inspects that tab (a popup opened as a tab is itself the active tab).
+ {const q=SC.BUILD.test?new URLSearchParams(location.search).get('tab'):null;if(q){tabId=+q;url=(await chrome.tabs.get(tabId))?.url}}
+ if(url&&/^https?:/.test(url))tabRetailer=G.ScoutParse?.retailerFor?.(new URL(url).hostname,CFG)||null}catch{}
 // v1.7: the store-name step happens by itself. When a supermarket page shows a store and
 // this device has no store for that retailer yet, the popup asks once: “Dùng tên này”.
 const RET=['woolworths','coles','aldi','chemist','amazon'];
 function storeAsk(st:any){const seen=st.warnings?.storesSeen||{},mine=st.device?.stores||{},ask=RET.filter(r=>seen[r]&&!mine[r]);if(!ask.length)return '';
  return `<section class="card" aria-labelledby="h-store" data-store-ask><h2 id="h-store">${T('Cửa hàng gần nhà','Your nearby store')}</h2>
  ${ask.map(r=>`<div class="row store-ask"><span><strong>${esc(UI.LABEL[r])}</strong>: “${esc(seen[r])}”</span><button class="btn primary small" type="button" data-use-store="${r}">${T('Dùng tên này','Use this name')}<span class="sr-only"> ${esc(UI.LABEL[r]+' '+seen[r])}</span></button></div>`).join('')}</section>`}
+// v1.7.2: on a supermarket tab, say what happened on THIS page and why prices are not shown yet (passive).
+function tabHtml(st:any){if(!tabRetailer)return '';const info=st.tabStatus?.[tabId!],L=UI.LABEL[tabRetailer];
+ const line=!info?T(`Chưa đọc trang ${L} này — đợi trang tải xong hoặc tải lại trang.`,`This ${L} page has not been read yet — wait for it to load or reload it.`)
+  :info.count&&!info.why?T(`Đã đọc ${info.count} giá trên trang này`,`Read ${info.count} prices on this page`)
+  :info.count?T(`Đã đọc ${info.count} giá nhưng chưa gửi: `,`Read ${info.count} prices but not sent: `)+UI.tabWhy(info.why):T('Chưa đọc được giá trên trang này: ','No prices read on this page: ')+UI.tabWhy(info.why);
+ const pl=st.lastSemi?.url&&info?.url&&st.lastSemi.url===info.url?st.lastSemi.placement:null,un=pl?.unplaced||{},gaps=Object.keys(un).filter(k=>k!=='no-item');
+ const noStore=info&&info.count&&!info.storeLabel;
+ const why=[...(noStore&&!gaps.includes('no-store')?['no-store']:[]),...gaps];
+ const unplacedFacts=(pl?.facts||[]).filter((f:any)=>f.why==='no-item');
+ return `<div class="pop-tab" data-tab-status="${info?(info.count&&!info.why?'read':'not-read'):'waiting'}"><p class="pop-sub" id="tab-line">${esc(line)}</p>
+  ${why.length?`<p class="hint" data-not-shown>${esc(T('Chưa hiện cho gia đình vì: ','Not shown to families yet: ')+why.map((k:string)=>UI.placeWhy(k)+(un[k]?` (${un[k]})`:'')).join(' · '))}${why.includes('no-store')?` <button type="button" class="link" data-open-retailer="${tabRetailer}">${esc(T('Chọn cửa hàng trên ','Choose a store on ')+L)}</button>`:''}</p>`:''}
+  ${unplacedFacts.length?`<details id="pop-unplaced" class="visits"><summary>${esc(T(`${unplacedFacts.length} giá chưa gắn món · Xem`,`${unplacedFacts.length} price${unplacedFacts.length>1?'s':''} not linked to an item · View`))}</summary><ul class="plan-list">${unplacedFacts.map((f:any,i:number)=>`<li data-unplaced="${i}"><span class="pl-main"><span><strong>${esc(f.name)}</strong></span><small class="muted">$${esc(Number(f.price).toFixed(2))}</small><span class="row attach-row"><label class="sr-only" for="att-${i}">${T('Món','Item')}</label><input id="att-${i}" list="cat-list" placeholder="${esc(T('Gắn với món…','Link to item…'))}" value="${esc(f.suggested?.[0]||'')}"><button type="button" class="btn small" data-attach="${i}">${T('Gắn','Link')}</button></span></span></li>`).join('')}</ul><datalist id="cat-list"></datalist></details>`:''}
+  <details id="pop-diag" class="visits"><summary>${T('Gửi mẫu trang để sửa','Send this page’s structure')}</summary><div id="diag-body"><p class="hint">${T('Chỉ gửi cấu trúc trang (loại trang, bộ chọn, vị trí giá) để sửa cách đọc giá — không gửi thông tin cá nhân, cookie hay ô nhập. Xem trước bên dưới.','Sends only the page structure (page type, selectors, where prices are) so reading can be fixed — no personal data, cookies or form values. Preview below.')}</p></div></details></div>`}
 function note(m:string){document.querySelector('[data-pop-note]')?.remove();$('#app').insertAdjacentHTML('afterbegin',`<p class="banner warn" role="alert" data-pop-note>${esc(m)}</p>`)}
 const openSettings=(hash='')=>{if(hash)chrome.tabs.create({url:chrome.runtime.getURL('options.html#'+hash)});else chrome.runtime.openOptionsPage();window.close?.()};
 // Missing readiness steps only (the full checklist is in Settings → 3. Tự động).
@@ -32,7 +48,7 @@ async function render(){
  const st=await SC.get(),v=st.device,paired=!!st.token,warn=UI.storeWarnings(st),state=UI.state(st),steps=UI.readiness(st);
  const server=String(st.server||SC.BUILD.server||'');
  // Storage changes re-render the popup; keep what the person is typing in the code form.
- const keep={lastOpen:!!($('#pop-last') as any)?.open,code:($('#pc-code') as any)?.value||'',server:($('#pc-server') as any)?.value||'',focus:(document.activeElement as any)?.id||'',codeOpen:!!($('#pc-details') as any)?.open};
+ const keep={unOpen:!!($('#pop-unplaced') as any)?.open,diagOpen:!!($('#pop-diag') as any)?.open,lastOpen:!!($('#pop-last') as any)?.open,code:($('#pc-code') as any)?.value||'',server:($('#pc-server') as any)?.value||'',focus:(document.activeElement as any)?.id||'',codeOpen:!!($('#pc-details') as any)?.open};
  const capture=UI.lastCapture(st.lastSemi);
  const canRun=paired&&UI.runNowReady(st)&&!st.run;
  let primary='';
@@ -63,10 +79,11 @@ async function render(){
     <small id="pc-hint" class="hint">${T('Mã 8 ký tự do quản trị đưa.','The 8-character code from the admin.')}</small>
     <label for="pc-server" class="pop-server">${T('Địa chỉ ứng dụng','App address')}<input id="pc-server" name="server" type="url" required placeholder="https://…" value="${esc(server)}"></label></form></details>`:''}
  </section>
+ ${tabHtml(st)}
  ${paired?storeAsk(st):''}
  ${warn.map((w:string)=>`<p class="banner warn" role="alert">${esc(w)}</p>`).join('')}
  <div class="pop-foot"><button id="opts2" class="btn ghost small" type="button">⚙ ${T('Cài đặt','Settings')}</button>${paired&&tabRetailer?`<label class="switch pop-switch pop-site"><input type="checkbox" id="site" ${st.semiSites?.[tabRetailer]!==false?'checked':''}><span>${esc(T('Ghi giá trên ','Capture on ')+UI.LABEL[tabRetailer])}</span></label>`:''}</div>`;
- if(keep.lastOpen&&$('#pop-last'))$('#pop-last').open=true;
+ if(keep.lastOpen&&$('#pop-last'))$('#pop-last').open=true;if(keep.unOpen&&$('#pop-unplaced'))$('#pop-unplaced').open=true;if(keep.diagOpen&&$('#pop-diag')){$('#pop-diag').open=true;showDiag()}
  if($('#pc-code')){if(keep.code)$('#pc-code').value=keep.code;if(keep.server)$('#pc-server').value=keep.server}if(keep.focus&&document.getElementById(keep.focus))document.getElementById(keep.focus)!.focus();
  document.querySelectorAll('[data-lang]').forEach((b:any)=>b.addEventListener('click',async()=>{if(UI.lang===b.dataset.lang)return;UI.lang=b.dataset.lang;await SC.set({lang:UI.lang});document.documentElement.lang=UI.lang;render()}));
  // Pair now: open the family app's one-tap pairing (#pair-extension; the app asks for a tap to confirm). No address known → Settings.
@@ -89,12 +106,28 @@ async function render(){
   if(k==='stores')return openSettings('step-stores')}));
  $('#runnow')?.addEventListener('click',async(e:any)=>{e.target.disabled=true;const why=await chrome.runtime.sendMessage({type:'run-now',local:true});if(why){note(UI.reason(why));e.target.disabled=false}});
  $('#stoprun')?.addEventListener('click',async(e:any)=>{e.target.disabled=true;await chrome.runtime.sendMessage({type:'stop-run',server:true})});
+ document.querySelectorAll('[data-open-retailer]').forEach((b:any)=>b.addEventListener('click',()=>{chrome.tabs.create({url:UI.retailerUrl(b.dataset.openRetailer,CFG)});window.close?.()}));
+ $('#pop-unplaced')?.addEventListener('toggle',async()=>{if(!$('#pop-unplaced')?.open||catalog)return fillCatalog();try{catalog=(await SC.api('catalog')).items||[]}catch{catalog=[]}fillCatalog()});
+ document.querySelectorAll('[data-attach]').forEach((b:any)=>b.addEventListener('click',async()=>{const i=+b.dataset.attach,want=String(($('#att-'+i) as any).value||'').trim();const cur=await SC.get(['lastSemi','tabStatus']),info=cur.tabStatus?.[tabId!],pf=(cur.lastSemi?.placement?.facts||[]).filter((f:any)=>f.why==='no-item')[i];
+  const item=(catalog||[]).find((c:any)=>c.itemId===want||c.nameVi===want||c.nameEn===want)?.itemId||(/^[a-z0-9-]{1,60}$/.test(want)?want:null);const fact=(info?.facts||[]).find((f:any)=>pf&&(f.productId&&f.productId===pf.productId||f.name===pf.name));
+  if(!item||!fact||!info){note(T('Chọn một món trong danh sách.','Pick an item from the list.'));return}b.disabled=true;
+  try{const r=await SC.api('results',{mode:'semi',attach:{itemId:item},items:[{retailer:info.retailer,url:info.url,status:'ok',pageType:info.pageType,storeLabel:info.storeLabel||st.device?.stores?.[info.retailer]||null,facts:[fact]}]});const placed=r.placement?.placed>0;
+   const ls=cur.lastSemi;ls.placement.facts=ls.placement.facts.filter((f:any)=>f!==pf&&!(f.name===pf.name&&f.price===pf.price));ls.placement.unplaced['no-item']=Math.max(0,(ls.placement.unplaced['no-item']||1)-1);if(!ls.placement.unplaced['no-item'])delete ls.placement.unplaced['no-item'];if(!placed&&r.placement?.unplaced)for(const [k,n] of Object.entries<any>(r.placement.unplaced))ls.placement.unplaced[k]=(ls.placement.unplaced[k]||0)+n;await SC.set({lastSemi:ls});
+   note(placed?T('Đã gắn món và hiện giá cho gia đình.','Linked — the price is now shown to families.'):T('Đã gắn món. Giá sẽ hiện khi đủ điều kiện: ','Linked. The price shows once: ')+Object.keys(r.placement?.unplaced||{}).map(UI.placeWhy).join(' · '))}catch(e:any){b.disabled=false;note(e.message)}}));
+ $('#pop-diag')?.addEventListener('toggle',()=>{if($('#pop-diag')?.open)showDiag()});
  $('#opts2')?.addEventListener('click',()=>openSettings());
  $('#upd-open')?.addEventListener('click',()=>openSettings('update'));
  $('#site')?.addEventListener('change',async(e:any)=>{const s=(await SC.get(['semiSites'])).semiSites;s[tabRetailer!]=e.target.checked;await SC.set({semiSites:s});render()});
  $('#auto')?.addEventListener('change',async(e:any)=>{const on=e.target.checked;if(on&&!UI.toggleReady(await SC.get())){e.target.checked=false;note(T('Cần ① ghép máy, ④ ít nhất 1 cửa hàng và ⑤ chuẩn bị máy trước khi bật tự động.','Needs ① paired, ④ at least one store and ⑤ a prepared computer before Auto can be switched on.'));return}
   await SC.set({autoEnabled:on});if(!on)chrome.runtime.sendMessage({type:'stop-run'}).catch(()=>{});chrome.runtime.sendMessage({type:'heartbeat'}).catch(()=>{});render()});
 }
+function fillCatalog(){const dl=$('#cat-list');if(dl&&catalog&&!dl.children.length)dl.innerHTML=catalog.map((c:any)=>`<option value="${esc(c.itemId)}">${esc((UI.lang==='en'?c.nameEn:c.nameVi)+' · '+(UI.lang==='en'?c.nameVi:c.nameEn))}</option>`).join('')}
+// “Gửi mẫu trang để sửa”: build the sanitised sample in the page, show it, send only on an explicit tap.
+async function showDiag(){const body=$('#diag-body');if(!body||!tabId)return;if(!diag){try{diag=await chrome.tabs.sendMessage(tabId,{type:'diagnose'})}catch{diag=null}}
+ if(!diag){body.insertAdjacentHTML('beforeend',`<p class="banner warn" data-diag-error>${T('Không đọc được trang — tải lại trang rồi thử lại.','Could not read the page — reload it and try again.')}</p>`);return}
+ if(body.querySelector('[data-diag-preview]'))return;
+ body.insertAdjacentHTML('beforeend',`<pre class="diag-pre" data-diag-preview tabindex="0">${esc(JSON.stringify(diag,null,1).slice(0,6000))}</pre><button type="button" class="btn primary small" id="diag-send">${T('Gửi mẫu này','Send this sample')}</button>`);
+ $('#diag-send').addEventListener('click',async(e:any)=>{e.target.disabled=true;try{await SC.api('diagnose',diag);e.target.replaceWith(Object.assign(document.createElement('p'),{className:'banner ok',textContent:T('Đã gửi — cảm ơn! Quản trị sẽ sửa cách đọc trang này.','Sent — thank you! The admin will fix how this page is read.')}))}catch(err:any){e.target.disabled=false;note(err.message)}})}
 chrome.storage.onChanged.addListener(()=>render());
 render();
 })();

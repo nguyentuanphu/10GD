@@ -201,3 +201,7 @@ fieldset.presets,fieldset.pace{margin:14px 0 10px}
 .runner-now .summary{font-size:1.05rem}
 body.popup .visits>summary{font-size:.85rem}
 body.popup .visits .plan-list{max-height:220px;overflow:auto}
+.pop-tab{border-top:1px solid var(--line);padding-top:6px;margin:6px 0}
+.attach-row{flex-wrap:nowrap;margin-top:4px}
+.attach-row input{flex:1;min-width:0;min-height:44px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:.85rem}
+.diag-pre{max-height:180px;overflow:auto;font-size:.72rem;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px;white-space:pre-wrap;overflow-wrap:anywhere}

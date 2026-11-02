@@ -39,6 +39,7 @@ import {scoutStore,createDefaultAdapter} from './scout-adapter.mjs';
 import {scoutDefaultConfig} from './scout-config.mjs';
 import {platformSettings,saveSettings,roleFor} from './studio.mjs';
 import {EXTENSION_VERSION,EXTENSION_ZIP_PATH,isOutdated} from './scout-version.mjs';
+import {matchProduct,productIsItem,catalogItems} from './scout-match.mjs';
 export {scoutStore,createDefaultAdapter};
 const DAY=86400000,MIN=60000;
 export const sha=(x:string)=>createHash('sha256').update(x).digest('hex');
@@ -263,6 +264,19 @@ export async function deviceView(getStoreFn:any,d:any,s:any,now:number,env:any=p
 /** v1.7.2 update check for the extension: newest version in this deploy, the zip on the app, and the store links (store installs update by themselves). */
 export function updateInfo(d:any,s:any,env:any=process.env){const i=publicInstallInfo(s,env);return{latest:EXTENSION_VERSION,zip:EXTENSION_ZIP_PATH,storeUrl:i.storeUrl,edgeStoreUrl:i.edgeStoreUrl,reported:d?.client?.version||null,outdated:isOutdated(d?.client?.version)}}
 
+// ---------- v1.7.2 page-structure samples (“Gửi mẫu trang để sửa”) ----------
+const DIAG_KEEP_DAYS=30;
+const scrubDeep=(v:any,depth=0):any=>depth>8?null:typeof v==='string'?v.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g,'[email]').replace(/(?:\+?61|0)[\s-]?\d(?:[\s-]?\d){7,9}/g,'[phone]').slice(0,400):Array.isArray(v)?v.slice(0,60).map(x=>scrubDeep(x,depth+1)):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).slice(0,80).filter(([k])=>!/cookie|password|token|email|phone|address/i.test(k)).map(([k,x])=>[String(k).slice(0,160),scrubDeep(x,depth+1)])):typeof v==='number'||typeof v==='boolean'||v===null?v:null;
+/** Stores one sanitised page-structure sample from a device (30-day retention). */
+export async function saveDiagnostic(getStoreFn:any,device:any,payload:any,now:number){
+ const raw=JSON.stringify(payload||{});if(raw.length>80000)fail('Mẫu trang quá lớn.','Page sample too large.',413);
+ const p=scrubDeep(payload),retailer=RETAILERS.includes(p?.retailer)?p.retailer:null;if(!retailer)fail('Không phải trang siêu thị được hỗ trợ.','Not a supported retailer page.',400);
+ const store=scoutStore(getStoreFn),day=dayKey(now),id='dg'+sha(device.id+'|'+now+'|'+raw).slice(0,14);
+ await store.setJSON(`diag/${day}/${id}`,{id,day,at:new Date(now).toISOString(),deviceId:device.id,deviceName:device.name,account:device.owner,retailer,pageType:p.pageType||null,url:p.url||null,payload:p});
+ const cutoff=dayKey(now-DIAG_KEEP_DAYS*DAY);for await(const k of keys(store,'diag/')){const d=k.split('/')[1];if(d<cutoff)try{await store.delete(k)}catch{}}
+ return{id,day}}
+export async function listDiagnostics(getStoreFn:any,{now,limit=100}:any){const store=scoutStore(getStoreFn),cutoff=dayKey(now-DIAG_KEEP_DAYS*DAY),out:any[]=[];for await(const k of keys(store,'diag/')){if(k.split('/')[1]<cutoff)continue;const v=await readJSON(store,k);if(v)out.push(v)}return out.sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,limit)}
+
 // ---------- health ----------
 export async function retailerHealth(getStoreFn:any){const store=scoutStore(getStoreFn),out:any={};for(const r of RETAILERS)out[r]=await readJSON(store,'health/'+r)||{recent:[],paused:false};return out}
 export const retailerPaused=(h:any,now:number)=>!!h?.paused&&(!h.until||h.until>now);
@@ -400,13 +414,17 @@ export function validFact(f:any,retailer:string,config:any){
  return{ok:true,fact:o}}
 const factKey=(retailer:string,f:any)=>retailer+'|'+normLabel(f.storeLabel)+'|'+(f.productId||f.name.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim());
 export async function ingestResults(getStoreFn:any,{device,settings:s,body,now,adapter,env=process.env}:any){
- const mode=body?.mode==='auto'?'auto':'semi',items=Array.isArray(body?.items)?body.items.slice(0,60):[],day=dayKey(now),store=scoutStore(getStoreFn),config=await scoutConfig(getStoreFn);
+ const mode=body?.mode==='auto'?'auto':'semi',items=Array.isArray(body?.items)?body.items.slice(0,60):[],
+  // v1.7.2: {attach:{itemId}} — semi only, one fact: the person attaches this product to a catalogue item.
+  attach=mode==='semi'&&body?.attach&&typeof body.attach.itemId==='string'&&/^[a-z0-9-]{1,60}$/.test(body.attach.itemId)&&catalogItems().some(c=>c.itemId===body.attach.itemId)?{itemId:body.attach.itemId}:null,day=dayKey(now),store=scoutStore(getStoreFn),config=await scoutConfig(getStoreFn);
  if(mode==='semi'&&s.semiAuto!=='on')fail('Chế độ bán tự động đang tắt.','Semi-auto is switched off.',403,'semi-off');
  if(s.paused)fail('Mạng So Giá đang tạm dừng.','The Price Check network is paused.',403,'paused-global');
  if(device.pausedUntil&&device.pausedUntil>now)fail('Thiết bị đang tạm dừng.','This device is paused.',403,'paused-device');
  if(mode==='auto'&&s.autoScout!=='on')fail('Chế độ tự động đang tắt.','Auto mode is switched off.',403,'auto-off');
  const trusted=await isTrusted(getStoreFn,device.owner,env),out={pages:0,accepted:0,duplicates:0,rejected:0,held:0,confirmed:0,skipped:0,parseFailed:0,reasons:{} as any};
  const reject=(r:string)=>{out.rejected++;out.reasons[r]=(out.reasons[r]||0)+1};
+ // v1.7.2: why accepted facts are (not) shown to families — passive status text in the popup.
+ const placement:any={placed:0,unplaced:{}};(out as any).placement=placement;placement.facts=[];const notePlacement=(pr:any,f?:any)=>{if(!pr)return;if(pr.placed)placement.placed++;else{const w=String(pr.why||'unknown');placement.unplaced[w]=(placement.unplaced[w]||0)+1;if(f&&placement.facts.length<10)placement.facts.push({name:f.name,price:f.price,productId:f.productId||null,why:w,suggested:w==='no-item'?matchProduct(f.name).candidates.slice(0,3):[]})}};
  for(const it of items){
   const retailer=RETAILERS.includes(it?.retailer)?it.retailer:null;if(!retailer||!hostOk(it.url,retailer,config)){reject('retailer-url');continue}
   let task:any=null;
@@ -424,12 +442,18 @@ export async function ingestResults(getStoreFn:any,{device,settings:s,body,now,a
     const prices=Object.values<any>(values).map(v=>v.price),lo=Math.min(...prices),hi=Math.max(...prices),accounts=new Set(Object.values<any>(values).map(v=>v.account));
     const statusNow=hi-lo>Math.max(0.02,lo*0.01)?'held':Object.values<any>(values).some(v=>v.trusted)||accounts.size>=2?'confirmed':'pending';
     next={key,retailer,storeLabel:f.storeLabel,name:f.name,productId:f.productId,values,status:statusNow,published:r?.published||null,firstAt:r?.firstAt||new Date(now).toISOString()};return next});
+   // v1.7.2 attach: the person picked the item for this fact — place it even if the same price was already received.
+   if(!next&&attach)next=await readJSON(store,okey);
    if(!next){out.duplicates++;continue}
    out.accepted++;
-   const obs={key,itemId:task?.itemId||null,label:f.name,retailer,storeLabel:f.storeLabel,price:f.price,currency:'AUD',unitPrice:f.unitPrice,unitBasis:f.unitBasis,wasPrice:f.wasPrice,promo:f.promoType,validUntil:f.promoEnd,packQty:f.packQty,packUnit:f.packUnit,packCount:f.packCount,productId:f.productId,productUrl:f.productUrl,observedAt:capturedAt(it.capturedAt,now),receivedAt:new Date(now).toISOString(),source:'scout-extension',mode,deviceId:device.id,account:device.owner,trusted,postcode:device.postcode||null,suburb:device.suburb||null,storeMismatch:it.storeMismatch===true};
+   // v1.7.2: never guess. A fact belongs to the task's item only on that item's own product page
+   // (confirmed link) or when its name confidently IS that item (search pages list many products);
+   // otherwise a confident catalogue match, else it stays unplaced (“Chưa gắn món”).
+   const onItemPage=!!task?.mapped&&facts.length<=2,factItem=attach?attach.itemId:task?.itemId&&(onItemPage||productIsItem(f.name,task.itemId))?task.itemId:null,guess=factItem?null:matchProduct(f.name);
+   const obs={key,itemId:factItem||(guess?.confidence==='high'?guess.itemId:null),matchedBy:attach?'person':factItem?(onItemPage?'task-link':'task-name'):guess?.confidence==='high'?'name':null,label:f.name,retailer,storeLabel:f.storeLabel,price:f.price,currency:'AUD',unitPrice:f.unitPrice,unitBasis:f.unitBasis,wasPrice:f.wasPrice,promo:f.promoType,validUntil:f.promoEnd,packQty:f.packQty,packUnit:f.packUnit,packCount:f.packCount,productId:f.productId,productUrl:f.productUrl,observedAt:capturedAt(it.capturedAt,now),receivedAt:new Date(now).toISOString(),source:'scout-extension',mode,deviceId:device.id,account:device.owner,trusted,postcode:device.postcode||null,suburb:device.suburb||null,storeMismatch:it.storeMismatch===true};
    if(next.status==='held'){out.held++;if(prev?.status!=='held'){await adapter.holdObservation(obs,'cross-device-disagreement');await logEvent(getStoreFn,'disagreement_hold',{retailer,name:f.name,storeLabel:f.storeLabel},now)}}
-   else{const confirmed=next.status==='confirmed'&&!obs.storeMismatch;if(confirmed)out.confirmed++;if(next.published!==(confirmed?'confirmed':'pending')||!prev){await adapter.publishObservation(obs,{confirmed,agreeing:Object.keys(next.values).length});await editRecord(store,okey,(r:any)=>r?{...r,published:confirmed?'confirmed':'pending'}:undefined)}}
-   if(task?.itemId&&(f.productId||f.productUrl)&&(facts.length===1||task.kind!=='specials'&&facts.indexOf(f)===0))await adapter.recordMappingCandidate({itemId:task.itemId,retailer,productUrl:f.productUrl,productId:f.productId,packQty:f.packQty,deviceId:device.id,account:device.owner});
+   else{const confirmed=next.status==='confirmed'&&!obs.storeMismatch;if(confirmed)out.confirmed++;if(attach||next.published!==(confirmed?'confirmed':'pending')||!prev){const pr=await adapter.publishObservation(obs,{confirmed,agreeing:Object.keys(next.values).length});notePlacement(pr,f);await editRecord(store,okey,(r:any)=>r?{...r,published:confirmed?'confirmed':'pending'}:undefined)}}
+   if(factItem&&(f.productId||f.productUrl))await adapter.recordMappingCandidate({trusted:!!attach&&trusted,itemId:factItem,retailer,productUrl:f.productUrl,productId:f.productId,packQty:f.packQty,deviceId:device.id,account:device.owner});
   }
   if(task)await editRecord(store,`tasks/${day}/${task.taskId}`,(t:any)=>t?{...t,status:'done',leaseUntil:null,doneAt:new Date(now).toISOString(),prices:facts.length,parse:parsedOk?'ok':'failed'}:undefined);
   await bump(getStoreFn,`count/${day}/retailer/${retailer}`,{pages:1,prices:facts.length,parseOk:parsedOk?1:0,parseFail:parsedOk?0:1,...(mode==='semi'?{semiPages:1}:{})});
