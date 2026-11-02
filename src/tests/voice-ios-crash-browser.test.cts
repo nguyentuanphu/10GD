@@ -65,7 +65,7 @@ async function main(){
    const {page,context,errors}=await open({viewport:sizes[size],lang,theme,init:CRASH});
    const notice=page.locator('#vl-crash-notice');await notice.waitFor({timeout:5000});
    const text=await notice.innerText();
-   assert.match(text,lang==='vi'?/Bộ giọng chính xác làm máy hết bộ nhớ và trang bị tải lại — đã chuyển về giọng nói thường của máy\.[\s\S]*Thử lại[\s\S]*Gỡ gói/:/Accurate voice ran this device out of memory and the page reloaded — switched back to the device’s standard voice input\.[\s\S]*Try again[\s\S]*Remove pack/);
+   assert.match(text,lang==='vi'?/Giọng chính xác tạm tắt vì máy thiếu bộ nhớ — đang dùng giọng nói thường của máy\.[\s\S]*Thử lại[\s\S]*Gỡ gói/:/Accurate voice is paused: not enough memory on this device — using the standard voice input\.[\s\S]*Try again[\s\S]*Remove pack/);
    assert.equal(await notice.getAttribute('role'),'status','non-blocking');
    assert.equal(await page.evaluate('VoiceAPI.activeRecognizer()'),'browser');assert.equal(await ls(page,'bep-voice-recognizer'),null);assert.equal(await ls(page,'bep-voice-local-busy'),null);
    assert.equal(JSON.parse(await ls(page,'bep-voice-local-fail')).phase,'transcribing');
@@ -93,7 +93,7 @@ async function main(){
   // 2. Try again: warning first, then the self-test, then switched on. Remove pack: notice gone, pack removed.
   {const {page,context,errors}=await open({lang:'vi',init:CRASH});await page.locator('#vl-crash-notice').waitFor();await fakePack(page);
    await page.locator('#vl-crash-notice [data-vl-retry]').click();await page.locator('#confirm-root').waitFor();
-   assert.match(await page.locator('#confirm-body').innerText(),/hết bộ nhớ[\s\S]*tải lại thêm lần nữa/);
+   assert.match(await page.locator('#confirm-body').innerText(),/thiếu bộ nhớ[\s\S]*tải lại một lần nữa/);
    await page.screenshot({path:`${out}/try-again-warning-vi-light-mobile-375x812.png`});shots++;
    await page.locator('#confirm-root [data-confirm="yes"]').click();
    await page.waitForFunction(()=>localStorage.getItem('bep-voice-recognizer')==='local-small',null,{timeout:8000});

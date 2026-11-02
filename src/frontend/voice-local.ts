@@ -48,7 +48,9 @@ function vlT(vi,en){return typeof tr==='function'?tr(vi,en):vi}
 function vlEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c])}
 function voiceLocalModelUrl(pack,path){return 'https://huggingface.co/'+pack.model+'/resolve/'+pack.revision+'/'+path}
 function voiceLocalIsOldSafari(ua,hasGpu){const m=/Version\/(\d+)[.\d]* (Mobile\/\S+ )?Safari/.exec(String(ua||''));return !!m&&!/Chrome|Chromium|CriOS|Edg|Firefox|FxiOS/.test(String(ua))&&+m[1]<26&&!hasGpu}
-function voiceLocalRuntimeFiles(ua,hasGpu){const set=voiceLocalIsOldSafari(ua,hasGpu)?VOICE_LOCAL_ORT.plain:VOICE_LOCAL_ORT.asyncify;return[{url:VOICE_LOCAL_TF.url,size:VOICE_LOCAL_TF.size,sha256b64:VOICE_LOCAL_TF.sha256b64,role:'module'},...set.map(f=>({url:VOICE_LOCAL_ORT_BASE+f.name,size:f.size,sha256b64:f.sha256b64,role:f.name.endsWith('.wasm')?'wasm':'mjs'}))]}
+// v1.7.4: iPhone/iPad always use the plain build — they never use WebGPU (the only reason for the asyncify build), and the
+// plain one is half the size: −50 MB at the memory peak and half the load time (Chromium, iPhone user agent).
+function voiceLocalRuntimeFiles(ua,hasGpu,touchPoints=0){const set=voiceLocalIsOldSafari(ua,hasGpu)||voiceLocalIsIOS(ua,touchPoints)?VOICE_LOCAL_ORT.plain:VOICE_LOCAL_ORT.asyncify;return[{url:VOICE_LOCAL_TF.url,size:VOICE_LOCAL_TF.size,sha256b64:VOICE_LOCAL_TF.sha256b64,role:'module'},...set.map(f=>({url:VOICE_LOCAL_ORT_BASE+f.name,size:f.size,sha256b64:f.sha256b64,role:f.name.endsWith('.wasm')?'wasm':'mjs'}))]}
 function voiceLocalPackFiles(id){const p=VOICE_LOCAL_PACKS[id];if(!p)return[];return p.files.map(f=>({url:voiceLocalModelUrl(p,f.path),size:f.size,sha256:f.sha256||'',role:'model'}))}
 function voiceLocalBytes(files){return files.reduce((n,f)=>n+(+f.size||0),0)}
 function voiceLocalPackBytes(id){return voiceLocalBytes(voiceLocalPackFiles(id))}
@@ -117,7 +119,9 @@ function voiceLocalSegmenter({sampleRate=16000,silenceMs=800,maxMs=25000,partial
 // ---------- worker client (message protocol; see voice-local-worker.ts) ----------
 function voiceLocalClient(worker){
  let seq=0;const waiting=new Map();
- worker.onmessage=e=>{const m=e.data||{},w=waiting.get(m.id);if(m.type==='progress'&&w?.progress){w.progress(m);return}if(!w)return;waiting.delete(m.id);if(m.type==='error')w.reject(Object.assign(new Error(m.message||'worker error'),{code:m.code||'worker'}));else w.resolve(m)};
+ // v1.7.4: a progress message never settles a call. Before, a load without a progress callback (the self-test, every hold)
+ // was "loaded" at the first progress message — the marker said 'resident' while the model was still being built.
+ worker.onmessage=e=>{const m=e.data||{},w=waiting.get(m.id);if(m.type==='progress'){try{w?.progress&&w.progress(m)}catch{}return}if(!w)return;waiting.delete(m.id);if(m.type==='error')w.reject(Object.assign(new Error(m.message||'worker error'),{code:m.code||'worker'}));else w.resolve(m)};
  worker.onerror=e=>{for(const w of waiting.values())w.reject(Object.assign(new Error(e?.message||'worker crashed'),{code:'crash'}));waiting.clear()};
  const call=(msg,transfer=[],progress=null)=>new Promise((resolve,reject)=>{const id=++seq;waiting.set(id,{resolve,reject,progress});worker.postMessage({...msg,id,v:VOICE_LOCAL_PROTOCOL},transfer)});
  return{
@@ -131,7 +135,7 @@ function voiceLocalClient(worker){
 
 // ---------- pack storage (Cache Storage) ----------
 function voiceLocalHasGpu(){return typeof navigator!=='undefined'&&!!navigator.gpu}
-function voiceLocalRuntime(){return voiceLocalRuntimeFiles(typeof navigator!=='undefined'?navigator.userAgent:'',voiceLocalHasGpu())}
+function voiceLocalRuntime(){return voiceLocalRuntimeFiles(typeof navigator!=='undefined'?navigator.userAgent:'',voiceLocalHasGpu(),typeof navigator!=='undefined'?navigator.maxTouchPoints:0)}
 async function voiceLocalOpenCache(){return caches.open(VOICE_LOCAL_CACHE)}
 async function voiceLocalPresent(files){if(typeof caches!=='object')return files.map(()=>false);const c=await voiceLocalOpenCache();return Promise.all(files.map(async f=>!!(await c.match(f.url))))}
 // 'partial' once any file of the pack or its runtime is stored (v1.7.1: the background download stores the runtime first).
@@ -267,11 +271,19 @@ async function voiceLocalDownload(id,onProgress,{signal,fetchFn}={}){
  return join(run);
 }
 async function voiceLocalKeepWorker(cache){try{const w=await fetch('voice-local-worker.js',{cache:'no-cache'});if(w.ok)await (cache||await voiceLocalOpenCache()).put(voiceLocalHref('voice-local-worker.js'),w)}catch{}}
-async function voiceLocalRemove(id){const c=await voiceLocalOpenCache(),idx=await voiceLocalReadIndex(c);for(const f of voiceLocalPackFiles(id)){await c.delete(f.url);await voiceLocalDropParts(c,f);delete idx[f.url]}
+// v1.7.4: also counts what it frees (the stored sizes of the files actually deleted, parts included) into
+// voiceLocalLastFreed, so "Gỡ gói" can say how much space came back.
+let voiceLocalLastFreed=0;
+async function voiceLocalRemove(id){voiceLocalEngine?.dispose();voiceLocalEngine=null;const c=await voiceLocalOpenCache(),idx=await voiceLocalReadIndex(c);let freed=0;
+ const del=async(url,size)=>{let n=0;try{const hit=size?null:await c.match(url);n=size||+(hit?.headers.get('Content-Length')||0)}catch{}if(await c.delete(url))freed+=n};
+ const parts=async f=>{if(!f.size||f.size<=VOICE_LOCAL_CHUNK)return;for(let k=0;k<Math.ceil(f.size/VOICE_LOCAL_CHUNK);k++)await del(voiceLocalPartUrl(f,k),Math.min(VOICE_LOCAL_CHUNK,f.size-k*VOICE_LOCAL_CHUNK))};
+ for(const f of voiceLocalPackFiles(id)){await del(f.url,f.size);await parts(f);delete idx[f.url]}
  const others=Object.keys(VOICE_LOCAL_PACKS).filter(x=>x!==id);let anyReady=false;for(const o of others)if(await voiceLocalStatus(o)==='ready')anyReady=true;
- if(!anyReady){for(const f of voiceLocalAllRuntimeFiles()){await c.delete(f.url);await voiceLocalDropParts(c,f);delete idx[f.url]}for(const url of Object.keys(idx)){await c.delete(url);delete idx[url]}await c.delete(voiceLocalHref('voice-local-worker.js'))}
+ if(!anyReady){for(const f of voiceLocalAllRuntimeFiles()){await del(f.url,f.size);await parts(f);delete idx[f.url]}for(const url of Object.keys(idx)){await del(url,+idx[url]?.size||0);delete idx[url]}await c.delete(voiceLocalHref('voice-local-worker.js'))}
  if(Object.keys(idx).length)await voiceLocalWriteIndex(c,idx);else await c.delete(voiceLocalHref(VOICE_LOCAL_INDEX_PATH));
- if(voiceLocalChoice()===id)voiceLocalSetChoice('');voiceLocalEngine?.dispose();voiceLocalEngine=null;return 'none'}
+ voiceLocalLastFreed=freed;
+ if(voiceLocalChoice()===id)voiceLocalSetChoice('');return 'none'}
+function voiceLocalRemovedText(bytes){const lang=typeof appLanguage!=='undefined'?appLanguage:'vi';return bytes>0?vlT(`Đã gỡ gói giọng chính xác — giải phóng ${voiceLocalFormatBytes(bytes,lang)} trên máy.`,`Accurate voice pack removed — ${voiceLocalFormatBytes(bytes,lang)} freed on this device.`):vlT('Đã gỡ gói giọng chính xác.','Accurate voice pack removed.')}
 
 // ---------- preferences ----------
 // ONE selection for every voice feature: `bep-voice-recognizer` ('browser' | 'local-base' | 'local-small'), the key the
@@ -311,13 +323,24 @@ function voiceLocalBusyNow(){try{return JSON.parse(localStorage.getItem(VOICE_LO
 function voiceLocalMarkerPhase(b){if(!b)return'';if(VOICE_LOCAL_PHASES.includes(b.phase))return b.phase;return b.stage==='load'?'loading-model':b.stage==='run'?'transcribing':String(b.phase||b.stage||'')}
 // At start-up (before anything can load the model): a marker left behind = the page died while the pack was in memory
 // (or downloading). Turned into a failure "crash" with the phase it died in; the notice is shown once.
+// v1.7.4: memory crashes are counted per device and per release of the pack's memory behaviour (this app version, the
+// pinned model revision and runtime). The first crash allows ONE guarded "Thử lại"; a second crash disables accurate voice
+// on this device until one of those versions changes (no button, nothing loads it). Kept when the pack is removed.
+const VOICE_LOCAL_CRASHES_KEY='bep-voice-local-crashes',VOICE_LOCAL_MEM_VERSION='1.7.4';
+function voiceLocalGuardVersion(id){const p=VOICE_LOCAL_PACKS[id];return[VOICE_LOCAL_MEM_VERSION,p?.revision||'',VOICE_LOCAL_TF.version,VOICE_LOCAL_ORT_BASE.split('@')[1]||''].join('|')}
+function voiceLocalCrashCount(id){try{const r=JSON.parse(localStorage.getItem(VOICE_LOCAL_CRASHES_KEY)||'null');return r&&r.pack===id&&r.ver===voiceLocalGuardVersion(id)?Math.max(0,+r.n||0):0}catch{return 0}}
+function voiceLocalCountCrash(id,phase){const n=voiceLocalCrashCount(id)+1;try{localStorage.setItem(VOICE_LOCAL_CRASHES_KEY,JSON.stringify({pack:id,ver:voiceLocalGuardVersion(id),n,phase:phase||'',at:Date.now()}))}catch{}return n}
+function voiceLocalDisabled(id){return voiceLocalCrashCount(id)>=2}
 function voiceLocalCheckCrash(){let b=null;try{b=JSON.parse(localStorage.getItem(VOICE_LOCAL_BUSY_KEY)||'null')}catch{}
  try{localStorage.removeItem(VOICE_LOCAL_BUSY_KEY)}catch{}
  if(!b||!VOICE_LOCAL_PACKS[b.pack])return null;
- voiceLocalMarkFailed(b.pack,'crash','reload',{phase:voiceLocalMarkerPhase(b),notice:'pending'});return voiceLocalFailed(b.pack)}
+ const phase=voiceLocalMarkerPhase(b),n=phase==='downloading'?voiceLocalCrashCount(b.pack):voiceLocalCountCrash(b.pack,phase);
+ // A self-check (Kiểm tra giọng chính xác) that was running: its result says where the page died; it opens again.
+ const died=voiceLocalCheckDied(b.pack,phase);
+ voiceLocalMarkFailed(b.pack,'crash','reload',{phase,crashes:n,notice:died?'check':'pending'});return voiceLocalFailed(b.pack)}
 function voiceLocalIsCrash(f){return!!f&&(f.stage==='crash'||f.stage==='reload-load'||f.stage==='reload-run')}
 function voiceLocalFailText(f){
- if(voiceLocalIsCrash(f))return vlT('Bộ giọng chính xác làm máy hết bộ nhớ và trang bị tải lại — đã chuyển về giọng nói thường của máy.','Accurate voice ran this device out of memory and the page reloaded — switched back to the device’s standard voice input.');
+ if(voiceLocalIsCrash(f))return voiceLocalDisabled(f.pack)?vlT('Giọng chính xác đã tắt trên máy này vì máy thiếu bộ nhớ (2 lần). Đang dùng giọng nói thường — sẽ thử lại được khi có bản cập nhật.','Accurate voice is off on this device: not enough memory (twice). Using the standard voice input — it can be tried again after an update.'):vlT('Giọng chính xác tạm tắt vì máy thiếu bộ nhớ — đang dùng giọng nói thường của máy.','Accurate voice is paused: not enough memory on this device — using the standard voice input.');
  const why=f.stage==='self-test'?vlT('Máy không chạy thử được bộ giọng chính xác.','This device could not run the accurate voice test.'):f.stage==='load'?vlT('Không nạp được gói trên máy.','The on-device pack could not load.'):vlT('Nhận giọng nói trên máy bị lỗi.','On-device recognition failed.');
  return why+' '+vlT('Đang dùng giọng nói thường của máy.','Using the device’s standard voice input.')}
 // iPhone/iPad: the pack is only switched on after a safe self-test passed on this device (see voiceLocalSelfTest).
@@ -325,7 +348,7 @@ function voiceLocalOnIOS(){const cap=voiceLocalCap;if(cap&&typeof cap.ios==='boo
 function voiceLocalSelfTestRecord(){try{return JSON.parse(localStorage.getItem(VOICE_LOCAL_SELFTEST_KEY)||'null')}catch{return null}}
 function voiceLocalSelfTestPassed(id){const r=voiceLocalSelfTestRecord();return!!r&&r.pack===id&&r.ok===true&&r.v===VOICE_LOCAL_SELFTEST_VERSION}
 // May this pack be offered/used as the recogniser on this device right now?
-function voiceLocalUsable(id){return!voiceLocalFailed(id)&&(!voiceLocalOnIOS()||voiceLocalSelfTestPassed(id))}
+function voiceLocalUsable(id){return!voiceLocalFailed(id)&&!voiceLocalDisabled(id)&&(!voiceLocalOnIOS()||voiceLocalSelfTestPassed(id))}
 
 // ---------- engine (worker) + recorder ----------
 let voiceLocalEngine=null,voiceLocalActive=null,voiceLocalLastUsed='',voiceLocalIdleTimer=0;
@@ -352,7 +375,7 @@ async function voiceLocalEnsureEngine(id,onProgress,{phase='loading-model'}={}){
  const hello=await client.hello();if(hello.v!==VOICE_LOCAL_PROTOCOL)throw Object.assign(Error('worker version'),{code:'version'});
  const loaded=await client.load(VOICE_LOCAL_PACKS[id],voiceLocalLoadOptions(),onProgress);
  voiceLocalBusy(id,phase==='self-test'?'self-test':'resident');   // still in memory: the marker stays until dispose
- const eng={pack:id,client,device:loaded?.device||'wasm',files:loaded?.files||[],
+ const eng={pack:id,client,device:loaded?.device||'wasm',files:loaded?.files||[],loaded:{ms:loaded?.ms??null,stats:loaded?.stats||null,mem:loaded?.mem||null},
   async transcribe(audio,language,final,ph='transcribing'){voiceLocalBusy(id,ph);try{return await client.transcribe(audio,language,final)}finally{if(voiceLocalEngine===eng)voiceLocalBusy(id,ph==='self-test'?'self-test':'resident');voiceLocalTouch()}},
   dispose(){client.dispose();if(voiceLocalEngine===eng)voiceLocalEngine=null;const b=voiceLocalBusyNow();if(b&&b.pack===id&&voiceLocalMarkerPhase(b)!=='downloading')voiceLocalBusy(id,'')}};
  voiceLocalEngine=eng;voiceLocalTouch();
@@ -368,22 +391,108 @@ async function voiceLocalEnsureEngine(id,onProgress,{phase='loading-model'}={}){
 const voiceLocalSelfTestRun={p:null,deferred:false};
 function voiceLocalSelfTestClip(){const n=16000,a=new Float32Array(n);for(let i=0;i<n;i++)a[i]=.03*Math.sin(i*2*Math.PI*220/16000)*Math.sin(Math.PI*i/n);return a}
 function voiceLocalRecording(){return!!voiceLocalActive||(typeof voiceKeepListening!=='undefined'&&!!voiceKeepListening)}
+// The test itself (shared by the background self-test and the self-check page): load, decode the clip, free the model.
+// Returns timings and the memory the worker reports; throws on failure (code 'stopped' = interrupted, no verdict).
+async function voiceLocalTestRun(id,onPhase=(p:string)=>{}){
+ const t0=Date.now();let timer=0,eng=null;
+ try{const timeout=new Promise((_,rej)=>{timer=setTimeout(()=>rej(Object.assign(Error('self-test timeout'),{code:'timeout'})),VOICE_LOCAL_SELFTEST_TIMEOUT_MS)});
+  onPhase('loading-model');
+  eng=await Promise.race([voiceLocalEnsureEngine(id,null,{phase:'self-test'}),timeout]);
+  const loadMs=Date.now()-t0,t1=Date.now();onPhase('transcribing');
+  const r=await Promise.race([eng.transcribe(voiceLocalSelfTestClip(),'vietnamese',false,'self-test'),timeout]);
+  if(!r||typeof r.text!=='string')throw Object.assign(Error('no result'),{code:'self-test'});
+  return{loadMs,transcribeMs:Date.now()-t1,ms:Date.now()-t0,device:eng.device,loadMem:eng.loaded?.mem||null,mem:r.mem||null,weights:eng.loaded?.stats?.weights||null}}
+ finally{clearTimeout(timer);if(eng&&voiceLocalEngine===eng&&!voiceLocalActive)voiceLocalRelease('self-test')}}
+function voiceLocalRecordPass(id,res){try{localStorage.setItem(VOICE_LOCAL_SELFTEST_KEY,JSON.stringify({pack:id,ok:true,v:VOICE_LOCAL_SELFTEST_VERSION,at:Date.now(),ms:res.ms,device:res.device}))}catch{}}
 async function voiceLocalSelfTest(id,{force=false}={}){
  if(voiceLocalSelfTestRun.p)return voiceLocalSelfTestRun.p;
  const run=(async()=>{voiceLocalSelfTestRun.deferred=false;
-  if(voiceLocalFailed(id)&&!force)return false;
+  if(voiceLocalFailed(id)&&!force||voiceLocalDisabled(id))return false;
   if(typeof document!=='undefined'&&document.visibilityState==='hidden'||voiceLocalRecording()){voiceLocalSelfTestRun.deferred=true;return false}
   if((await voiceLocalStatus(id).catch(()=>'none'))!=='ready')return false;
-  const t0=Date.now();let timer=0,eng=null;
-  try{const timeout=new Promise((_,rej)=>{timer=setTimeout(()=>rej(Object.assign(Error('self-test timeout'),{code:'timeout'})),VOICE_LOCAL_SELFTEST_TIMEOUT_MS)});
-   eng=await Promise.race([voiceLocalEnsureEngine(id,null,{phase:'self-test'}),timeout]);
-   const r=await Promise.race([eng.transcribe(voiceLocalSelfTestClip(),'vietnamese',false,'self-test'),timeout]);
-   if(!r||typeof r.text!=='string')throw Object.assign(Error('no result'),{code:'self-test'});
-   try{localStorage.setItem(VOICE_LOCAL_SELFTEST_KEY,JSON.stringify({pack:id,ok:true,v:VOICE_LOCAL_SELFTEST_VERSION,at:Date.now(),ms:Date.now()-t0,device:eng.device}))}catch{}
-   return true}
-  catch(e){if(e?.code==='stopped'){voiceLocalSelfTestRun.deferred=true;return false}voiceLocalMarkFailed(id,'self-test',e?.code||'error');return false}
-  finally{clearTimeout(timer);if(eng&&voiceLocalEngine===eng&&!voiceLocalActive)voiceLocalRelease('self-test')}})();
+  try{voiceLocalRecordPass(id,await voiceLocalTestRun(id));return true}
+  catch(e){if(e?.code==='stopped'){voiceLocalSelfTestRun.deferred=true;return false}voiceLocalMarkFailed(id,'self-test',e?.code||'error');return false}})();
  voiceLocalSelfTestRun.p=run;const clear=()=>{voiceLocalSelfTestRun.p=null};run.then(clear,clear);return run}
+
+// ---------- self-check page (v1.7.4): "Kiểm tra giọng chính xác trên máy này" ----------
+// Reached from Account & settings → "Giọng nói trên máy" and from the voice sheet's settings. Runs the same guarded test
+// (marker phase 'self-test') and shows device class, pass/fail, load and transcription time, the memory the browser
+// exposes (WebAssembly memory everywhere, JS heap where readable) and the phase reached. Its record
+// (`bep-voice-local-check`) is written BEFORE each phase, so when iOS kills the page the next start shows where it died.
+// Nothing is sent anywhere; "Sao chép kết quả" copies the text for the family to share by hand.
+const VOICE_LOCAL_CHECK_KEY='bep-voice-local-check';
+function voiceLocalCheckRecord(){try{return JSON.parse(localStorage.getItem(VOICE_LOCAL_CHECK_KEY)||'null')}catch{return null}}
+function voiceLocalCheckSave(r){try{if(r)localStorage.setItem(VOICE_LOCAL_CHECK_KEY,JSON.stringify(r));else localStorage.removeItem(VOICE_LOCAL_CHECK_KEY)}catch{}return r}
+// At start-up (from voiceLocalCheckCrash): a check that was running when the page died → its "died in phase" result.
+function voiceLocalCheckDied(id,markerPhase){const r=voiceLocalCheckRecord();if(!r||!r.running||r.pack!==id)return false;
+ voiceLocalCheckSave({...r,running:false,ok:false,died:true,phase:r.phase||markerPhase||'',markerPhase:markerPhase||'',endedAt:Date.now(),open:true});return true}
+function voiceLocalDeviceClass(ua,touch){ua=String(ua||'');if(/iPhone|iPod/.test(ua))return'iphone';if(/iPad/.test(ua)||/Macintosh/.test(ua)&&(+touch||0)>1)return'ipad';if(/Android/.test(ua))return/Mobile/.test(ua)?'android-phone':'android-tablet';if(/Macintosh|Mac OS X/.test(ua))return'mac';if(/Windows/.test(ua))return'windows';if(/CrOS/.test(ua))return'chromebook';if(/Linux/.test(ua))return'linux';return'other'}
+function voiceLocalDeviceName(c){return({iphone:'iPhone',ipad:'iPad','android-phone':vlT('Điện thoại Android','Android phone'),'android-tablet':vlT('Máy tính bảng Android','Android tablet'),mac:'Mac',windows:vlT('Máy tính Windows','Windows PC'),chromebook:'Chromebook',linux:vlT('Máy tính Linux','Linux computer')})[c]||vlT('Thiết bị khác','Other device')}
+function voiceLocalPhaseName(p){return({'starting':vlT('Bắt đầu','Starting'),'loading-model':vlT('Nạp mô hình','Loading the model'),'transcribing':vlT('Nhận dạng đoạn mẫu','Recognising the test clip'),'self-test':vlT('Chạy thử','Test run'),'resident':vlT('Mô hình đã nạp','Model loaded'),'downloading':vlT('Tải gói','Downloading'),'done':vlT('Xong','Done')})[p]||String(p||'—')}
+function voiceLocalDeviceInfo(){const nav=typeof navigator!=='undefined'?navigator:{};const cls=voiceLocalDeviceClass(nav.userAgent,nav.maxTouchPoints);
+ return{cls,memoryGB:typeof nav.deviceMemory==='number'?nav.deviceMemory:null,cores:nav.hardwareConcurrency||null,standalone:typeof matchMedia==='function'&&matchMedia('(display-mode: standalone)').matches||nav.standalone===true,ios:voiceLocalOnIOS()}}
+function voiceLocalPageMemMB(){try{const m=performance?.memory?.usedJSHeapSize;return typeof m==='number'?Math.round(m/1048576):null}catch{return null}}
+async function voiceLocalUaMemMB(){try{if(typeof crossOriginIsolated!=='undefined'&&crossOriginIsolated&&typeof performance.measureUserAgentSpecificMemory==='function'){const r=await performance.measureUserAgentSpecificMemory();return Math.round(r.bytes/1048576)}}catch{}return null}
+async function voiceLocalSelfCheck(id='small',{onPhase=(p:string)=>{}}={}){
+ if(voiceLocalSelfTestRun.p)await voiceLocalSelfTestRun.p.catch(()=>{});
+ const dev=voiceLocalDeviceInfo(),base={pack:id,v:1,ver:voiceLocalGuardVersion(id),device:dev,at:Date.now()};
+ if(voiceLocalDisabled(id))return voiceLocalCheckSave({...base,ok:false,code:'disabled',phase:''});
+ if((await voiceLocalStatus(id).catch(()=>'none'))!=='ready')return voiceLocalCheckSave({...base,ok:false,code:'not-downloaded',phase:''});
+ if(voiceLocalRecording())return{...base,ok:false,code:'busy',phase:''};
+ const rec={...base,running:true,phase:'starting'};voiceLocalCheckSave(rec);onPhase('starting');
+ const run=(async()=>{try{
+   const res=await voiceLocalTestRun(id,p=>{voiceLocalCheckSave({...rec,phase:p});onPhase(p)});
+   voiceLocalRecordPass(id,res);
+   // Passed: this device can run it now (an earlier failure no longer applies); switching it on stays a choice.
+   if(voiceLocalFailed(id))voiceLocalClearFailed();
+   return voiceLocalCheckSave({...base,running:false,ok:true,phase:'done',loadMs:res.loadMs,transcribeMs:res.transcribeMs,engine:res.device,mem:res.mem,loadMem:res.loadMem,pageMB:voiceLocalPageMemMB(),uaMB:await voiceLocalUaMemMB(),endedAt:Date.now()})}
+  catch(e){const cur=voiceLocalCheckRecord();if(e?.code==='stopped'){voiceLocalCheckSave(null);return{...base,ok:false,code:'stopped',phase:cur?.phase||''}}
+   voiceLocalMarkFailed(id,'self-test',e?.code||'error');return voiceLocalCheckSave({...base,running:false,ok:false,code:String(e?.code||'error'),message:String(e?.message||'').slice(0,160),phase:cur?.phase||'',endedAt:Date.now()})}})();
+ voiceLocalSelfTestRun.p=run.then(r=>!!r?.ok);const clear=()=>{voiceLocalSelfTestRun.p=null};voiceLocalSelfTestRun.p.then(clear,clear);
+ return run}
+function voiceLocalMs(ms){if(typeof ms!=='number')return'—';const s=ms/1000;return(s>=10?Math.round(s):Math.round(s*10)/10).toLocaleString(typeof appLanguage!=='undefined'&&appLanguage==='en'?'en-AU':'vi-VN')+' s'}
+function voiceLocalCheckRows(r){const rows=[];const dev=r?.device||voiceLocalDeviceInfo();
+ rows.push([vlT('Thiết bị','Device'),voiceLocalDeviceName(dev.cls)+(dev.memoryGB?` · ${dev.memoryGB} GB RAM`:'')+(dev.cores?` · ${dev.cores} ${vlT('nhân','cores')}`:'')+(dev.standalone?` · ${vlT('ứng dụng màn hình chính','home-screen app')}`:'')]);
+ if(!r)return rows;
+ rows.push([vlT('Kết quả','Result'),r.running?vlT('Đang chạy…','Running…'):r.ok?vlT('Đạt — chạy được trên máy này','Passed — runs on this device'):r.died?vlT('Trang bị tắt (máy thiếu bộ nhớ)','The page was closed (out of memory)'):r.code==='disabled'?vlT('Đã tắt trên máy này','Off on this device'):r.code==='not-downloaded'?vlT('Chưa tải gói','Pack not downloaded'):vlT('Không đạt','Did not pass')+(r.code?` (${r.code})`:'')]);
+ rows.push([r.died?vlT('Bị tắt ở bước','Closed during'):vlT('Bước đã tới','Phase reached'),voiceLocalPhaseName(r.phase)]);
+ if(r.ok){rows.push([vlT('Thời gian nạp','Load time'),voiceLocalMs(r.loadMs)]);rows.push([vlT('Thời gian nhận dạng','Transcription time'),voiceLocalMs(r.transcribeMs)])}
+ const wasm=r.mem?.wasmPeakMB||r.mem?.wasmMB||null;rows.push([vlT('Bộ nhớ cao nhất (mô hình)','Peak memory (model)'),typeof wasm==='number'?`${wasm.toLocaleString()} MB`:r.ok?vlT('Trình duyệt không cho đọc','Not exposed by this browser'):'—']);
+ if(typeof r.pageMB==='number')rows.push([vlT('Bộ nhớ trang (JS)','Page memory (JS)'),`${r.pageMB.toLocaleString()} MB`]);
+ if(typeof r.uaMB==='number')rows.push([vlT('Bộ nhớ trình duyệt đo được','Browser-measured memory'),`${r.uaMB.toLocaleString()} MB`]);
+ if(r.at)rows.push([vlT('Lúc','When'),new Date(r.at).toLocaleString(typeof appLanguage!=='undefined'&&appLanguage==='en'?'en-AU':'vi-VN')]);
+ return rows}
+function voiceLocalCheckText(r){return[vlT('Kiểm tra giọng chính xác','Accurate voice check')+' · '+VOICE_LOCAL_MEM_VERSION,...voiceLocalCheckRows(r).map(([k,v])=>k+': '+v),'UA: '+(typeof navigator!=='undefined'?String(navigator.userAgent).slice(0,200):'')].join('\n')}
+const voiceLocalCheckUi={running:false,phase:'',started:0,timer:0,last:null};
+function voiceLocalCheckHtml(){const id=VOICE_AUTO_PACK,r=voiceLocalCheckUi.running?{...voiceLocalCheckRecord(),running:true,phase:voiceLocalCheckUi.phase}:(voiceLocalCheckUi.last||voiceLocalCheckRecord()),disabled=voiceLocalDisabled(id),ready=voiceLocalReady[id],ios=voiceLocalOnIOS();
+ const rows=voiceLocalCheckRows(r).map(([k,v])=>`<div class="vl-sc-row"><dt>${vlEsc(k)}</dt><dd>${vlEsc(v)}</dd></div>`).join('');
+ const status=voiceLocalCheckUi.running?`<p class="vl-sc-status" role="status" aria-live="polite" tabindex="-1"><b>${vlEsc(voiceLocalPhaseName(voiceLocalCheckUi.phase))}…</b> <span class="vl-sc-elapsed">${vlEsc(voiceLocalMs(Date.now()-voiceLocalCheckUi.started))}</span></p>`:r?.died?`<p class="vl-sc-died" role="alert">${vlEsc(vlT(`Lần kiểm tra trước, trang bị tắt ở bước “${voiceLocalPhaseName(r.phase)}” — máy hết bộ nhớ cho gói này.`,`During the last check the page was closed at “${voiceLocalPhaseName(r.phase)}” — the device ran out of memory for this pack.`))}</p>`:'';
+ const start=disabled?`<p class="hint">${vlEsc(voiceLocalFailText({pack:id,stage:'crash'}))}</p>`:voiceLocalCheckUi.running?'':`<button type="button" class="btn primary" data-vl-check-run ${ready===false?'disabled':''}>${r&&!r.running?vlT('Kiểm tra lại','Check again'):vlT('Bắt đầu kiểm tra','Start the check')}</button>`;
+ const after=!voiceLocalCheckUi.running&&r?.ok&&voiceLocalChoice()!==id&&!voiceLocalFailed(id)?`<button type="button" class="btn" data-vl-check-use>${vlT('Dùng giọng chính xác','Use accurate voice')}</button>`:'';
+ const copy=r&&!voiceLocalCheckUi.running?`<button type="button" class="btn" data-vl-check-copy>${vlT('Sao chép kết quả','Copy results')}</button>`:'';
+ return`<div class="vl-sc" id="vl-selfcheck"><p>${vlT('Chạy thử bộ “Chính xác hơn” (Whisper small) một lần khi bạn không nói: nạp mô hình rồi nhận dạng một đoạn mẫu 1 giây. Không gửi âm thanh hay kết quả đi đâu.','Runs the “More accurate” pack (Whisper small) once while you are not speaking: loads the model, then recognises a 1-second test clip. No audio or result is sent anywhere.')}</p>
+ ${ios&&!disabled?`<p class="hint">${vlT('Trên iPhone/iPad nếu máy thiếu bộ nhớ, trang có thể tải lại một lần — mở lại mục này để xem bị tắt ở bước nào.','On iPhone/iPad, if memory runs out the page may reload once — open this again to see the phase it stopped in.')}</p>`:''}
+ ${ready===false?`<p class="hint">${vlT('Cần tải gói trước (Tài khoản & cài đặt → Tải về để dùng offline).','Download the pack first (Account & settings → Downloads for offline use).')}</p>`:''}
+ ${status}<dl class="vl-sc-table">${rows}</dl>
+ <div class="toolbar vl-sc-actions">${start}${after}${copy}${!disabled&&ready?`<button type="button" class="btn soft" data-vl-remove="${id}">${vlT('Gỡ gói','Remove pack')}</button>`:''}</div>
+ <p class="hint">${vlT('Số đo bộ nhớ là bộ nhớ của mô hình mà trình duyệt cho đọc; hệ điều hành có thể dùng thêm.','The memory figure is the model memory the browser exposes; the system may use more.')}</p></div>`}
+// Re-render in place; focus stays inside the check (status while running, then the first action).
+function voiceLocalCheckRender(){const box=typeof document!=='undefined'&&document.getElementById('vl-selfcheck');if(!box)return false;const focused=!!document.activeElement&&box.contains(document.activeElement);box.outerHTML=voiceLocalCheckHtml();if(focused)(document.querySelector('#vl-selfcheck .vl-sc-status')||document.querySelector('#vl-selfcheck .vl-sc-actions button'))?.focus?.();return true}
+async function voiceLocalCheckModal(){
+ if(typeof document==='undefined')return;try{typeof stopVoice==='function'&&stopVoice()}catch{}
+ const r=voiceLocalCheckRecord();if(r?.open){voiceLocalCheckSave({...r,open:false})}
+ try{voiceLocalCap=voiceLocalCap||await voiceLocalProbe();voiceLocalReady[VOICE_AUTO_PACK]=(await voiceLocalStatus(VOICE_AUTO_PACK).catch(()=>'none'))==='ready'}catch{}
+ const body=voiceLocalCheckHtml();
+ if(typeof modal==='function'){modal(vlT('Kiểm tra giọng chính xác trên máy này','Check accurate voice on this device'),body,`<button class="btn" data-action="close-modal">${vlT('Đóng','Close')}</button>`,true);document.querySelector('.modal')?.classList.add('vl-sc-sheet')}
+ else{document.getElementById('vl-selfcheck')?.remove();document.body.insertAdjacentHTML('beforeend',body)}}
+async function voiceLocalCheckStart(){if(voiceLocalCheckUi.running)return;
+ voiceLocalCheckUi.running=true;voiceLocalCheckUi.phase='starting';voiceLocalCheckUi.started=Date.now();voiceLocalCheckUi.last=null;voiceLocalCheckRender();
+ clearInterval(voiceLocalCheckUi.timer);voiceLocalCheckUi.timer=setInterval(()=>{const el=document.querySelector('#vl-selfcheck .vl-sc-elapsed');if(el)el.textContent=voiceLocalMs(Date.now()-voiceLocalCheckUi.started);else if(!document.getElementById('vl-selfcheck'))clearInterval(voiceLocalCheckUi.timer)},1000);
+ let res=null;try{res=await voiceLocalSelfCheck(VOICE_AUTO_PACK,{onPhase:p=>{voiceLocalCheckUi.phase=p;voiceLocalCheckRender()}})}catch(e){res={ok:false,code:String(e?.code||'error')}}
+ clearInterval(voiceLocalCheckUi.timer);voiceLocalCheckUi.running=false;voiceLocalCheckUi.last=res;
+ await voiceLocalSyncRecognizers().catch(()=>{});voiceLocalCheckRender();voiceLocalRecNote();return res}
+// After a reload caused by a check that died: open the check again so the phase is visible (once).
+function voiceLocalCheckLater(){if(typeof document==='undefined')return;const go=()=>setTimeout(()=>{const r=voiceLocalCheckRecord();if(r?.open&&r.died)voiceLocalCheckModal().catch(()=>{})},700);if(document.readyState==='complete')go();else addEventListener('load',go,{once:true})}
 // Switch a downloaded pack on: at once off iOS, after a passed self-test on iPhone/iPad. Returns true when switched on.
 async function voiceLocalActivate(id,{force=false,quiet=false}={}){
  if(force)voiceLocalClearFailed();
@@ -462,10 +571,12 @@ function voiceLocalAdapter(id){const r=voiceLocalRecognizer(id);return{id:r.id,l
  // R's contract: onResult(text,{isFinal}); this recogniser reports (text, final:boolean).
  start:(lang,onResult,onEnd)=>r.start(lang,(text,final)=>onResult(text,{isFinal:!!final}),info=>{if(info&&info.reason==='error'&&voiceLocalFailed(id))voiceLocalShowFailure();return onEnd&&onEnd(info)}),stop:()=>r.stop(),abort:()=>r.abort()}}
 // The fallback message with one-tap "Thử lại" (choose the pack again) and "Gỡ gói" (free the space).
-function voiceLocalFailureHtml(f){return`<div class="vl-fail" id="vl-fail" role="alert"><p>${vlEsc(voiceLocalFailText(f))}</p><div class="toolbar"><button type="button" class="btn small" data-vl-retry="${vlEsc(f.pack)}">${vlT('Thử lại','Try again')}</button><button type="button" class="btn small" data-vl-remove="${vlEsc(f.pack)}">${vlT('Gỡ gói','Remove pack')}</button></div></div>`}
+// v1.7.4: no "Thử lại" once the device is disabled (second crash); "Gỡ gói" says how much space it frees.
+function voiceLocalRetryButton(id){return voiceLocalDisabled(id)?'':`<button type="button" class="btn small" data-vl-retry="${vlEsc(id)}">${vlT('Thử lại','Try again')}</button>`}
+function voiceLocalFailureHtml(f){return`<div class="vl-fail" id="vl-fail" role="alert"><p>${vlEsc(voiceLocalFailText(f))}</p><div class="toolbar">${voiceLocalRetryButton(f.pack)}<button type="button" class="btn small" data-vl-remove="${vlEsc(f.pack)}">${vlT('Gỡ gói','Remove pack')}</button><button type="button" class="btn small" data-vl-check>${vlT('Kiểm tra máy này','Check this device')}</button></div></div>`}
 function voiceLocalShowFailure(){if(typeof document==='undefined')return;const f=voiceLocalFailed();if(!f)return;document.getElementById('vl-fail')?.remove();const anchor=document.getElementById('voice-live')||document.getElementById('vp-live');if(anchor)anchor.insertAdjacentHTML('afterend',voiceLocalFailureHtml(f));voiceLocalSyncRecognizers().catch(()=>{})}
 // v1.7.2: the one-time notice after the page died with the model in memory (non-blocking, above the bottom bar).
-function voiceLocalCrashNoticeHtml(f){const id=vlEsc(f.pack);return`<div class="vl-crash-notice" id="vl-crash-notice" role="status" aria-live="polite"><p class="vl-crash-text">${vlEsc(voiceLocalFailText(f))}</p><div class="vl-crash-actions"><button type="button" class="btn small" data-vl-retry="${id}">${vlT('Thử lại','Try again')}</button><button type="button" class="btn small" data-vl-remove="${id}">${vlT('Gỡ gói','Remove pack')}</button><button type="button" class="vl-crash-close" data-vl-crash-close aria-label="${vlT('Đóng thông báo','Close notice')}" title="${vlT('Đóng thông báo','Close notice')}">×</button></div></div>`}
+function voiceLocalCrashNoticeHtml(f){const id=vlEsc(f.pack);return`<div class="vl-crash-notice" id="vl-crash-notice" role="status" aria-live="polite"><p class="vl-crash-text">${vlEsc(voiceLocalFailText(f))}</p><div class="vl-crash-actions">${voiceLocalRetryButton(f.pack)}<button type="button" class="btn small" data-vl-remove="${id}">${vlT('Gỡ gói','Remove pack')}</button><button type="button" class="vl-crash-close" data-vl-crash-close aria-label="${vlT('Đóng thông báo','Close notice')}" title="${vlT('Đóng thông báo','Close notice')}">×</button></div></div>`}
 function voiceLocalShowCrashNotice(){if(typeof document==='undefined'||!document.body)return false;const f=voiceLocalFailed();if(!voiceLocalIsCrash(f)||f.notice!=='pending')return false;
  document.getElementById('vl-crash-notice')?.remove();document.body.insertAdjacentHTML('beforeend',voiceLocalCrashNoticeHtml(f));
  try{localStorage.setItem(VOICE_LOCAL_FAIL_KEY,JSON.stringify({...f,notice:'shown'}))}catch{}return true}
@@ -474,8 +585,10 @@ function voiceLocalCrashNoticeLater(){if(typeof document==='undefined')return;co
 function voiceLocalCrashNoticeRefresh(){const n=typeof document!=='undefined'&&document.getElementById('vl-crash-notice');if(!n)return;const f=voiceLocalFailed();if(!voiceLocalIsCrash(f)){n.remove();return}const t=n.querySelector('.vl-crash-text');if(t)t.textContent=voiceLocalFailText(f)}
 // "Thử lại / Try again": explicit, with a warning; runs the self-test and switches the pack on only if it passes.
 async function voiceLocalRetry(id){if(!VOICE_LOCAL_PACKS[id])return false;
- const crash=voiceLocalIsCrash(voiceLocalFailed(id));
- const body=(crash?vlT('Lần trước bộ giọng chính xác làm máy hết bộ nhớ và trang bị tải lại.','Last time accurate voice ran this device out of memory and the page reloaded.')+' ':'')+vlT('Thử lại có thể làm trang tải lại thêm lần nữa. App chạy thử khi bạn không nói và chỉ bật nếu chạy thử thành công; nếu không, giữ giọng nói thường của máy.','Trying again may reload the page once more. The app runs a test while you are not speaking and switches it on only if the test passes; otherwise the standard voice input stays.');
+ // v1.7.4: after a second memory crash there is no further attempt on this device (until an update).
+ if(voiceLocalDisabled(id)){typeof toast==='function'&&toast(voiceLocalFailText({pack:id,stage:'crash'}),true);return false}
+ const crash=voiceLocalIsCrash(voiceLocalFailed(id))||voiceLocalCrashCount(id)>0;
+ const body=(crash?vlT('Lần trước máy thiếu bộ nhớ và trang đã tải lại.','Last time the device ran out of memory and the page reloaded.')+' ':'')+vlT('Thử lại một lần: app chạy thử khi bạn không nói, trang có thể tải lại một lần nữa. Nếu lại thiếu bộ nhớ, giọng chính xác sẽ tắt trên máy này tới bản cập nhật sau; giọng nói thường vẫn dùng được.','One more try: the app runs a test while you are not speaking and the page may reload once more. If memory runs out again, accurate voice stays off on this device until the next update; the standard voice input keeps working.');
  const ok=typeof confirmDialog==='function'?!!(await confirmDialog({title:vlT('Thử lại bộ giọng chính xác?','Try accurate voice again?'),body,confirmLabel:vlT('Thử lại','Try again'),cancelLabel:vlT('Để sau','Not now')})):confirm(body);
  if(!ok)return false;
  if(typeof document!=='undefined'){document.getElementById('vl-fail')?.remove();document.getElementById('vl-crash-notice')?.remove()}
@@ -498,8 +611,34 @@ function voiceLocalRecNoteText(){const id=VOICE_AUTO_PACK,active=typeof voiceAct
  if(voiceLocalFailed(id))t+=' '+vlT('Bộ giọng chính xác đã tắt trên máy này.','Accurate voice is off on this device.');
  else if(voiceLocalReady[id]&&voiceLocalOnIOS()&&!voiceLocalSelfTestPassed(id))t+=' '+(voiceLocalSelfTestRun.p?vlT('Đang chạy thử bộ giọng chính xác…','Testing accurate voice…'):vlT('Bộ giọng chính xác sẽ bật sau khi chạy thử thành công.','Accurate voice switches on after a successful test.'));
  return t}
-function voiceLocalRecNote(){if(typeof document==='undefined')return;const st=document.getElementById('voice-status');if(!st)return;let n=document.getElementById('vl-rec-note');
- if(!n){n=document.createElement('small');n.id='vl-rec-note';n.className='hint vl-rec-note';st.after(n)}n.textContent=voiceLocalRecNoteText()}
+function voiceLocalRecNote(){if(typeof document==='undefined')return;const st=document.getElementById('voice-status');if(!st){voiceLocalDictationTip();return}let n=document.getElementById('vl-rec-note');
+ if(!n){n=document.createElement('small');n.id='vl-rec-note';n.className='hint vl-rec-note';st.after(n)}n.textContent=voiceLocalRecNoteText();voiceLocalDictationTip()}
+// v1.7.4 iPhone/iPad: whenever accurate voice is not the recogniser in use (not downloaded, not tested yet, failed or off),
+// keyboard dictation is the best Vietnamese input there. Every voice sheet with a text box (quick voice, price, recipe)
+// shows one short tip and a button that focuses the box so the keyboard — with its 🎤 key — opens.
+const VOICE_LOCAL_DICTATE_TARGETS=['voice-text','vp-text','vr-text'];
+function voiceLocalDictationWanted(){if(!voiceLocalOnIOS())return false;const id=voiceLocalChoice();return!(id&&voiceLocalUsable(id))}
+function voiceLocalDictationTipHtml(target){const lang=typeof appLanguage!=='undefined'?appLanguage:'vi';return`<div class="vl-dictate" id="vl-dictate-${target}" data-lang="${lang}" role="note"><p>💡 ${vlT('Trên iPhone: chạm vào ô chữ rồi bấm 🎤 trên bàn phím để đọc chính tả (tiếng Việt rất tốt).','On iPhone: tap the text box, then tap 🎤 on the keyboard to dictate (Vietnamese works very well).')}</p><button type="button" class="btn small" data-vl-dictate="${target}">⌨️ ${vlT('Mở bàn phím để nói','Open the keyboard to talk')}</button></div>`}
+function voiceLocalDictationTip(){if(typeof document==='undefined')return 0;const want=voiceLocalDictationWanted(),lang=typeof appLanguage!=='undefined'?appLanguage:'vi';let n=0;
+ for(const t of VOICE_LOCAL_DICTATE_TARGETS){const box=document.getElementById(t),tip=document.getElementById('vl-dictate-'+t);
+  if(!box||!want){tip?.remove();continue}
+  if(tip){if(tip.dataset.lang!==lang)tip.outerHTML=voiceLocalDictationTipHtml(t);continue}
+  (box.closest('.field')||box).insertAdjacentHTML('afterend',voiceLocalDictationTipHtml(t));n++}
+ return n}
+function voiceLocalDictationWatch(){if(voiceLocalDictationWatch.on||typeof document==='undefined'||typeof MutationObserver!=='function')return;const root=document.getElementById('modal-root');if(!root)return;voiceLocalDictationWatch.on=true;
+ let queued=false;new MutationObserver(()=>{if(queued)return;queued=true;queueMicrotask(()=>{queued=false;try{voiceLocalDictationTip()}catch{}})}).observe(root,{childList:true,subtree:true})}
+// Stops this sheet's own listening (the keyboard's dictation needs the microphone) and opens the keyboard on the box.
+function voiceLocalOpenKeyboard(target){const box=document.getElementById(target);if(!box)return false;
+ try{if(target==='voice-text'&&typeof stopVoice==='function')stopVoice();if(target==='vp-text'&&typeof vpState!=='undefined')vpState.take?.stop?.(true);if(target==='vr-text'&&typeof vrState!=='undefined')vrState.take?.stop?.(true)}catch{}
+ box.focus();try{const n=box.value.length;box.setSelectionRange(n,n)}catch{}
+ if(target==='voice-text'&&typeof voiceSetUi==='function')try{voiceSetUi('stopped',vlT('Bấm 🎤 trên bàn phím rồi nói; xong thì bấm Xem trước.','Tap 🎤 on the keyboard and speak; then tap Preview.'))}catch{}
+ return true}
+// Account & settings → "Giọng nói trên máy": the way to the self-check page.
+function voiceLocalSettingsCardHtml(){const f=voiceLocalFailed(VOICE_AUTO_PACK),off=voiceLocalDisabled(VOICE_AUTO_PACK),r=voiceLocalCheckRecord();
+ const state=off||voiceLocalIsCrash(f)?voiceLocalFailText(f||{pack:VOICE_AUTO_PACK,stage:'crash'}):r&&!r.running?(r.ok?vlT('Lần kiểm tra gần nhất: đạt.','Last check: passed.'):vlT('Lần kiểm tra gần nhất: không đạt.','Last check: did not pass.')):'';
+ const body=`${state?`<p class="hint">${vlEsc(state)}</p>`:''}<button type="button" class="btn small" data-vl-check>${vlT('Kiểm tra giọng chính xác trên máy này','Check accurate voice on this device')}</button>`;
+ const title=vlT('Giọng nói trên máy','On-device voice'),desc=vlT('Bộ “Chính xác hơn” chạy trên máy, không gửi âm thanh.','The “More accurate” pack runs on this device; no audio is sent.');
+ return typeof settingsCard==='function'?settingsCard('settings','voice',title,desc,body):`<section class="kitchen-section kitchen-card" id="settings-voice"><h3>${title}</h3><p class="kitchen-desc">${desc}</p>${body}</section>`}
 async function voiceLocalSyncRecognizers(){
  if(typeof registerVoiceRecognizer!=='function')return 0;let n=0;
  let cap=null;try{cap=voiceLocalCap||await voiceLocalProbe();voiceLocalCap=cap}catch{}
@@ -574,13 +713,15 @@ async function voiceAutoInputs(){
  const state=await voiceLocalStatus(VOICE_AUTO_PACK).catch(()=>'none');
  let quotaFree=null,need=null;try{const est=await navigator.storage?.estimate?.();if(est&&est.quota){quotaFree=est.quota-(est.usage||0);need=Math.max(0,voiceLocalPackBytes(VOICE_AUTO_PACK)+voiceLocalBytes(voiceLocalRuntime())-(voiceAutoProgress()?.done||0))}}catch{}
  let battery=null;try{if(typeof navigator.getBattery==='function'){const b=await navigator.getBattery();battery={level:b.level,charging:b.charging};if(!voiceAuto.batteryHooked){voiceAuto.batteryHooked=true;b.addEventListener?.('levelchange',()=>voiceAutoRun('battery'));b.addEventListener?.('chargingchange',()=>voiceAutoRun('battery'))}}}catch{}
- return{state,enabled:voiceAutoEnabled(),removed:vlGet(VOICE_AUTO_REMOVED_KEY)==='1',explicitBrowser:voiceAutoExplicitBrowser(),failed:!!voiceLocalFailed(VOICE_AUTO_PACK),
+ return{state,enabled:voiceAutoEnabled(),removed:vlGet(VOICE_AUTO_REMOVED_KEY)==='1',explicitBrowser:voiceAutoExplicitBrowser(),failed:!!voiceLocalFailed(VOICE_AUTO_PACK)||voiceLocalDisabled(VOICE_AUTO_PACK)||voiceLocalCrashCount(VOICE_AUTO_PACK)>0,
   automated:!!navigator.webdriver&&!globalThis.BEP_VOICE_AUTO_TEST,capable:!!cap?.packs?.[VOICE_AUTO_PACK]?.ok,quotaFree,need,paused:voiceAutoPaused(),
   net:globalThis.BEP_OFFLINE?'offline':voiceAutoNetwork(navigator),battery,hidden:typeof document!=='undefined'&&document.visibilityState==='hidden'}}
 // Once the pack is ready: make it the recogniser unless the family chose otherwise (one-time toast).
 async function voiceAutoMaybeSwitch(){
  await voiceLocalSyncRecognizers().catch(()=>{});
- if(voiceAutoExplicitBrowser()||voiceLocalFailed(VOICE_AUTO_PACK)||voiceLocalChoice())return false;
+ // v1.7.4: after a memory crash on this device nothing switches (or test-loads) the pack by itself again — only an
+ // explicit "Thử lại", the self-check page or "Dùng giọng chính xác" after a passed check.
+ if(voiceAutoExplicitBrowser()||voiceLocalFailed(VOICE_AUTO_PACK)||voiceLocalCrashCount(VOICE_AUTO_PACK)>0||voiceLocalChoice())return false;
  if(vlGet(VOICE_REC_KEY))return false;
  if((await voiceLocalStatus(VOICE_AUTO_PACK).catch(()=>'none'))!=='ready')return false;
  // v1.7.2 iPhone/iPad: switched on only after the background self-test passed on this device (never while speaking).
@@ -671,7 +812,7 @@ function voiceAutoInstall(){
   else{try{sessionStorage.setItem(VOICE_AUTO_HIDE_KEY,'1')}catch{}document.getElementById('vl-auto-chip')?.remove()}});
  document.addEventListener('change',e=>{const t=e.target;if(t?.id!=='vl-auto-dl')return;voiceAutoSetEnabled(t.checked);
   if(!t.checked){if(voiceAuto.job)voiceAutoPause();vlSet(VOICE_AUTO_PAUSED_KEY,null);voiceAutoRenderChip();voiceAutoRenderRow()}else setTimeout(()=>voiceAutoRun('setting').catch(()=>{}),300)});
- if(typeof render==='function'&&!render.__vlAuto){const prev=render;render=function(...a){const out=prev.apply(this,a);try{if(document.getElementById('vl-auto-chip'))voiceAutoUpdateProgress();voiceLocalCrashNoticeRefresh()}catch{}return out};render.__vlAuto=true}
+ if(typeof render==='function'&&!render.__vlAuto){const prev=render;render=function(...a){const out=prev.apply(this,a);try{if(document.getElementById('vl-auto-chip'))voiceAutoUpdateProgress();voiceLocalCrashNoticeRefresh();voiceLocalDictationTip();voiceLocalCheckRender()}catch{}return out};render.__vlAuto=true}
 }
 
 // ---------- standalone settings block in the voice sheet ----------
@@ -697,6 +838,7 @@ function voiceLocalSettingsHtml(cap,statuses){
  <p class="hint">${vlT('Trên máy: âm thanh không rời khỏi máy, dùng được khi mất mạng. Chỉ tải gói một lần','On device: audio never leaves this device and it works offline. The pack downloads once')} (+${size(rt)} ${vlT('bộ chạy dùng chung','shared runtime')}).</p>
  ${shared?'':`<label class="vl-check"><input type="checkbox" class="check" id="vl-lang-auto" ${voiceLocalLangMode()==='auto'?'checked':''}> ${vlT('Trên máy: tự nhận ngôn ngữ (thay vì theo nút Tiếng Việt / English)','On device: detect language automatically (instead of the Tiếng Việt / English buttons)')}</label>`}
  ${cap&&!cap.ok?`<p class="hint vl-note">${cap.reasons.map(voiceLocalReasonText).map(vlEsc).join(' ')} ${vlT('Đang dùng nhận giọng nói của trình duyệt.','Using browser speech recognition.')}</p>`:''}
+ <button type="button" class="btn small vl-sc-link" data-vl-check>${vlT('Kiểm tra giọng chính xác trên máy này','Check accurate voice on this device')}</button>
  </fieldset>
  <label class="vl-check vl-consent"><input type="checkbox" class="check" id="voice-stats-consent" ${consent?'checked':''}> ${vlT('Giúp cải thiện nhận giọng nói (chỉ gửi chữ, không gửi âm thanh)','Help improve voice recognition (sends text only, never audio)')}</label>
  <p class="hint">${vlT('Tắt mặc định. Khi bật: sau mỗi lần bạn xác nhận, app gửi câu chữ đã lược bỏ tên thành viên, email, số điện thoại; lưu tối đa 90 ngày; tắt là xoá.','Off by default. When on: after each confirmation the app sends the words with member names, emails and phone numbers removed; kept up to 90 days; switching off deletes them.')} <a href="/privacy.html#voice" target="_blank" rel="noopener">${vlT('Xem chi tiết','Details')}</a></p>`;
@@ -759,6 +901,16 @@ async function voiceLocalCleanRetired(){if(typeof caches!=='object'||!caches)ret
 function voiceLocalInstall(){
  // FIRST, before anything can load the model: a marker left by a page that died with the model in memory.
  const crash=voiceLocalCheckCrash();voiceLocalMigrateChoice();voiceLocalLifecycle();if(crash||voiceLocalFailed()?.notice==='pending')voiceLocalCrashNoticeLater();voiceLocalCleanRetired().catch(()=>{});voiceLocalRegisterHooks();voiceAutoInstall();
+ // v1.7.4: a self-check that died re-opens with its phase; the iPhone dictation tip; the settings card.
+ if(voiceLocalCheckRecord()?.open)voiceLocalCheckLater();
+ voiceLocalDictationWatch();if(typeof document!=='undefined'&&document.readyState!=='complete')addEventListener('load',()=>voiceLocalDictationWatch(),{once:true});
+ if(typeof otherSettingsModal==='function'&&!otherSettingsModal.__vl){const prevOther=otherSettingsModal;otherSettingsModal=function(section=''){const out=prevOther.apply(this,arguments);try{if(!document.getElementById('settings-voice')){const at=document.getElementById('settings-offline-ready')||document.getElementById('settings-data');const html=voiceLocalSettingsCardHtml();if(at)at.insertAdjacentHTML('beforebegin',html);else document.querySelector('.modal .modal-content')?.insertAdjacentHTML('beforeend',html)}if(section==='voice')requestAnimationFrame(()=>document.getElementById('settings-voice')?.scrollIntoView?.({block:'start'}))}catch{}return out};otherSettingsModal.__vl=true}
+ document.addEventListener('click',e=>{const b=e.target?.closest?.('[data-vl-check],[data-vl-check-run],[data-vl-check-use],[data-vl-check-copy],[data-vl-dictate]');if(!b)return;e.preventDefault();
+  if(b.hasAttribute('data-vl-dictate')){voiceLocalOpenKeyboard(b.dataset.vlDictate);return}
+  if(b.hasAttribute('data-vl-check-run')){voiceLocalCheckStart().catch(()=>{});return}
+  if(b.hasAttribute('data-vl-check-use')){voiceLocalActivate(VOICE_AUTO_PACK,{quiet:true}).then(on=>{typeof toast==='function'&&toast(on?vlT('Đã bật giọng chính xác trên máy này.','Accurate voice is on for this device.'):vlT('Chưa bật được giọng chính xác — giữ giọng nói thường.','Could not switch accurate voice on — keeping the standard voice input.'),!on);voiceLocalCheckRender()}).catch(()=>{});return}
+  if(b.hasAttribute('data-vl-check-copy')){const text=voiceLocalCheckText(voiceLocalCheckUi.last||voiceLocalCheckRecord());(navigator.clipboard?.writeText?navigator.clipboard.writeText(text):Promise.reject()).then(()=>typeof toast==='function'&&toast(vlT('Đã sao chép kết quả.','Results copied.'))).catch(()=>{typeof toast==='function'&&toast(vlT('Không sao chép được — chụp màn hình giúp nhé.','Could not copy — please take a screenshot.'),true)});return}
+  voiceLocalCheckModal().catch(()=>{})});
  if(typeof addEventListener==='function')addEventListener('bep-voice-registry',()=>{voiceLocalRegisterHooks();voiceLocalSyncRecognizers().catch(()=>{})});
  document.addEventListener('bep-voice-settings-mounted',()=>voiceLocalMountSettings());
  if(typeof voiceModal==='function'&&!voiceModal.__vl){const prev=voiceModal;voiceModal=function(...a){voiceLocalLastUsed='';const out=prev.apply(this,a);voiceLocalMountSettings();return out};voiceModal.__vl=true}
@@ -773,7 +925,7 @@ function voiceLocalInstall(){
  document.addEventListener('click',e=>{if(!e.target?.closest?.('[data-vl-crash-close]'))return;e.preventDefault();document.getElementById('vl-crash-notice')?.remove()});
  document.addEventListener('click',async e=>{const b=e.target?.closest?.('[data-vl-download],[data-vl-remove]');if(!b)return;e.preventDefault();
   const id=b.dataset.vlDownload||b.dataset.vlRemove,row=b.closest('.vl-pack');
-  if(b.dataset.vlRemove){voiceAutoMarkRemoved();voiceLocalClearFailed();document.getElementById('vl-fail')?.remove();document.getElementById('vl-crash-notice')?.remove();try{localStorage.removeItem(VOICE_LOCAL_SELFTEST_KEY)}catch{}await voiceLocalRemove(id);await voiceLocalSyncRecognizers().catch(()=>{});typeof toast==='function'&&toast(vlT('Đã xoá gói nhận giọng nói.','Speech pack removed.'));return voiceLocalRenderSettings()}
+  if(b.dataset.vlRemove){voiceAutoMarkRemoved();voiceLocalClearFailed();document.getElementById('vl-fail')?.remove();document.getElementById('vl-crash-notice')?.remove();try{localStorage.removeItem(VOICE_LOCAL_SELFTEST_KEY)}catch{}await voiceLocalRemove(id);await voiceLocalSyncRecognizers().catch(()=>{});typeof toast==='function'&&toast(voiceLocalRemovedText(voiceLocalLastFreed));voiceLocalCheckRender();const card=document.getElementById('settings-voice');if(card)card.outerHTML=voiceLocalSettingsCardHtml();return voiceLocalRenderSettings()}
   if(!navigator.onLine||globalThis.BEP_OFFLINE){typeof toast==='function'&&toast(vlT('Tải gói cần kết nối mạng.','Downloading the pack needs an internet connection.'),true);return}
   {const warnText=voiceLocalDownloadWarning(id,voiceLocalCap||await voiceLocalProbe(),typeof appLanguage!=='undefined'?appLanguage:'vi');if(warnText&&!(typeof confirmDialog==='function'?await confirmDialog({title:vlT('Tải gói giọng nói trên máy?','Download on-device speech?'),body:warnText,confirmLabel:vlT('Tải về','Download'),cancelLabel:vlT('Để sau','Not now')}):confirm(warnText)))return}
   if(voiceLocalOnCellular()&&!confirm(vlT('Bạn đang dùng dữ liệu di động. Tải ','You are on mobile data. Download ')+voiceLocalFormatBytes(voiceLocalPackBytes(id),typeof appLanguage!=='undefined'?appLanguage:'vi')+'?'))return;

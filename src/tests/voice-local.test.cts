@@ -207,7 +207,7 @@ t('failure guard: load failure, crash during recognition and reload mid-load fal
  run(c,'voiceLocalClearFailed()');
  // 3. The page died while loading (iOS reloads a tab that runs out of memory): the busy marker turns into a failure.
  run(c,"voiceLocalSetChoice('small')");store.set('bep-voice-local-busy',JSON.stringify({pack:'small',stage:'load',at:1}));
- assert.equal(J(c,'voiceLocalCheckCrash()').stage,'crash');assert.equal(J(c,'voiceLocalFailed()').phase,'loading-model','v1.7.1 marker shape still understood');assert.equal(run(c,'voiceLocalChoice()'),'');assert.match(run(c,'voiceLocalFailText(voiceLocalFailed())'),/tải lại/);
+ assert.equal(J(c,'voiceLocalCheckCrash()').stage,'crash');assert.equal(J(c,'voiceLocalFailed()').phase,'loading-model','v1.7.1 marker shape still understood');assert.equal(run(c,'voiceLocalChoice()'),'');assert.match(run(c,'voiceLocalFailText(voiceLocalFailed())'),/thiếu bộ nhớ — đang dùng giọng nói thường/);
  assert.equal(run(c,'voiceLocalCheckCrash()'),null,'checked once');
  // A stored choice of the retired Light pack falls back to the browser recogniser.
  store.set('bep-voice-recognizer','local-base');assert.equal(run(c,'voiceLocalChoice()'),'');assert.equal(store.has('bep-voice-recognizer'),false);
