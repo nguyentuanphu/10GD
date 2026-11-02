@@ -326,10 +326,21 @@ const vcBeforeClose=closeModal;closeModal=function(...a){vcStopConfirm();vcCance
 // Hold to talk (v1.7.1 default): voice-price.js's shared hold controller (pointer + touch + held Space/Enter,
 // slide-off, 250 ms minimum) calls these. Release stops listening and, once the last words arrive, previews them.
 let vcSendTimer=null;
-function vcPttDown(){if(vcPttHolding)return;clearTimeout(vcSendTimer);vcPttHolding=true;vcStopConfirm();vcCancelSpeech();$('#voice-retry')?.remove();startVoiceMic(false);vcPttApply()}
+// v1.7.2 iPhone/iPad: the first hold used to raise iOS's microphone prompt, which cancels the hold mid-way (and with the
+// on-device recogniser left the model loading behind it). Now, while this page has no microphone permission yet, the
+// first tap only asks for it with a short explanation; the next hold records. Other platforms are unchanged.
+let vcMicState='',vcMicPrimed=false,vcMicPriming=false;
+function vcMicWatch(){try{navigator.permissions?.query?.({name:'microphone'})?.then(p=>{vcMicState=p.state;p.onchange=()=>{vcMicState=p.state}}).catch(()=>{})}catch{}}
+function vcMicNeedsPrime(){return vcIOS()&&!vcMicPrimed&&vcMicState!=='granted'&&!!navigator.mediaDevices?.getUserMedia}
+async function vcMicPrime(){if(vcMicPriming)return;vcMicPriming=true;voiceSetUi('stopped',tr('Cho phép micro để nói: chạm “Cho phép” trong hộp thoại của máy, rồi giữ nút để nói.','Allow the microphone to talk: tap “Allow” in the system prompt, then hold the button to talk.'));
+ try{const s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());vcMicPrimed=true;vcMicState='granted';if($('#voice-text'))voiceSetUi('stopped',tr('Đã bật micro — giờ giữ nút để nói.','Microphone on — now hold the button to talk.'))}
+ catch(e){if($('#voice-text'))voiceSetUi('stopped',e?.name==='NotAllowedError'||e?.name==='SecurityError'?tr('Micro đang bị chặn. Cho phép micro trong Cài đặt của máy (Safari › Micro) hoặc gõ vào ô trên.','The microphone is blocked. Allow it in your device settings (Safari › Microphone) or type above.'):tr('Không mở được micro. Gõ vào ô trên hoặc thử lại.','Could not open the microphone. Type above or try again.'))}
+ finally{vcMicPriming=false;vcPttApply()}}
+if(VC_DOM)vcMicWatch();
+function vcPttDown(){if(vcPttHolding||vcMicPriming)return;if(vcMicNeedsPrime()){clearTimeout(vcSendTimer);vcMicPrime();return}clearTimeout(vcSendTimer);vcPttHolding=true;vcStopConfirm();vcCancelSpeech();$('#voice-retry')?.remove();startVoiceMic(false);vcPttApply()}
 function vcPttUp(send=true){if(!vcPttHolding)return;vcPttHolding=false;voiceStopNow();vcPttApply();clearTimeout(vcSendTimer);if(send)vcSendTimer=setTimeout(()=>{if(vcPttHolding||!$('#voice-text'))return;if(($('#voice-text').value||'').trim())previewVoice()},VoiceAPI.holdSendMs)}
 function vcPttCancel(){if(!vcPttHolding)return;vcPttHolding=false;stopVoice();vcPttApply();voiceSetUi('stopped',tr('Giữ nút để nói — thả ra là gửi.','Hold the button to talk — release to send.'))}
-if(globalThis.VOICE_HOLD_HANDLERS)globalThis.VOICE_HOLD_HANDLERS.main={down:vcPttDown,up:()=>vcPttUp(true),cancel:vcPttCancel};
+if(globalThis.VOICE_HOLD_HANDLERS)globalThis.VOICE_HOLD_HANDLERS.main={down:vcPttDown,up:()=>vcPttUp(true),cancel:vcPttCancel,hint:()=>vcMicPriming?($('#voice-status')?.textContent||''):''};
 VoiceAPI.listenForConfirm=()=>vcStartConfirm();VoiceAPI.speak=(text,onDone)=>vcSpeak(text,onDone);VoiceAPI.stopListening=()=>vcStopConfirm();
 // ---- Settings changes and card actions ----
 document.addEventListener('change',e=>{const id=e.target?.id;if(id==='voice-readback-on'){vcSetPref('bep-voice-readback',e.target.checked);if(!e.target.checked){vcCancelSpeech();vcStopConfirm()}}if(id==='voice-confirm-voice')vcSetPref('bep-voice-confirm',e.target.checked);if(id==='voice-meter-on'){vcSetPref('bep-voice-meter',e.target.checked);if(!e.target.checked)vcMeterStop();else if(voiceKeepListening)vcMeterStart()}if(id==='voice-ptt'){if(typeof voiceSetHoldMode==='function')voiceSetHoldMode(e.target.checked);else vcSetPref('bep-voice-ptt',e.target.checked);if(e.target.checked&&voiceKeepListening)voiceStopNow();vcPttHolding=false;vcPttApply();voiceSetUi(voiceKeepListening?'listening':'stopped')}if(id==='voice-recognizer'){try{localStorage.setItem('bep-voice-recognizer',e.target.value)}catch{}vcModeChip();try{typeof voiceLocalRenderSettings==='function'&&voiceLocalRenderSettings()}catch{}if(voiceKeepListening)startVoiceMic(false)}if(id==='voice-auto')vcModeChip()});

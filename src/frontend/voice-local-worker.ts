@@ -25,7 +25,7 @@ function voiceLocalWorkerHandler({createEngine,post,now=()=>Date.now()}){
   if(m.type==='load'){
    const t=now();
    loading=(async()=>{try{engine?.dispose?.()}catch{}engine=null;engine=await createEngine({pack:m.pack,runtime:m.runtime,cacheName:m.cacheName,progress:p=>post({type:'progress',id,status:p?.status||'',file:p?.file||'',progress:typeof p?.progress==='number'?p.progress:null})});return engine})();
-   return loading.then(e=>post({type:'loaded',id,ms:now()-t,device:e?.device||'wasm'}),e=>{engine=null;fail(id,e?.code||'load',e?.message)});
+   return loading.then(e=>post({type:'loaded',id,ms:now()-t,device:e?.device||'wasm',files:Array.isArray(e?.files)?e.files.slice(0,20):[]}),e=>{engine=null;fail(id,e?.code||'load',e?.message)});
   }
   if(m.type==='transcribe'){
    chain=chain.then(async()=>{
@@ -33,7 +33,10 @@ function voiceLocalWorkerHandler({createEngine,post,now=()=>Date.now()}){
     if(!engine){fail(id,'not-loaded','engine not loaded');return}
     const audio=m.audio;if(!(audio instanceof Float32Array)||!audio.length){fail(id,'audio','no audio');return}
     const t=now();
-    try{const text=await engine.transcribe(audio,{language:m.language||null,final:!!m.final});post({type:'result',id,text:String(text||'').trim(),final:!!m.final,ms:now()-t,seconds:Math.round(audio.length/1600)/10})}
+    // v1.7.2: at most 20 s (16 kHz) per inference — longer audio is decoded in 15 s pieces, so the encoder input and the
+    // decoder output stay bounded (iOS kills the page when memory spikes).
+    try{const parts=voiceLocalWorkerChunks(audio),texts=[];for(const part of parts)texts.push(String(await engine.transcribe(part,{language:m.language||null,final:!!m.final})||'').trim());
+     post({type:'result',id,text:texts.filter(Boolean).join(' '),final:!!m.final,ms:now()-t,seconds:Math.round(audio.length/1600)/10,chunks:parts.length})}
     catch(e){fail(id,e?.code||'transcribe',e?.message)}
    });
    return chain;
@@ -43,6 +46,8 @@ function voiceLocalWorkerHandler({createEngine,post,now=()=>Date.now()}){
  };
 }
 
+const VOICE_LOCAL_WORKER_MAX_SAMPLES=16000*20,VOICE_LOCAL_WORKER_CHUNK_SAMPLES=16000*15;
+function voiceLocalWorkerChunks(audio){if(audio.length<=VOICE_LOCAL_WORKER_MAX_SAMPLES)return[audio];const out=[];for(let o=0;o<audio.length;o+=VOICE_LOCAL_WORKER_CHUNK_SAMPLES){const part=audio.subarray(o,Math.min(audio.length,o+VOICE_LOCAL_WORKER_CHUNK_SAMPLES));if(part.length>=1600||!out.length)out.push(part)}return out}
 function voiceLocalWorkerB64(buf){let s='';const a=new Uint8Array(buf);for(let i=0;i<a.length;i+=32768)s+=String.fromCharCode.apply(null,a.subarray(i,i+32768));return btoa(s)}
 // Real engine: transformers.js (pinned, integrity-checked, from the pack cache) + Whisper q8 on WASM.
 async function voiceLocalTransformersEngine({pack,runtime,cacheName,progress}){
@@ -61,18 +66,22 @@ async function voiceLocalTransformersEngine({pack,runtime,cacheName,progress}){
  // Cache-only fetch: anything not in the downloaded pack is "missing", never fetched.
  // Some loaders ask for `resolve/main/`; serve the pinned revision that was downloaded.
  const pin=(u:string)=>u.replace('/'+pack.model+'/resolve/main/','/'+pack.model+'/resolve/'+pack.revision+'/');
- env.fetch=async input=>{const u=pin(typeof input==='string'?input:input?.url||String(input));return (await cache.match(u))||new Response('',{status:404,statusText:'Not in pack'})};
+ // The files actually read are reported back ('loaded'.files): benchmarks/tests confirm the q8 (`_quantized`) weights are used.
+ const files:string[]=[];
+ env.fetch=async input=>{const u=pin(typeof input==='string'?input:input?.url||String(input));const hit=await cache.match(u);if(hit&&files.length<40)files.push(u.split('/').slice(-2).join('/'));return hit||new Response('',{status:404,statusText:'Not in pack'})};
  // WebGPU (iOS/iPadOS 26+, desktop Chrome/Edge) when the page found a GPU adapter: transformers.js 4.3.1 takes
  // device:'webgpu' with the same pinned q8 files (no extra downloads; ONNX Runtime keeps ops without a GPU kernel on
  // the CPU). Any WebGPU failure falls back to the proven WASM path.
- const opts=(device:string)=>({revision:pack.revision,dtype:{encoder_model:'q8',decoder_model_merged:'q8'},device,progress_callback:progress});
+ // v1.7.2 low-memory session (measured in Chromium, docs/reviews/v1.7.2/voice-ios-crash): no CPU memory arena and no memory
+ // pattern — the arena grows in doubling steps and WebAssembly memory never shrinks, so its high-water mark stayed resident.
+ const opts=(device:string)=>({revision:pack.revision,dtype:{encoder_model:'q8',decoder_model_merged:'q8'},device,progress_callback:progress,...(runtime.lowMemory===false?{}:{session_options:{enableCpuMemArena:false,enableMemPattern:false,executionMode:'sequential'}})});
  let asr=null,device='wasm';
  if(runtime.gpu&&(self as any).navigator?.gpu){try{const adapter=await (self as any).navigator.gpu.requestAdapter();if(adapter){asr=await pipeline('automatic-speech-recognition',pack.model,opts('webgpu'));device='webgpu'}}catch{asr=null}}
  if(!asr)asr=await pipeline('automatic-speech-recognition',pack.model,opts('wasm'));
  return{
   async transcribe(audio,{language,final}){const out=await asr(audio,{language:language||null,task:'transcribe',chunk_length_s:30,stride_length_s:5,return_timestamps:false,max_new_tokens:Math.min(final?224:96,16+Math.ceil(audio.length/16000*12)),no_repeat_ngram_size:4});return Array.isArray(out)?out.map(o=>o.text).join(' '):out?.text||''},
-  device,
-  dispose(){try{asr.dispose?.()}catch{}}
+  device,files,
+  dispose(){try{asr?.dispose?.()}catch{}asr=null}
  };
 }
 

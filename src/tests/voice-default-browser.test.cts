@@ -37,6 +37,8 @@ async function main(){
    await route.fulfill(k?{status:200,body:fake[k],headers:{'Access-Control-Allow-Origin':'*'}}:{status:404,body:''}).catch(()=>{})});
   await context.route(origin+'/**',async route=>{const url=new URL(route.request().url()),path=url.pathname;
    if(path.startsWith('/.netlify/')){await route.fulfill({status:401,json:{error:'no'}});return}
+   // v1.7.2: the iPhone self-test runs the REAL worker with a fake engine (no model).
+   if(path==='/voice-local-worker.js'){await route.fulfill({contentType:'application/javascript',body:readFileSync('dist/voice-local-worker.js','utf8')+`\n;self.__voiceLocalEngineFactory=async()=>({transcribe:async()=>'',dispose(){}});\n`});return}
    if(path==='/startup-scripts.json'){await route.fulfill({json:JSON.parse(readFileSync('dist/startup-scripts.json','utf8'))});return}
    const file=resolve('dist',path==='/'?'index.html':path.slice(1));
    try{await route.fulfill({contentType:mime[extname(file)]||'application/octet-stream',body:readFileSync(file)})}catch{await route.fulfill({status:404,body:'Not found'})}});
@@ -95,6 +97,7 @@ async function main(){
    await page.locator('#vl-auto-chip [data-vl-auto-resume]').click();
    await page.waitForFunction(()=>localStorage.getItem('bep-voice-recognizer')==='local-small',null,{timeout:10000});
    const after=hits.slice(before).map(h=>h.url.split('/').pop());assert.ok(after.every(f=>f==='decoder_model_merged_quantized.onnx'||!seen.has(f)),'resume fetches only what is missing: '+after.join(','));
+   assert.equal(JSON.parse(await ls(page,'bep-voice-local-selftest')||'null')?.ok,true,'v1.7.2: switched on only after the self-test passed on this iPhone');assert.equal(await ls(page,'bep-voice-local-busy'),null,'self-test model freed');
    assert.equal(await ls(page,'bep-voice-auto-paused'),null);assert.equal(await page.locator('#vl-auto-chip').count(),0);
    assert.deepEqual(errors,[]);await context.close();console.log('PASS iPhone: chip with 4G/5G note, Pause persisted across reload, Resume continues and switches on');}
 
