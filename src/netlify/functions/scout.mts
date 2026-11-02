@@ -13,7 +13,7 @@ import {getStore} from '@netlify/blobs';
 import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount} from '../lib/accounts.mjs';
 import {platformSettings,roleFor,csrfFor,writeAudit,recordEvent,readIndex} from '../lib/studio.mjs';
-import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,replaceDevice,staleDuplicates,labelOf,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,extensionAllowlist,isExtensionAllowed,setExtensionAllowed,NOT_ASSIGNED,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo,effectivePacing,validPacing,grantRunNow,stopRun,runNowActive,backoffRetailer,dayKey,queueCommand,takeCommands,commandResult,deviceTimeline,logEvent,scoutHooks} from '../lib/scout.mjs';
+import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,replaceDevice,staleDuplicates,labelOf,scanList,replanToday,setPinned,setMatchWords,ownerProductLink,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,extensionAllowlist,isExtensionAllowed,setExtensionAllowed,NOT_ASSIGNED,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo,effectivePacing,validPacing,grantRunNow,stopRun,runNowActive,backoffRetailer,dayKey,queueCommand,takeCommands,commandResult,deviceTimeline,logEvent,scoutHooks} from '../lib/scout.mjs';
 import {notifyOwners,notifyAssigned} from '../lib/scout-notify.mjs';
 
 const BASE_HEADERS={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
@@ -119,6 +119,14 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    if(op==='studio-overview'&&isRead)return json(await studioOverview(getStoreFn,{now,env}));
    if(op==='studio-auto'&&isRead)return json({autoScout:settings.autoScout,source:settings.autoScoutSource||'default'});
    if(op==='studio-coverage'&&isRead)return json(await coverage(getStoreFn,{now}));
+   // v1.7.2 Studio "Danh sách quét / Scan list": today's plan grouped by kind + store, and its editable sources.
+   if(op==='studio-scanlist'&&isRead)return json(await scanList(getStoreFn,{now,env,adapter:ad}));
+   if(op==='studio-replan'&&method==='POST'){const r=await replanToday(getStoreFn,{settings,now,adapter:ad});await audit('scout_replan',{type:'scout',id:'plan'},{details:{count:r.count,created:r.created??0}});return json({ok:true,...r})}
+   if(op==='studio-pin'&&method==='POST'){const pin=b.pin!==false;await setPinned(getStoreFn,{itemId:b.itemId,retailers:b.retailers,pin,actor,now});await audit(pin?'scout_pin_item':'scout_unpin_item',{type:'catalog-item',id:String(b.itemId)},{details:{retailers:Array.isArray(b.retailers)?b.retailers:null}});return json({ok:true})}
+   if(op==='studio-specials'&&method==='POST'){const r=String(b.retailer||''),cur=settings.specials||{},next:any={...cur};if(b.urls===null)delete next[r];else next[r]=Array.isArray(b.urls)?b.urls.map((u:any)=>String(u).trim()).filter(Boolean):[];
+    const patch=validateNetworkPatch({specials:next},await scoutConfig(getStoreFn));await saveNetwork(getStoreFn,patch,actor,now);await audit('scout_specials',{type:'scout',id:r},{details:{urls:next[r]||null}});return json({ok:true})}
+   if(op==='studio-mapping'&&method==='POST'){const action=String(b.action||''),r=await ownerProductLink(getStoreFn,{action,itemId:b.itemId,retailer:b.retailer,url:b.url,actor,now});await audit(action==='add'?'scout_mapping_add':'scout_mapping_remove',{type:'catalog-item',id:String(b.itemId)},{details:{retailer:b.retailer,...(r||{})}});return json({ok:true,...(r||{})})}
+   if(op==='studio-synonyms'&&method==='POST'){await setMatchWords(getStoreFn,{itemId:b.itemId,add:b.add,exclude:b.exclude,actor,now});await audit('scout_match_words',{type:'catalog-item',id:String(b.itemId)},{details:{add:b.add,exclude:b.exclude}});return json({ok:true})}
    if(op==='studio-events'&&isRead)return json({events:await listEvents(getStoreFn,{days:14,limit:200,now})});
    if(op==='studio-pair-code'&&method==='POST'){const who=String(b.username||actor).toLowerCase();if(!(await isExtensionAllowed(getStoreFn,who,env,now)))return notAssigned();const r=await createPairCode(getStoreFn,who,now,env);await audit('scout_pair_code',{type:'scout',id:'pair'},{details:{account:who}});return json({...r,account:who},201)}
    // Accounts allowed to use the extension (owner-only POST, CSRF, audited). STUDIO_ADMINS are always allowed.

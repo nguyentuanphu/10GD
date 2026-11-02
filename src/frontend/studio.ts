@@ -316,7 +316,7 @@ async function familyDetail(id:string){try{const d=await api('family',{id}),f=d.
 // ---------- v1.7.2 navigation: grouped menu, lazy page modules, old hashes ----------
 // Pages that live in their own script are listed here with their menu label; the script is downloaded only when
 // the page opens (or the pointer / keyboard focus rests on its link), then it replaces this entry with the real page.
-const MODULES:any={scout:['studio-scout.js','Mạng So Giá','Price Check network','◎'],voice:['studio-voice.js','Giọng nói','Voice','🎙'],usage:['studio-usage.js','Mức sử dụng','Usage','📈'],recipes:['studio-recipes.js','Món ăn cộng đồng','Community recipes','🍲'],feedback:['studio-feedback.js','Góp ý','Feedback','🐞'],unplaced:['studio-unplaced.js','Giá chưa gắn món','Unplaced prices','⧉']};
+const MODULES:any={scout:['studio-scout.js','Mạng So Giá','Price Check network','◎'],voice:['studio-voice.js','Giọng nói','Voice','🎙'],usage:['studio-usage.js','Mức sử dụng','Usage','📈'],recipes:['studio-recipes.js','Món ăn cộng đồng','Community recipes','🍲'],feedback:['studio-feedback.js','Góp ý','Feedback','🐞'],unplaced:['studio-unplaced.js','Giá chưa gắn món','Unplaced prices','⧉'],scanlist:['studio-scanlist.js','Danh sách quét','Scan list','☷']};
 for(const [k,[src,vi,en,icon]] of Object.entries<any>(MODULES))if(!pages[k])pages[k]={vi,en,icon,lazy:src};
 // Settings carries the "Automatic price check" card (studio-scout.js) and the "App updates" card (studio-update.js).
 pages.settings.needs=['studio-scout.js','studio-update.js'];
@@ -330,7 +330,7 @@ const GROUPS=[
  {id:'home',vi:'Tổng quan',en:'Overview',icon:'◧',pages:['overview','urgent','notifications','health']},
  {id:'people',vi:'Người dùng & gia đình',en:'People & families',icon:'☺',pages:['accounts','families','invites']},
  {id:'content',vi:'Nội dung & cộng đồng',en:'Content & community',icon:'⚖',pages:['community','recipes','feedback']},
- {id:'price',vi:'So Giá',en:'Price Check',icon:'◎',pages:['scout','unplaced','catalog']},
+ {id:'price',vi:'So Giá',en:'Price Check',icon:'◎',pages:['scout','scanlist','unplaced','catalog']},
  {id:'stats',vi:'Phân tích',en:'Analytics',icon:'📈',pages:['usage','voice']},
  {id:'release',vi:'Cài đặt & phát hành',en:'Settings & release',icon:'⚙',pages:['settings','broadcast','rollout','logs']}];
 // Old links keep working: #messages (the old daily page) opens its tab in the merged page.
@@ -348,7 +348,7 @@ const need=(list:string[])=>Promise.all(list.map(loadScript));
 // tab's saved copy (then refreshed in the background, like the core pages); every answer refreshes the saved copy;
 // any change (POST) clears all saved copies; `me` is answered from the copy Studio already has. Detail views,
 // photos, exports and audited drill-downs are never kept.
-const MOD_CACHE=/^\/\.netlify\/functions\/(studio\?op=(urgent|settings)|scout\?op=studio-(overview|coverage|auto|unplaced)|usage\?op=studio-usage-overview|voice-stats\?op=studio-overview|feedback\?op=studio-inbox|community-recipes\?op=studio-list)(&|$)/;
+const MOD_CACHE=/^\/\.netlify\/functions\/(studio\?op=(urgent|settings)|scout\?op=studio-(overview|coverage|auto|unplaced|scanlist)|usage\?op=studio-usage-overview|voice-stats\?op=studio-overview|feedback\?op=studio-inbox|community-recipes\?op=studio-list)(&|$)/;
 let activeView:any=null;
 const jsonResponse=(d:any)=>new Response(JSON.stringify(d),{status:200,headers:{'Content-Type':'application/json'}});
 function modKey(u:URL){const q=u.searchParams;q.delete('fresh');const s=u.pathname+'?'+q.toString();if(!MOD_CACHE.test(s))return '';return u.pathname===API?q.toString():'m:'+s}

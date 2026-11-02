@@ -30,7 +30,7 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
  // 1. Desktop: groups, lazy modules, badges, collapse, hover prefetch, old hashes, merged urgent page, Ctrl+K.
  {const {context,page,log,errors}=await openStudio(browser,world,{hash:'#overview',profile:'typical'});await ready(page);await sleep(3500);
   const groups=await page.$$eval('#nav .ngroup',(gs:any[])=>gs.map(g=>[g.dataset.group,[...g.querySelectorAll('a[data-nav]')].map((a:any)=>a.dataset.nav)]));
-  assert.deepEqual(groups,[['home',['overview','urgent','notifications','health']],['people',['accounts','families','invites']],['content',['community','recipes','feedback']],['price',['scout','unplaced','catalog']],['stats',['usage','voice']],['release',['settings','broadcast','rollout','logs']]],'6 groups, every page once');
+  assert.deepEqual(groups,[['home',['overview','urgent','notifications','health']],['people',['accounts','families','invites']],['content',['community','recipes','feedback']],['price',['scout','scanlist','unplaced','catalog']],['stats',['usage','voice']],['release',['settings','broadcast','rollout','logs']]],'6 groups, every page once');
   assert.equal(await page.locator('#nav a[href="#messages"]').count(),0,'old daily urgent page is not a separate menu item');
   assert.equal(await page.locator('#nav a[aria-current="page"]').getAttribute('href'),'#overview');
   assert.deepEqual(scripts(log),['/studio.js'],'only studio.js before any page module opens: '+scripts(log).join(' '));
@@ -150,6 +150,24 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
   await page.setViewportSize(sizes.mobile);await noOverflow(page,'unplaced mobile');
   assert.deepEqual(errors,[]);await context.close();delete world.unplaced}
 
+ // 3c. Scan list: today's plan (re-plan), sources (pin, specials validation, keywords), owner audit.
+ {const {context,page,errors}=await openStudio(browser,world,{hash:'#scanlist'});await ready(page);await page.waitForSelector('#scanlist-main .sl-totals');
+  await page.locator('#sl-replan').click();await page.waitForFunction(()=>/Đã lập lại kế hoạch/.test(document.querySelector('#toast')?.textContent||''));await page.waitForSelector('#scanlist-main .sl-group');
+  const today=await page.locator('#scanlist-main').innerText();assert.match(today,/Khuyến mãi/);assert.match(today,/Woolworths · Hurstville/);assert.match(today,/chờ/);
+  await shot(page,'scanlist-today-vi-light-desktop-1280x800');
+  await page.locator('[data-sl-tab="sources"]').click();await page.waitForSelector('#sl-pin');
+  await page.locator('#sl-pin input[name=item]').fill('rau-muong');await page.locator('#sl-pin input[value=woolworths]').check();await page.locator('#sl-pin button').click();
+  await page.waitForFunction(()=>/Đã ghim món/.test(document.querySelector('#toast')?.textContent||''));await page.locator('[data-sl-tab="sources"]').click();await page.waitForSelector('[data-unpin="rau-muong"]');
+  await page.locator('.sl-sp-add[data-ret="coles"] input').fill('https://www.woolworths.com.au/shop/browse/specials');await page.locator('.sl-sp-add[data-ret="coles"] button').click();
+  await page.waitForFunction(()=>document.querySelector('#toast')?.classList.contains('bad'));
+  await page.locator('#sl-q').fill('ngo');assert.ok(await page.locator('[data-words="ngo"]').count()===1,'search finds the item');await page.locator('[data-words="ngo"]').click();
+  await page.locator('#ask[open] input[name=add]').fill('coriander, cilantro');await page.locator('#ask button[value=ok]').click();await page.waitForFunction(()=>/Đã lưu từ khoá/.test(document.querySelector('#toast')?.textContent||''));
+  const acts=(await listLog(world.getStoreFn,'audit',{now:Date.now(),limit:500,from:dayKey(Date.now()-86400000)})).items.map((x:any)=>x.action);for(const x of ['scout_replan','scout_pin_item','scout_match_words'])assert.ok(acts.includes(x),'audited '+x);
+  await page.locator('[data-sl-tab="sources"]').click();await page.waitForSelector('[data-unpin="rau-muong"]');await shot(page,'scanlist-sources-vi-light-desktop-1280x800');
+  await page.setViewportSize(sizes.mobile);await noOverflow(page,'scanlist sources mobile');assert.deepEqual(await smallTargets(page,'#scanlist-main button,#scanlist-main input:not([type=checkbox]),#scanlist-main summary'),[],'scan list targets on a phone');
+  await page.locator('[data-sl-tab="today"]').click();await noOverflow(page,'scanlist today mobile');await shot(page,'scanlist-today-vi-light-mobile-375x812');
+  await page.locator('[data-unpin]').count();assert.deepEqual(errors,[]);await context.close()}
+
  // 4. Phones/tablets: menu sheet; every size in VI light and EN dark: no overflow, ≥44 px targets, screenshots.
  for(const [size,lang,theme] of [['narrow','vi','light'],['mobile','vi','light'],['tablet','vi','light'],['desktop','vi','light'],['narrow','en','dark'],['mobile','en','dark'],['tablet','en','dark'],['desktop','en','dark']] as any[]){
   const touch=size!=='desktop',{context,page,errors}=await openStudio(browser,world,{viewport:sizes[size],lang,theme,hash:'#overview',hasTouch:touch});await ready(page);await sleep(600);
@@ -173,7 +191,7 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
   if(size==='desktop'||size==='mobile'){await page.evaluate(()=>{const el=document.querySelector('.scout-states');if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-260)});await shot(page,'settings-'+tag)}
   await page.evaluate(()=>{location.hash='#urgent'});await ready(page);await page.waitForSelector('#urgent-main .ur-list, #urgent-main .empty');await noOverflow(page,'urgent '+tag);
   if(touch)assert.deepEqual(await smallTargets(page,'.subtabs a'),[],'tab targets '+tag);
-  for(const k of ['accounts','community','feedback','usage','voice','recipes','logs']){await page.evaluate((k:string)=>{location.hash='#'+k},k);await ready(page);await noOverflow(page,k+' '+tag)}
+  for(const k of ['accounts','community','feedback','usage','voice','recipes','logs','scanlist','unplaced']){await page.evaluate((k:string)=>{location.hash='#'+k},k);await ready(page);await noOverflow(page,k+' '+tag)}
   if(size==='mobile'&&lang==='en'){await context.setOffline(true);await page.evaluate(()=>dispatchEvent(new Event('offline')));await page.waitForFunction(()=>/Offline/.test(document.querySelector('#net')?.textContent||''));await shot(page,'offline-'+tag);await context.setOffline(false);await page.evaluate(()=>dispatchEvent(new Event('online')))}
   assert.deepEqual(errors,[],tag);await context.close()}
 

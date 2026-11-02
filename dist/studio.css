@@ -307,4 +307,29 @@ dialog::backdrop{background:#0008}
 #unplaced-main .up-body p{margin:2px 0}
 #unplaced-main .up-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 #unplaced-main .btn{min-height:44px}
+/* Scan list (today's plan + sources). */
+#scanlist-main .sl-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,120px),1fr));gap:8px;margin:12px 0}
+#scanlist-main .sl-tile{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+#scanlist-main .sl-tile strong{font-size:1.4rem}
+#scanlist-main .sl-plan{align-items:center;gap:10px;margin:0 0 12px}
+#scanlist-main .sl-group>summary{min-height:44px;display:flex;align-items:center;gap:8px;cursor:pointer}
+#scanlist-main .sl-group>summary h2{margin:0;font-size:1.1rem}
+#scanlist-main .sl-group>summary::before{content:'▸'}#scanlist-main .sl-group[open]>summary::before{content:'▾'}
+#scanlist-main .sl-count{background:var(--panel2);color:var(--text)}
+#scanlist-main .sl-store{margin:12px 0 6px;font-size:.95rem}
+#scanlist-main .sl-tasks{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+#scanlist-main .sl-tasks li{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:var(--panel2);min-width:0}
+#scanlist-main .sl-what{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;overflow-wrap:anywhere}
+#scanlist-main .sl-pri{font:600 12px/1 ui-monospace,Menlo,Consolas,monospace;color:var(--muted)}
+#scanlist-main .sl-list li,#scanlist-main .sl-cat li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);min-width:0;overflow-wrap:anywhere}
+#scanlist-main .sl-list li>span,#scanlist-main .sl-cat li>span{flex:1 1 200px;min-width:0}
+#scanlist-main .sl-cat{max-height:520px;overflow:auto}
+#scanlist-main .sl-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin-top:10px}
+#scanlist-main .sl-form label{flex:1 1 200px}
+#scanlist-main .sl-rets{display:flex;flex-wrap:wrap;gap:4px 12px;border:0;padding:0;margin:0}
+#scanlist-main .sl-rets .check{min-height:44px;display:inline-flex;align-items:center;gap:6px}
+#scanlist-main .sl-sp{margin:10px 0}#scanlist-main .sl-sp h3{margin:0 0 4px;font-size:1rem}
+#scanlist-main .sl-sp-add input{flex:1 1 220px;min-width:0}
+#scanlist-main .sl-search{display:flex;flex-direction:column;gap:4px;max-width:420px;margin-bottom:8px}
+#scanlist-main .btn{min-height:44px}
 /* === v1.7.2 studio-nav end === */

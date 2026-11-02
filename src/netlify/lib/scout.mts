@@ -35,7 +35,8 @@
 import {notifyOwners} from './scout-notify.mjs';
 import {randomBytes,createHash} from 'node:crypto';
 import {editRecord} from './accounts.mjs';
-import {scoutStore,createDefaultAdapter} from './scout-adapter.mjs';
+import {scoutStore,createDefaultAdapter,SCOUT_CATALOG} from './scout-adapter.mjs';
+import {communityStore,mutateDoc,productLinks,wantedFor,pilotConfig,cleanProductUrl} from './community-prices.mjs';
 import {scoutDefaultConfig} from './scout-config.mjs';
 import {platformSettings,saveSettings} from './studio.mjs';
 export {scoutStore,createDefaultAdapter};
@@ -300,7 +301,8 @@ async function bump(getStoreFn:any,key:string,delta:any){return editRecord(scout
 export async function counters(getStoreFn:any,day:string){const store=scoutStore(getStoreFn),retailers:any={},devices:any={};for(const r of RETAILERS)retailers[r]=await readJSON(store,`count/${day}/retailer/${r}`)||{};for await(const k of keys(store,`count/${day}/device/`))devices[k.split('/').pop()!]=await readJSON(store,k)||{};return{retailers,devices}}
 
 // ---------- planner ----------
-const PRIORITY={specialsWed:100,wantedBase:60,stale:50,specials:30,rest:10};
+// v1.7.2: items pinned in Studio (Danh sách quét → Món ưu tiên) sit between Wednesday specials and wanted items.
+const PRIORITY={specialsWed:100,pinned:95,wantedBase:60,stale:50,specials:30,rest:10};
 const taskIdFor=(day:string,retailer:string,url:string,store:string)=>'t'+sha(day+'|'+retailer+'|'+url+'|'+normLabel(store)).slice(0,15);
 function searchUrl(config:any,retailer:string,q:string){const t=config?.retailers?.[retailer]?.searchUrl;return t?String(t).replace('{q}',encodeURIComponent(q)):null}
 /** Builds today's tasks once per (day, set of assigned stores). Idempotent: tasks are written with onlyIfNew. */
@@ -308,7 +310,8 @@ export async function ensurePlan(getStoreFn:any,{settings,now,adapter}:any){
  const day=dayKey(now),store=scoutStore(getStoreFn),config=await scoutConfig(getStoreFn);
  const devices=(await listDevices(getStoreFn)).filter(d=>!d.revokedAt&&d.autoAllowed===true),targets=new Map<string,{retailer:string,storeLabel:string}>();
  for(const d of devices)for(const [r,label] of Object.entries<any>(d.stores||{}))if(RETAILERS.includes(r)&&label)targets.set(r+'|'+normLabel(label),{retailer:r,storeLabel:label});
- const signature=sha([...targets.keys()].sort().join(',')+'|'+(config?.version||'')).slice(0,16),marker=await readJSON(store,'plan/'+day);
+ const pinned=await pinnedItems(getStoreFn),pinSig=Object.keys(pinned).sort().map(k=>k+':'+(pinned[k].retailers||[]).join('+')).join(',');
+ const signature=sha([...targets.keys()].sort().join(',')+'|'+(config?.version||'')+(pinSig?'|pin:'+pinSig:'')).slice(0,16),marker=await readJSON(store,'plan/'+day);
  if(marker?.signature===signature)return{planned:false,count:marker.count};
  const isWed=sydneyDow(now)===3,specialsCfg=settings.specials||{};
  const [wanted,mappings,seen,catalog]=await Promise.all([adapter.wantedItems({now}),adapter.productMappings(),adapter.lastSeen(),adapter.catalogItems()]);
@@ -317,8 +320,9 @@ export async function ensurePlan(getStoreFn:any,{settings,now,adapter}:any){
   const add=(t:any)=>{if(!t.url)return;out.push({...t,retailer,storeLabel,taskId:taskIdFor(day,retailer,t.url,storeLabel)})};
   for(const url of (specialsCfg[retailer]||config?.retailers?.[retailer]?.specials||[]))add({kind:'specials',url,itemId:null,priority:isWed?PRIORITY.specialsWed:PRIORITY.specials});
   const mapFor=(itemId:string)=>mappings.find((m:any)=>m.itemId===itemId&&m.retailer===retailer);
-  const done=new Set<string>();
-  for(const w of wanted){const m=mapFor(w.itemId),url=m?.productUrl||searchUrl(config,retailer,w.name||w.itemId);done.add(w.itemId);add({kind:'wanted',url,itemId:w.itemId,name:w.name||null,mapped:!!m,priority:PRIORITY.wantedBase+Math.min(30,Math.max(0,w.families|0))})}
+  const done=new Set<string>(),catName=new Map(catalog.map((c:any)=>[c.itemId,c.name]));
+  for(const [itemId,p] of Object.entries<any>(pinned)){if(p.retailers?.length&&!p.retailers.includes(retailer))continue;const m=mapFor(itemId),name=catName.get(itemId)||itemId;done.add(itemId);add({kind:'pinned',url:m?.productUrl||searchUrl(config,retailer,name),itemId,name,mapped:!!m,priority:PRIORITY.pinned})}
+  for(const w of wanted.filter((x:any)=>!done.has(x.itemId))){const m=mapFor(w.itemId),url=m?.productUrl||searchUrl(config,retailer,w.name||w.itemId);done.add(w.itemId);add({kind:'wanted',url,itemId:w.itemId,name:w.name||null,mapped:!!m,priority:PRIORITY.wantedBase+Math.min(30,Math.max(0,w.families|0))})}
   for(const m of mappings.filter((x:any)=>x.retailer===retailer&&!done.has(x.itemId))){const last=seen[m.itemId+'|'+retailer];done.add(m.itemId);add({kind:!last||last<staleBefore?'stale':'mapped',url:m.productUrl,itemId:m.itemId,name:m.name||null,mapped:true,priority:!last||last<staleBefore?PRIORITY.stale:PRIORITY.rest})}
   for(const c of catalog.filter((x:any)=>!done.has(x.itemId))){const last=seen[c.itemId+'|'+retailer];const stale=!last||last<staleBefore;add({kind:stale?'stale':'rest',url:searchUrl(config,retailer,c.name||c.itemId),itemId:c.itemId,name:c.name||null,mapped:false,priority:stale?PRIORITY.stale-5:PRIORITY.rest})}
  }
@@ -447,3 +451,53 @@ export async function studioOverview(getStoreFn:any,{now,env=process.env}:any){
 export async function coverage(getStoreFn:any,{now,days=7}:any){const rows:any={},stores=new Set<string>();
  for(let d=0;d<days;d++)for(const t of await listTasks(getStoreFn,dayKey(now-d*DAY))){if(!t.itemId||t.status!=='done')continue;const col=t.retailer+' · '+t.storeLabel;stores.add(col);const row=rows[t.itemId]||(rows[t.itemId]={itemId:t.itemId,name:t.name||t.itemId,cells:{}});const prev=row.cells[col];if(!prev||prev.at<t.doneAt)row.cells[col]={at:t.doneAt,prices:t.prices||0}}
  return{columns:[...stores].sort(),rows:Object.values(rows).sort((a:any,b:any)=>String(a.name).localeCompare(String(b.name))).slice(0,300)}}
+
+// ---------- v1.7.2 Studio "Danh sách quét / Scan list": today's plan + editable sources ----------
+// Pinned items (always scanned), synonyms/exclusions for matching captured names to catalogue items, owner-added
+// product links. Stored in the Scout store / community product memory; every change is audited by the caller.
+const validItem=(id:any)=>typeof id==='string'&&/^[a-z0-9-]{1,60}$/.test(id);
+export async function pinnedItems(getStoreFn:any){const d=await readJSON(scoutStore(getStoreFn),'sources/pinned');return d?.items&&typeof d.items==='object'?d.items:{}}
+export async function setPinned(getStoreFn:any,{itemId,retailers=null,pin=true,actor,now}:any){if(!validItem(itemId)||!SCOUT_CATALOG_IDS().has(itemId))fail('Món không có trong thư viện.','Item is not in the catalogue.',400,'bad-item');
+ const rs=Array.isArray(retailers)?[...new Set(retailers.filter((r:any)=>RETAILERS.includes(r)))]:[];
+ return editRecord(scoutStore(getStoreFn),'sources/pinned',(cur:any)=>{const items={...(cur?.items||{})};if(pin){if(!items[itemId]&&Object.keys(items).length>=60)fail('Tối đa 60 món ưu tiên.','At most 60 pinned items.',409,'too-many');items[itemId]={retailers:rs.length?rs:null,by:actor,at:new Date(now).toISOString()}}else delete items[itemId];return{items}})}
+/** Extra words for matching captured product names to catalogue items (read by the confident-match rules). */
+export async function matchExtensions(getStoreFn:any){const d=await readJSON(scoutStore(getStoreFn),'sources/synonyms');return d?.items&&typeof d.items==='object'?d.items:{}}
+const cleanWords=(a:any)=>(Array.isArray(a)?a:[]).map((w:any)=>String(w||'').trim().toLowerCase().replace(/\s+/g,' ').slice(0,40)).filter((w:string)=>w.length>=2).slice(0,20);
+export async function setMatchWords(getStoreFn:any,{itemId,add,exclude,actor,now}:any){if(!validItem(itemId)||!SCOUT_CATALOG_IDS().has(itemId))fail('Món không có trong thư viện.','Item is not in the catalogue.',400,'bad-item');
+ const a=[...new Set(cleanWords(add))],x=[...new Set(cleanWords(exclude))];
+ return editRecord(scoutStore(getStoreFn),'sources/synonyms',(cur:any)=>{const items={...(cur?.items||{})};if(!a.length&&!x.length)delete items[itemId];else items[itemId]={add:a,exclude:x,by:actor,at:new Date(now).toISOString()};return{items}})}
+let catalogIds:Set<string>|null=null;
+const SCOUT_CATALOG_IDS=()=>catalogIds||(catalogIds=new Set(SCOUT_CATALOG.map(c=>c.itemId)));
+/** Owner adds (confirmed at once, like the trusted rule) or removes a product link item → retailer → page. */
+export async function ownerProductLink(getStoreFn:any,{action,itemId,retailer,url,actor,now}:any){if(!validItem(itemId)||!SCOUT_CATALOG_IDS().has(itemId))fail('Món không có trong thư viện.','Item is not in the catalogue.',400,'bad-item');if(!RETAILERS.includes(retailer))fail('Cửa hàng không hợp lệ.','Invalid retailer.',400,'bad-retailer');
+ const iso=new Date(now).toISOString();let out:any=null;
+ if(action==='add'){const c=cleanProductUrl(retailer,url);if(!c)fail('Link không phải trang sản phẩm của cửa hàng này.','Not a product page of this store.',422,'bad-url');
+  await mutateDoc(communityStore(getStoreFn),`products/${retailer}/${itemId}`,()=>({version:1,itemId,retailer,candidates:[] as any[]}),(doc:any)=>{let x=doc.candidates.find((y:any)=>y.productId===c.productId);
+   if(!x){x={key:createHash('sha256').update(retailer+':'+c.productId).digest('hex').slice(0,12),productUrl:c.productUrl,productId:c.productId,productName:null,packQty:null,packUnit:null,firstSeen:iso,lastConfirmed:iso,families:[],status:'confirmed',source:'studio',by:actor};doc.candidates.push(x);doc.candidates=doc.candidates.slice(-20)}else{x.status='confirmed';x.lastConfirmed=iso;x.productUrl=c.productUrl}
+   out={productId:c.productId,productUrl:c.productUrl};return true})}
+ else if(action==='remove'){await mutateDoc(communityStore(getStoreFn),`products/${retailer}/${itemId}`,()=>({version:1,itemId,retailer,candidates:[] as any[]}),(doc:any)=>{let n=0;for(const x of doc.candidates)if(x.status==='confirmed'&&(!url||x.productUrl===url||x.productId===String(url))){x.status='removed';x.removedBy=actor;x.removedAt=iso;n++}out={removed:n};return n?true:null})}
+ else fail('Thao tác không hỗ trợ.','Unsupported action.',400);
+ return out}
+/** Re-plan today (idempotent: existing tasks keep their status; new sources add tasks). */
+export async function replanToday(getStoreFn:any,{settings,now,adapter}:any){await scoutStore(getStoreFn).delete('plan/'+dayKey(now));return ensurePlan(getStoreFn,{settings,now,adapter})}
+const KIND_GROUP:any={specials:'specials',pinned:'pinned',wanted:'wanted',mapped:'mapped',stale:'stale',rest:'rest'};
+export async function scanList(getStoreFn:any,{now,env=process.env,adapter}:any){
+ const s=await networkSettings(getStoreFn,env),day=dayKey(now),config=await scoutConfig(getStoreFn),devices=await listDevices(getStoreFn),names=new Map(devices.map(d=>[d.id,d.name]));
+ const tasks=await listTasks(getStoreFn,day),{retailers:rc}=await counters(getStoreFn,day),allowed=devices.filter(d=>!d.revokedAt&&d.autoAllowed===true),withStores=allowed.filter(d=>Object.values(d.stores||{}).some(Boolean));
+ const host=(u:string)=>{try{const x=new URL(u);return x.host+x.pathname}catch{return String(u||'').slice(0,80)}};
+ const status=(t:any)=>t.status==='leased'?{code:'leased',device:names.get(t.leasedBy)||null}:t.status==='done'?{code:t.parse==='failed'?'failed':'done',prices:t.prices||0}:t.status==='skipped'?{code:t.reason==='robots-disallowed'?'robots':'skipped'}:((rc[t.retailer]?.leased||0)>=(s.caps.retailerPagesPerDay[t.retailer]??0)?{code:'cap'}:{code:'queued'});
+ const groups:any={},totals:any={all:tasks.length,queued:0,leased:0,done:0,failed:0,robots:0,skipped:0,cap:0,prices:0};
+ for(const t of [...tasks].sort(taskOrder)){const g=KIND_GROUP[t.kind]||'rest',st=status(t);totals[st.code]=(totals[st.code]||0)+1;totals.prices+=st.prices||0;const key=t.retailer+'|'+t.storeLabel;
+  const grp=groups[g]||(groups[g]={kind:g,count:0,stores:{}});grp.count++;const sg=grp.stores[key]||(grp.stores[key]={retailer:t.retailer,storeLabel:t.storeLabel,tasks:[]});
+  if(sg.tasks.length<60)sg.tasks.push({taskId:t.taskId,itemId:t.itemId||null,name:t.name||null,url:host(t.url),priority:t.priority,status:st})}
+ const emptyReason=tasks.length?null:s.autoScout!=='on'?'auto-off':!allowed.length?'no-allowed-devices':!withStores.length?'no-stores':'nothing-planned';
+ const order=['specials','pinned','wanted','mapped','stale','rest'];
+ const pinned=await pinnedItems(getStoreFn),syn=await matchExtensions(getStoreFn);
+ const [links,wantedRows]=await Promise.all([productLinks(getStoreFn).catch(()=>[]),(async()=>{const out:any={};try{const p=pilotConfig((await platformSettings(getStoreFn,{env,now})).values);for(const st of p.states){const w=await wantedFor(communityStore(getStoreFn),st,now);out[st]=Object.entries(w).map(([itemId,n])=>({itemId,families:n})).sort((a:any,b:any)=>b.families-a.families).slice(0,60)}}catch{}return out})()]);
+ const nameOf=new Map(SCOUT_CATALOG.map(c=>[c.itemId,c]));
+ return{day,autoScout:s.autoScout,planAt:(await readJSON(scoutStore(getStoreFn),'plan/'+day))?.at||null,totals,emptyReason,groups:order.filter(k=>groups[k]).map(k=>({...groups[k],stores:Object.values(groups[k].stores)})),
+  sources:{pinned:Object.entries<any>(pinned).map(([itemId,p])=>({itemId,name:nameOf.get(itemId)?.name||itemId,nameVi:nameOf.get(itemId)?.nameVi||null,retailers:p.retailers||null,by:p.by,at:p.at})),
+   specials:Object.fromEntries(RETAILERS.map(r=>[r,{urls:(s.specials?.[r]||config?.retailers?.[r]?.specials||[]),source:s.specials?.[r]?'studio':'config',hosts:config?.retailers?.[r]?.hosts||[]}])),
+   links:links.map((l:any)=>({itemId:l.itemId,name:nameOf.get(l.itemId)?.name||l.itemId,retailer:l.retailer,productUrl:l.productUrl})),
+   catalog:SCOUT_CATALOG.map(c=>({itemId:c.itemId,name:c.name,nameVi:c.nameVi,add:syn[c.itemId]?.add||[],exclude:syn[c.itemId]?.exclude||[]})),
+   wanted:Object.fromEntries(Object.entries<any>(wantedRows).map(([st,rows])=>[st,rows.map((r:any)=>({...r,name:nameOf.get(r.itemId)?.name||r.itemId}))]))}}}
