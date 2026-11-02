@@ -86,7 +86,8 @@ t('learned list: synced shape, cap, validation, old-client tolerance',()=>{const
  run(`voiceLearn(S3,'i','từ số 5','pork')`);assert.equal(run("S3.voiceLearned.filter(e=>e.p==='tu so 5').length"),1,'one entry per phrase');
  assert.equal(run('validImport(JSON.parse(JSON.stringify(S3)))'),true);
  const old=vm.createContext({INGREDIENTS:structuredClone(MAIN_INGREDIENTS)});vm.runInContext(MAIN_VALID_IMPORT+'\nthis.validImport=validImport;',old);
- const legacy=J(run('defaults()'));legacy.seedVersion=3;delete legacy.appEdition;legacy.recipes=legacy.recipes.filter((r:any)=>!r.catalogEdition||r.catalogEdition<4);assert.equal(old.validImport(J(legacy)),true,'baseline');
+ const legacy=J(run('defaults()'));legacy.seedVersion=3;delete legacy.appEdition;legacy.recipes=JSON.parse(fs.readFileSync('docs/reviews/artwork-audit-20261102/source.json','utf8')).recipes.filter(r=>!r.catalogEdition||r.catalogEdition<4); // Frozen pre-correction state: current defaults now use edition-4 spaghetti.
+ assert.equal(old.validImport(J(legacy)),true,'baseline');
  legacy.voiceLearned=J(run('S3.voiceLearned')).slice(0,20).map((e:any)=>({...e,id:'egg'}));assert.equal(old.validImport(J(legacy)),true,'released main client tolerates the new optional field');
  c.__x=J(legacy);assert.equal(run('validImport(__x)'),true);
  for(const bad of[{},[{p:'',k:'i',id:'egg'}],[{p:'a',k:'i',id:''}],[{p:'a'.repeat(81),k:'i',id:'egg'}],'x',[null]]){c.__x={...J(legacy),voiceLearned:bad};assert.equal(run('validImport(__x)'),false,JSON.stringify(bad).slice(0,40))}
