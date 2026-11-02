@@ -60,6 +60,13 @@ async function main() {
       await page.waitForFunction(() => document.querySelector('.connectivity-status') || document.querySelector('[data-personal]'));
       await page.waitForTimeout(500);
       assert.ok((await page.locator('#main').innerText()).length > 500);
+      if (name === 'mobile') {
+        // v1.7.4: the bottom "Thêm / More" tab lines up with the other tabs (icon and label tops within 2 px).
+        const tabs = await page.evaluate(() => [...document.querySelectorAll('#nav > a, #nav > .mobile-more')].filter((e: any) => e.getBoundingClientRect().height > 0).map((e: any) => { const i = e.querySelector('.nav-icon').getBoundingClientRect(), l = e.querySelector('span:not(.nav-icon)').getBoundingClientRect(); return { more: e.classList.contains('mobile-more'), icon: Math.round(i.top), iconH: Math.round(i.height), label: Math.round(l.top) }; }));
+        const more = tabs.find((t: any) => t.more), first = tabs.find((t: any) => !t.more);
+        assert.ok(more && first, 'mobile tabs found: ' + JSON.stringify(tabs));
+        assert.ok(Math.abs(more.icon - first.icon) <= 2 && Math.abs(more.label - first.label) <= 2 && Math.abs(more.iconH - first.iconH) <= 2, 'More tab aligned with the other tabs: ' + JSON.stringify(tabs));
+      }
       await page.evaluate(() => { location.hash = 'shopping'; });
       await page.waitForTimeout(200);
       assert.match(await page.locator('#main').innerText(), /Đi chợ|Shopping/);
