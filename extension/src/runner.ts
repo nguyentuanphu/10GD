@@ -17,6 +17,8 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 // between pages therefore wait in the background worker (not throttled), falling back to a timer.
 const bgSleep=async(ms:number)=>{try{const r=await chrome.runtime.sendMessage({type:'sleep',ms});if(r===true)return}catch{}await sleep(ms)};
 const state:any={runId:'run-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),pages:0,prices:0,skipped:0,errors:0,blocked:null,stop:null,queue:[],leased:new Set<string>(),started:Date.now(),pacing:null,plan:null,marks:{},current:null,visits:[],empty:null};
+// v1.7.3: the pause between pages has its own line, so the status keeps naming the page being / just viewed.
+function waitLine(line:string){const w=$('#wait');if(w)w.textContent=line}
 function show(line:string){$('#status').textContent=line;$('#count').textContent=T(`${state.pages} trang · ${state.prices} giá · bỏ qua ${state.skipped} · lỗi ${state.errors}`,`${state.pages} pages · ${state.prices} prices · ${state.skipped} skipped · ${state.errors} errors`);renderPlan()}
 // ---------- v1.7.2: the runner page explains itself: what it is looking at, today's list, each row's status ----------
 const esc=(v:any)=>String(v??'').replace(/[&<>"']/g,(c:string)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'} as any)[c]);
@@ -31,7 +33,7 @@ function renderPlan(){const host=$('#plan');if(!host)return;const p=state.plan;
  const tasks=[...p.tasks];for(const v of state.visits)if(!tasks.some((t:any)=>t.taskId===v.taskId))tasks.push(v);
  const groups=UI.KINDS();const by:any={};for(const t of tasks)(by[t.kind in groups?t.kind:'rest']=by[t.kind in groups?t.kind:'rest']||[]).push(t);
  host.innerHTML=Object.keys(groups).filter(k=>by[k]?.length).map(k=>`<details class="plan-group" ${k==='specials'||by[k].some((t:any)=>state.marks[t.taskId])?'open':''}><summary><strong>${esc(groups[k])}</strong> <span class="muted">· ${by[k].length}</span></summary><ul class="plan-list">${by[k].slice(0,120).map((t:any)=>{const [cls,txt]=statusText(t);return `<li data-task="${esc(t.taskId)}" data-status="${cls}"><span class="pl-main"><span><strong>${esc(UI.LABEL[t.retailer]||t.retailer)}</strong> · ${esc(what(t))}</span><small class="muted">${esc(pathOf(t))}</small></span><span class="pl-st st-${cls}">${esc(txt)}</span></li>`}).join('')}</ul></details>`).join('')||'';}
-function setCurrent(task:any){const total=state.plan?.planInfo?.open||state.plan?.tasks?.length||0;state.current=task;state.marks[task.taskId]={st:'viewing'};
+function setCurrent(task:any){const total=state.plan?.planInfo?.open||state.plan?.tasks?.length||0;state.current=task;state.marks[task.taskId]={st:'viewing'};waitLine('');
  show(T('Đang xem: ','Now viewing: ')+[UI.LABEL[task.retailer]||task.retailer,task.storeLabel,what(task),T(`trang ${state.pages+1}`,`page ${state.pages+1}`)+(total?'/'+total:'')].filter(Boolean).join(' · '))}
 function visit(task:any,st:string,n=0){state.marks[task.taskId]={st,n};state.visits.push({taskId:task.taskId,retailer:task.retailer,kind:task.kind,name:task.name||null,host:pathOf(task).split('/')[0],path:'/'+pathOf(task).split('/').slice(1).join('/'),status:st,prices:n});if(state.visits.length>150)state.visits.shift()}
 async function stopRequested(){const st=await SC.get(['paused','autoEnabled','stopRun']);if(st.paused)return 'paused';if(st.autoEnabled!==true&&!state.local)return 'switched-off';if(st.stopRun&&st.stopRun>state.started)return 'stopped';return null}
@@ -57,7 +59,7 @@ async function finish(reason:string,winId:number){state.stop=reason;await releas
  // Tell the person it is done (the challenge path has already shown its own notice).
  if(reason!=='blocked'&&(state.pages||state.explicit))chrome.runtime.sendMessage({type:'notify',title:T('FamTray So Giá đã chạy xong','FamTray Price Check run finished'),message:T(`${state.pages} trang, ${state.prices} giá${state.skipped?`, bỏ qua ${state.skipped}`:''}. `,`${state.pages} pages, ${state.prices} prices${state.skipped?`, ${state.skipped} skipped`:''}. `)+UI_REASON(reason)}).catch(()=>{});
  await SC.set({lastRun,run:null,blockedEvents:state.blocked?[{...state.blocked,at:Date.now()},...(st.blockedEvents||[])].slice(0,20):st.blockedEvents});
- show(T('Đã dừng: ','Stopped: ')+UI_REASON(reason)+(state.empty?' '+UI.emptyReason(state.empty):''));if(!SC.BUILD.keepRunnerOpen)setTimeout(()=>closeRunner(winId),1500)}
+ waitLine('');show(T('Đã dừng: ','Stopped: ')+UI_REASON(reason)+(state.empty?' '+UI.emptyReason(state.empty):''));if(!SC.BUILD.keepRunnerOpen)setTimeout(()=>closeRunner(winId),1500)}
 // Close only the runner's own tabs: anything else that ended up in this window (a tab the person opened
 // or dragged here) stays open. The window closes by itself once it is empty.
 async function closeRunner(winId:number){try{const me=await chrome.tabs.getCurrent(),tabs=await chrome.tabs.query({windowId:winId}),mine=[state.workTabId,me?.id].filter(Boolean);if(tabs.every((t:any)=>mine.includes(t.id)))return void chrome.windows.remove(winId).catch(()=>{});if(state.workTabId)await chrome.tabs.remove(state.workTabId).catch(()=>{});if(me?.id)await chrome.tabs.remove(me.id)}catch{chrome.windows.remove(winId).catch(()=>{})}}
@@ -107,7 +109,7 @@ async function run(){
   state.leased.delete(task.taskId);await heartbeatRun();
   if(mismatch){const w=(await SC.get(['warnings'])).warnings;w.storeMismatch[task.retailer]=true;w.storesSeen[task.retailer]=res.storeLabel;await SC.set({warnings:w})}
   // Pace: random within the server's min–max for this retailer (production clamps to 3–120 s).
-  const delay=CORE.pacing(Math.random(),st.testPacing||paceFor(task.retailer),SC.BUILD.test);show(T(`Chờ ${Math.round(delay/1000)} giây trước trang tiếp theo…`,`Waiting ${Math.round(delay/1000)} s before the next page…`));
+  const delay=CORE.pacing(Math.random(),st.testPacing||paceFor(task.retailer),SC.BUILD.test);waitLine(T(`Chờ ${Math.round(delay/1000)} giây trước trang tiếp theo…`,`Waiting ${Math.round(delay/1000)} s before the next page…`));show($('#status').textContent||'');
   const until=Date.now()+delay;while(Date.now()<until){await bgSleep(Math.min(1000,until-Date.now()));const w=await stopRequested();if(w)return finish(w,win.id)}
  }
 }
