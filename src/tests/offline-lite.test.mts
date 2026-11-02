@@ -49,7 +49,8 @@ const runtime=cacheFor('bep-art-runtime-v1'),artKeys=(await runtime.keys()).map(
 assert.ok(artKeys.length<=MAX,'LRU bound: '+artKeys.length);assert.ok(!artKeys.includes('/artwork/cells/d0.webp'),'oldest evicted');assert.ok(artKeys.includes('/artwork/cells/d'+(MAX+39)+'.webp'),'newest kept');
 // Touching an entry keeps it; bytes bound applies too.
 await get('/artwork/cells/d50.webp');for(let i=0;i<30;i++)await get('/artwork/cells/x'+i+'.webp');assert.ok(await runtime.match('/artwork/cells/d50.webp'),'recently used entry survives');
-files.set('/artwork/dishes-v1.webp',new Uint8Array(2*1024*1024));files.set('/artwork/dishes-v2.webp',new Uint8Array(2*1024*1024));files.set('/artwork/dishes-v3.webp',new Uint8Array(2*1024*1024));files.set('/artwork/dishes-v4.webp',new Uint8Array(2*1024*1024));
+// Four sheets of a third of the byte bound each: together they exceed it, so the oldest must go.
+const SHEET=Math.ceil(MAXB/3);for(const n of [1,2,3,4])files.set('/artwork/dishes-v'+n+'.webp',new Uint8Array(SHEET));
 for(const n of [1,2,3,4])await get('/artwork/dishes-v'+n+'.webp');
 let bytes=0;for(const k of await runtime.keys()){const p=new URL(k.url).pathname;if(p.startsWith('/artwork/'))bytes+=(await (await runtime.match(p))!.arrayBuffer()).byteLength}
 assert.ok(bytes<=MAXB,'byte bound '+bytes);assert.ok(!await runtime.match('/artwork/dishes-v1.webp'),'big oldest sheet evicted');

@@ -8,7 +8,7 @@ const CACHE='bep-family-v22-lite';
 const ASSETS=['./','./index.html','./bootstrap.js','./offline-access.js','./startup-scripts.json','./styles.css','./offline-packs.json','./family-logo.png','./icon.svg','./notification-icon.png','./notification-icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
 const ART_PINNED='bep-art-pinned-v1',ART_RUNTIME='bep-art-runtime-v1',ART_INDEX='/__bep-art-index';
 const PACK_ART='bep-pack-art-v1',PACK_SHEETS='bep-pack-sheets-v1',PACK_CATALOG='bep-pack-catalog-v1',PACK_OCR='bep-pack-ocr-v1';
-const ART_RUNTIME_MAX_ENTRIES=240,ART_RUNTIME_MAX_BYTES=6*1024*1024,ART_REVALIDATE_MS=86400000,PIN_LIMIT=600;
+const ART_RUNTIME_MAX_ENTRIES=240,ART_RUNTIME_MAX_BYTES=16*1024*1024,ART_REVALIDATE_MS=86400000,PIN_LIMIT=600;
 const CATALOG_HASH='__BEP_CATALOG_HASH__';
 async function fetchWithDeadline(input,options={},ms=8000){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),ms);

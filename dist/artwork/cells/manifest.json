@@ -1,7 +1,7 @@
 {
- "bytes": 5261408,
+ "bytes": 18467296,
  "files": 848,
- "quality": 72,
+ "quality": 90,
  "sheets": {
   "corrections/family-v3-193": "45bdbaa39ea97e64",
   "corrections/family-v3-431": "6a9516582e715bf2",
@@ -63,8 +63,8 @@
   "ingredients-v7": "f4ba98b37a386863"
  },
  "sizes": {
-  "dish": 192,
-  "ingredient": 128
+  "dish": 0,
+  "ingredient": 192
  },
  "version": 1
 }
