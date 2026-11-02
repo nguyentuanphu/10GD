@@ -205,3 +205,11 @@ body.popup .visits .plan-list{max-height:220px;overflow:auto}
 .attach-row{flex-wrap:nowrap;margin-top:4px}
 .attach-row input{flex:1;min-width:0;min-height:44px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:.85rem}
 .diag-pre{max-height:180px;overflow:auto;font-size:.72rem;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px;white-space:pre-wrap;overflow-wrap:anywhere}
+/* v1.7.3 store entry: inline “Nhập tên cửa hàng” per retailer row and in the popup */
+.store-inline{display:block;flex-basis:100%;margin-top:6px;width:100%}
+.store-inline label{display:block;font-weight:600;font-size:.9rem;margin:0 0 4px}
+.store-inline-row,.pop-store .pop-code-row{display:flex;gap:6px;align-items:stretch}
+.store-inline input,.pop-store input{flex:1;min-width:0;min-height:44px;margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;text-transform:none;letter-spacing:normal}
+.store-inline input:focus-visible,.pop-store input:focus-visible{outline:3px solid var(--focus);outline-offset:1px}
+.pop-store{margin:6px 0}
+.pop-store label{display:block;font-weight:600;font-size:.85rem;margin:0 0 4px}

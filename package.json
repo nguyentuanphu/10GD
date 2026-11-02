@@ -1,6 +1,6 @@
 {
   "name": "bep-gia-dinh",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "private": true,
   "description": "Family meal planning, receipts, shopping and shared family data",
   "engines": {
@@ -14,7 +14,7 @@
     "test:browser": "node tests/startup.test.cjs && node tests/kitchen-hub.test.cjs",
     "test:authenticated-startup": "node tests/authenticated-startup.test.cjs",
     "test:email": "node tests/email-recovery.test.mjs",
-    "test:all": "npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup && npm run test:artwork:browser && npm run test:price-scout:browser && npm run test:catalog:browser && npm run test:catalog-filters:browser && npm run test:community:browser && npm run test:banner:browser && npm run test:voice:browser && npm run test:voice-price:browser && npm run test:voice-commands:browser && npm run test:units:browser && npm run test:studio-speed:browser && npm run test:studio-nav:browser && npm run test:scout && npm run test:scout:browser && npm run test:scout-studio:browser && npm run test:offline:browser && npm run test:update:browser && npm run test:scout-pair:browser && npm run test:voice-local:browser && npm run test:voice-default:browser && npm run test:voice-ios-crash:browser && npm run test:scout-release && npm run test:library-guide:browser && npm run test:alerts-online:browser && npm run test:usage:browser && npm run test:recipe-community:browser && npm run test:urgent-reasons:browser && npm run test:menu-reactions:browser && npm run test:ladybug:browser && npm run test:receipt-ocr:browser && npm run test:generic-receipts:browser",
+    "test:all": "npm run check && npm run typecheck && npm test && npm run test:browser && npm run test:authenticated-startup && npm run test:artwork:browser && npm run test:price-scout:browser && npm run test:catalog:browser && npm run test:catalog-filters:browser && npm run test:community:browser && npm run test:banner:browser && npm run test:voice:browser && npm run test:voice-price:browser && npm run test:voice-commands:browser && npm run test:units:browser && npm run test:studio-speed:browser && npm run test:studio-nav:browser && npm run test:scout && npm run test:scout:browser && npm run test:scout-studio:browser && npm run test:offline:browser && npm run test:update:browser && npm run test:scout-pair:browser && npm run test:voice-local:browser && npm run test:voice-default:browser && npm run test:voice-ios-crash:browser && npm run test:scout-release && npm run test:scout-store && npm run test:scout-store:browser && npm run test:library-guide:browser && npm run test:alerts-online:browser && npm run test:usage:browser && npm run test:recipe-community:browser && npm run test:urgent-reasons:browser && npm run test:menu-reactions:browser && npm run test:ladybug:browser && npm run test:receipt-ocr:browser && npm run test:generic-receipts:browser",
     "artwork:audit": "npm run build && node scripts/artwork-audit.cjs",
     "test:artwork:browser": "node tests/artwork-browser.test.cjs",
     "test:price-scout:browser": "node tests/price-scout-browser.test.cjs",
@@ -41,6 +41,8 @@
     "test:scout-studio:browser": "node tests/scout-studio-browser.test.cjs",
     "test:scout-pair:browser": "node tests/scout-pair-browser.test.cjs",
     "test:scout-release": "node tests/scout-release.test.cjs",
+    "test:scout-store": "npm run build:extension && node tests/scout-store-detect.test.mjs",
+    "test:scout-store:browser": "npm run build:extension && node tests/scout-store-browser.test.cjs",
     "test:offline:browser": "node tests/offline-downloads-browser.test.cjs",
     "test:update:browser": "node tests/app-update-browser.test.cjs",
     "test:usage:browser": "node tests/usage-browser.test.cjs",

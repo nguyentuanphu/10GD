@@ -120,7 +120,7 @@ const PACE_FLOOR=3000,PACE_CEIL=120000;
 function pacing(rand:number=Math.random(),override?:{minMs:number,maxMs:number}|null,testBuild=false){const p=override&&Number.isFinite(override.minMs)&&Number.isFinite(override.maxMs)?override:PACING;
  const clamp=(v:number)=>testBuild?Math.max(0,v):Math.min(PACE_CEIL,Math.max(PACE_FLOOR,v));const lo=clamp(p.minMs),hi=Math.max(lo,clamp(p.maxMs));return Math.round(lo+(hi-lo)*Math.min(1,Math.max(0,rand)))}
 // ---------- store label ----------
-const normLabel=(s:any)=>clean(String(s||''),80).toLowerCase().replace(/^(your\s+store|my\s+store|store|shopping at|pick up from|deliver(?:y|ing)? to)\s*[:\-]?\s*/i,'').replace(/[^a-z0-9]+/g,' ').trim();
+const normLabel=(s:any)=>{const x=clean(String(s||''),80).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/^(your\s+store|my\s+store|store|shopping at|pick up from|deliver(?:y|ing)? to)\s*[:\-]?\s*/i,'').replace(/[^a-z0-9]+/g,' ').trim();return /^(online|truc tuyen|truc tuyen online|online truc tuyen)$/.test(x)?'online':x};// v1.7.3: “Trực tuyến” = Online
 function storeMatches(seen:any,assigned:any){const a=normLabel(assigned),s=normLabel(seen);if(!a)return true;if(!s)return false;return s===a||s.includes(a)||a.includes(s)}
 
 // v1.7.2 update check: dotted numeric versions ("1.7.10" > "1.7.9").

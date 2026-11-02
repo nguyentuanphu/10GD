@@ -90,7 +90,7 @@ assert.equal(C.storeMatches('Your store: Hurstville','Hurstville'),true);assert.
  f=r.facts.find((x:any)=>x.productId==='5000002');assert.equal(f.unitBasis,'per_kg');assert.equal(f.unitPrice,18);
  f=r.facts.find((x:any)=>x.productId==='5000000');assert.equal(f.unitBasis,'per_100g');assert.equal(f.unitPrice,1.2);
  // ALDI special buys + signed-in indicator
- r=await parse('https://www.aldi.com.au/special-buys');assert.equal(r.pageType,'specials');assert.equal(r.facts.length,8);assert.equal(r.signedIn,true,'signed-in marker detected');assert.equal(r.facts[0].promoType,'special-buy');assert.equal(r.facts[0].price,19.99);assert.equal(r.storeLabel,'ALDI Hurstville');
+ r=await parse('https://www.aldi.com.au/special-buys');assert.equal(r.pageType,'specials');assert.equal(r.facts.length,8);assert.equal(r.signedIn,false,'v1.7.3 live structure: ALDI AU has no customer accounts, so it is never “signed in” (the fixture\'s “Sign out” text is not a marker there)');assert.equal(r.facts[0].promoType,'special-buy');assert.equal(r.facts[0].price,19.99);assert.equal(r.storeLabel,'ALDI Hurstville');
  // Chemist Warehouse product: meta tags only
  r=await parse('https://www.chemistwarehouse.com.au/buy/98765/vitamin-c-500mg-120-tablets');assert.equal(r.method,'meta');assert.equal(r.facts[0].price,14.99);assert.equal(r.facts[0].productId,'98765');assert.equal(r.facts[0].packQty,120);assert.equal(r.facts[0].packUnit,'each');
  // Amazon search results

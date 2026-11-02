@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Woolworths Supermarket - Buy Groceries Online</title></head>
+<body>
+<!-- SYNTHETIC fixture mirroring the owner's real page structure of 2 Nov 2026 (class names incl. CSS-module hashes);
+     no personal data — "Sam" and "12 Sample Street" are placeholders. -->
+<header class="wx-header" role="banner">
+ <a class="logo" href="/">Woolworths</a><button>Everyday &amp; Other Services</button>
+ <form class="search"><input type="search" placeholder="Search products, recipes &amp; ideas"></form>
+ <a class="lists">Lists &amp; <span>Buy again</span></a>
+ <div class="my-account_component_button-container__JXeF0" data-mode="__ACCOUNT__"><span class="my-account_component_icon-wrapper__Qz1aB"></span>__ACCOUNT_TEXT__</div>
+ <a class="cart">$34.00</a>
+</header>
+<nav><a>Browse products</a><a>Specials &amp; catalogue</a><a>Recipes &amp; ideas</a><a>Ways to shop</a><a>Help</a><a>Shop for business</a><a>Stores</a></nav>
+<div id="fulfilment-host"></div>
+<main><section class="quick-links"><h2 class="core-title-lg quick-links-header_component_title__fuWqS">__GREETING__</h2></section><p>Helping you find great value</p><p>Sign up to Everyday Rewards</p></main>
+<script>
+ // SPA: the fulfilment ribbon renders late (light DOM, or inside an open shadow root with ?shadow=1).
+ const q=new URLSearchParams(location.search),MODE=q.get('mode')||'boot';
+ const label={boot:'Direct to boot:',pickup:'Pick up:',cc:'Click &amp; Collect:',delivery:'Delivery to:'}[MODE];
+ const place=MODE==='delivery'?'12 Sample Street, Wolli Creek NSW 2205':'Wolli Creek';
+ const ribbon='<div class="fulfilment-ribbon_component_fms-container__Y_9aJ"><button class="core-button button_component_button__hRJzJ core-button-primary core-button-medium fulfilment-ribbon_component_fms-type__hsxul"><div class="fulfilment-ribbon_component_section-content__K8iBs"><div class="fulfilment-ribbon_component_fms-method__99_6g"><svg width="12" height="12"></svg><span class="fulfilment-ribbon_component_fms-method-text__cUg2I">'+label+'</span></div> <span class="fulfilment-ribbon_component_fms-value___OPP8">'+place+'</span></div></button> <a href="#">Change <span>›</span></a> <span><strong>Select a time:</strong></span> <a href="#">View available times</a> <a href="#">Choose ›</a></div>'
+  +'<shared-fulfilment-details hidden><span id="fulfilment-method" class="fulfilment-heading">'+label.replace(':','')+'</span><div class="fulfilment-delivery-address">'+place+'</div></shared-fulfilment-details>';
+ setTimeout(()=>{const host=document.getElementById('fulfilment-host');
+  if(q.get('shadow')==='1'){class Bar extends HTMLElement{connectedCallback(){this.attachShadow({mode:'open'}).innerHTML=ribbon}}customElements.define('wx-fulfilment-ribbon',Bar);host.appendChild(document.createElement('wx-fulfilment-ribbon'))}
+  else host.innerHTML=ribbon},+(q.get('delay')||0));
+</script>
+</body></html>

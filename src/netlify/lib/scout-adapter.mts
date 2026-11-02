@@ -58,10 +58,15 @@ const text=(v:any,max:number)=>typeof v==='string'?v.replace(/[\u0000-\u001f<>]/
 /** "Woolworths Hurstville" → "Hurstville" (the branch name without the retailer brand). */
 export function branchName(retailer:string,storeLabel:any){const s=text(storeLabel,60).replace(RETAILER_WORDS[retailer]||/^$/,'').replace(/^[\s\-–·:]+/,'').trim();return s||null}
 /** v1.7.2: why a fact has no branch — 'no-postcode' | 'outside-pilot' | 'no-store' (shown as passive status). */
-export function placementGap(obs:any,states:string[]){const pc=postcodeToState(obs?.postcode);if(!pc.valid)return 'no-postcode';if(!states.includes(pc.state))return 'outside-pilot';return branchName(obs.retailer,obs.storeLabel)?'no-branch':'no-store'}
+export function placementGap(obs:any,states:string[]){const pc=postcodeToState(obs?.postcode);if(!pc.valid)return 'no-postcode';if(!states.includes(pc.state))return 'outside-pilot';return isOnline(obs)||branchName(obs.retailer,obs.storeLabel)?'no-branch':'no-store'}
+/** v1.7.3: Amazon AU and Chemist Warehouse online prices are national — placed as an online price in the
+ *  device's postcode state (same branch shape as the app's “Giá online”: retailer:online:STATE). */
+export const ONLINE_PRICED=['chemist','amazon'];
+export function isOnline(obs:any){return ONLINE_PRICED.includes(obs?.retailer)}
 /** Where a Scout fact lives in the community pool, or null when it cannot be placed. */
 export function scoutPlacement(obs:any,states:string[]){
  const pc=postcodeToState(obs?.postcode);if(!pc.valid||!states.includes(pc.state))return null;
+ if(isOnline(obs))return{state:pc.state as string,branchId:obs.retailer+':online:'+pc.state,branchLabel:'online',online:true};
  const name=branchName(obs.retailer,obs.storeLabel);if(!name)return null;
  return{state:pc.state as string,branchId:obs.retailer+':'+pc.postcode+':'+slug(name),branchLabel:name+' '+pc.postcode}}
 
@@ -88,7 +93,7 @@ const m=(await links()).find((x:any)=>x.retailer===obs.retailer&&x.productId===o
   const place=scoutPlacement(obs,p.states);if(!place)return{placed:false,why:placementGap(obs,p.states)};
   const cp=pool(),who=await contributor(cp,obs.account),familyRef=await familyOf(obs.account),captured=Date.parse(obs.observedAt),day=sydneyDay(captured);
   const id='cs-'+h([obs.key,obs.deviceId,day].join('|'));
-  const base:any={itemId,label:text(obs.label,120)||itemId,retailer:obs.retailer,price:obs.price,currency:'AUD',unitPrice:obs.unitBasis?obs.unitPrice??null:null,unitBasis:obs.unitPrice!=null?obs.unitBasis||null:null,packQty:obs.packQty??null,packUnit:obs.packQty?obs.packUnit||null:null,units:obs.packCount??null,promo:obs.promo||null,validUntil:obs.promo&&obs.validUntil?obs.validUntil:null,capturedAt:new Date(captured).toISOString(),observedAt:day,state:place.state,branchId:place.branchId,branchLabel:place.branchLabel,online:false};
+  const base:any={itemId,label:text(obs.label,120)||itemId,retailer:obs.retailer,price:obs.price,currency:'AUD',unitPrice:obs.unitBasis?obs.unitPrice??null:null,unitBasis:obs.unitPrice!=null?obs.unitBasis||null:null,packQty:obs.packQty??null,packUnit:obs.packQty?obs.packUnit||null:null,units:obs.packCount??null,promo:obs.promo||null,validUntil:obs.promo&&obs.validUntil?obs.validUntil:null,capturedAt:new Date(captured).toISOString(),observedAt:day,state:place.state,branchId:place.branchId,branchLabel:place.branchLabel,online:(place as any).online===true};
   base.groupId=groupIdOf(base);
   let status='';
   await mutateShard(cp,place.state,itemId,(sh:any)=>{
