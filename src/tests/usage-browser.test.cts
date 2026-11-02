@@ -145,7 +145,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
   await context.addCookies([{name:henry.split('=')[0],value:henry.split('=').slice(1).join('='),domain:'kitchen.test',path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));log.length=0;await route(page,{log});
   await page.goto(origin+'/studio.html#usage');await page.waitForSelector('#usage-h1');await page.waitForSelector('#usage-main .us-kpis');
-  const nav=page.locator('#nav a[href="#usage"]');assert.equal(await nav.getAttribute('aria-current'),'page');assert.match(await nav.innerText(),lang==='en'?/Usage/:/Mức sử dụng/);
+  const nav=page.locator('#nav a[href="#usage"]');assert.equal(await nav.getAttribute('aria-current'),'page');assert.match(await nav.textContent(),lang==='en'?/Usage/:/Mức sử dụng/);// v1.7.2: hidden in the closed menu sheet on phones
   assert.equal(log.filter(x=>x==='usage:studio-usage-overview').length,1,'single summary request');
   const body=await page.locator('#usage-main').innerText();
   for(const w of (lang==='en'?['Daily active (DAU)','Peak hours','Weekly retention','Inactive families','Network only','Family postcode','Devices, versions, languages','Recipe library']:['Người dùng hôm nay (DAU)','Giờ cao điểm','Giữ chân theo tuần','Gia đình không hoạt động','Chỉ theo mạng','Postcode gia đình','Kho món ăn']))assert.ok(body.includes(w),size+' '+lang+' missing '+w);
