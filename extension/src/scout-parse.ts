@@ -71,5 +71,31 @@ function extract(doc:any,href:string,config:any,{status=0,today=new Date().toISO
  }
  return{...base,status:facts.length?'ok':'parse-failed',method,facts};
 }
-root.ScoutParse={extract,retailerFor,pageTypeFor,deepAll};
+// ---------- v1.7.2 “Gửi mẫu trang để sửa”: a sanitised description of the page STRUCTURE ----------
+// Lets the owner fix selectors through the data-only config. Never includes form values, cookies,
+// account menus, emails or phone numbers; texts are short and scrubbed; URL keeps origin + path
+// (+ searchTerm/q only).
+const EMAIL=/[\w.+-]+@[\w-]+\.[\w.-]+/g,PHONE=/(?:\+?61|0)[\s-]?\d(?:[\s-]?\d){7,9}/g,LONGNUM=/\b\d{9,}\b/g;
+function scrub(v:any,max=120){return C.clean(String(v??''),400).replace(EMAIL,'[email]').replace(PHONE,'[phone]').replace(LONGNUM,'[number]').slice(0,max)}
+function safeUrl(href:string){try{const u=new URL(href),keep=new URLSearchParams();for(const k of ['searchTerm','q','searchtext','k'])if(u.searchParams.get(k))keep.set(k,scrub(u.searchParams.get(k),60));const q=keep.toString();return u.origin+u.pathname+(q?'?'+q:'')}catch{return ''}}
+const PRIVATE='input,textarea,select,option,[contenteditable="true"],form,[data-testid*="account" i],[class*="account" i],[aria-label*="account" i],[class*="user-name" i],[class*="username" i],header nav [class*="profile" i]';
+function isPrivate(el:any){try{return !!el.closest?.(PRIVATE)}catch{return false}}
+function cssPath(el:any){const parts:string[]=[];let n=el,i=0;while(n&&i<6){if(n.nodeType===11){parts.unshift('#shadow');n=n.host;i++;continue}if(n.nodeType!==1)break;const cls=[...(n.classList||[])].filter((c:string)=>/^[\w-]{1,30}$/.test(c)&&!/\d{4,}/.test(c)).slice(0,2);parts.unshift(n.localName+(cls.length?'.'+cls.join('.'):''));n=n.parentNode;i++}return parts.join(' > ')}
+function headingNear(el:any){let n=el;for(let i=0;i<6&&n;i++){const h=n.querySelector?.('h1,h2,h3,h4,[class*="title" i],[data-testid*="title" i]');if(h&&!isPrivate(h))return scrub(h.textContent,80);n=n.parentNode?.host||n.parentNode}return ''}
+function pickLd(v:any):any{const offer=(o:any)=>o?{'@type':o['@type'],price:o.price,lowPrice:o.lowPrice,priceCurrency:o.priceCurrency,priceValidUntil:o.priceValidUntil,priceSpecification:[].concat(o.priceSpecification||[]).slice(0,3).map((x:any)=>x&&{'@type':x['@type'],priceType:x.priceType,price:x.price,referenceQuantity:x.referenceQuantity})}:null;
+ const t=[].concat(v?.['@type']||[]).map(String);if(t.includes('Product'))return{'@type':'Product',name:scrub(v.name,100),sku:scrub(v.sku,30),offers:[].concat(v.offers||[]).slice(0,2).map(offer)};
+ if(t.includes('ItemList'))return{'@type':'ItemList',count:(v.itemListElement||[]).length,first:pickLd((v.itemListElement||[])[0]?.item||(v.itemListElement||[])[0])};return null}
+function diagnose(doc:any,href:string,config:any,{timing=null,version=null,configVersion=null}:any={}){
+ const url=new URL(href),retailer=retailerFor(url.hostname,config),r=config.retailers?.[retailer||'']||{},pageType=retailer?pageTypeFor(url,r):null;
+ const types=new Set<string>();let ld:any=null;for(const sc of doc.querySelectorAll('script[type="application/ld+json"]')){let d:any;try{d=JSON.parse(sc.textContent||'')}catch{types.add('(invalid)');continue}const walk=(v:any,depth=0)=>{if(!v||depth>5||typeof v!=='object')return;if(Array.isArray(v))return v.forEach(x=>walk(x,depth+1));for(const t of [].concat(v['@type']||[]))types.add(String(t).slice(0,40));if(!ld){const p=pickLd(v);if(p)ld=p}if(v['@graph'])walk(v['@graph'],depth+1)};walk(d)}
+ const metas:any={};for(const m of doc.querySelectorAll('meta[property],meta[name],meta[itemprop]')){const k=m.getAttribute('property')||m.getAttribute('name')||m.getAttribute('itemprop')||'';if(/price|product|currency|og:type|og:title|availability/i.test(k)&&Object.keys(metas).length<20)metas[k.slice(0,50)]=scrub(m.getAttribute('content'),80)}
+ const sel:any={};const count=(s:any)=>{if(!s||typeof s!=='string')return;try{sel[s.slice(0,160)]=deepAll(doc,s,500).length}catch{sel[s.slice(0,160)]=-1}};
+ for(const cfg of Object.values<any>(r.selectors||{})){for(const grp of [cfg.single,cfg.tile])for(const v of Object.values<any>(grp||{}))if(typeof v==='string'&&!/^\w+$/.test(v))count(v)}for(const s of r.store||[])count(s);
+ const custom=new Set<string>();for(const el of deepAll(doc,'*',6000))if(el.localName?.includes('-')&&custom.size<30)custom.add(el.localName.slice(0,40));
+ const prices:any[]=[];const walkText=(root:any,cap=30)=>{const w=(doc.createTreeWalker?doc:root.ownerDocument||doc).createTreeWalker(root,4);let n:any;while((n=w.nextNode())&&prices.length<cap){const t=n.nodeValue||'';if(/\$\s?\d/.test(t)&&t.length<60){const el=n.parentNode;if(!el||isPrivate(el))continue;prices.push({text:scrub(t,40),path:cssPath(el),heading:headingNear(el)})}}};
+ walkText(doc.body||doc,20);// light DOM first, then open shadow roots (web components)
+ for(const el of deepAll(doc,'*',6000))if(el.shadowRoot&&prices.length<30)walkText(el.shadowRoot);
+ let parsed:any=null;try{const x=extract(doc,href,config,{});parsed={status:x.status,method:(x as any).method||null,facts:x.facts?.length||0,storeLabel:x.storeLabel?scrub(x.storeLabel,60):null}}catch(e:any){parsed={error:scrub(e?.message,80)}}
+ return{v:1,url:safeUrl(href),retailer,pageType,title:scrub(doc.title,100),jsonLdTypes:[...types].slice(0,20),jsonLd:ld,meta:metas,selectors:sel,customElements:[...custom],prices,parsed,timing,version,configVersion}}
+root.ScoutParse={extract,retailerFor,pageTypeFor,deepAll,diagnose,safeUrl,scrub};
 })(globalThis);

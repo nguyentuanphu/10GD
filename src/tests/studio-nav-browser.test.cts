@@ -140,14 +140,14 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
   assert.equal(await page.locator('[data-attach="f4"]').isDisabled(),true,'no suggestion: choose another item first');
   await shot(page,'unplaced-vi-light-desktop-1280x800');
   await page.locator('[data-attach="f1"]').click();await page.waitForFunction(()=>!document.querySelector('[data-fact="f1"]'));
-  assert.deepEqual(world.unplaced.posts.at(-1),{op:'studio-unplaced-confirm',body:{items:[{factId:'f1',itemId:'nuoc-mam'}]}});
+  assert.deepEqual(world.unplaced.posts.at(-1),{op:'studio-unplaced-resolve',body:{keys:['f1'],itemId:'nuoc-mam'}});
   await page.locator('[data-other="f2"]').click();await page.locator('#ask[open] input[name=item]').fill('Rau muống');await page.locator('#ask button[value=ok]').click();
   await page.waitForFunction(()=>/bạn chọn/.test(document.querySelector('[data-fact="f2"]')?.textContent||''));
   await page.locator('#up-all').check();assert.match(await page.locator('#up-count').innerText(),/Đã chọn 2/,'f2 + f3 (f4 has no item)');await page.locator('#up-confirm').click();
   await page.waitForFunction(()=>document.querySelectorAll('#unplaced-main .up-item').length===1);
-  assert.deepEqual(world.unplaced.posts.at(-1),{op:'studio-unplaced-confirm',body:{items:[{factId:'f2',itemId:'rau-muong'},{factId:'f3',itemId:'gao'}]}},'bulk confirm with the chosen item');
+  assert.deepEqual(world.unplaced.posts.slice(-2),[{op:'studio-unplaced-resolve',body:{keys:['f2'],itemId:'rau-muong'}},{op:'studio-unplaced-resolve',body:{keys:['f3'],itemId:'gao'}}],'bulk confirm with the chosen item (one request per item)');
   await page.locator('[data-skip="f4"]').click();await page.waitForFunction(()=>!!document.querySelector('#unplaced-main .empty'));
-  assert.deepEqual(world.unplaced.posts.at(-1),{op:'studio-unplaced-reject',body:{factIds:['f4']}});assert.equal(await page.locator('#nav [data-badge="unplaced"]').evaluate((b:any)=>b.hidden),true);
+  assert.deepEqual(world.unplaced.posts.at(-1),{op:'studio-unplaced-resolve',body:{keys:['f4'],action:'reject'}});assert.equal(await page.locator('#nav [data-badge="unplaced"]').evaluate((b:any)=>b.hidden),true);
   await page.setViewportSize(sizes.mobile);await noOverflow(page,'unplaced mobile');
   assert.deepEqual(errors,[]);await context.close();delete world.unplaced}
 

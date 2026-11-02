@@ -113,6 +113,42 @@ assert.equal(await rock(),undefined,'a disputed Scout price is not shown');
 // ---- freshness feeds the planner
 {const ad=createDefaultAdapter(getStoreFn,{env,nowFn:()=>clock});const seen=await ad.lastSeen();assert.equal(seen['nuoc-mam|woolworths'],'2026-11-04');const maps=await ad.productMappings();assert.equal(maps[0].itemId,'nuoc-mam');assert.equal(maps[0].productUrl,PRODUCT)}
 
+// ---- v1.7.2 placement without questions: confident name matches only; passive reasons; attach; Studio list; page samples
+{const {matchProduct,productIsItem}=await import('../netlify/lib/scout-match.mjs');
+ assert.equal(matchProduct('Woolworths Fresh Tasmanian Atlantic Skin On Salmon Fillets').itemId,'ca-hoi');assert.equal(matchProduct('Salmon Fillets 2 Pack 240g').itemId,'ca-hoi');
+ for(const n of ['Tassal Smoked Salmon Slices 100g','Whiskas Salmon Cat Food 85g','John West Pink Salmon 105g','Salmon Flavoured Rice Crackers'])assert.equal(matchProduct(n).itemId,null,n+' is not plain Cá hồi');
+ assert.equal(productIsItem('Atlantic Salmon Portions 2pk','ca-hoi'),true);assert.equal(productIsItem('Smoked Salmon','ca-hoi'),false);assert.equal(productIsItem('Synthetic fish sauce 500mL','nuoc-mam'),true);assert.equal(productIsItem('Synthetic biscuit','nuoc-mam'),false)}
+const SALMON='https://www.woolworths.com.au/shop/productdetails/95171/woolworths-fresh-tasmanian-atlantic-skin-on-salmon-fillets';
+{const r=await dev('results',dB.token,{mode:'semi',items:[{retailer:'woolworths',url:SALMON,status:'ok',storeLabel:'Rockdale',facts:[{name:'Woolworths Fresh Tasmanian Atlantic Skin On Salmon Fillets 240g',price:11,productId:'95171',productUrl:SALMON,packQty:240,packUnit:'g'}]}]});
+ assert.equal(r.data.accepted,1);assert.equal(r.data.placement.placed,1,'confident name match → placed silently');assert.ok((await prices()).some(x=>x.itemId==='ca-hoi'&&x.branchId==='woolworths:2216:rockdale'),'salmon price reaches families')}
+{const r=await dev('results',dB.token,{mode:'semi',items:[{retailer:'woolworths',url:'https://www.woolworths.com.au/shop/productdetails/88001/smoked',status:'ok',storeLabel:'Rockdale',facts:[{name:'Tassal Smoked Salmon Slices 100g',price:6.5,productId:'88001'}]}]});
+ assert.equal(r.data.placement.placed,0);assert.deepEqual(r.data.placement.unplaced,{'no-item':1},'smoked salmon stays “Chưa gắn món”');assert.equal(r.data.placement.facts[0].why,'no-item')}
+{const r=await dev('results',dB.token,{mode:'semi',items:[{retailer:'woolworths',url:'https://www.woolworths.com.au/shop/productdetails/95172/salmon',status:'ok',storeLabel:'',facts:[{name:'Salmon Fillets 2 Pack',price:12,productId:'95172'}]}]});
+ assert.deepEqual(r.data.placement.unplaced,{'no-store':1},'no store label on the page → passive reason')}
+// Attach from the popup: a family vote for others, confirmed at once for a trusted price checker; the price is placed.
+const MYST=(id:string)=>'https://www.woolworths.com.au/shop/productdetails/'+id+'/synthetic-mystery-sauce';
+const mystery=(id:string,price:number)=>({retailer:'woolworths',url:MYST(id),status:'ok',storeLabel:'Rockdale',facts:[{name:'Synthetic mystery condiment '+id,price,productId:id,productUrl:MYST(id)}]});
+{const before=await dev('results',dB.token,{mode:'semi',items:[mystery('777001',3)]});assert.deepEqual(before.data.placement.unplaced,{'no-item':1});
+ const r=await dev('results',dB.token,{mode:'semi',attach:{itemId:'nuoc-mam'},items:[mystery('777001',3)]});assert.equal(r.status,200);assert.equal(r.data.placement.placed,1,'placed after the person links it');
+ const doc=await communityStore(getStoreFn).get('products/woolworths/nuoc-mam',{type:'json'});assert.equal(doc.candidates.find((c:any)=>c.productId==='777001').status,'candidate','one family vote only')}
+{const r=await dev('results',dH.token,{mode:'semi',attach:{itemId:'nuoc-mam'},items:[{...mystery('777002',3.1),storeLabel:'Hurstville'}]});assert.equal(r.data.placement.placed,1);
+ const doc=await communityStore(getStoreFn).get('products/woolworths/nuoc-mam',{type:'json'});assert.equal(doc.candidates.find((c:any)=>c.productId==='777002').status,'confirmed','trusted price checker confirms the link at once')}
+assert.equal((await dev('results',dB.token,{mode:'semi',attach:{itemId:'not-an-item'},items:[mystery('777009',3)]})).data.placement.unplaced['no-item'],1,'unknown item ids are ignored');
+// Studio “Giá chưa gắn món”: list with suggestions, bulk attach / reject (audited).
+await dev('results',dC.token,{mode:'semi',items:[mystery('777003',2.9)]});
+{const l=(await S('studio-unplaced')).data.items;const smoked=l.find((x:any)=>x.productId==='88001'),m3=l.find((x:any)=>x.productId==='777003');assert.ok(smoked&&m3,'unplaced facts listed: '+l.map((x:any)=>x.productId).join(','));assert.equal(smoked.retailer,'woolworths');
+ const a=await S('studio-unplaced-resolve',{keys:[m3.key],itemId:'nuoc-mam',action:'attach'});assert.equal(a.status,200,JSON.stringify(a.data));assert.equal(a.data.results[0].status,'placed');
+ const rj=await S('studio-unplaced-resolve',{keys:[smoked.key],action:'reject',reason:'not plain salmon'});assert.equal(rj.data.results[0].status,'rejected');
+ const l2=(await S('studio-unplaced')).data.items;assert.ok(!l2.some((x:any)=>x.productId==='88001'||x.productId==='777003'),'resolved facts leave the list');
+ const doc=await communityStore(getStoreFn).get('products/woolworths/nuoc-mam',{type:'json'});assert.equal(doc.candidates.find((c:any)=>c.productId==='777003').status,'confirmed','moderator link confirmed');
+ assert.equal((await S('studio-unplaced-resolve',{keys:['pool/../x'],itemId:'nuoc-mam'})).data.results[0].ok,false,'bad keys refused')}
+// Page samples (“Gửi mẫu trang để sửa”): sanitised again on the server, Studio list, 30-day retention.
+{const sample={v:1,url:'https://www.woolworths.com.au/shop/search/products?searchTerm=salmon',retailer:'woolworths',pageType:'search',title:'Hi jane.doe@example.com',cookie:'session=abc',jsonLdTypes:['Product'],selectors:{'wc-product-tile':0},prices:[{text:'$12.00',path:'div.price',heading:'Call 0412 345 678'}]};
+ const r=await dev('diagnose',dA.token,sample);assert.equal(r.status,201,JSON.stringify(r.data));
+ const l=(await S('studio-diagnostics')).data.samples;assert.equal(l.length,1);const txt=JSON.stringify(l[0]);assert.ok(!/@example\.com|0412 345 678|session=abc/.test(txt),'no email, phone or cookie stored: '+txt);assert.equal(l[0].retailer,'woolworths');assert.equal(l[0].payload.prices[0].text,'$12.00');
+ assert.equal((await dev('diagnose',dA.token,{...sample,retailer:'evil'})).status,400,'only supported retailer pages');
+ // (library call: a Studio session would have expired 31 days later)
+ const {saveDiagnostic,listDiagnostics}=await import('../netlify/lib/scout.mjs');const later=clock+31*86400000;await saveDiagnostic(getStoreFn,{id:'dev-later',name:'Later PC',owner:'alice'},sample,later);const l2=await listDiagnostics(getStoreFn,{now:later});assert.equal(l2.length,1,'samples older than 30 days are removed');assert.equal(l2[0].deviceId,'dev-later')}
 // ---- community pilot switched off → nothing written to the pool (kept in the Scout store)
 {const r=await studioPost('settings-save',{patch:{flags:{communityPrices:false}}},henry.cookie,csrf);assert.equal(r.status,200);const before=JSON.stringify(await communityStore(getStoreFn).get('items/NSW/nuoc-mam',{type:'json'}));const x=await dev('results',dH.token,{mode:'semi',items:[{retailer:'woolworths',url:PRODUCT,status:'ok',storeLabel:'Hurstville',facts:[fish(4.6)]}]});assert.equal(x.status,200);assert.equal(JSON.stringify(await communityStore(getStoreFn).get('items/NSW/nuoc-mam',{type:'json'})),before,'pool untouched while community prices are off');await studioPost('settings-save',{patch:{flags:{communityPrices:true}}},henry.cookie,csrf)}
 

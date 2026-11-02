@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {readFileSync,existsSync} from 'node:fs';
 import {inflateRawSync} from 'node:zlib';
+import {createHash} from 'node:crypto';
 
 function unzip(file:string){const buf=readFileSync(file),files:Record<string,Buffer>={};
  const end=buf.lastIndexOf(Buffer.from([0x50,0x4b,0x05,0x06]));assert.ok(end>0,'zip end record');
@@ -38,6 +39,12 @@ const sm=JSON.parse(store['manifest.json'].toString());
 assert.equal(sm.key,undefined,'Web Store zip has no key (the store assigns its own id)');
 assert.deepEqual({...sm},(({key,...rest})=>rest)(m),'Web Store manifest is otherwise identical');
 assert.deepEqual(Object.keys(store).sort(),Object.keys(z).sort(),'Web Store zip has the same files');
+// v1.7.2 update check: the build writes what the update banner offers, and it matches the zip and the server's announced version.
+{const info=JSON.parse(readFileSync('dist/downloads/famtray-scout.json','utf8')),zipBuf=readFileSync('dist/downloads/famtray-scout.zip');
+ assert.equal(info.version,m.version,'update info names the zipped version');assert.equal(info.version,JSON.parse(readFileSync('extension/manifest.json','utf8')).version);
+ assert.equal(info.zip,'/downloads/famtray-scout.zip');assert.equal(info.bytes,zipBuf.length);assert.equal(info.sha256,createHash('sha256').update(zipBuf).digest('hex'),'checksum of the served zip');
+ assert.equal(/EXTENSION_VERSION='([^']+)'/.exec(readFileSync('src/netlify/lib/scout-version.mts','utf8'))![1],m.version,'server EXTENSION_VERSION = zipped manifest version');
+ assert.equal(m.key,JSON.parse(readFileSync('extension/manifest.json','utf8')).key,'pinned key unchanged: updating the unpacked folder keeps the same id, storage and pairing');}
 console.log('PASS production build ships dist/downloads/famtray-scout.zip (app address + externally_connectable from URL) and dist-extension-store.zip (no key)');
 
 // 2. Never precached; bypassed by the worker; served as a zip download.

@@ -103,6 +103,15 @@ assert.equal(C.storeMatches('Your store: Hurstville','Hurstville'),true);assert.
  r=await parse('https://www.woolworths.com.au/shop/browse/empty');assert.equal(r.status,'parse-failed');assert.equal(r.challenge,null);
  // Unsupported site
  r=await page.evaluate(([cfg]:any)=>(globalThis as any).ScoutParse.extract(document,'https://example.org/',cfg),[config]);assert.equal(r.status,'unsupported');
+ // v1.7.2 “Gửi mẫu trang để sửa”: the page-structure sample never carries personal data.
+ {await page.goto('https://www.woolworths.com.au/shop/browse/specials/half-price');await page.addScriptTag({path:'.compiled/extension/scout-core.js'});await page.addScriptTag({path:'.compiled/extension/scout-parse.js'});
+  await page.evaluate(()=>{document.title='Specials for jane.doe@example.com';document.body.insertAdjacentHTML('afterbegin','<header><div class="account-menu"><span class="user-name">Jane Doe</span> <span>$99.00 credit</span></div></header><form><input name="postcode" value="2220"><input type="email" value="jane.doe@example.com"><span>$5.00 voucher in form</span></form><div class="note">Call 0412 345 678 · $3.00 off</div>');document.cookie='session=secret123'});
+  const d:any=await page.evaluate(([cfg]:any)=>(globalThis as any).ScoutParse.diagnose(document,'https://www.woolworths.com.au/shop/browse/specials/half-price?token=abc&searchTerm=salmon',cfg,{timing:{sinceLoadMs:1},version:'1.7.2',configVersion:cfg.version}),[config]);
+  const txt=JSON.stringify(d);
+  assert.equal(d.url,'https://www.woolworths.com.au/shop/browse/specials/half-price?searchTerm=salmon','origin + path + searchTerm only');assert.equal(d.retailer,'woolworths');assert.equal(d.pageType,'specials');
+  for(const bad of ['jane.doe@example.com','Jane Doe','secret123','session=','2220','$99.00','$5.00','0412 345 678','token=abc'])assert.ok(!txt.includes(bad),'sample leaks '+bad+': '+txt.slice(0,300));
+  assert.match(d.title,/\[email\]/);assert.ok(d.prices.length>=10&&d.prices.length<=30,'price-like nodes with paths: '+d.prices.length);assert.ok(d.prices.some((x:any)=>x.text.includes('$3.00')),'non-private price text kept');assert.ok(d.prices.every((x:any)=>x.path&&x.path.split(' > ').length<=7));
+  assert.ok(d.prices.some((x:any)=>x.path.includes('#shadow')),'walks open shadow roots');assert.ok(Object.values(d.selectors).some((n:any)=>n>0),'selector match counts');assert.equal(d.parsed.facts,24);assert.ok(d.customElements.length>=1)}
  await browser.close();
  console.log('Scout parsing: unit prices, packs, promos, robots, challenges, pacing and 8 fixture pages passed.');
 })().catch(e=>{console.error(e);process.exit(1)});

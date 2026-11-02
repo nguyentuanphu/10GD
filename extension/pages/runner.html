@@ -4,16 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>So Giá tự động · Automatic price check</title>
+<title>So Giá đang xem giá · Price Check is checking prices</title>
 <link rel="stylesheet" href="ui.css">
 </head>
 <body class="options">
 <main class="runner">
- <h1 id="title">FamTray So Giá</h1>
+ <header class="runner-head"><span class="logo" aria-hidden="true">◎</span><h1 id="title">FamTray So Giá</h1></header>
  <p id="note" class="muted"></p>
- <p id="status" class="summary" role="status" aria-live="polite">…</p>
- <p id="count" class="muted"></p>
- <button id="pause" class="btn big danger" type="button">⏸ Tạm dừng · Pause</button>
+ <section class="card runner-now" aria-labelledby="status">
+  <p id="status" class="summary" role="status" aria-live="polite">…</p>
+  <p id="count" class="muted"></p>
+  <p id="empty" class="banner warn" role="status" hidden></p>
+  <button id="pause" class="btn danger" type="button">⏸ Tạm dừng · Pause</button>
+ </section>
+ <section class="card" aria-labelledby="h-plan"><h2 id="h-plan">Hôm nay sẽ xem · Today’s list</h2><div id="plan"></div></section>
 </main>
 <script src="build-info.js"></script>
 <script src="default-config.js"></script>

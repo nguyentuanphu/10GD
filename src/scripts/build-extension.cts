@@ -19,6 +19,9 @@ const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib');
 const test=process.argv.includes('--test'),src='extension',compiled='.compiled/extension',out=test?'dist-extension-test':'dist-extension';
 const manifest=JSON.parse(fs.readFileSync(src+'/manifest.json','utf8'));
 const config=JSON.parse(fs.readFileSync(src+'/config/scout-config.json','utf8'));
+// v1.7.2 update check: the server announces EXTENSION_VERSION (src/netlify/lib/scout-version.mts) as the
+// newest version; it must be the version this build zips, or devices would be told to update forever.
+{const want=/EXTENSION_VERSION='([^']+)'/.exec(fs.readFileSync('src/netlify/lib/scout-version.mts','utf8'))?.[1];if(want!==manifest.version)throw new Error('extension/manifest.json version '+manifest.version+' differs from EXTENSION_VERSION '+want+' in src/netlify/lib/scout-version.mts')}
 const scripts=['scout-core.js','scout-parse.js','scout-client.js','ui-common.js','background.js','content.js','runner.js','popup.js','options.js'];
 for(const f of scripts)if(!fs.existsSync(path.join(compiled,f)))throw new Error('Missing compiled extension script '+f+' (run tsc -p tsconfig.extension.json)');
 // v1.7.1 (owner: "too many files"): the package is bundled into as few files as Chrome
@@ -85,6 +88,8 @@ if(!test){zip(out,'dist-extension.zip');
  // build (npm run build:production) runs this. Generated only, never committed
  // (dist/downloads/ is gitignored) and never precached by the app's service worker.
  fs.mkdirSync('dist/downloads',{recursive:true});fs.copyFileSync('dist-extension.zip','dist/downloads/famtray-scout.zip');
+ // v1.7.2: what the update banner offers (also readable by people/tools: version, zip path, checksum).
+ {const z=fs.readFileSync('dist-extension.zip');fs.writeFileSync('dist/downloads/famtray-scout.json',JSON.stringify({version:manifest.version,configVersion:config.version,zip:'/downloads/famtray-scout.zip',bytes:z.length,sha256:require('node:crypto').createHash('sha256').update(z).digest('hex')},null,1)+'\n')}
  // Web Store / Edge Add-ons upload: same files, manifest without the pinned `key`.
  const store='dist-extension-store';fs.rmSync(store,{recursive:true,force:true});fs.mkdirSync(store);
  for(const f of fs.readdirSync(out))fs.copyFileSync(path.join(out,f),path.join(store,f));
