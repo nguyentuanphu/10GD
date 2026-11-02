@@ -13,7 +13,7 @@ import {getStore} from '@netlify/blobs';
 import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount} from '../lib/accounts.mjs';
 import {platformSettings,roleFor,csrfFor,writeAudit,recordEvent,readIndex} from '../lib/studio.mjs';
-import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,extensionAllowlist,isExtensionAllowed,setExtensionAllowed,NOT_ASSIGNED,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo,effectivePacing,validPacing,grantRunNow,stopRun,runNowActive,backoffRetailer,dayKey,queueCommand,takeCommands,commandResult,deviceTimeline,logEvent,scoutHooks} from '../lib/scout.mjs';
+import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,replaceDevice,staleDuplicates,labelOf,scanList,replanToday,setPinned,setMatchWords,ownerProductLink,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,extensionAllowlist,isExtensionAllowed,setExtensionAllowed,NOT_ASSIGNED,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo,effectivePacing,validPacing,grantRunNow,stopRun,runNowActive,backoffRetailer,dayKey,queueCommand,takeCommands,commandResult,deviceTimeline,logEvent,scoutHooks} from '../lib/scout.mjs';
 import {notifyOwners,notifyAssigned} from '../lib/scout-notify.mjs';
 
 const BASE_HEADERS={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
@@ -43,14 +43,24 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    if(op==='public'&&isRead)return json(publicInstallInfo(settings,env),200,{'Cache-Control':'public, max-age=300'});
 
    // ----- extension (device token) -----
-   const deviceOps=['pair','heartbeat','device','device-settings','tasks','results','release','block','unpair','run-now','run-stop','backoff','command-result'];
+   // v1.7.2 the same computer paired again (extension removed and installed): replace the earlier pairing(s) of the same
+   // account and label. Audited in the Studio log as device_replaced; the old token is refused from now on.
+   const replaceAll=async(device:any,ids:any[])=>{const done:string[]=[];for(const id of (Array.isArray(ids)?ids:[]).slice(0,10)){let o:any;try{o=await getDevice(getStoreFn,id)}catch{continue}
+     if(o.id===device.id||o.owner!==device.owner||o.revokedAt||labelOf(o)!==labelOf(device))continue;await replaceDevice(getStoreFn,o.id,device.id,'device:'+device.id,now);done.push(o.id);
+     await writeAudit(getStoreFn,{actor:device.owner,role:'account',action:'device_replaced',target:{type:'scout-device',id:device.id},details:{replaced:o.id,via:'extension'}},now)}return done};
+   const deviceOps=['pair','replace','heartbeat','device','device-settings','tasks','results','release','block','unpair','run-now','run-stop','backoff','command-result'];
    if(deviceOps.includes(op)){
     if(origin&&!ext&&origin!==url.origin)return json({error:'Nguồn không được phép.',errorEn:'Origin not allowed.'},403);
     // Cookies are never consulted for device ops: the bearer token is the only credential.
-    if(op==='pair'&&method==='POST'){await rate(getStoreFn,'pair:'+(request.headers.get('x-nf-client-connection-ip')||'unknown'),10,now);const {device,token}=await pairDevice(getStoreFn,await body(4000),now,env);return json({token,device:await deviceView(getStoreFn,device,settings,now,env)},201)}
+    if(op==='pair'&&method==='POST'){await rate(getStoreFn,'pair:'+(request.headers.get('x-nf-client-connection-ip')||'unknown'),10,now);const pb=await body(4000),{device,token,replaceCandidates}=await pairDevice(getStoreFn,pb,now,env);
+     // v1.7.2: the extension may ask first (replaceCandidates → op=replace) or pass replace:'all' after asking.
+     let replaced:string[]=[];if(pb?.replace==='all'&&replaceCandidates.length)replaced=await replaceAll(device,replaceCandidates.map((c:any)=>c.id));
+     const fresh=replaced.length?await getDevice(getStoreFn,device.id):device;
+     return json({token,device:await deviceView(getStoreFn,fresh,settings,now,env),replaceCandidates:replaced.length?[]:replaceCandidates,replaced},201)}
     const device=await deviceFromRequest(getStoreFn,request);await rate(getStoreFn,'dev:'+device.id,120,now);
     // Only accounts assigned in Studio may run the extension; unpair always works.
     if(op!=='unpair'&&!(await isExtensionAllowed(getStoreFn,device.owner,env,now)))return notAssigned();
+    if(op==='replace'&&method==='POST'){const b=await body(2000),replaced=await replaceAll(device,b?.replace);return json({ok:true,replaced})}
     if((op==='device'&&isRead)||(op==='heartbeat'&&method==='POST')){
      if(op==='heartbeat'){const b=await body(8000),signedIn:any={},storeSeen:any={},mismatch:any={};for(const r of RETAILERS){if(typeof b.signedIn?.[r]==='boolean')signedIn[r]=b.signedIn[r];if(typeof b.storesSeen?.[r]==='string')storeSeen[r]=String(b.storesSeen[r]).slice(0,80);if(typeof b.storeMismatch?.[r]==='boolean')mismatch[r]=b.storeMismatch[r]}
       // v1.7 live status (no page contents): Chrome/idle/battery, current run, last run summary, last error.
@@ -109,6 +119,14 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    if(op==='studio-overview'&&isRead)return json(await studioOverview(getStoreFn,{now,env}));
    if(op==='studio-auto'&&isRead)return json({autoScout:settings.autoScout,source:settings.autoScoutSource||'default'});
    if(op==='studio-coverage'&&isRead)return json(await coverage(getStoreFn,{now}));
+   // v1.7.2 Studio "Danh sách quét / Scan list": today's plan grouped by kind + store, and its editable sources.
+   if(op==='studio-scanlist'&&isRead)return json(await scanList(getStoreFn,{now,env,adapter:ad}));
+   if(op==='studio-replan'&&method==='POST'){const r=await replanToday(getStoreFn,{settings,now,adapter:ad});await audit('scout_replan',{type:'scout',id:'plan'},{details:{count:r.count,created:r.created??0}});return json({ok:true,...r})}
+   if(op==='studio-pin'&&method==='POST'){const pin=b.pin!==false;await setPinned(getStoreFn,{itemId:b.itemId,retailers:b.retailers,pin,actor,now});await audit(pin?'scout_pin_item':'scout_unpin_item',{type:'catalog-item',id:String(b.itemId)},{details:{retailers:Array.isArray(b.retailers)?b.retailers:null}});return json({ok:true})}
+   if(op==='studio-specials'&&method==='POST'){const r=String(b.retailer||''),cur=settings.specials||{},next:any={...cur};if(b.urls===null)delete next[r];else next[r]=Array.isArray(b.urls)?b.urls.map((u:any)=>String(u).trim()).filter(Boolean):[];
+    const patch=validateNetworkPatch({specials:next},await scoutConfig(getStoreFn));await saveNetwork(getStoreFn,patch,actor,now);await audit('scout_specials',{type:'scout',id:r},{details:{urls:next[r]||null}});return json({ok:true})}
+   if(op==='studio-mapping'&&method==='POST'){const action=String(b.action||''),r=await ownerProductLink(getStoreFn,{action,itemId:b.itemId,retailer:b.retailer,url:b.url,actor,now});await audit(action==='add'?'scout_mapping_add':'scout_mapping_remove',{type:'catalog-item',id:String(b.itemId)},{details:{retailer:b.retailer,...(r||{})}});return json({ok:true,...(r||{})})}
+   if(op==='studio-synonyms'&&method==='POST'){await setMatchWords(getStoreFn,{itemId:b.itemId,add:b.add,exclude:b.exclude,actor,now});await audit('scout_match_words',{type:'catalog-item',id:String(b.itemId)},{details:{add:b.add,exclude:b.exclude}});return json({ok:true})}
    if(op==='studio-events'&&isRead)return json({events:await listEvents(getStoreFn,{days:14,limit:200,now})});
    if(op==='studio-pair-code'&&method==='POST'){const who=String(b.username||actor).toLowerCase();if(!(await isExtensionAllowed(getStoreFn,who,env,now)))return notAssigned();const r=await createPairCode(getStoreFn,who,now,env);await audit('scout_pair_code',{type:'scout',id:'pair'},{details:{account:who}});return json({...r,account:who},201)}
    // Accounts allowed to use the extension (owner-only POST, CSRF, audited). STUDIO_ADMINS are always allowed.
@@ -131,11 +149,13 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    if(op==='studio-device-timeline'&&isRead){const d=await getDevice(getStoreFn,url.searchParams.get('deviceId'));return json({deviceId:d.id,events:await deviceTimeline(getStoreFn,d.id,now)})}
    // Run now for one device or all Auto-allowed devices (time-boxed grant, audited).
    if(op==='studio-run-now'&&method==='POST'){if(settings.autoScout!=='on'||settings.paused)return json({error:settings.paused?REFUSALS['paused-global'][0]:REFUSALS['auto-off'][0],errorEn:settings.paused?REFUSALS['paused-global'][1]:REFUSALS['auto-off'][1],code:settings.paused?'paused-global':'auto-off'},409);
-    const list=b.all===true?(await listDevices(getStoreFn)).filter(d=>!d.revokedAt&&d.autoAllowed===true&&!(d.pausedUntil>now)):[await getDevice(getStoreFn,b.deviceId)];
+    const every=b.all===true?await listDevices(getStoreFn):[],dup=staleDuplicates(every,now);// v1.7.2: an old pairing of the same computer is not run twice
+    const list=b.all===true?every.filter(d=>!d.revokedAt&&d.autoAllowed===true&&!(d.pausedUntil>now)&&!dup.has(d.id)):[await getDevice(getStoreFn,b.deviceId)];
     const ok:string[]=[];for(const d of list){if(d.revokedAt||d.autoAllowed!==true)continue;await grantRunNow(getStoreFn,d.id,actor,now);await queueCommand(getStoreFn,d.id,'run-now',{},actor,now);ok.push(d.id)}
     if(!ok.length)return json({error:'Không có máy nào được phép chạy tự động.',errorEn:'No device is allowed to run Auto.'},409);
     await audit('scout_run_now',{type:b.all===true?'scout':'scout-device',id:b.all===true?'all':ok[0]},{details:{devices:ok},reason:reasonOf()||undefined});return json({ok:true,devices:ok})}
    if(op==='studio-device'&&method==='POST'){const d=await getDevice(getStoreFn,b.deviceId),action=String(b.action||'');let patch:any;
+    if(action==='merge-into'){const r=await replaceDevice(getStoreFn,d.id,String(b.targetId||''),actor,now);await audit('scout_device_replaced',{type:'scout-device',id:r.by},{details:{replaced:r.replaced,via:'studio'},reason:reasonOf()||undefined});return json({ok:true,...r})}
     if(action==='pause')patch={pausedUntil:now+(Number.isInteger(b.hours)&&b.hours>0&&b.hours<=720?b.hours:24*30)*3600000,pauseReason:'studio'};
     else if(action==='resume')patch={pausedUntil:null,pauseReason:null};
     else if(action==='stop-run')patch={stopRequestedAt:now,runNow:d.runNow?{...d.runNow,stoppedAt:now}:null};

@@ -213,6 +213,6 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
  // Studio page (owner), three sizes
  for(const [name,viewport] of Object.entries(sizes) as any[]){const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce'});await context.addCookies([cookieOf(henry)]);const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page,{account:false});
   await page.goto(origin+'/studio.html#recipes');await page.locator('#recipes-main .cr-tabs').waitFor({timeout:20000});await page.locator('[data-cr-tab="all"]').click();await page.locator('#recipes-main .cr-item').first().waitFor();
-  assert.match(await page.locator('#nav').innerText(),/Món ăn cộng đồng|Community recipes/);await noOverflow(page,'studio '+name);await shot(page,`${name}-studio-vi`);assert.deepEqual(errors,[]);await context.close()}
+  assert.match(await page.locator('#nav').textContent(),/Món ăn cộng đồng|Community recipes/);await noOverflow(page,'studio '+name);await shot(page,`${name}-studio-vi`);assert.deepEqual(errors,[]);await context.close()}
  await browser.close();console.log('Recipe form, photos, community recipes and meal search: browser checks passed.');
 })().catch(e=>{console.error(e);process.exit(1)});

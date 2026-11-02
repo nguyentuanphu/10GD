@@ -4,7 +4,7 @@
 // reason in plain words and a concrete fix. Metadata only — the message text never reaches this page.
 // The list (op=urgent) follows the normal Studio read roles; one family's drill-down (op=urgent-family: sender and
 // recipient display names, recipients' devices as they are now) is owner-only and written to the audit log.
-// It also makes the Overview "Urgent messages" tile open this page.
+// (v1.7.2: the Overview "Urgent messages" tile link now lives in studio.ts.)
 (function studioUrgent(){
 'use strict';
 const registry=(window as any).studioPages,main=document.getElementById('main');
@@ -99,11 +99,8 @@ async function load(fresh=false){
  catch(e:any){if(n!==seq)return;data=null;error=e.message}
  render();
 }
-registry.urgent={vi:'Tin khẩn',en:'Urgent',icon:'!',async render(el:any){host=document.createElement('div');host.id='urgent-main';el.innerHTML='';el.appendChild(host);detail='';await load()}};
+// v1.7.2: Studio loads this file only when the merged "Tin nhắn khẩn" page (#urgent) opens; it shows this part as
+// its first tab (the daily counts are the second tab, #urgent/daily). Studio wires the Overview tile itself.
+registry.urgentReasons={vi:'Tin khẩn',en:'Urgent',icon:'!',hidden:true,async render(el:any){host=document.createElement('div');host.id='urgent-main';el.innerHTML='';el.appendChild(host);detail='';await load()}};
 
-// Overview: the "Urgent messages" tile opens this page (the whole tile is clickable; the link is the keyboard target).
-function wireTile(){const tile=main!.querySelector('article.tile-urgent:not([data-ur-wired])') as any;if(!tile)return;tile.dataset.urWired='1';tile.classList.add('tile-link');
- const p=document.createElement('p');p.className='tile-more';p.innerHTML=`<a href="#urgent">${esc(T('Xem lý do không gửi được →','See why not delivered →'))}</a>`;tile.appendChild(p);
- tile.addEventListener('click',(e:any)=>{if(e.target.closest('a'))return;location.hash='#urgent'})}
-new MutationObserver(wireTile).observe(main,{childList:true,subtree:true});wireTile();
 })();

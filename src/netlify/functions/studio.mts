@@ -6,6 +6,8 @@ import {sendPushBatch,pushKeys} from '../lib/push.mjs';
 import {moderationData,moderationPhoto,moderate,pruneCommunity,pilotConfig,rewardsAdmin,rewardsLedger,productAdmin} from '../lib/community-prices.mjs';
 import {studioStore,familyDataStore,studioRoles,roleFor,maskEmail,writeAudit,listLog,countLog,dailyLog,pruneLogs,platformSettings,validateSettingsPatch,saveSettings,activeBanner,verifyPassword,csrfFor,newRecoveryCode,newEpoch,listFamilies,readIndex,invalidateIndex,scanFamily,overview,invalidateOverview,storageProbe,familyFlags,familyLimits,sha256,dayKey,recordEvent,mapLimit,readAheadStores,inviteRef,safeInvites,inviteRows,withTimeout,PARALLEL,TRASH_RETENTION_DAYS} from '../lib/studio.mjs';
 import {urgentList,urgentFamily} from '../lib/urgent-report.mjs';
+import {recipeModerationData} from '../lib/community-recipes.mjs';
+import {inbox as feedbackInbox} from '../lib/feedback.mjs';
 
 const DAY=86400000;
 const json=(data:any,status=200,headers:any={})=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
@@ -57,6 +59,17 @@ export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=(
    if(op==='me'&&isRead)return json({username:actor,name:ctx.account.name,role,csrf:csrfFor(ctx.sessionKey),build:env.COMMIT_REF?String(env.COMMIT_REF).slice(0,12):null,context:env.CONTEXT||null});
 
    if(op==='overview'&&isRead){const o=await overview(getStoreFn,{now,fresh:owner&&q('fresh')==='1'});const {perFamily,...rest}=o;return json(rest)}
+   // v1.7.2 navigation badges: counts only (no names, no content) of what needs attention. Kept 60 s in the Studio
+   // store; each count has its own short time limit so one slow area never holds up the menu. Owner-only areas are
+   // null for the support role. ?fresh=1 (sent after a Studio change) rebuilds it.
+   if(op==='nav-badges'&&isRead){const key='cache/nav-badges-'+(owner?'owner':'support'),c=await studio().get(key,{type:'json'}) as any;
+    if(c?.at&&now-c.at<60000&&q('fresh')!=='1')return json(c.data);
+    const t=<T,>(p:Promise<T>)=>withTimeout(p.catch(()=>null as any),3000,null as any);
+    const [o,cp,cr,fb]=await Promise.all([t(overview(getStoreFn,{now,allowStale:true})),owner?t(moderationData(getStoreFn,now)):null,owner?t(recipeModerationData(getStoreFn)):null,owner?t(feedbackInbox(getStoreFn,{status:'new',size:5})):null]);
+    // Unplaced Price Check prices: counted by the Price Check library when it offers it (v1.7.2 merge with the extension work).
+    const sl:any=owner?await import('../lib/scout.mjs').catch(()=>null):null,up=sl&&typeof sl.unplacedCount==='function'?await t(Promise.resolve(sl.unplacedCount(getStoreFn,{now}))):null;
+    const data={unplaced:typeof up==='number'?up:up?.count??null,urgent:o?.totals?.alertsFailed??null,community:cp?cp.queue.length:null,recipes:cr?(cr.stats.pending||0)+(cr.stats.reportsOpen||0):null,feedback:fb?fb.counts?.new??fb.total:null,at:new Date(now).toISOString()};
+    await studio().setJSON(key,{at:now,data});return json(data)}
    if(op==='recompute'&&method==='POST'){const pruned=await pruneLogs(getStoreFn,now)+await pruneCommunity(getStoreFn,now);const o=await overview(getStoreFn,{fresh:true,now});await audit('recompute_overview',null,{details:{pruned}});const {perFamily,...rest}=o;return json(rest)}
 
    if(op==='accounts'&&isRead){

@@ -208,3 +208,130 @@ dialog::backdrop{background:#0008}
 #feedback-main .fb-history ol{margin:0;padding-left:20px;overflow-wrap:anywhere}
 @media (max-width:520px){#feedback-main .fb-ctx dl>div{grid-template-columns:1fr;gap:0}#feedback-main .fb-when{margin-left:0}}
 /* === v1.7.1 ladybug end === */
+/* === v1.7.2 studio-nav start === */
+/* Grouped menu: collapsible groups, current page highlighted, attention badges. */
+.topbar{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.topbar .net{padding:0 6px;font-size:13px}
+.navbtn{display:none}
+.side-panel{display:flex;flex-direction:column;gap:14px;flex:1 0 auto}
+.nav{gap:4px}
+.nav-jump{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--muted);font:inherit;cursor:pointer;text-align:left}
+.nav-jump span:nth-child(2){flex:1}
+.nav-jump kbd{font:600 11px/1 ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line);border-radius:6px;padding:3px 5px;background:var(--panel)}
+.nav-jump:hover{border-color:var(--brand2);color:var(--text)}
+.ngroup{display:flex;flex-direction:column}
+.ngroup-h{margin:6px 0 0;font-size:inherit}
+.ngroup-h button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:6px 10px;border:0;border-radius:10px;background:none;color:var(--muted);font:700 13px/1.3 inherit;font-family:inherit;letter-spacing:.02em;cursor:pointer;text-align:left}
+.ngroup-h button:hover{background:var(--panel2);color:var(--text)}
+.ngroup.has-current>.ngroup-h button{color:var(--brand)}
+.ng-icon{width:20px;text-align:center}
+.ng-label{flex:1;min-width:0}
+.chev::before{content:'▾';display:inline-block}
+.ngroup-h button[aria-expanded="false"] .chev::before{content:'▸'}
+.ngroup-h button[aria-expanded="true"] .nbadge{display:none}
+.ngroup-items{display:flex;flex-direction:column;gap:2px;padding-left:8px}
+.ngroup-items[hidden]{display:none}
+.nav a .nl{flex:1;min-width:0;width:auto;text-align:left;color:inherit;overflow-wrap:anywhere}
+.nav a .nbadge{width:auto;color:var(--bad);text-align:center}
+@media (min-width:961px){.layout{grid-template-columns:256px minmax(0,1fr)}}
+.nbadge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:var(--badbg);color:var(--bad);font-size:12px;font-weight:700;line-height:1;flex:none}
+.nbadge[hidden]{display:none!important}
+.nav a[aria-current="page"] .nbadge{background:var(--panel);color:var(--bad)}
+.nav-jump:focus-visible,.ngroup-h button:focus-visible,.navbtn:focus-visible,.subtabs a:focus-visible,.jump-list a:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+/* Merged urgent page: tabs. */
+.subtabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.subtabs a{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font-weight:600;text-decoration:none}
+.subtabs a[aria-current="page"]{background:var(--brand);border-color:var(--brand);color:var(--panel)}
+.subtabs a[aria-current="page"] .nbadge{background:var(--panel);color:var(--bad)}
+/* Ctrl+K page finder. */
+.jump{width:min(520px,calc(100vw - 32px))}
+.jump-form{display:flex;flex-direction:column;gap:10px;padding:18px}
+.jump-form h2{margin:0;font-size:18px}
+.jump-form input{min-height:44px;width:100%;box-sizing:border-box}
+.jump-list{list-style:none;margin:0;padding:0;max-height:min(55vh,420px);overflow:auto;display:flex;flex-direction:column;gap:2px}
+.jump-list a{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:8px 10px;border-radius:10px;color:var(--text);text-decoration:none}
+.jump-list a:hover,.jump-list a.first{background:var(--panel2)}
+/* Settings: the "Price Check is off" note only shows while it is off (the [hidden] attribute must win). */
+.scout-states-off[hidden]{display:none}
+/* No horizontal page scroll: long words, codes and wide controls stay inside their card. */
+.main .card,.main .view,.main .tiles,.main .grid2{min-width:0;max-width:100%}
+.main .card{box-sizing:border-box}
+.main input:not([type="checkbox"]):not([type="radio"]),.main select,.main textarea{max-width:100%;box-sizing:border-box}
+.main code,.main .kv dd,.main .muted,.main p{overflow-wrap:anywhere}
+.main .row,.main .switchrow,.main .rc-btns{flex-wrap:wrap;min-width:0}
+/* Phones and tablets: compact top bar, menu as a sheet from the left. */
+@media (max-width:960px){
+ .side{position:sticky;top:0;height:auto;z-index:30;padding:8px 16px calc(8px);gap:0;border-bottom:1px solid var(--line);overflow:visible}
+ .topbar{flex-direction:row;align-items:center;gap:10px;min-width:0}
+ .topbar .brand small{display:none}
+ .topbar .net{font-size:12px;padding:0}
+ .navbtn{display:inline-flex;margin-left:auto;min-width:44px;max-width:62vw;gap:8px}
+ .navcur{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+ .side-panel{position:fixed;top:0;bottom:0;left:0;width:min(86vw,340px);box-sizing:border-box;z-index:50;background:var(--panel);border-right:1px solid var(--line);box-shadow:0 10px 40px #0004;padding:16px 14px calc(16px + env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;transform:translateX(-105%);visibility:hidden;transition:transform .2s ease,visibility 0s linear .2s}
+ .side.open .side-panel{transform:none;visibility:visible;transition:transform .2s ease}
+ .nav{flex-direction:column;overflow:visible;margin:0;padding:0}
+ .nav a{white-space:normal;flex:none}
+ .side-foot{flex-direction:column;align-items:flex-start;margin-top:auto}
+ .side-foot .who{display:block}
+ .nav-backdrop{position:fixed;inset:0;z-index:40;background:#0006}
+ .side.open{z-index:60}
+ .nav-jump kbd{display:none}
+}
+@media (max-width:700px){.side{position:sticky}}
+@media (max-width:360px){.topbar .net{font-size:0;gap:0}.navbtn{max-width:58vw}}
+@media (prefers-reduced-motion:reduce){.side-panel,.side.open .side-panel{transition:none}}
+/* Price Check network: readiness on each device card, "Access & pairing" collapsed. */
+#scout-main .rc-ready{display:grid;gap:6px;margin:8px 0;padding:10px;border-radius:10px;background:var(--panel2);font-size:14px}
+#scout-main .rc-ready p{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#scout-main .rc-ready .btn{min-height:44px}
+#scout-main .rc-why{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+#scout-main .rc-why li{overflow-wrap:anywhere}
+#scout-main .rc-why li.blocks{color:var(--bad);font-weight:600}
+#scout-main .sc-access>summary,#scout-main .sc-advanced>summary{min-height:44px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;cursor:pointer}
+#scout-main .sc-access>summary::before,#scout-main .sc-advanced>summary::before{content:'▸';width:1em}
+#scout-main .sc-access[open]>summary::before,#scout-main .sc-advanced[open]>summary::before{content:'▾'}
+#scout-main .sc-sub{margin:12px 0}
+#scout-main .sc-sub h3{margin:0 0 6px}
+#scout-main .rc-id{margin:0 0 6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px}
+#scout-main .rc-id .btn,#scout-main .rc-dup .btn{min-height:44px}
+#scout-main .rc-dup{margin:6px 0;padding:10px;border-radius:10px;border:1px solid var(--warn);background:var(--warnbg);font-size:14px}
+#scout-main .rc-dup p{margin:0 0 6px;overflow-wrap:anywhere}
+/* Unplaced Price Check prices (batch review). */
+#unplaced-main .up-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+#unplaced-main .up-all,#unplaced-main .up-sel{display:inline-flex;align-items:center;gap:8px;min-height:44px;min-width:44px;justify-content:center;cursor:pointer}
+#unplaced-main input[type=checkbox]{width:22px;height:22px;margin:0}
+#unplaced-main .up-list{list-style:none;margin:12px 0;padding:0;display:grid;gap:10px}
+#unplaced-main .up-item{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--panel);min-width:0}
+#unplaced-main .up-body{flex:1;min-width:0;overflow-wrap:anywhere}
+#unplaced-main .up-body h3{margin:0 0 2px;font-size:1rem}
+#unplaced-main .up-body p{margin:2px 0}
+#unplaced-main .up-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+#unplaced-main .btn{min-height:44px}
+/* Scan list (today's plan + sources). */
+#scanlist-main .sl-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,120px),1fr));gap:8px;margin:12px 0}
+#scanlist-main .sl-tile{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+#scanlist-main .sl-tile strong{font-size:1.4rem}
+#scanlist-main .sl-plan{align-items:center;gap:10px;margin:0 0 12px}
+#scanlist-main .sl-group>summary{min-height:44px;display:flex;align-items:center;gap:8px;cursor:pointer}
+#scanlist-main .sl-group>summary h2{margin:0;font-size:1.1rem}
+#scanlist-main .sl-group>summary::before{content:'▸'}#scanlist-main .sl-group[open]>summary::before{content:'▾'}
+#scanlist-main .sl-count{background:var(--panel2);color:var(--text)}
+#scanlist-main .sl-store{margin:12px 0 6px;font-size:.95rem}
+#scanlist-main .sl-tasks{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+#scanlist-main .sl-tasks li{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:var(--panel2);min-width:0}
+#scanlist-main .sl-what{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;overflow-wrap:anywhere}
+#scanlist-main .sl-pri{font:600 12px/1 ui-monospace,Menlo,Consolas,monospace;color:var(--muted)}
+#scanlist-main .sl-list li,#scanlist-main .sl-cat li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);min-width:0;overflow-wrap:anywhere}
+#scanlist-main .sl-list li>span,#scanlist-main .sl-cat li>span{flex:1 1 200px;min-width:0}
+#scanlist-main .sl-cat{max-height:520px;overflow:auto}
+#scanlist-main .sl-form{display:grid;gap:10px;margin-top:12px;max-width:640px}
+#scanlist-main .sl-form label{display:flex;flex-direction:column;gap:4px;font-weight:600}
+#scanlist-main .sl-form .btn{justify-self:start}
+#scanlist-main .sl-rets legend{font-weight:600;padding:0;margin-bottom:2px}
+#scanlist-main .sl-rets{display:flex;flex-wrap:wrap;gap:4px 12px;border:0;padding:0;margin:0}
+#scanlist-main .sl-rets .check{min-height:44px;display:inline-flex;flex-direction:row;align-items:center;gap:6px;font-weight:400}
+#scanlist-main .sl-sp{margin:10px 0}#scanlist-main .sl-sp h3{margin:0 0 4px;font-size:1rem}
+#scanlist-main .sl-sp-add input{flex:1 1 220px;min-width:0}
+#scanlist-main .sl-search{display:flex;flex-direction:column;gap:4px;max-width:420px;margin-bottom:8px}
+#scanlist-main .btn{min-height:44px}
+/* === v1.7.2 studio-nav end === */

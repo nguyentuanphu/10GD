@@ -14,29 +14,30 @@
 <body>
 <a class="skip" href="#main">Bỏ qua tới nội dung · Skip to content</a>
 <div class="layout">
- <aside class="side">
-  <div class="brand"><span class="logo" aria-hidden="true">◆</span><span><strong>Studio</strong><small>FamTray · Bếp Gia Đình</small></span></div>
-  <nav id="nav" class="nav" aria-label="Studio"></nav>
-  <div class="side-foot">
+ <aside class="side" id="side">
+  <div class="topbar">
+   <div class="brand"><span class="logo" aria-hidden="true">◆</span><span><strong>Studio</strong><small>FamTray · Bếp Gia Đình</small></span></div>
    <span id="net" class="net on" role="status"></span>
-   <span id="who" class="who"></span>
-   <div class="row wrap"><button id="lang" class="btn small" type="button"></button><button id="theme" class="btn small" type="button"></button></div>
-   <a class="back" href="/">← Bếp Gia Đình</a>
-   <a class="privacy-link" href="/privacy.html" target="_blank" rel="noopener">Quyền riêng tư · Privacy</a>
+   <button id="navbtn" class="btn navbtn" type="button" aria-expanded="false" aria-controls="side-panel"><span aria-hidden="true">☰</span><span id="navcur" class="navcur">Menu</span><span id="navbtn-badge" class="nbadge" hidden></span></button>
+  </div>
+  <div class="side-panel" id="side-panel">
+   <nav id="nav" class="nav" aria-label="Studio"></nav>
+   <div class="side-foot">
+    <span id="who" class="who"></span>
+    <div class="row wrap"><button id="lang" class="btn small" type="button"></button><button id="theme" class="btn small" type="button"></button></div>
+    <a class="back" href="/">← Bếp Gia Đình</a>
+    <a class="privacy-link" href="/privacy.html" target="_blank" rel="noopener">Quyền riêng tư · Privacy</a>
+   </div>
   </div>
  </aside>
+ <div id="nav-backdrop" class="nav-backdrop" hidden></div>
  <main id="main" class="main" tabindex="-1"><p class="muted">…</p></main>
 </div>
 <dialog id="drawer" class="drawer" aria-label="Chi tiết · Details"></dialog>
 <dialog id="ask" class="modal"></dialog>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+<dialog id="jump" class="modal jump"></dialog>
+<!-- v1.7.2: page scripts (studio-scout.js, studio-usage.js, …) are loaded by studio.js when their page opens. -->
 <script src="studio.js"></script>
-<script src="studio-scout.js"></script>
-<script src="studio-voice.js"></script>
-<script src="studio-usage.js"></script>
-<script src="studio-update.js"></script>
-<script src="studio-urgent.js"></script>
-<script src="studio-recipes.js"></script>
-<script src="studio-feedback.js"></script>
 </body>
 </html>

@@ -36,5 +36,7 @@ async function render(){
  }catch{}finally{busy=false}
 }
 new MutationObserver(()=>{render()}).observe(main,{childList:true});
+// v1.7.2: Studio loads this file when Settings opens and announces each drawn page (also after a background refresh).
+document.addEventListener('studio:rendered',()=>{render()});
 addEventListener('hashchange',()=>setTimeout(render,0));
 })();
