@@ -182,7 +182,10 @@ async function voiceLocalFetchFile(f,cache,{fetchFn,signal,onBytes}){
  const opts={signal,mode:'cors',credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer'},get=fetchFn||fetch;
  const fail=res=>Object.assign(Error(vlT('Tải gói bị lỗi','Pack download failed')+' ('+res.status+')'),{code:'http'});
  const whole=async(skip=0)=>{const res=await get(f.url,opts);if(!res.ok)throw fail(res);let seen=0;return voiceLocalReadBody(res,n=>{const before=seen;seen+=n;const fresh=Math.max(0,seen-Math.max(before,skip));if(fresh)onBytes(fresh)})};
- if(!f.size||f.size<=VOICE_LOCAL_CHUNK||voiceLocalNoRange)return whole();
+ // Ranges only for hosts that send the raw bytes. A CDN that compresses (e.g. Content-Encoding: br) answers a range of
+ // the COMPRESSED file, which the browser then inflates, so the bytes never line up (v1.7.1 bug: 'không khớp bản gốc').
+ const rangeOk=/^https:\/\/(huggingface\.co|[a-z0-9.-]*\.hf\.co)\//.test(String(f.url));
+ if(!f.size||f.size<=VOICE_LOCAL_CHUNK||voiceLocalNoRange||!rangeOk)return whole();
  const n=Math.ceil(f.size/VOICE_LOCAL_CHUNK);let stored=0;
  for(let k=0;k<n;k++){const key=voiceLocalPartUrl(f,k),start=k*VOICE_LOCAL_CHUNK,end=Math.min(f.size,start+VOICE_LOCAL_CHUNK)-1,len=end-start+1;
   const hit=await cache.match(key);if(hit){onBytes(len);stored=end+1;continue}
@@ -190,7 +193,9 @@ async function voiceLocalFetchFile(f,cache,{fetchFn,signal,onBytes}){
   if(res.status===200){await voiceLocalDropParts(cache,f);return whole(stored)}
   if(res.status!==206)throw fail(res);
   const part=await voiceLocalReadBody(res,onBytes);
-  if(part.length!==len)throw Object.assign(Error(vlT('Tệp tải về không khớp bản gốc — đã huỷ.','A downloaded file did not match the original — cancelled.')),{code:'integrity'});
+  // A server that ignored or re-encoded the range: start this file again as one plain request (the SHA-256 check after
+  // the download still guards the content).
+  if(part.length!==len){await voiceLocalDropParts(cache,f);voiceLocalNoRange=true;return whole(stored+part.length)}
   await cache.put(key,new Response(part,{headers:{'Content-Type':'application/octet-stream'}}));stored=end+1}
  const buf=new Uint8Array(f.size);for(let k=0;k<n;k++){const r=await cache.match(voiceLocalPartUrl(f,k));if(!r)throw Object.assign(Error('part missing'),{code:'http'});buf.set(new Uint8Array(await r.arrayBuffer()),k*VOICE_LOCAL_CHUNK)}
  return buf}
