@@ -1,0 +1,152 @@
+{
+  "family-v3-1": {
+    "before": "[\"Mì Ý Bolognese bò bằm sốt cà chua\",\"noodle\",\"beef\",[[\"beef\",450],[\"carrot\",100],[\"garlic\",20],[\"oil\",20],[\"onion\",150],[\"pasta\",400],[\"pepper\",2],[\"salt\",4],[\"tomato\",500]],\"Băm nhỏ hành tây, cà rốt, tỏi; cà chua khứa chữ thập trụng sơ bóc vỏ băm nhuyễn.\",[\"Đun sôi nồi nước có pha 1 thìa cà phê muối, luộc mì Ý 8–10 phút đến độ chín vừa (al dente) rồi vớt ra trộn nhẹ 1 thìa dầu.\",\"Làm nóng dầu trên chảo sâu lòng, phi thơm tỏi, hành tây và cà rốt băm 3 phút cho dậy mùi ngọt tự nhiên.\",\"Cho thịt bò bằm vào đảo lửa lớn đến khi săn tơi, thêm cà chua băm và 120ml nước luộc mì, hạ lửa nhỏ ninh 12 phút cho sốt sánh đậm.\",\"Nêm muối, tiêu đen vừa ăn, đảo đều mì với sốt bò bằm nóng hổi hoặc rưới sốt lên từng đĩa mì.\"]]",
+    "patch": {
+      "ingredients": [
+        {
+          "id": "spaghetti",
+          "qty": 400
+        },
+        {
+          "id": "beef",
+          "qty": 450
+        },
+        {
+          "id": "tomato",
+          "qty": 500
+        },
+        {
+          "id": "onion",
+          "qty": 150
+        },
+        {
+          "id": "carrot",
+          "qty": 100
+        },
+        {
+          "id": "garlic",
+          "qty": 20
+        },
+        {
+          "id": "oil",
+          "qty": 20
+        },
+        {
+          "id": "salt",
+          "qty": 4
+        },
+        {
+          "id": "pepper",
+          "qty": 2
+        }
+      ],
+      "category": "main",
+      "stapleIncluded": true
+    }
+  },
+  "family-v3-2": {
+    "before": "[\"Mì Ý cá hồi sốt kem nấm tỏi\",\"noodle\",\"fish\",[[\"broth\",180],[\"garlic\",20],[\"mushroom\",200],[\"oil\",15],[\"onion\",100],[\"pasta\",380],[\"pepper\",2],[\"salmon\",420],[\"salt\",4]],\"Thấm khô phi lê cá hồi, cắt quân cờ 2.5cm, ướp chút muối tiêu; nấm rửa nhanh thái lát.\",[\"Luộc mì Ý trong nước sôi có muối khoảng 8–9 phút cho vừa chín tới, giữ lại 80ml nước luộc mì rồi để ráo.\",\"Áp chảo cá hồi với chút dầu ở lửa vừa 2 phút mỗi mặt cho vàng thơm bên ngoài mà bên trong vẫn mềm ẩm, gắp ra đĩa.\",\"Phi thơm tỏi và hành tây băm trên cùng chảo, cho nấm vào xào chín tới rồi rót sốt kem / nước dùng và nước luộc mì vào đun sôi lăn tăn.\",\"Cho mì Ý và cá hồi vào đảo nhẹ tay 1–2 phút cho sốt áo đều sợi mì, rắc tiêu đen và dùng nóng.\"]]",
+    "patch": {
+      "ingredients": [
+        {
+          "id": "spaghetti",
+          "qty": 380
+        },
+        {
+          "id": "salmon",
+          "qty": 420
+        },
+        {
+          "id": "broth",
+          "qty": 180
+        },
+        {
+          "id": "mushroom",
+          "qty": 200
+        },
+        {
+          "id": "garlic",
+          "qty": 20
+        },
+        {
+          "id": "onion",
+          "qty": 100
+        },
+        {
+          "id": "oil",
+          "qty": 15
+        },
+        {
+          "id": "salt",
+          "qty": 4
+        },
+        {
+          "id": "pepper",
+          "qty": 2
+        }
+      ],
+      "name": "Mì Ý cá hồi nấm sốt tỏi nước dùng",
+      "steps": [
+        "Luộc mì Ý trong nước sôi có muối khoảng 8–9 phút cho vừa chín tới, giữ lại 80ml nước luộc mì rồi để ráo.",
+        "Áp chảo cá hồi với chút dầu ở lửa vừa 2 phút mỗi mặt cho vàng thơm bên ngoài mà bên trong vẫn mềm ẩm, gắp ra đĩa.",
+        "Phi thơm tỏi và hành tây băm trên cùng chảo, cho nấm vào xào chín tới rồi rót nước dùng và nước luộc mì vào đun sôi lăn tăn.",
+        "Cho mì Ý và cá hồi vào đảo nhẹ tay 1–2 phút cho sốt áo đều sợi mì, rắc tiêu đen và dùng nóng."
+      ],
+      "category": "main",
+      "stapleIncluded": true
+    }
+  },
+  "family-v3-3": {
+    "before": "[\"Mì Ý ức gà áp chảo nấm sốt tỏi\",\"noodle\",\"chicken\",[[\"broccoli\",200],[\"chicken\",480],[\"garlic\",25],[\"mushroom\",220],[\"oil\",25],[\"pasta\",380],[\"pepper\",2],[\"salt\",4]],\"Ức gà thấm khô, thái lát vừa ăn ướp muối tiêu; bông cải tách nhánh nhỏ; tỏi thái lát mỏng.\",[\"Luộc mì Ý trong nước sôi có muối 8 phút; 2 phút cuối cho bông cải xanh vào chần chung rồi vớt ra để ráo, giữ lại 80ml nước luộc.\",\"Áp chảo ức gà với 1 thìa dầu ở lửa vừa 3–4 phút mỗi mặt đến khi vàng chín, lấy ra để nghỉ.\",\"Phi vàng tỏi lát ở lửa nhỏ cho thơm dịu, cho nấm vào xào săn với chút muối và nước luộc mì.\",\"Trộn mì Ý, bông cải và ức gà vào chảo, đảo đều trên lửa vừa 1 phút, rắc tiêu đen xay.\"]]",
+    "patch": {
+      "ingredients": [
+        {
+          "id": "spaghetti",
+          "qty": 380
+        },
+        {
+          "id": "chicken",
+          "qty": 480
+        },
+        {
+          "id": "mushroom",
+          "qty": 220
+        },
+        {
+          "id": "broccoli",
+          "qty": 200
+        },
+        {
+          "id": "garlic",
+          "qty": 25
+        },
+        {
+          "id": "oil",
+          "qty": 25
+        },
+        {
+          "id": "salt",
+          "qty": 4
+        },
+        {
+          "id": "pepper",
+          "qty": 2
+        }
+      ],
+      "category": "main",
+      "stapleIncluded": true
+    }
+  },
+  "family-v3-4": {
+    "before": "[\"Cá hồi áp chảo bơ tỏi kèm khoai tây & bông cải\",\"main\",\"fish\",[[\"broccoli\",300],[\"garlic\",20],[\"lime\",1],[\"oil\",20],[\"pepper\",2],[\"potato\",400],[\"salmon\",550],[\"salt\",4]],\"Thấm thật khô miếng cá hồi, ướp muối tiêu hai mặt; khoai tây cắt múi cau; bông cải cắt miếng vừa ăn.\",[\"Hấp hoặc luộc chín tới khoai tây (10 phút) và bông cải xanh (3 phút) để giữ màu xanh giòn.\",\"Làm nóng chảo chống dính với dầu, đặt mặt da cá hồi xuống áp chảo lửa vừa 4 phút cho da giòn vàng, lật mặt áp tiếp 2–3 phút cùng tỏi đập dập.\",\"Đảo nhanh khoai tây và bông cải qua phần dầu tỏi thơm trong chảo 2 phút cho thấm vị.\",\"Bày cá hồi cùng rau củ ra đĩa, vắt nhẹ nước cốt chanh tươi lên mặt cá trước khi thưởng thức.\"]]",
+    "patch": {
+      "name": "Cá hồi áp chảo tỏi kèm khoai tây & bông cải"
+    }
+  },
+  "family-v3-7": {
+    "before": "[\"Súp bí đỏ kem tươi kiểu Âu\",\"soup\",\"plant\",[[\"garlic\",15],[\"oil\",15],[\"onion\",120],[\"pepper\",2],[\"potato\",200],[\"pumpkin\",600],[\"salt\",3],[\"vegBroth\",900]],\"Bí đỏ và khoai tây gọt vỏ, rửa sạch, cắt khối vuông 2cm để nhanh chín mềm.\",[\"Làm nóng chút dầu trong nồi, xào thơm hành tây và tỏi băm 2 phút ở lửa vừa cho trong mà không cháy.\",\"Cho bí đỏ, khoai tây và nước dùng rau củ vào nồi, đun sôi rồi hạ lửa nhỏ nấu 15 phút đến khi củ mềm nhừ.\",\"Dùng máy xay hoặc muôi tán nhuyễn mịn hỗn hợp bí đỏ trên lửa nhỏ 2 phút cho sánh mịn.\",\"Nêm muối và tiêu đen vừa vị, múc ra chén dùng ấm.\"]]",
+    "patch": {
+      "name": "Súp bí đỏ khoai tây kiểu Âu"
+    }
+  }
+}

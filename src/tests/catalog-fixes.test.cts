@@ -8,7 +8,7 @@ const c=load(),a=c.api,json=x=>JSON.parse(JSON.stringify(x));
 const old=vm.createContext({INGREDIENTS:structuredClone(MAIN_INGREDIENTS)});vm.runInContext(MAIN_VALID_IMPORT+'\nthis.validImport=validImport;',old);
 const fresh=json(a.defaults());
 assert.equal(old.validImport(fresh),false,'documented one-time risk: the main client rejects a state containing the new catalogue ingredients');
-const legacy=json(a.defaults());legacy.seedVersion=3;delete legacy.appEdition;legacy.recipes=legacy.recipes.filter(r=>!r.catalogEdition||r.catalogEdition<4);
+const legacy=json(a.defaults());legacy.seedVersion=3;delete legacy.appEdition;legacy.recipes=JSON.parse(fs.readFileSync('docs/reviews/artwork-audit-20261102/source.json','utf8')).recipes.filter(r=>!r.catalogEdition||r.catalogEdition<4); // frozen pre-correction recipes: current defaults now contain spaghetti, introduced in edition 4.
 assert.equal(old.validImport(json(legacy)),true,'a v3 state without new ingredients is still readable by main');
 assert.equal(a.validImport(legacy),true);assert.equal(a.upgradeReferenceCatalog(legacy),200);assert.equal(legacy.appEdition,a.APP_EDITION);
 // The new client keeps unknown ids written by a newer edition instead of rejecting or dropping them.

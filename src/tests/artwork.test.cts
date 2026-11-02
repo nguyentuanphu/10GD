@@ -17,3 +17,40 @@ assert.equal(ctx.dishArtworkCell({...original,prep:'Different cooking method'}),
 assert.equal(new Set(Object.keys(ctx.data.ingredients).map(id=>ctx.resolveIngredientArtCell(id))).size,106);for(const r of ctx.data.recipes)assert.ok(fs.existsSync("dist/"+ctx.dishArtPath(r)),r.id+" missing final artwork");
 
 assert.notEqual(ctx.dishArtworkCell({...original,ingredients:original.ingredients.map(i=>({qty:i.qty,id:i.id})).reverse()}),null,"equivalent backup ingredient ordering keeps the same painting");
+
+// Artwork correction rollout: update untouched samples (including menu copies), preserve all family edits.
+{
+ const legacy=JSON.parse(fs.readFileSync('docs/reviews/artwork-audit-20261102/source.json','utf8'));
+ assert.equal(JSON.stringify(ctx.data.recipes.map(r=>r.id).sort()),JSON.stringify(legacy.recipes.map(r=>r.id).sort()),'artwork fixes preserve every catalog identity');
+ const ids=['family-v3-1','family-v3-2','family-v3-3','family-v3-4','family-v3-7'];
+ const copy=id=>JSON.parse(JSON.stringify(legacy.recipes.find(r=>r.id===id)));
+ const state={recipes:ids.map(copy),weeks:{'2026-11-02':{days:{'2026-11-02':{lunch:{recipes:[copy('family-v3-2')]},dinner:{recipes:[copy('family-v3-4')]}}}}},deletedRecipeIds:['r1']};
+ state.recipes[0].favorite=true;
+ const beforeQty=state.recipes.map(r=>r.ingredients.map(i=>i.qty));
+ assert.equal(ctx.repairArtworkReferenceState(state),7);
+ assert.equal(ctx.repairArtworkReferenceState(state),0,'repair is idempotent');
+ assert.equal(state.recipes[0].favorite,true,'family favourite metadata survives');
+ assert.equal(JSON.stringify(state.recipes.map(r=>r.ingredients.map(i=>i.qty))),JSON.stringify(beforeQty),'no quantity is invented');
+ assert.equal(state.deletedRecipeIds.join(','),'r1');
+ for(const r of state.recipes){const reference=ctx.data.recipes.find(x=>x.id===r.id);assert.equal(ctx.dishArtSignature(r),ctx.dishArtSignature(reference),'repaired sample matches reference '+r.id);assert.notEqual(ctx.dishArtworkCell(r),null);}
+ assert.equal(state.weeks['2026-11-02'].days['2026-11-02'].lunch.recipes[0].ingredients[0].id,'spaghetti');
+ for(const field of ['name','prep','steps','ingredients','custom','protein','category','origin','stapleIncluded']){
+  const r=copy('family-v3-2');
+  if(field==='ingredients')r.ingredients[0].qty++;
+  else if(field==='steps')r.steps[0]+=' Gia đình sửa.';
+  else if(field==='custom')r.custom=true;
+  else if(field==='origin')r.origin='family';
+  else if(field==='stapleIncluded')r.stapleIncluded=false;
+  else r[field]+=' gia đình';
+  const before=JSON.stringify(r);assert.equal(ctx.repairArtworkReferenceRecipe(r),false,field+' edit is preserved');assert.equal(JSON.stringify(r),before);
+ }
+ for(const id of ids.slice(0,3)){const r=ctx.data.recipes.find(x=>x.id===id);assert.ok(r.ingredients.some(i=>i.id==='spaghetti'));assert.ok(!r.ingredients.some(i=>i.id==='pasta'));assert.equal(r.category,'main');assert.equal(r.stapleIncluded,true);}
+ assert.doesNotMatch(ctx.data.recipes.find(r=>r.id==='family-v3-4').name,/bơ/);
+ assert.doesNotMatch(ctx.data.recipes.find(r=>r.id==='family-v3-7').name,/kem/);
+ assert.doesNotMatch(ctx.data.recipes.find(r=>r.id==='family-v3-2').steps.join(' '),/kem/);
+ const changed=JSON.parse(fs.readFileSync('docs/reviews/artwork-fixes-20261102/replaced-ids.json','utf8'));
+ for(const id of changed){const r=ctx.data.recipes.find(x=>x.id===id);assert.equal(ctx.dishArtPath(r),'artwork/corrections/'+id+'.webp');assert.equal(ctx.dishArtCellPath(r),'artwork/cells/'+id+'.webp');assert.ok(fs.existsSync('dist/'+ctx.dishArtCellPath(r)));assert.match(ctx.foodArt(r),/--art-full-size:contain/,'detail uses entire standalone painting');assert.equal(ctx.dishArtworkCell({...r,prep:r.prep+' family edit'}),null);}
+ console.log('PASS corrected artwork routing, exact-reference migration, menus, idempotence, family edits and unchanged quantities');
+}
+
+{const r=ctx.data.recipes.find(r=>r.id==='family-v3-1'),edited={...r,custom:true};assert.equal(ctx.dishCompositionModel(edited).liquid,false);assert.match(ctx.foodArt(edited),/data-food="spaghetti"/);assert.doesNotMatch(ctx.foodArt(edited),/data-food="pasta"/);}
