@@ -102,7 +102,7 @@ const NOTES=['Tỏi 3 tép','Nước mắm 2 muỗng canh'];
   await page.reload();await page.locator('#main .page-heading').waitFor();await page.waitForFunction(()=>typeof recipeIngredientRows==='function');await page.waitForTimeout(400);
   const stored2=await page.evaluate(()=>JSON.stringify(state.recipes.find((x:any)=>x.id==='qa-legacy-1')));
   await page.evaluate((id:string)=>showRecipe(id),legacy);d=await detail(page);
-  assert.deepEqual(d.counted,['Thịt heo = 300 g']);assert.deepEqual(d.notes,['Hành phi 1 chén | không tính đi chợ','Me chua | không tính đi chợ','Muối 1/2 thìa | không tính đi chợ']);
+  assert.deepEqual(d.counted,['Thịt heo = 300 g']);assert.deepEqual(d.notes,['Hành phi 1 chén | không tính đi chợ','Me chua | chưa có lượng','Muối 1/2 thìa | không tính đi chợ']);
   assert.equal(await page.evaluate(()=>JSON.stringify(state.recipes.find((x:any)=>x.id==='qa-legacy-1'))),stored2,'legacy recipe untouched');
   // (d) "Chép thành món nhà" from the library, unchanged save → the family copy shows every line
   await page.evaluate(()=>{closeModal();location.hash='recipes'});await page.waitForTimeout(400);
@@ -126,6 +126,57 @@ const NOTES=['Tỏi 3 tép','Nước mắm 2 muỗng canh'];
    await openDish(page,tap);d=await detail(page);assert.equal(d.counted.length,3);assert.equal(d.notes.length,2);await noOverflow(page,name);await page.locator('#modal-root .ingredients').scrollIntoViewIfNeeded();await shot(page,`${name}-meal-detail-${lang}-${theme}`)}
   assert.deepEqual(errors,[],'no page errors');await context.close()}
  console.log('PASS device-only iPhone: (c) empty state + add opens the rows, (a) rows by touch → meal detail + shopping list, (a′) v1.7.2 data shows without re-entering, (b) pre-v1.7.1 lines, (d) library copy, VI/EN light/dark, tablet, desktop');
+
+ // ================= (f) Henry's saved recipe: rows saved by name only (iPhone evidence, second report) =================
+ {const {context,page,errors,tap}=await openApp({hash:'recipes'});
+  const NAMES=['Thịt Ba Chỉ','Tôm','Bánh phở (sợi to)','Bánh tráng','Rau xà lách','Rau thơm (ăn kèm)','Dầu phụng'];
+  const id=await page.evaluate((names:string[])=>{const r={id:'qa-hn-mq',name:'Mỳ Quảng (Tôm - Thịt)',category:'noodle',protein:'mixed',time:30,servings:4,yield:4,purposes:['breakfast','friday'],ingredients:[],missingIngredients:names,prep:'',steps:['Nấu theo cách quen của gia đình.'],custom:true,origin:'family',favorite:false};state.recipes.push(r);const d=isoDate(new Date()),m=ensureWeek(state,monday(d)).days[d].dinner;m.recipes=m.recipes.concat(clone(r));m.cooked=false;save();render();return r.id},NAMES);
+  const stored=await page.evaluate(()=>JSON.stringify(state));
+  // library card counts every row
+  await page.evaluate(()=>{familyLibraryMode='own';familyRecipeSearch='Mỳ Quảng';render()});await page.waitForTimeout(300);
+  const card=page.locator(`#family-recipe-results .lib-card[data-id="qa-hn-mq"]`);await card.waitFor();await tap(card.locator('.lib-card-toggle'));
+  assert.match(await card.locator('.lib-card-more p').first().innerText(),/^7 nguyên liệu/,'card counts the 7 name-only rows');
+  // detail (library + meal): every row, "chưa có lượng"
+  await tap(card.locator('.lib-card-img'));await page.locator('#modal-root .modal-content').waitFor();let d=await detail(page);
+  assert.deepEqual(d.notes,NAMES.map(n=>n+' | chưa có lượng'),'library detail lists every row');assert.equal(d.empty,'');assert.equal(d.emptyBoxes,0);
+  const edit=page.locator('#modal-root .recipe-edit-btn');assert.match(await edit.innerText(),/Sửa món ăn/);const eb=await edit.boundingBox();assert.ok(eb!.height>=44&&eb!.width>=44,'edit button ≥44px');
+  assert.ok(eb!.y<400,'edit button near the top of the detail');await noOverflow(page,'name-only detail');await shot(page,'mobile-detail-edit-button-vi-light');
+  await openDish(page,tap);d=await detail(page);assert.equal(d.notes.length,7,'meal detail lists every row');await page.locator('#modal-root .ingredients').scrollIntoViewIfNeeded();await shot(page,'mobile-meal-detail-name-only-vi-light');
+  assert.equal(await page.evaluate(()=>JSON.stringify(state)),stored,'viewing changes no stored data');
+  // meal card edit entry
+  await page.evaluate(()=>closeModal());const mealEdit=page.locator(`.family-dish-row:has([data-fm="recipe-snapshot"]:has-text("Mỳ Quảng (Tôm - Thịt)")) .dish-edit-btn`).first();await mealEdit.waitFor();
+  const mb=await mealEdit.boundingBox();assert.ok(mb!.height>=44&&mb!.width>=44,'meal card edit ≥44px');assert.match(await mealEdit.getAttribute('aria-label'),/Sửa món Mỳ Quảng/);
+  await mealEdit.scrollIntoViewIfNeeded();await shot(page,'mobile-meal-card-edit-vi-light');
+  await tap(mealEdit);await page.locator('#family-recipe-form').waitFor();assert.equal(await page.locator('#family-recipe-form').getAttribute('data-id'),id);
+  assert.deepEqual(await page.locator('#rc-ing-list .rc-ing-name-input').evaluateAll((a:any[])=>a.map(x=>x.value)),NAMES);
+  // amounts the way an iPhone delivers them: typed on the decimal keypad ("500", "0,5"), unit from the picker; and a
+  // change iOS makes without an input event (keyboard dictation / QuickType / picker wheel) — value set, no event.
+  const rows=page.locator('#rc-ing-list .rc-ing-row');
+  const typeRow=async(i:number,qty:string,unit:string)=>{const row=rows.nth(i);await tap(row.locator('.rc-ing-qty'));await page.keyboard.type(qty);await row.locator('.rc-ing-unit').selectOption(unit)};
+  await typeRow(0,'500','g');await typeRow(1,'300','g');await typeRow(2,'0,5','kg');await typeRow(6,'2','muỗng canh');
+  await rows.nth(3).evaluate((li:any)=>{li.querySelector('.rc-ing-qty').value='1';li.querySelector('.rc-ing-unit').value='gói'});
+  await rows.nth(4).evaluate((li:any)=>{li.querySelector('.rc-ing-qty').value='200';li.querySelector('.rc-ing-unit').value='g'});
+  await saveForm(page,tap);
+  const saved=await page.evaluate((id:string)=>{const r=state.recipes.find((x:any)=>x.id===id);return{ing:r.ingredients.map((i:any)=>INGREDIENTS[i.id][0]+' '+i.qty+' '+INGREDIENTS[i.id][1]),missing:r.missingIngredients}},id);
+  assert.deepEqual(saved.ing,['Thịt Ba Chỉ 500 g','Tôm 300 g','Bánh phở (sợi to) 500 g','Bánh tráng 1 gói','Rau xà lách 200 g'],'every amount and unit kept, including changes without input events');
+  assert.deepEqual(saved.missing,['Rau thơm (ăn kèm)','Dầu phụng 2 muỗng canh'],'untouched row and kitchen measure kept verbatim');
+  // reload → reopen keeps them
+  await page.reload();await page.locator('#main .page-heading').waitFor();await page.waitForFunction(()=>typeof rcEnabled==='function'&&typeof recipeIngredientRows==='function');await page.waitForTimeout(400);
+  // straight after the reload the recipe library is not loaded yet, so the editor opens asynchronously (v1.7.2: without rows)
+  await openDish(page,tap);await tap(page.locator('#modal-root .recipe-edit-btn'));await page.locator('#family-recipe-form #rc-ing-list').waitFor();
+  assert.deepEqual(await rows.evaluateAll((a:any[])=>a.map(li=>[li.querySelector('.rc-ing-name-input').value,li.querySelector('.rc-ing-qty').value,li.querySelector('.rc-ing-unit').value].join('/'))),
+   ['Thịt Ba Chỉ/500/g','Tôm/300/g','Bánh phở (sợi to)/500/g','Bánh tráng/1/gói','Rau xà lách/200/g','Rau thơm (ăn kèm)//','Dầu phụng/2/muỗng canh'],'reopened form shows the saved amounts');
+  await rows.first().locator('.rc-ing-qty').scrollIntoViewIfNeeded();await shot(page,'mobile-edit-form-reopened-vi-light');
+  // unchanged save of the reopened form keeps the recipe exactly
+  const before=await page.evaluate((id:string)=>JSON.stringify(state.recipes.find((x:any)=>x.id===id)),id);await saveForm(page,tap);
+  assert.equal(await page.evaluate((id:string)=>JSON.stringify(state.recipes.find((x:any)=>x.id===id)),id),before,'unchanged save keeps the recipe');
+  await openDish(page,tap);d=await detail(page);assert.equal(d.counted.length,5);assert.deepEqual(d.notes,['Rau thơm (ăn kèm) | chưa có lượng','Dầu phụng 2 muỗng canh | không tính đi chợ']);
+  await setLook(page,'en','dark');await openDish(page,tap);d=await detail(page);assert.deepEqual(d.notes,['Rau thơm (ăn kèm) | no amount yet','Dầu phụng 2 muỗng canh | not counted for shopping']);
+  assert.match(await page.locator('#modal-root .recipe-edit-btn').innerText(),/Edit recipe/);await noOverflow(page,'EN dark');await shot(page,'mobile-detail-edit-button-en-dark');
+  // a library recipe offers "Save as family dish" from its detail
+  const libId=await page.evaluate(()=>state.recipes.find((x:any)=>!ownRecipe(x)).id);await page.evaluate((i:string)=>showRecipe(i),libId);assert.match(await page.locator('#modal-root .recipe-edit-btn').innerText(),/Save as family dish/);
+  assert.deepEqual(errors,[],'no page errors');await context.close()}
+ console.log('PASS (f) name-only rows: card counts 7, detail lists every row, edit entry in detail + meal card, amounts typed on the decimal keypad and changed without input events survive save → reload → reopen');
 
  // ================= (e) two signed-in devices of one family =================
  {const A=await openApp({account:true});
