@@ -180,9 +180,13 @@ async function main(){
    await page.locator('.modal-footer .btn.primary').click();await page.waitForTimeout(200);
    assert.equal(await page.evaluate('state.recipes.length'),count0+1,'saved as one new recipe');
    assert.equal(await page.evaluate('JSON.stringify(state.recipes.find(r=>r.id==="qa-own-canh"))'),before,'existing family recipe untouched');
-   const saved=await page.evaluate(`(()=>{const r=state.recipes[state.recipes.length-1];return{name:r.name,origin:r.origin,custom:r.custom,tr:r.transcript,missing:r.missingIngredients,ing:r.ingredients.length,steps:r.steps}})()`);
+   const saved=await page.evaluate(`(()=>{const r=state.recipes[state.recipes.length-1];return{name:r.name,origin:r.origin,custom:r.custom,tr:r.transcript,missing:r.missingIngredients,ing:r.ingredients.length,named:r.ingredients.map(i=>[INGREDIENTS[i.id][0],i.qty,INGREDIENTS[i.id][1]]),steps:r.steps}})()`);
    assert.equal(saved.origin,'family');assert.equal(saved.custom,true);assert.equal(saved.name,title);assert.ok(saved.tr.length>50,'raw transcript attached');
-   assert.ok(saved.ing>=2,'measured ingredients saved');assert.ok(saved.missing.length>=1,'unclear amounts saved as missing, not guessed');
+   assert.ok(saved.ing>=2,'measured ingredients saved');
+   // v1.7.5: an amount with no number stays missing (never guessed); a kitchen unit with a number (“2 cloves garlic”) is
+   // counted as written — 2 tép, never converted to grams
+   if(lang==='vi')assert.ok(saved.missing.length>=1,'unclear amounts saved as missing, not guessed');
+   else assert.ok(saved.named.some((x:any)=>/garlic|tỏi/i.test(x[0])&&x[1]===2&&x[2]==='tép')||saved.missing.some((m:string)=>/garlic/i.test(m)),'garlic kept as 2 cloves, never converted: '+JSON.stringify(saved.named)+' '+JSON.stringify(saved.missing));
    if(lang==='vi')assert.ok(saved.missing.some((m:string)=>/Me chua/.test(m)));
    assert.equal(await page.evaluate('familyStorage.getItem("bep-recipe-dictation-v1")'),null,'draft cleared after saving');
    await page.evaluate(`showRecipe(state.recipes[state.recipes.length-1].id)`);await page.waitForSelector('.modal-content .vr-raw');
