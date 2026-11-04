@@ -1504,3 +1504,9 @@ html:has(#modal-root .modal-backdrop) #ladybug{visibility:hidden}
 .steps-text p{margin:0 0 12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
 /* v1.7.5 · photo buttons: full 44 px touch target (were 31 px under .btn.small) */
 .rc-photo-actions .btn.small.rc-file-btn{min-height:44px;padding-top:10px;padding-bottom:10px}
+/* v1.7.5 · per-ingredient “Cộng vào đi chợ” tick */
+.rc-ing-row{grid-template-areas:"name name" "qty unit" "shop tools" "note note"}
+.rc-ing-shop{grid-area:shop;display:flex;align-items:center;gap:8px;min-height:44px;font-size:14px;color:var(--text);cursor:pointer}
+.rc-ing-row .rc-ing-shop input{width:22px;height:22px;min-height:0;padding:0;margin:0;flex:0 0 auto;accent-color:var(--green2)}
+@media (min-width:600px){.rc-ing-row{grid-template-areas:"name qty unit tools" "shop note note note"}}
+.rc-paste .hint{margin:4px 0 6px}

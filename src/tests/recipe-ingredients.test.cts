@@ -15,9 +15,10 @@ assert.ok(hydrateFamilyIngredients(s));
 let rows=recipeIngredientRows(myQuang,1,s);
 assert.deepEqual(rows.map(r=>r.kind==='counted'?r.name+' '+r.qty+' '+r.unit:'note:'+r.text),['Mì Quảng 500 g','Tôm 300 g','Thịt heo 300 g','note:Tỏi 3 tép','note:Nước mắm 2 muỗng canh']);
 rows=recipeIngredientRows(myQuang,0.5,s);assert.equal(rows[1].qty,150,'counted lines scale');assert.equal(rows[3].text,'Tỏi 3 tép','note lines are never scaled or rewritten');
-// eggs round up (whole items), lemons do not; unknown ids are skipped instead of breaking the view
+// v1.7.5 (owner feedback #13: “ghi 1/2 hay 0.5 … vẫn là 1”): the recipe view shows the exact amount — no rounding up of
+// whole items (the shopping list does its own purchase rounding); unknown ids are skipped instead of breaking the view
 rows=recipeIngredientRows({ingredients:[{id:'egg',qty:3},{id:'lemon',qty:1},{id:'family-ing-gone',qty:2}]},0.5,s);
-assert.deepEqual(rows.map(r=>[r.id,r.qty]),[['egg',2],['lemon',0.5]]);
+assert.deepEqual(rows.map(r=>[r.id,r.qty]),[['egg',1.5],['lemon',0.5]]);
 // (b) a recipe saved before v1.7.1 (free-text block → structured + missing lines, or no missingIngredients field at all)
 rows=recipeIngredientRows({ingredients:[{id:'pork',qty:300}],missingIngredients:['Hành phi 1 chén','Muối','  ']},1,s);
 assert.deepEqual(rows.map(r=>r.kind==='counted'?r.id:r.text),['pork','Hành phi 1 chén','Muối'],'blank lines dropped, others verbatim');

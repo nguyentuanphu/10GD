@@ -6,7 +6,10 @@ const parseDate=s=>new Date(s+'T12:00:00');
 const addDays=(s,n)=>{const d=parseDate(s);d.setDate(d.getDate()+n);return isoDate(d)};
 const monday=s=>{const d=parseDate(s);return addDays(s,-((d.getDay()+6)%7))};
 const uid=()=>globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2);
-const fmtQty=(n,u)=>u==='g'&&n>=1000?`${+(n/1000).toFixed(2)} kg`:u==='ml'&&n>=1000?`${+(n/1000).toFixed(2)} l`:`${+n.toFixed(1)} ${u}`;
+// v1.7.5: counts show common fractions (½ quả, 1¼ muỗng) instead of 0.5 / rounded 0.3; grams and millilitres unchanged.
+const QTY_FRACTIONS=[[1/4,'¼'],[1/3,'⅓'],[1/2,'½'],[2/3,'⅔'],[3/4,'¾']];
+function fmtCount(n){const whole=Math.floor(n+1e-9),rest=n-whole;if(rest<.01)return String(whole);const f=QTY_FRACTIONS.find(([v])=>Math.abs(v-rest)<.01);if(f)return (whole?String(whole):'')+f[1];return String(+n.toFixed(2))}
+const fmtQty=(n,u)=>u==='g'&&n>=1000?`${+(n/1000).toFixed(2)} kg`:u==='ml'&&n>=1000?`${+(n/1000).toFixed(2)} l`:u==='g'||u==='ml'?`${+n.toFixed(1)} ${u}`:`${fmtCount(n)} ${u}`;
 const aud=(n,currency)=>{const c=currency||(typeof currentCurrency==='function'?currentCurrency(state):'AUD');return new Intl.NumberFormat(c==='VND'?'vi-VN':'en-AU',{style:'currency',currency:c,maximumFractionDigits:c==='VND'?0:2}).format(n)};
 function defaults(){return {version:1,seedVersion:5,appEdition:APP_EDITION,receipts:[],aliases:{},members:[{id:'dad',name:'Bố',weight:1,emoji:'👨🏻'},{id:'mum',name:'Mẹ',weight:1,emoji:'👩🏻'},{id:'big',name:'Bé lớn',weight:.65,emoji:'👧🏻'},{id:'little',name:'Bé nhỏ',weight:.5,emoji:'👧🏻'}],recipes:clone(RECIPES),weeks:{},pantry:[{id:uid(),ingredient:'chicken',qty:400,place:'freezer',expiry:addDays(sydneyDate(),10)},{id:uid(),ingredient:'broccoli',qty:300,place:'fridge',expiry:addDays(sydneyDate(),2)},{id:uid(),ingredient:'egg',qty:6,place:'fridge',expiry:addDays(sydneyDate(),8)},{id:uid(),ingredient:'rice',qty:2500,place:'dry',expiry:''},{id:uid(),ingredient:'fishSauce',qty:300,place:'dry',expiry:''},{id:uid(),ingredient:'oil',qty:600,place:'dry',expiry:''},{id:uid(),ingredient:'salt',qty:300,place:'dry',expiry:''},{id:uid(),ingredient:'sugar',qty:500,place:'dry',expiry:''}],preferences:{mainCount:1,soupCount:1,vegCount:1,weekendSoup:true,weekendMeals:'lunch',budget:180,maxTime:60,avoid:'',lunch:true,packed:false,dinnerTime:'18:30',attendanceTime:'10:30',quietStart:'21:00',quietEnd:'07:00'},activity:[],settings:{reminders:false}}}
 function createMeal(state,mainId,soupId,vegId){return{recipes:[mainId,soupId,vegId].filter(Boolean).map(id=>state.recipes.find(r=>r.id===id)).filter(Boolean).map(clone),attendance:Object.fromEntries(state.members.map(m=>[m.id,'home'])),servings:null,note:'',locked:false,cooked:false,consumed:[],tasks:{}}}
@@ -55,7 +58,9 @@ function validImport(s){if(!s||typeof s!=='object')return false;if(!validCatalog
 
 // Catalog/app edition of this client. Shared state records the edition that last wrote it so an older client can
 // stop and reload instead of overwriting data it cannot fully read.
-const APP_EDITION=5;
+// APP_EDITION: data-shape edition (6 = v1.7.5: Bữa phụ meal, new dish types, counted units such as tép/đòn).
+// CATALOG_EDITION: reference-recipe catalogue edition (seedVersion); tombstones for deleted reference recipes depend on it.
+const APP_EDITION=6,CATALOG_EDITION=5;
 function stateEdition(s){return Math.max(Number.isInteger(s?.appEdition)?s.appEdition:0,Number.isInteger(s?.seedVersion)?s.seedVersion:0)}
 function validCatalogMarkers(s){return (s.appEdition===undefined||Number.isInteger(s.appEdition)&&s.appEdition>=1&&s.appEdition<=1000)&&(s.deletedRecipeIds===undefined||Array.isArray(s.deletedRecipeIds)&&s.deletedRecipeIds.length<=5000&&s.deletedRecipeIds.every(id=>typeof id==='string'&&id.length>0&&id.length<=100))}
 // Built-in ingredient ids introduced by a newer edition are kept as-is (never dropped) and given a neutral placeholder
@@ -67,6 +72,6 @@ function mergeDeletedRecipeIds(s,extra){if(!s||!Array.isArray(extra)||!extra.len
 // At the current edition every reference recipe was added once, so a missing reference id is a deliberate deletion.
 // Record it as a tombstone so no older copy or upgrade path can bring it back. A recipe that is present again
 // (restored by the family) clears its tombstone.
-function recordDeletedReferenceRecipes(s){if(!s||!Array.isArray(s.recipes)||(s.seedVersion||1)<APP_EDITION)return;const present=new Set(s.recipes.map(r=>r.id)),gone=new Set((s.deletedRecipeIds||[]).filter(id=>!present.has(id)));for(const r of RECIPES)if(!present.has(r.id))gone.add(r.id);if(gone.size||s.deletedRecipeIds)s.deletedRecipeIds=[...gone]}
+function recordDeletedReferenceRecipes(s){if(!s||!Array.isArray(s.recipes)||(s.seedVersion||1)<CATALOG_EDITION)return;const present=new Set(s.recipes.map(r=>r.id)),gone=new Set((s.deletedRecipeIds||[]).filter(id=>!present.has(id)));for(const r of RECIPES)if(!present.has(r.id))gone.add(r.id);if(gone.size||s.deletedRecipeIds)s.deletedRecipeIds=[...gone]}
 // Add the reference collection once; preserve authored edits, menus and deliberate deletions (tombstones) afterwards.
 function upgradeReferenceCatalog(s,knownDeleted){if(!s||!Array.isArray(s.recipes))return 0;mergeDeletedRecipeIds(s,knownDeleted);if(typeof repairArtworkReferenceState==='function')repairArtworkReferenceState(s);const version=s.seedVersion||1;let added=0;if(version<5){const ids=new Set(s.recipes.map(r=>r.id)),gone=new Set(s.deletedRecipeIds||[]);for(const[edition,recipes]of [[4,WESTERN_HEALTHY_RECIPES],[5,PLANT_RECIPES]])if(version<edition)for(const r of recipes)if(!ids.has(r.id)&&!gone.has(r.id)){s.recipes.push(clone(r));ids.add(r.id);added++}s.seedVersion=5}recordDeletedReferenceRecipes(s);if(!(s.appEdition>=APP_EDITION))s.appEdition=APP_EDITION;return added}
