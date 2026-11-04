@@ -66,7 +66,9 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  const row=page.locator('#family-recipe-chips .lib-cat-row');
  // One row: every main chip on the same line; diet/time chips are not in the row.
  const tops=await row.locator('.chip').evaluateAll(els=>[...new Set(els.map(e=>Math.round(e.offsetTop)))]);assert.equal(tops.length,1,'category chips stay on one line');
- assert.deepEqual(await row.locator('.chip').evaluateAll(els=>els.map(e=>e.dataset.key)),['all','main','soup','veg','noodle','western','seed-salad','dressing']);
+ // v1.7.5 owner order (Phân loại món ăn): Món chính, Món phụ, Món canh / soup, Món sợi; empty dish types (dessert, snack,
+ // lunch box) have no chip until the family has such a recipe.
+ assert.deepEqual(await row.locator('.chip').evaluateAll(els=>els.map(e=>e.dataset.key)),['all','main','veg','soup','noodle','western','seed-salad','dressing']);
  assert.equal(await page.locator('#family-recipe-chips [data-fm="diet-filter"],#family-recipe-chips [data-fm="time-filter"]').count(),0,'diet/time live in the Filters sheet');
  const rowBox=await page.locator('#family-recipe-chips').boundingBox();assert.ok(rowBox.height<=(phone?72:72),`chip area is compact (${rowBox.height}px)`);
  if(phone)assert.ok(await row.evaluate(e=>e.scrollWidth>e.clientWidth),'row scrolls sideways on a phone');

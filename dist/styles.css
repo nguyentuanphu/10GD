@@ -1517,3 +1517,6 @@ html:has(#modal-root .modal-backdrop) #ladybug{visibility:hidden}
 :root{--fs-mul:1.1;--fs-floor:14px}
 html[data-text-size="medium"]{--fs-mul:1;--fs-floor:0px}
 html[data-text-size="xlarge"]{--fs-mul:1.22;--fs-floor:16px}
+/* v1.7.5 · larger text: icons keep their drawn size; grid columns may shrink so scrolling tab rows never widen the page */
+.nav-icon{--fs-mul:1;--fs-floor:0px}
+.dashboard-grid>*{min-width:0}

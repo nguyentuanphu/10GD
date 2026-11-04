@@ -82,7 +82,9 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   assert.ok(await r0.locator('.rc-ing-qty').evaluate((e:any)=>document.activeElement===e),'focus moves to the amount');
   await page.keyboard.type('0,5');await r0.locator('.rc-ing-unit').selectOption('kg');
   // a unit the shopping list cannot count (the v1.7.0 save error) and a kitchen measure
-  await fillRow(page,tap,1,'Tỏi','3','tép');assert.match(await page.locator('#rc-ing-list .rc-ing-row').nth(1).locator('.rc-ing-note').innerText(),/tép.*(chưa cộng|not added)/);
+  // v1.7.5 (owner feedback #10): kitchen units are counted as written while “Cộng vào đi chợ” is ticked; unticked = note only
+  await fillRow(page,tap,1,'Tỏi','3','tép');{const row=page.locator('#rc-ing-list .rc-ing-row').nth(1),box=row.locator('.rc-ing-shop-input');assert.equal(await box.isChecked(),true);assert.equal(await row.locator('.rc-ing-note').isHidden(),true,'ticked tép is counted');assert.match(await page.locator('textarea[name="ingredients"]').inputValue(),/^Tỏi \| 3 \| tép$/m);
+   await tap(box);assert.match(await row.locator('.rc-ing-note').innerText(),/không cộng|not added/);assert.match(await page.locator('textarea[name="ingredients"]').inputValue(),/^Tỏi \| 3 \| tép \| note$/m);await tap(box);assert.equal(await box.isChecked(),true)}
   await fillRow(page,tap,2,'Nước mắm','2','muỗng canh');
   // add + choose by keyboard, add + remove, reorder
   await tap(page.locator('[data-rci="add"]'));await page.keyboard.type('hành l');await page.locator('#rc-ing-list .rc-ing-row').nth(3).locator('.rc-sug-opt').first().waitFor();await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
@@ -97,9 +99,12 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   await page.waitForFunction(()=>/1600×1200/.test(document.querySelector('#rc-photo-status')?.textContent||''));assert.equal(await page.locator('#rc-photo-preview img').count(),1,'preview');
   await noOverflow(page,label+' form');if(label==='iphone'){await page.locator('#rc-ing-list').scrollIntoViewIfNeeded();await shot(page,'mobile-form-rows-vi')}
   await tap(page.locator('[data-action="submit-form"][data-id="family-recipe-form"]'));await waitModalGone(page);await page.waitForFunction(()=>!!state.recipes.find((x:any)=>x.name==='Gà kho gừng QA')?.photo,null,{timeout:5000}).catch(()=>{});
-  const saved=await page.evaluate(()=>{const r=state.recipes.find((x:any)=>x.name==='Gà kho gừng QA');return{ing:r.ingredients,missing:r.missingIngredients,photo:r.photo?.key}});
-  assert.deepEqual(saved.ing,[{id:'chicken',qty:500},{id:'scallion',qty:50}],'catalogue ingredients counted (0,5 kg → 500 g)');
-  assert.deepEqual(saved.missing,['Nước mắm 2 muỗng canh','Tỏi 3 tép'],'non-shopping units kept verbatim in the family’s order, not converted');
+  const saved=await page.evaluate(()=>{const r=state.recipes.find((x:any)=>x.name==='Gà kho gừng QA');return{ing:r.ingredients,named:r.ingredients.map((i:any)=>[INGREDIENTS[i.id][0],i.qty,INGREDIENTS[i.id][1]]),missing:r.missingIngredients,photo:r.photo?.key}});
+  // v1.7.5: ticked rows are all counted — catalogue units converted exactly (0,5 kg → 500 g), kitchen units as written
+  assert.deepEqual(saved.named.map((x:any)=>x[0]),['Thịt gà','Nước mắm','Tỏi','Hành lá'],'every ticked row counted in the family’s order');
+  assert.deepEqual(saved.named.slice(1,3),[['Nước mắm',2,'muỗng canh'],['Tỏi',3,'tép']],'kitchen units kept as written, never converted to grams');
+  assert.deepEqual(saved.ing[0],{id:'chicken',qty:500},'catalogue ingredient counted (0,5 kg → 500 g)');
+  assert.deepEqual(saved.missing,[],'nothing left as a note while every row is ticked');
   assert.match(saved.photo,/^recipe-/);
   const blob=await page.evaluate(async(k:string)=>{const v:any=await localPhoto(k);return v?{size:v.blob.size,type:v.blob.type,uploaded:v.uploaded}:null},saved.photo);assert.ok(blob&&blob.size>1000&&blob.type==='image/jpeg'&&blob.uploaded===false,'photo stored on the device '+JSON.stringify(blob));
   await page.waitForFunction(()=>[...document.querySelectorAll('img.rc-recipe-photo')].some((i:any)=>i.src.startsWith('blob:')&&!i.hidden));
@@ -131,7 +136,8 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   // A4 meal editor search: top 5 + "Xem thêm" (5 more each tap, keyboard accessible), empty state unchanged
   await page.evaluate(()=>{location.hash='planner'});await page.locator('[data-fm="edit-meal"]').first().waitFor();
   await page.evaluate(()=>{const d=Object.keys(currentWeek().days)[0];currentWeek().days[d].breakfast.recipes=[];currentWeek().days[d].breakfast.cooked=false;save();render();familyEditMeal(d,'breakfast')});await page.locator('#meal-dish-search').waitFor();
-  const libRows=()=>page.locator('#meal-lib-list .family-select-row').count();assert.equal(await libRows(),30,'unchanged before typing');
+  const libRows=()=>page.locator('#meal-lib-list .family-select-row').count();// v1.7.5 owner feedback #11/#12: at most 5 suggestions with “Xem thêm”, also before typing
+  assert.equal(await libRows(),5,'5 suggestions before typing');assert.match(await page.locator('#meal-lib-list [data-meal-more="lib"]').innerText(),/Xem thêm 5 món/,'Xem thêm before typing');
   await tap(page.locator('#meal-dish-search'));await page.keyboard.type('gà');await page.waitForTimeout(400);
   assert.equal(await libRows(),5,'top 5 results');const more=page.locator('#meal-lib-list [data-meal-more="lib"]');assert.match(await more.innerText(),/Xem thêm 5 món/);
   assert.match(await page.locator('#meal-lib-list .meal-more-bar').innerText(),/Đang hiện 5\/\d+ món/);assert.match(await page.locator('#meal-search-status').innerText(),/đang hiện/);
@@ -140,7 +146,7 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   await page.locator('#meal-lib-list [data-meal-more="lib"]').focus();await page.keyboard.press('Enter');assert.equal(await libRows(),15,'keyboard Enter shows 5 more');
   assert.ok(await page.evaluate(()=>!!document.activeElement?.closest('#meal-lib-list')),'focus stays in the list');
   await page.locator('#meal-dish-search').fill('xyzkhongco');await page.waitForTimeout(400);assert.match(await page.locator('#meal-search-status').innerText(),/Không tìm thấy món ăn khớp.*\(0 món\)/);assert.equal(await page.locator('[data-meal-more]').count(),0,'no Show more on an empty result');
-  await page.locator('#meal-dish-search').fill('');await page.waitForTimeout(400);assert.equal(await libRows(),30);
+  await page.locator('#meal-dish-search').fill('');await page.waitForTimeout(400);assert.equal(await libRows(),5,'clearing the search returns to 5 suggestions');
   await noOverflow(page,label+' meal');assert.deepEqual(errors,[]);await context.close();
  }
 
@@ -167,7 +173,7 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   const ok=await studioAct('approve',all[0].id);assert.equal(ok.points,5);assert.equal((await rewardsFor(getStoreFn,{username:'qa-mum',now:Date.now(),rewards:null})).total,5);
   assert.ok((await listLog(getStoreFn,'audit',{now:Date.now()})).items.some((e:any)=>e.action==='community_recipe_approve'));
   await page.evaluate(()=>{rcList.at=0});await tap(page.locator('[data-fm="own"]'));await tap(page.locator('[data-rc="tab"]'));
-  const ccard=page.locator(`.rc-card[data-rc-id="${all[0].id}"]`);await ccard.waitFor();assert.match(await ccard.innerText(),/Nhà Bếp QA/);
+  const ccard=page.locator(`.rc-card[data-rc-id="${all[0].id}"]`);await ccard.waitFor();await ccard.scrollIntoViewIfNeeded();/* photos are loading="lazy": with v1.7.5's larger text the card starts below the fold */assert.match(await ccard.innerText(),/Nhà Bếp QA/);
   await page.waitForFunction((id:string)=>{const i:any=document.querySelector(`.rc-card[data-rc-id="${id}"] img.rc-community-photo`);return i&&i.complete&&i.naturalWidth>0},all[0].id);
   await tap(ccard.locator('summary'));assert.match(await ccard.innerText(),/Thịt gà — 500 g/);
   await shot(page,'mobile-community-vi');await noOverflow(page,'community tab');

@@ -45,8 +45,10 @@ const NOTES=['Tỏi 3 tép','Nước mắm 2 muỗng canh'];
   const file='dist'+(url.pathname==='/'?'/index.html':url.pathname);if(existsSync(file))return r.fulfill({status:200,contentType:mime[extname(file)]||'application/octet-stream',body:readFileSync(file)});return r.fulfill({status:404,body:''})});
  const noOverflow=async(page:any,label:string)=>{const w=await page.evaluate(()=>Math.max(document.documentElement.scrollWidth-innerWidth,...[...document.querySelectorAll('#modal-root .modal')].map((m:any)=>m.scrollWidth-m.clientWidth)));assert.ok(w<=1,label+' horizontal overflow '+w)};
  const shot=async(page:any,name:string)=>{await page.evaluate(()=>{const t=document.querySelector('#toast');if(t)t.className=''});await page.waitForTimeout(150);const f=`${out}/${name}.jpg`;await page.screenshot({path:f,type:'jpeg',quality:70});const kb=statSync(f).size/1024;assert.ok(kb<250,`${name}.jpg is ${kb.toFixed(0)} KB`)};
- async function openApp({viewport=sizes.mobile,ua=IPHONE,touch=true,lang='vi',theme='light',account=false,hash='today',context:given}:any={}){
-  const context=given||await browser.newContext({viewport,userAgent:ua,hasTouch:touch,isMobile:touch&&viewport.width<900,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme==='dark'?'dark':'light'});
+ // The app's “today” follows the family time zone (Australia/Sydney) while seeding uses the browser's local date, so the
+// browser runs in Sydney time; in UTC the dates differ from 13:00 to 24:00 UTC and today's dinner was seeded on yesterday.
+async function openApp({viewport=sizes.mobile,ua=IPHONE,touch=true,lang='vi',theme='light',account=false,hash='today',context:given}:any={}){
+  const context=given||await browser.newContext({viewport,userAgent:ua,hasTouch:touch,isMobile:touch&&viewport.width<900,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme==='dark'?'dark':'light',timezoneId:'Australia/Sydney'});
   if(!given){await context.addInitScript(({account}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-guide-done','1');if(account)localStorage.setItem('bep-account-present','yes');else localStorage.setItem('bep-local-locked','yes')},{account});if(account)await context.addCookies([cookieOf(dadCookie)])}
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page,{account});
   await page.goto(origin+'/#'+hash);await page.locator('#main .page-heading').waitFor({timeout:30000});await page.waitForTimeout(account?1500:600);await page.waitForFunction(()=>typeof appLanguage!=='undefined'&&typeof rcEnabled==='function'&&typeof recipeIngredientRows==='function',null,{timeout:30000});
@@ -78,7 +80,9 @@ const NOTES=['Tỏi 3 tép','Nước mắm 2 muỗng canh'];
   await shot(page,'mobile-empty-add-form-vi-light');
   // (a) Henry's path: rows by touch with units, save, open the dish from the meal
   await fillRows(page,tap);
-  assert.equal(await page.locator('textarea[name="ingredients"]').inputValue(),'Mì Quảng | 500 | g\nTôm | 300 | g\nThịt heo | 300 | g\nTỏi 3 tép\nNước mắm 2 muỗng canh','rows written to the saved box');
+  // v1.7.5: every row has a “Cộng vào đi chợ” tick (ticked by default); the family unticks the pantry seasonings
+  for(const i of [3,4]){const box=page.locator('#rc-ing-list .rc-ing-row').nth(i).locator('.rc-ing-shop-input');assert.equal(await box.isChecked(),true,'ticked by default');await tap(box);assert.equal(await box.isChecked(),false)}
+  assert.equal(await page.locator('textarea[name="ingredients"]').inputValue(),'Mì Quảng | 500 | g\nTôm | 300 | g\nThịt heo | 300 | g\nTỏi | 3 | tép | note\nNước mắm | 2 | muỗng canh | note','rows written to the saved box');
   await saveForm(page,tap);
   const saved=await page.evaluate((id:string)=>{const r=state.recipes.find((x:any)=>x.id===id);return{ing:r.ingredients.map((i:any)=>INGREDIENTS[i.id][0]+' '+i.qty+' '+INGREDIENTS[i.id][1]),missing:r.missingIngredients}},id);
   assert.deepEqual(saved,{ing:['Mì Quảng 500 g','Tôm 300 g','Thịt heo 300 g'],missing:NOTES},'the save stored every row');
@@ -158,20 +162,21 @@ const NOTES=['Tỏi 3 tép','Nước mắm 2 muỗng canh'];
   await rows.nth(4).evaluate((li:any)=>{li.querySelector('.rc-ing-qty').value='200';li.querySelector('.rc-ing-unit').value='g'});
   await saveForm(page,tap);
   const saved=await page.evaluate((id:string)=>{const r=state.recipes.find((x:any)=>x.id===id);return{ing:r.ingredients.map((i:any)=>INGREDIENTS[i.id][0]+' '+i.qty+' '+INGREDIENTS[i.id][1]),missing:r.missingIngredients}},id);
-  assert.deepEqual(saved.ing,['Thịt Ba Chỉ 500 g','Tôm 300 g','Bánh phở (sợi to) 500 g','Bánh tráng 1 gói','Rau xà lách 200 g'],'every amount and unit kept, including changes without input events');
-  assert.deepEqual(saved.missing,['Rau thơm (ăn kèm)','Dầu phụng 2 muỗng canh'],'untouched row and kitchen measure kept verbatim');
+  // v1.7.5: a name-only line opens ticked, so once it has an amount it is counted — kitchen measures as written
+  assert.deepEqual(saved.ing,['Thịt Ba Chỉ 500 g','Tôm 300 g','Bánh phở (sợi to) 500 g','Bánh tráng 1 gói','Rau xà lách 200 g','Dầu phụng 2 muỗng canh'],'every amount and unit kept, including changes without input events');
+  assert.deepEqual(saved.missing,['Rau thơm (ăn kèm)'],'the untouched row (no amount) stays flagged, never guessed');
   // reload → reopen keeps them
   await page.reload();await page.locator('#main .page-heading').waitFor();await page.waitForFunction(()=>typeof rcEnabled==='function'&&typeof recipeIngredientRows==='function');await page.waitForTimeout(400);
   // straight after the reload the recipe library is not loaded yet, so the editor opens asynchronously (v1.7.2: without rows)
   await openDish(page,tap);await tap(page.locator('#modal-root .recipe-edit-btn'));await page.locator('#family-recipe-form #rc-ing-list').waitFor();
   assert.deepEqual(await rows.evaluateAll((a:any[])=>a.map(li=>[li.querySelector('.rc-ing-name-input').value,li.querySelector('.rc-ing-qty').value,li.querySelector('.rc-ing-unit').value].join('/'))),
-   ['Thịt Ba Chỉ/500/g','Tôm/300/g','Bánh phở (sợi to)/500/g','Bánh tráng/1/gói','Rau xà lách/200/g','Rau thơm (ăn kèm)//','Dầu phụng/2/muỗng canh'],'reopened form shows the saved amounts');
+   ['Thịt Ba Chỉ/500/g','Tôm/300/g','Bánh phở (sợi to)/500/g','Bánh tráng/1/gói','Rau xà lách/200/g','Dầu phụng/2/muỗng canh','Rau thơm (ăn kèm)//'],'reopened form shows the saved amounts');
   await rows.first().locator('.rc-ing-qty').scrollIntoViewIfNeeded();await shot(page,'mobile-edit-form-reopened-vi-light');
   // unchanged save of the reopened form keeps the recipe exactly
   const before=await page.evaluate((id:string)=>JSON.stringify(state.recipes.find((x:any)=>x.id===id)),id);await saveForm(page,tap);
   assert.equal(await page.evaluate((id:string)=>JSON.stringify(state.recipes.find((x:any)=>x.id===id)),id),before,'unchanged save keeps the recipe');
-  await openDish(page,tap);d=await detail(page);assert.equal(d.counted.length,5);assert.deepEqual(d.notes,['Rau thơm (ăn kèm) | chưa có lượng','Dầu phụng 2 muỗng canh | không tính đi chợ']);
-  await setLook(page,'en','dark');await openDish(page,tap);d=await detail(page);assert.deepEqual(d.notes,['Rau thơm (ăn kèm) | no amount yet','Dầu phụng 2 muỗng canh | not counted for shopping']);
+  await openDish(page,tap);d=await detail(page);assert.equal(d.counted.length,6);assert.deepEqual(d.notes,['Rau thơm (ăn kèm) | chưa có lượng']);
+  await setLook(page,'en','dark');await openDish(page,tap);d=await detail(page);assert.deepEqual(d.notes,['Rau thơm (ăn kèm) | no amount yet']);
   assert.match(await page.locator('#modal-root .recipe-edit-btn').innerText(),/Edit recipe/);await noOverflow(page,'EN dark');await shot(page,'mobile-detail-edit-button-en-dark');
   // a library recipe offers "Save as family dish" from its detail
   const libId=await page.evaluate(()=>state.recipes.find((x:any)=>!ownRecipe(x)).id);await page.evaluate((i:string)=>showRecipe(i),libId);assert.match(await page.locator('#modal-root .recipe-edit-btn').innerText(),/Save as family dish/);
@@ -181,7 +186,7 @@ const NOTES=['Tỏi 3 tép','Nước mắm 2 muỗng canh'];
  // ================= (e) two signed-in devices of one family =================
  {const A=await openApp({account:true});
   const id=await seedEmptyDishInMeal(A.page);await A.page.evaluate((id:string)=>familyRecipeEditor(id),id);await A.page.locator('#family-recipe-form').waitFor();
-  await fillRows(A.page,A.tap);await saveForm(A.page,A.tap);
+  await fillRows(A.page,A.tap);for(const i of [3,4])await A.tap(A.page.locator('#rc-ing-list .rc-ing-row').nth(i).locator('.rc-ing-shop-input'));await saveForm(A.page,A.tap);
   await A.page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing,null,{timeout:10000});
   assert.ok(cloud.puts>0,'device A uploaded the family state');
   const up=cloud.state.recipes.find((x:any)=>x.id===id);assert.equal(up.ingredients.length,3);assert.deepEqual(up.missingIngredients,NOTES,'lines travel with the family state');
