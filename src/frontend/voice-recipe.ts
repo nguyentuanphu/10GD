@@ -258,7 +258,7 @@ function vrFillForm(c){
  f.ingredients.value=c.ingredients.map(vrFormLine).filter(Boolean).join('\n');
  f.steps.value=c.steps.join('\n');
  // the ingredient rows (recipe-community) are built from the box when the form opens; rebuild them from the dictation
- if(f.dataset.rc&&typeof rcBuildRows==='function')try{rcBuildRows(f)}catch(e){console.error('recipe rows',e)}
+ if(f.dataset.rcForm&&typeof rcBuildRows==='function')try{rcBuildRows(f)}catch(e){console.error('recipe rows',e)}
  const t=f.querySelector('input[name="transcript"]');if(t)t.value=String(c.raw||'').slice(0,20000);
  const dup=vrDuplicate(c.title);
  const note=document.createElement('div');note.className='vr-form-note';

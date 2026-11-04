@@ -51,6 +51,8 @@ Object.assign(EN_UI,{
 'Gia vị là mức tham khảo. Điều chỉnh theo khẩu vị; công thức không phải tư vấn dinh dưỡng cá nhân.':'Seasoning amounts are a guide. Adjust to taste; recipes are not personal nutrition advice.',
 'Nguyên liệu cho phần món trong bữa này':'Ingredients for this meal’s portion',
 'Nguyên liệu cho':'Ingredients for',
+'Món chính':'Main dishes','Món phụ':'Side dishes','Món canh / soup':'Soups','Món sợi':'Noodle dishes','Món tráng miệng':'Desserts','Món ăn vặt':'Snacks','Món school lunch box':'School lunch box',
+'Bữa phụ':'Snack','Weekends feast':'Weekends feast','Phân loại bữa ăn':'Meal types','Phân loại món ăn':'Dish type',
 'Đồ đã quá hạn nhập không được trừ khỏi danh sách mua. Khi đánh dấu “Đã nấu”, app chỉ trừ lượng tồn đang được ghi nhận và còn hạn.':'Items past their entered expiry are not deducted from the shopping list. When a meal is marked “Cooked”, only recorded, unexpired stock is deducted.',
 'So sánh hai lần mua gần nhất của cùng nguyên liệu tại cùng cửa hàng, theo dữ liệu bạn xác nhận. Quy cách, nhãn hàng và khuyến mãi có thể khác nhau; đây là biến động giá ghi nhận, không phải chỉ số lạm phát.':'Compares the two most recent purchases of the same ingredient at the same store, from data you confirmed. Pack size, brand and promotions may differ; this is recorded price change, not an inflation index.'
 });

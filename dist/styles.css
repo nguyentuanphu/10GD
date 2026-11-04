@@ -1499,3 +1499,8 @@ html[data-theme="dark"] .more-tools .more-row{background:var(--card,#1d2621);bor
 html[data-theme="dark"] .more-tools .more-icon{color:var(--accent-ink,#9fd3b4)}
 /* the floating ladybug never covers an open dialog */
 html:has(#modal-root .modal-backdrop) #ladybug{visibility:hidden}
+
+/* v1.7.5 · Cách nấu shown exactly as written (no automatic numbering) */
+.steps-text p{margin:0 0 12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+/* v1.7.5 · photo buttons: full 44 px touch target (were 31 px under .btn.small) */
+.rc-photo-actions .btn.small.rc-file-btn{min-height:44px;padding-top:10px;padding-bottom:10px}
