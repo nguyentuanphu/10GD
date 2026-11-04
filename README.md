@@ -1,4 +1,19 @@
-# FamTray · Bếp Gia Đình · v1.7.4
+# FamTray · Bếp Gia Đình · v1.7.5
+
+## What's new in v1.7.5 (owner feedback, 4 Nov 2026)
+- **Photo buttons work again:** “Chụp ảnh” / “Chọn ảnh” and “Dán danh sách nguyên liệu” did nothing when tapped — the recipe form itself matched a click handler that cancelled every tap inside it. Fixed; 44 px buttons.
+- **Phân loại bữa ăn:** Bữa sáng, Bữa trưa, Bữa tối, Bữa phụ, Weekends feast. Nothing is ticked automatically and every tick can be removed; an empty choice means “use the dish type”. Older “Main/Side dish” recipes are read as lunch + dinner and “Friday night” as dinner, without rewriting stored data.
+- **Phân loại món ăn:** Món chính, Món phụ, Món canh / soup, Món sợi, Món tráng miệng, Món ăn vặt, Món school lunch box. Protein shown in words. Labels “Công thức nấu cho bao nhiêu suất ăn” and “Thời gian nấu”.
+- **Bữa phụ every day** in the weekly menu (filled from snack/dessert dishes); **school lunch boxes** Mon–Fri when “Lên hộp cơm đi học” is switched on in the menu preview.
+- **Ingredients:** each row has a **“Cộng vào đi chợ”** tick (ticked for new rows); kitchen units (tép, muỗng, **đòn**, khoanh, vỉ…) are counted as written, never converted to grams; unticked rows are kept as notes. Saved note lines with an amount open unticked, so existing shopping lists do not change. Amounts accept 2, 0,5, 1/2, ½, 1 1/2 and show as ½ / 1½ (they were rounded up to 1).
+- **Cách nấu** is shown exactly as written — no automatic numbering, no filler step.
+- **Meal editor:** 5 suggestions from the reference library and 5 saved family dishes, each with “Xem thêm”; portion choices in plain words (“Tự tính theo số người”, “½ lượng”, “Gấp đôi”) with a one-line explanation.
+- **Larger text** everywhere by default (body ≥15 px, nothing below 12 px) with **Cỡ chữ** (Vừa / Lớn / Rất lớn) in Tài khoản & cài đặt → Giao diện, per device.
+- **App icon badge** for urgent messages, “không ăn / báo cơm” and absence notices (iPhone/iPad 16.4+ Home Screen app with notifications on, Android, desktop); cleared when the app opens.
+- **Language:** English mode no longer shows half-translated sentences; missing English for Shopping, Pantry, Spending and notices added; hardcoded English labels in Vietnamese mode fixed. A language audit runs in CI. Reference-recipe cooking steps in English follow in a separate release.
+- **Data edition 6:** older app versions show “Có bản cập nhật — tải lại” instead of reading the new meal and units. Set Studio minimum edition to 6 at deploy.
+
+Evidence: `docs/reviews/v1.7.5/review.md`.
 
 ## What's new in v1.7.4
 - **On-device “More accurate” voice uses less memory on iPhone (same model, same accuracy):** each weight file is read once into one buffer and freed as soon as the speech engine has copied it, the larger decoder is prepared first, and iPhone/iPad use the smaller engine build (one thread, no WebGPU). Measured in a desktop browser simulation (not an iPhone): the memory peak is about 16–20 % lower (≈1.40 → 1.16 GB) — the real check is the self-check page on the phone.
