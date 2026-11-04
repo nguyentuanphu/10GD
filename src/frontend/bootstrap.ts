@@ -1,4 +1,6 @@
 'use strict';
+// v1.7.5 · text size is applied before anything renders (Vừa / Lớn / Rất lớn; default Lớn), so the page never jumps.
+try{const ts=localStorage.getItem('bep-text-size');document.documentElement.dataset.textSize=ts==='medium'||ts==='xlarge'?ts:'large'}catch{document.documentElement.dataset.textSize='large'}
 // This entry point is checked with strict TypeScript independently of legacy globals.
 declare function clearOfflineAccess(): void;
 declare function rememberOfflineAccess(status: SessionStatus): Promise<void>;
