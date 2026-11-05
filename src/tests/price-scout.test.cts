@@ -242,6 +242,8 @@ const prefs=(x:any={})=>({catalog,today,state:'NSW',...x});
  assert.ok(t.plans.balanced.minutes<=30);assert.deepEqual(t.plans.balanced.stores.map((s:any)=>s.retailer).sort(),['coles','woolworths']);assert.equal(t.plans.balanced.total,25.9);assert.equal(t.timeValue,undefined,'no money value of time');
  // ALDI as close as Coles (5 min) → nearest, balanced and cheapest are all ALDI
  t=plan({coles:5,aldi:5});assert.deepEqual(t.plans.near.stores.map((s:any)=>s.retailer),['aldi']);assert.deepEqual(t.plans.balanced.stores.map((s:any)=>s.retailer),['aldi']);assert.deepEqual(t.plans.cheap.stores.map((s:any)=>s.retailer),['aldi']);
+ // compared with the nearest on the same items only (owner: “Rẻ nhất” looked dearer because it bought one more item)
+ {const v=plan({coles:5,aldi:25,woolworths:12}).plans.cheap.vsNear;assert.equal(v.commonCount,3);assert.equal(v.saving,6);assert.equal(v.minutes,40);assert.deepEqual(v.added,[]);assert.deepEqual(v.dropped,[]);}
  // unknown minutes → 10 min estimate, flagged; items grouped by store with totals
  t=plan({});assert.equal(t.defaultMinutes,10);assert.equal(t.plans.cheap.estimated,true);assert.equal(t.plans.cheap.stores[0].estimated,true);
  assert.deepEqual(t.plans.cheap.stores[0].items.map((x:any)=>x.label).sort(),['Dầu ăn','Gạo','Sữa']);
@@ -251,5 +253,6 @@ const prefs=(x:any={})=>({catalog,today,state:'NSW',...x});
  const o2=[...o,obs('nuoc-mam','woolworths',5,500,'mL')],items2=[...items,{key:'d',label:'Nước mắm',itemId:'nuoc-mam',qty:500,unit:'mL'}];
  const t2=plain(P.optimizeBasket(items2,o2,{catalog,state:'NSW',today:T,travel:{coles:5,aldi:25,woolworths:12}})).trips;
  assert.ok(t2.plans.cheap.stores.some((s:any)=>s.retailer==='woolworths'),'cheapest gets every priced item');assert.equal(t2.plans.cheap.covered,4);
- assert.ok(t2.plans.near.covered>=Math.ceil(4*0.8),'nearest still gets ≥ 80 %');assert.ok(t2.plans.near.minutes<=t2.plans.cheap.minutes);
+ assert.ok(t2.plans.near.covered>=Math.ceil(4*0.8),'nearest still gets ≥ 80 %');
+ {const v=t2.plans.cheap.vsNear;if(t2.plans.near.covered<4){assert.equal(v.added.length,4-t2.plans.near.covered,'the extra item is named');assert.ok(v.added.some((x:any)=>x.label==='Nước mắm'))}}assert.ok(t2.plans.near.minutes<=t2.plans.cheap.minutes);
  console.log('PASS trip plans: minutes per store (estimate when unknown), nearest / balanced (within halfway, never money per minute) / cheapest, items grouped by store, coverage rules')}

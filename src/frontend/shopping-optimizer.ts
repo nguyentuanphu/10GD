@@ -276,7 +276,9 @@ function allowedChannel(item,retailer,prefs={}){
 //   near     — fewest minutes that still gets ≥ 80 % of the items that have a price anywhere;
 //   balanced — (owner: time is never turned into money) the cheapest plan with ≥ 80 % of the items whose trip is
 //              no longer than halfway between the nearest and the cheapest plan's minutes;
-//   cheap    — lowest total that gets every item with a price, then fewest minutes.
+//   cheap    — “Đủ món / All items” (owner, 5 Nov): every item with a price, lowest total, then fewest minutes.
+// Each plan is compared with the nearest on the SAME items only (vsNear), plus what it adds or leaves out — totals of
+// different item sets are never set side by side as if they were the same basket.
 // Trip minutes ≈ every store's one-way minutes + the farthest one's way home (one store = there and back).
 const DEFAULT_TRAVEL_MIN=10;
 function tripMinutes(stores,travel){const m=stores.map(r=>{const v=Number(travel?.[r]);return v>=0&&v<=240?v:DEFAULT_TRAVEL_MIN});return m.length?m.reduce((a,b)=>a+b,0)+Math.max(...m):0}
@@ -296,7 +298,9 @@ function tripPlans(lines,prefs={}){
  const near=plans.filter(p=>p.covered>=enough).sort((a,b)=>a.minutes-b.minutes||b.covered-a.covered||a.total-b.total)[0];
  const cheap=plans.filter(p=>p.covered===maxCovered).sort((a,b)=>a.total-b.total||a.minutes-b.minutes)[0];
  const mid=(near.minutes+cheap.minutes)/2,balanced=plans.filter(p=>p.covered>=enough&&p.minutes<=mid+0.001).sort((a,b)=>a.total-b.total||a.minutes-b.minutes)[0]||near;
- const pack=(id,p)=>({id,stores:p.stores.map(s=>({...s,items:s.items.sort((a,b)=>Number(b.cold)-Number(a.cold))})).sort((a,b)=>a.minutes-b.minutes),total:p.total,covered:p.covered,itemCount:all,missing:p.missing,minutes:p.minutes,estimated:p.estimated});
+ const costs=(p:any)=>Object.fromEntries(p.stores.flatMap((s:any)=>s.items.map((x:any)=>[x.key,{cost:x.cost,label:x.label}])));
+ const vs=(p:any,base:any)=>{const a=costs(p),b=costs(base),common=Object.keys(a).filter(k=>b[k]);return{commonCount:common.length,saving:round(common.reduce((n,k)=>n+b[k].cost-a[k].cost,0)),minutes:p.minutes-base.minutes,added:Object.keys(a).filter(k=>!b[k]).map(k=>({label:a[k].label,cost:a[k].cost})),dropped:Object.keys(b).filter(k=>!a[k]).map(k=>({label:b[k].label,cost:b[k].cost}))}};
+ const pack=(id,p)=>({id,vsNear:vs(p,near),stores:p.stores.map(s=>({...s,items:s.items.sort((a,b)=>Number(b.cold)-Number(a.cold))})).sort((a,b)=>a.minutes-b.minutes),total:p.total,covered:p.covered,itemCount:all,missing:p.missing,minutes:p.minutes,estimated:p.estimated});
  return{defaultMinutes:DEFAULT_TRAVEL_MIN,stores,plans:{near:pack('near',near),balanced:pack('balanced',balanced),cheap:pack('cheap',cheap)}}
 }
 function catalogMap(catalog){const m=new Map();for(const i of catalog||[])m.set(i.id,i);return m}

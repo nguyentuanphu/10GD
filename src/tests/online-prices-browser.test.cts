@@ -78,7 +78,7 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
    await noOverflow(page,'list 375');await targets(page,'list 375');await scrollTo(page,'.shop-row.has-online');await shot(page,'shopping-list-vi-light',  'mobile');
    await scrollTo(page,'.scout-deals');await shot(page,'deals-card-vi-light','mobile');
    // trip plans (owner, 5 Nov): Gần nhất / Cân bằng / Rẻ nhất with money and minutes; stops grouped by store
-   {const tabs=page.locator('.scout-trips .trip-tab');assert.equal(await tabs.count(),3);assert.deepEqual((await tabs.allInnerTexts()).map((t:string)=>t.split('\n')[0]),['Gần nhất','Cân bằng','Rẻ nhất']);
+   {const tabs=page.locator('.scout-trips .trip-tab');assert.equal(await tabs.count(),3);assert.deepEqual((await tabs.allInnerTexts()).map((t:string)=>t.split('\n')[0]),['Gần nhất','Cân bằng','Đủ món']);
     assert.equal(await page.locator('.scout-trips .trip-tab[aria-checked="true"]').innerText().then((t:string)=>t.split('\n')[0]),'Cân bằng','balanced by default');
     assert.match(await page.locator('.scout-trips .trip-stops').innerText(),/tạm tính/,'unknown minutes are shown as an estimate');
     // the family writes its minutes: Woolworths 5, Coles 30, Chemist 12
@@ -88,6 +88,8 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
     const stops=await page.locator('.scout-trips .trip-stop').allInnerTexts();assert.ok(stops.length>=2,'cheapest uses more than one store');assert.ok(stops.some((t:string)=>/Coles/.test(t)&&/30 phút/.test(t)));assert.ok(!stops.some((t:string)=>/tạm tính/.test(t)),'no estimate once written');
     assert.match(stops.join(' '),/Sữa tươi/,'items grouped under their store');
     assert.match(await page.locator('.scout-trips .trip-tab[data-plan="cheap"]').innerText(),/lâu hơn \d+ phút/,'shows how much longer, never money per minute');assert.equal(await page.locator('#scout-travel-form select').count(),0,'no time-value setting');
+    // owner, 5 Nov: “Đủ món” is compared with the nearest on the same items; the extra item is named, not summed in
+    {const ct=await page.locator('.scout-trips .trip-tab[data-plan="cheap"]').innerText();assert.match(ct,/cùng \d+ món: (bằng giá|rẻ hơn|đắt hơn)/);assert.match(ct,/\+ mua được [^\n]+ \(\$\d+\.\d\d\)/,"the extra item is named with its price, not summed into the comparison");}
     const saved=await page.evaluate(()=>JSON.parse(familyStorage.getItem('bep-price-scout-v1')).prefs);assert.deepEqual(saved.travel,{woolworths:5,coles:30,chemist:12});assert.equal(saved.tripPlan,'cheap');
     await noOverflow(page,'trips 375');await targets(page,'trips 375');await scrollTo(page,'.scout-trips');await shot(page,'trip-plans-vi-light','mobile');}
    // 2. price history sheet with chart, usual / low / high, attribution

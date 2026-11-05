@@ -1649,3 +1649,5 @@ html[data-theme="dark"] .trip-tab .tt-diff{color:#8fd0a7}
 .pp-wrap .pp-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;border-radius:10px;z-index:1}
 html[data-theme="dark"] .pp-wrap .pp-img{background:#f4f4ef}
 .ingredient-own .ui-art{width:100%;height:100%;vertical-align:top}
+.trip-tab .tt-add{display:block;color:var(--muted);font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px))}
+@container (max-width:520px){.trip-tab .tt-add{grid-column:1/-1}}
