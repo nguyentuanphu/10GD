@@ -17,8 +17,8 @@
 const RC_API='/.netlify/functions/community-recipes';
 const RC_SHOP_UNITS={g:['g',1],kg:['g',1000],'lạng':['g',100],ml:['ml',1],l:['ml',1000],'quả':['quả',1],'cái':['cái',1],'bó':['bó',1],'gói':['gói',1],'miếng':['miếng',1]};
 // v1.7.5: these units are counted as written when “Cộng vào đi chợ” is ticked (never converted to grams).
-const RC_NOTE_UNITS=[['tép','clove'],['củ','bulb'],['nhánh','knob / sprig'],['lát','slice'],['khoanh','round slice'],['cây','stalk'],['nắm','handful'],['con','whole'],['đòn','roll (giò / chả)'],['muỗng canh','tablespoon'],['muỗng cà phê','teaspoon'],['chén','bowl / cup'],['hộp','box'],['lon','can'],['chai','bottle'],['vỉ','tray / card'],['khay','tray'],['túi','bag']];
-const RC_UNIT_EN={g:'g',kg:'kg','lạng':'lạng (100 g)',ml:'mL',l:'L','quả':'each','cái':'piece','bó':'bunch','gói':'pack','miếng':'piece / cut'};
+const RC_NOTE_UNITS=[['tép','clove'],['củ','bulb'],['nhánh','knob / sprig'],['lát','slice'],['khoanh','round slice'],['cây','stalk'],['nắm','handful'],['con','whole'],['đòn','roll (pork sausage)'],['muỗng canh','tablespoon'],['muỗng cà phê','teaspoon'],['chén','bowl / cup'],['hộp','box'],['lon','can'],['chai','bottle'],['vỉ','tray / card'],['khay','tray'],['túi','bag']];
+const RC_UNIT_EN={g:'g',kg:'kg','lạng':'100 g',ml:'mL',l:'L','quả':'each','cái':'piece','bó':'bunch','gói':'pack','miếng':'piece / cut'};
 const rcT=(vi,en)=>typeof tr==='function'?tr(vi,en):vi;
 const rcEsc=v=>typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 const rcNorm=s=>typeof normalizeText==='function'?normalizeText(String(s||'')):String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').toLowerCase();
