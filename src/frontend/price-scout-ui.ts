@@ -80,6 +80,8 @@ function scoutPanel(){
  if(!supported)return`<section class="card price-scout">${head}<div id="scout-body"><p class="callout scout-unsupported" role="status">🌏 ${esc((m=>scoutT(m.vi,m.en))(PS.unsupportedMessage()))}</p><button class="btn" data-scout="postcode">📍 ${scoutT('Đổi postcode','Change postcode')}</button></div></section>`;
  body+=scoutCaptureButtons()+scoutPointsWidget()+personaBar;
  if(!own.length&&!(scoutData.pool?.official?.observations||[]).length)body+=scoutEmptyState();
+ // v1.7.5: national online prices (Pinch / WhichGrocer) — dated and credited as their terms require
+ {const off=scoutData.pool?.official,att=Array.isArray(off?.attribution)?off.attribution:[];if(att.length){const when=String(off.importedAt||'').slice(0,10),links=att.map((a:string)=>/Pinch/.test(a)?`<a href="https://pinch-app.com" target="_blank" rel="noopener">${esc(a)}</a>`:/WhichGrocer/.test(a)?`<a href="https://www.whichgrocer.com" target="_blank" rel="noopener">${esc(a)}</a>`:esc(a)).join(' · ');body+=`<p class="hint scout-attribution">🛒 ${scoutT('Giá online toàn quốc của siêu thị (có thể khác giá tại cửa hàng)','National online supermarket prices (may differ in store)')}${when?` · ${scoutT('cập nhật','updated')} ${esc(when.slice(8,10)+'/'+when.slice(5,7))}`:''} · ${links}</p>`}}
  if(items.length)body+=scoutWantedCard(result);
  if(!items.length)body+=`<p class="hint">${scoutT('Danh sách đi chợ đang trống nên chưa có gì để so.','Your shopping list is empty, so there is nothing to compare yet.')}</p>`;
  else body+=scoutCards(result,persona);
@@ -334,7 +336,7 @@ function scoutCommunityData(){const c=scoutData.community;if(!scoutCommunityRead
 function scoutCommunityPrefs(){const c=scoutCommunityData();if(!c)return{};const {confirmed,hints}=PS.communityObservations(c.items,{branches:scoutData.communityBranches||[]});return{community:confirmed,communityHints:hints,shopPrices:PS.shopObservations(c.shopPrices)}}
 function scoutMixLabel(m){if(!m||!m.total||!scoutCommunityReadOn())return'';const parts=[];
  if(m.family)parts.push(scoutT(m.family+' giá của nhà mình',m.family+(m.family===1?' family price':' family prices')));
- if(m.official)parts.push(scoutT(m.official+' giá nguồn chính thức',m.official+' official'));
+ if(m.official)parts.push(scoutT(m.official+' giá online / nguồn chính thức',m.official+' online / official'));
  if(m.community)parts.push(scoutT(m.community+' giá cộng đồng đã xác nhận',m.community+(m.community===1?' confirmed community price':' confirmed community prices')));
  if(m.shop)parts.push(scoutT(m.shop+' giá do tiệm đăng',m.shop+(m.shop===1?' shop-posted price':' shop-posted prices')));
  return`<p class="scout-mix">🧮 ${parts.join(' · ')}</p>`}

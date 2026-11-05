@@ -11,6 +11,10 @@
 - **Larger text** everywhere by default (body ≥15 px, nothing below 12 px) with **Cỡ chữ** (Vừa / Lớn / Rất lớn) in Tài khoản & cài đặt → Giao diện, per device.
 - **App icon badge** for urgent messages, “không ăn / báo cơm” and absence notices (iPhone/iPad 16.4+ Home Screen app with notifications on, Android, desktop); cleared when the app opens.
 - **Language:** English mode no longer shows half-translated sentences; missing English for Shopping, Pantry, Spending and notices added; hardcoded English labels in Vietnamese mode fixed. A language audit runs in CI. Reference-recipe cooking steps in English follow in a separate release.
+- **Studio roles in Studio:** Owner (hosting setting `STUDIO_ADMINS`, cannot be changed from Studio) assigns **Admin**, **Kiểm duyệt** (moderator) and **Hỗ trợ** (read-only) in Studio → Cài đặt & phát hành → Quyền Studio; enforced on the server, audited. A **Studio** button appears in the app's top bar for these accounts.
+- **Studio → Góp ý → “Sao chép cho dev”:** open bug reports as Markdown (text, technical context, page errors; never the reporter).
+- **National online prices (Pinch + WhichGrocer):** Studio → So Giá → Giá online. Switched **off** until the owner turns them on. Pinch prices Woolworths/Coles/ALDI for the catalogue (Wed/Sat); WhichGrocer cross-checks a few items within its credit budget; sources more than 15% apart are held. **Only products the owner confirms (✓) in Studio are shown to families**, dated and credited (“Price data by Pinch” / “Product data by WhichGrocer”). Keys stay in the hosting environment.
+- **Packed-lunch schedule, compact “Tuần này ai bận”, “Chưa báo” counted** (see the review record).
 - **Data edition 6:** older app versions show “Có bản cập nhật — tải lại” instead of reading the new meal and units. Set Studio minimum edition to 6 at deploy.
 
 Evidence: `docs/reviews/v1.7.5/review.md`.

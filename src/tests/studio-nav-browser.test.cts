@@ -34,7 +34,7 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
  // 1. Desktop: groups, lazy modules, badges, collapse, hover prefetch, old hashes, merged urgent page, Ctrl+K.
  {const {context,page,log,errors}=await openStudio(browser,world,{hash:'#overview',profile:'typical'});await ready(page);await sleep(3500);
   const groups=await page.$$eval('#nav .ngroup',(gs:any[])=>gs.map(g=>[g.dataset.group,[...g.querySelectorAll('a[data-nav]')].map((a:any)=>a.dataset.nav)]));
-  assert.deepEqual(groups,[['home',['overview','urgent','notifications','health']],['people',['accounts','families','invites']],['content',['community','recipes','feedback']],['price',['scout','scanlist','unplaced','catalog']],['stats',['usage','voice']],['release',['settings','roles','broadcast','rollout','logs']]],'6 groups, every page once (v1.7.5: Quyền Studio under Settings & release)');
+  assert.deepEqual(groups,[['home',['overview','urgent','notifications','health']],['people',['accounts','families','invites']],['content',['community','recipes','feedback']],['price',['scout','onlinePrices','scanlist','unplaced','catalog']],['stats',['usage','voice']],['release',['settings','roles','broadcast','rollout','logs']]],'6 groups, every page once (v1.7.5: Quyền Studio under Settings & release)');
   assert.equal(await page.locator('#nav a[href="#messages"]').count(),0,'old daily urgent page is not a separate menu item');
   assert.equal(await page.locator('#nav a[aria-current="page"]').getAttribute('href'),'#overview');
   assert.deepEqual(scripts(log),['/studio.js'],'only studio.js before any page module opens: '+scripts(log).join(' '));

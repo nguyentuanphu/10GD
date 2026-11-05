@@ -1,3 +1,6 @@
+import {refreshOnlinePrices,ONLINE_STATUS_KEY,ONLINE_MAPPING_KEY,ONLINE_PROPOSALS_KEY,cleanMapping} from '../lib/online-prices.mjs';
+import {CACHE_STORE as PRICE_CACHE_STORE,cycleId as priceCycleId,sydneyDate as priceSydneyDate} from '../lib/grocery-pricing.mjs';
+import onlineCatalog from '../../data/master-catalog.json' with {type:'json'};
 import {getStore} from '@netlify/blobs';
 import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount,accountStore,editRecord,scopedStore} from '../lib/accounts.mjs';
@@ -58,6 +61,22 @@ export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=(
    const q=(k:string)=>url.searchParams.get(k)||'';
 
    const run=async():Promise<Response>=>{
+   // v1.7.5 national online prices (Pinch / WhichGrocer): status, switches live in settings flags, run now
+   if(op==='online-prices'&&isRead){ownerOnly();const cache=getStoreFn({name:PRICE_CACHE_STORE,consistency:'strong',region:'ap-southeast-2'});let st:any=null;try{st=await cache.get(ONLINE_STATUS_KEY,{type:'json'})}catch{}
+    return json({status:st,flags:{onlinePinch:settings.values.flags?.onlinePinch===true,onlineWhichGrocer:settings.values.flags?.onlineWhichGrocer===true},keys:{pinch:!!env.PINCH_API_KEY,whichgrocer:!!env.WHICHGROCER_API_KEY},items:((onlineCatalog as any)?.items||[]).length})}
+   if(op==='online-proposals'&&isRead){ownerOnly();const cache=getStoreFn({name:PRICE_CACHE_STORE,consistency:'strong',region:'ap-southeast-2'});let pr:any=null,mp:any=null;try{pr=await cache.get(ONLINE_PROPOSALS_KEY,{type:'json'})}catch{}try{mp=await cache.get(ONLINE_MAPPING_KEY,{type:'json'})}catch{}
+    const names=Object.fromEntries(((onlineCatalog as any)?.items||[]).map((x:any)=>[x.id,{vi:x.nameVi,en:x.nameEn}]));return json({at:pr?.at||null,proposals:(pr?.items||[]).map((x:any)=>({...x,name:names[x.itemId]||null})),mapping:cleanMapping(mp)})}
+   if(op==='online-mapping-save'&&method==='POST'){ownerOnly();const itemId=String(body.itemId||''),retailer=String(body.retailer||''),productId=String(body.productId||'').slice(0,80),ok=body.ok===true;
+    if(!/^[a-z0-9-]{1,60}$/.test(itemId)||!((onlineCatalog as any)?.items||[]).some((x:any)=>x.id===itemId))fail('Món không có trong danh mục.','Unknown catalogue item.');if(!['woolworths','coles','aldi','chemist'].includes(retailer)||!productId)fail('Thiếu siêu thị hoặc sản phẩm.','Retailer and product are required.');
+    const cache=getStoreFn({name:PRICE_CACHE_STORE,consistency:'strong',region:'ap-southeast-2'});let mp:any={};try{mp=cleanMapping(await cache.get(ONLINE_MAPPING_KEY,{type:'json'}))}catch{}
+    const cur=mp[itemId]?.[retailer],rejected=new Set(cur?.rejected||[]);if(ok)rejected.delete(productId);else rejected.add(productId);
+    (mp[itemId]??={})[retailer]=ok?{productId,ok:true,label:String(body.label||'').slice(0,160),by:actor,at:new Date(now).toISOString(),rejected:[...rejected]}:{productId:cur?.ok?cur.productId:productId,ok:cur?.ok&&cur.productId!==productId?true:false,label:cur?.label||'',by:actor,at:new Date(now).toISOString(),rejected:[...rejected]};
+    await cache.setJSON(ONLINE_MAPPING_KEY,cleanMapping(mp));try{const pr:any=await cache.get(ONLINE_PROPOSALS_KEY,{type:'json'});if(pr?.items){pr.items=pr.items.filter((x:any)=>!(x.itemId===itemId&&x.retailer===retailer&&x.productId===productId));await cache.setJSON(ONLINE_PROPOSALS_KEY,pr)}}catch{}
+    await audit(ok?'online_product_confirmed':'online_product_rejected',{type:'prices',id:itemId+'/'+retailer},{productId});return json({ok:true})}
+   if(op==='online-prices-run'&&method==='POST'){ownerOnly();const cache=getStoreFn({name:PRICE_CACHE_STORE,consistency:'strong',region:'ap-southeast-2'});let st:any=null;try{st=await cache.get(ONLINE_STATUS_KEY,{type:'json'})}catch{}
+    if(st?.at&&now-Date.parse(st.at)<10*60000)fail('Vừa chạy xong. Thử lại sau 10 phút.','Ran recently. Try again in 10 minutes.',429);
+    const today=priceSydneyDate(new Date(now)),result=await refreshOnlinePrices({items:(onlineCatalog as any)?.items||[],env,settings:settings.values,cacheStore:cache,statusStore:cache,cycle:priceCycleId(today),today});
+    await audit('online_prices_run',{type:'prices',id:'online'},{saved:result.saved||0,held:(result.held||[]).length,skipped:result.skipped||null});return json({status:result})}
    if(op==='roles'&&isRead){ownerOnly();const env0=studioRoles(env),assigned=sanitizeStudioRoles(settings.values.studioRoles);return json({owners:[...env0.admins],assigned:Object.entries(assigned).map(([username,level])=>({username,level})),legacySupport:settings.values.flags?.supportRole===true?[...env0.support]:[],levels:STUDIO_LEVELS})}
    if(op==='roles-save'&&method==='POST'){rootOnly();const username=String(body.username||'').trim().toLowerCase(),level=body.level==null||body.level===''?null:String(body.level);if(!/^[a-z0-9._@-]{1,80}$/.test(username))fail('Tên đăng nhập không hợp lệ.','Invalid username.');if(level!==null&&!(STUDIO_LEVELS as readonly string[]).includes(level))fail('Mức quyền không hợp lệ.','Invalid level.');if(studioRoles(env).admins.has(username))fail('Owner được đặt trong cài đặt hosting, không đổi ở đây.','Owners are set in the hosting settings, not here.');if(level!==null){const u=await user(username);if(u?.disabled===true)fail('Tài khoản đang bị khoá.','The account is disabled.')}
     const next={...sanitizeStudioRoles(settings.values.studioRoles)};const before=next[username]||null;if(level===null)delete next[username];else next[username]=level;await saveSettings(getStoreFn,{studioRoles:next});await audit('studio_role_set',{type:'account',id:username},{before,after:level});return json({ok:true,username,level,before})}
