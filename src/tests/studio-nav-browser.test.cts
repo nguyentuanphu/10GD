@@ -12,7 +12,7 @@
 //  - timing on a simulated network (docs/reviews/v1.7.2/studio-nav/perf-after.json): page switch with saved data
 //    < 300 ms, first Studio content < 1 s on the "typical" profile. Simulation only.
 import assert from 'node:assert/strict';
-import {mkdirSync,writeFileSync} from 'node:fs';
+import {mkdirSync,writeFileSync,readFileSync} from 'node:fs';
 import {chromium} from 'playwright';
 const out='docs/reviews/v1.7.2/studio-nav';mkdirSync(out,{recursive:true});
 const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tablet:{width:820,height:1100},desktop:{width:1280,height:800}};
@@ -33,6 +33,8 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
 
  // 1. Desktop: groups, lazy modules, badges, collapse, hover prefetch, old hashes, merged urgent page, Ctrl+K.
  {const {context,page,log,errors}=await openStudio(browser,world,{hash:'#overview',profile:'typical'});await ready(page);await sleep(3500);
+  // v1.7.5: the release number sits under the Studio name and in the side panel (from /build.json)
+  {const v=JSON.parse(readFileSync('package.json','utf8')).version;await page.waitForFunction((v:string)=>document.querySelector('#studio-ver')?.textContent===' · v'+v,v,{timeout:5000});assert.match(await page.locator('#studio-version').textContent(),new RegExp('FamTray · (Phiên bản|Version) '+v.replace(/\./g,'\\.')))}
   const groups=await page.$$eval('#nav .ngroup',(gs:any[])=>gs.map(g=>[g.dataset.group,[...g.querySelectorAll('a[data-nav]')].map((a:any)=>a.dataset.nav)]));
   assert.deepEqual(groups,[['home',['overview','urgent','notifications','health']],['people',['accounts','families','invites']],['content',['community','recipes','feedback']],['price',['scout','onlinePrices','scanlist','unplaced','catalog']],['stats',['usage','voice']],['release',['settings','roles','broadcast','rollout','logs']]],'6 groups, every page once (v1.7.5: Quyền Studio under Settings & release)');
   assert.equal(await page.locator('#nav a[href="#messages"]').count(),0,'old daily urgent page is not a separate menu item');
