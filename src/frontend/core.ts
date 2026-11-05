@@ -60,7 +60,7 @@ function validImport(s){if(!s||typeof s!=='object')return false;if(!validCatalog
 // stop and reload instead of overwriting data it cannot fully read.
 // APP_EDITION: data-shape edition (6 = v1.7.5: Bữa phụ meal, new dish types, counted units such as tép/đòn).
 // CATALOG_EDITION: reference-recipe catalogue edition (seedVersion); tombstones for deleted reference recipes depend on it.
-const APP_EDITION=6,CATALOG_EDITION=5;
+const APP_EDITION=6,CATALOG_EDITION=6;
 function stateEdition(s){return Math.max(Number.isInteger(s?.appEdition)?s.appEdition:0,Number.isInteger(s?.seedVersion)?s.seedVersion:0)}
 function validCatalogMarkers(s){return (s.appEdition===undefined||Number.isInteger(s.appEdition)&&s.appEdition>=1&&s.appEdition<=1000)&&(s.deletedRecipeIds===undefined||Array.isArray(s.deletedRecipeIds)&&s.deletedRecipeIds.length<=5000&&s.deletedRecipeIds.every(id=>typeof id==='string'&&id.length>0&&id.length<=100))}
 // Built-in ingredient ids introduced by a newer edition are kept as-is (never dropped) and given a neutral placeholder
@@ -73,5 +73,12 @@ function mergeDeletedRecipeIds(s,extra){if(!s||!Array.isArray(extra)||!extra.len
 // Record it as a tombstone so no older copy or upgrade path can bring it back. A recipe that is present again
 // (restored by the family) clears its tombstone.
 function recordDeletedReferenceRecipes(s){if(!s||!Array.isArray(s.recipes)||(s.seedVersion||1)<CATALOG_EDITION)return;const present=new Set(s.recipes.map(r=>r.id)),gone=new Set((s.deletedRecipeIds||[]).filter(id=>!present.has(id)));for(const r of RECIPES)if(!present.has(r.id))gone.add(r.id);if(gone.size||s.deletedRecipeIds)s.deletedRecipeIds=[...gone]}
+// v1.7.5 catalogue edition 6: retired reference recipes leave the library only when the family never touched them —
+// not edited (custom), not a favourite, no photo, and the id appears nowhere else in the family's data (menus, history,
+// reactions, shopping, activity). Removed ids get a tombstone so an older copy cannot bring them back.
+function retireReferenceRecipes(s){if(!s||!Array.isArray(s.recipes)||typeof RETIRED_REFERENCE_IDS==='undefined')return 0;const used=new Set(),walk=(v,depth)=>{if(depth>12||v==null)return;if(typeof v==='string'){if(RETIRED_REFERENCE_IDS.has(v))used.add(v);return}if(typeof v!=='object')return;if(Array.isArray(v)){for(const x of v)walk(x,depth+1);return}for(const[k,x]of Object.entries(v)){if(RETIRED_REFERENCE_IDS.has(k))used.add(k);walk(x,depth+1)}};
+ for(const[k,v]of Object.entries(s))if(k!=='recipes'&&k!=='deletedRecipeIds')walk(v,0);
+ const removed=[],keep=[];for(const r of s.recipes){if(r&&RETIRED_REFERENCE_IDS.has(r.id)&&!r.custom&&!r.favorite&&!r.photo&&r.origin!=='family'&&!used.has(r.id))removed.push(r.id);else keep.push(r)}
+ if(removed.length){s.recipes=keep;mergeDeletedRecipeIds(s,removed)}return removed.length}
 // Add the reference collection once; preserve authored edits, menus and deliberate deletions (tombstones) afterwards.
-function upgradeReferenceCatalog(s,knownDeleted){if(!s||!Array.isArray(s.recipes))return 0;mergeDeletedRecipeIds(s,knownDeleted);if(typeof repairArtworkReferenceState==='function')repairArtworkReferenceState(s);const version=s.seedVersion||1;let added=0;if(version<5){const ids=new Set(s.recipes.map(r=>r.id)),gone=new Set(s.deletedRecipeIds||[]);for(const[edition,recipes]of [[4,WESTERN_HEALTHY_RECIPES],[5,PLANT_RECIPES]])if(version<edition)for(const r of recipes)if(!ids.has(r.id)&&!gone.has(r.id)){s.recipes.push(clone(r));ids.add(r.id);added++}s.seedVersion=5}recordDeletedReferenceRecipes(s);if(!(s.appEdition>=APP_EDITION))s.appEdition=APP_EDITION;return added}
+function upgradeReferenceCatalog(s,knownDeleted){if(!s||!Array.isArray(s.recipes))return 0;mergeDeletedRecipeIds(s,knownDeleted);if(typeof repairArtworkReferenceState==='function')repairArtworkReferenceState(s);const version=s.seedVersion||1;let added=0;if(version<5){const ids=new Set(s.recipes.map(r=>r.id)),gone=new Set(s.deletedRecipeIds||[]);for(const[edition,recipes]of [[4,WESTERN_HEALTHY_RECIPES],[5,PLANT_RECIPES]])if(version<edition)for(const r of recipes)if(!ids.has(r.id)&&!gone.has(r.id)){s.recipes.push(clone(r));ids.add(r.id);added++}s.seedVersion=5}if((s.seedVersion||1)<6){retireReferenceRecipes(s);s.seedVersion=6}recordDeletedReferenceRecipes(s);if(!(s.appEdition>=APP_EDITION))s.appEdition=APP_EDITION;return added}

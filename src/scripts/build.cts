@@ -46,7 +46,8 @@ let catalogCount=0;
  vm.runInContext(['seed','recipe-catalog','dish-composition','artwork'].map(f=>readFileSync('dist/'+f+'.js','utf8')).join('\n')+'\nthis.count=RECIPES.length;this.hashes=Object.fromEntries(RECIPES.filter(r=>Object.hasOwn(REVIEWED_DISH_ART,r.id)).map(r=>[r.id,artSignatureHash(dishArtSignature(r))]))',ctx);
  const artwork=readFileSync('dist/artwork.js','utf8'),placeholder=/const CATALOG_ART_HASHES\s*=\s*null;\s*\/\*__BEP_CATALOG_ART_HASHES__\*\//;
  if(!placeholder.test(artwork))throw new Error('Artwork hash placeholder is missing');
- if(Object.keys(ctx.hashes).length<700)throw new Error('Too few artwork hashes');
+ // v1.7.5: the reference library was halved by the owner (740 → 372); every remaining recipe keeps its reviewed art
+ if(Object.keys(ctx.hashes).length<360||Object.keys(ctx.hashes).length<ctx.count*0.95)throw new Error('Too few artwork hashes');
  catalogCount=ctx.count;
  writeFileSync('dist/artwork.js',artwork.replace(placeholder,'const CATALOG_ART_HASHES=Object.freeze('+JSON.stringify(ctx.hashes)+');'));
 }
