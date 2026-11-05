@@ -79,6 +79,7 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
     await page.locator('.scout-trips .trip-tab[data-plan="cheap"]').click();await page.waitForTimeout(150);assert.equal(await page.locator('.scout-trips .trip-tab[data-plan="cheap"]').getAttribute('aria-checked'),'true');
     const stops=await page.locator('.scout-trips .trip-stop').allInnerTexts();assert.ok(stops.length>=2,'cheapest uses more than one store');assert.ok(stops.some((t:string)=>/Coles/.test(t)&&/30 phút/.test(t)));assert.ok(!stops.some((t:string)=>/tạm tính/.test(t)),'no estimate once written');
     assert.match(stops.join(' '),/Sữa tươi/,'items grouped under their store');
+    assert.match(await page.locator('.scout-trips .trip-tab[data-plan="cheap"]').innerText(),/lâu hơn \d+ phút/,'shows how much longer, never money per minute');assert.equal(await page.locator('#scout-travel-form select').count(),0,'no time-value setting');
     const saved=await page.evaluate(()=>JSON.parse(familyStorage.getItem('bep-price-scout-v1')).prefs);assert.deepEqual(saved.travel,{woolworths:5,coles:30,chemist:12});assert.equal(saved.tripPlan,'cheap');
     await noOverflow(page,'trips 375');await targets(page,'trips 375');await scrollTo(page,'.scout-trips');await shot(page,'trip-plans-vi-light','mobile');}
    // 2. price history sheet with chart, usual / low / high, attribution

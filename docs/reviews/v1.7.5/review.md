@@ -95,7 +95,7 @@ Owner decisions (popup): four levels; “Sao chép cho dev”; everything in v1.
 Owner decisions (popup): the family writes travel minutes per store; choose a plan each trip; in v1.7.5.
 - **So Giá → “Đi chợ thế nào? / How to shop this week”** (first card): three plans, each with total, approximate trip minutes, number of stops and how many items get a price:
   - **Gần nhất / Nearest**: fewest minutes that still prices ≥ 80 % of the items that have a price anywhere.
-  - **Cân bằng / Balanced** (default): among plans with ≥ 80 %, lowest money + time, time valued at $5 per 10 minutes (family can pick $2 / $5 / $10 / $15).
+  - **Cân bằng / Balanced** (default): owner (5 Nov): time is never turned into money. The cheapest plan with ≥ 80 % of the items whose trip is no longer than halfway between the nearest and the cheapest plan. Each plan shows how much longer it takes and how much cheaper it is than the nearest one.
   - **Rẻ nhất / Cheapest**: every priced item, lowest total, then fewest minutes.
   - The chosen plan lists its stops nearest first, with minutes, subtotal and the items to buy there (gom hàng theo nơi); “Giống phương án …” when two plans are the same.
 - **Thời gian đi tới từng nơi**: one-way minutes from home to the branch the family uses, per store (0–240). Not filled in = 10 min, shown as “tạm tính / estimate”. Trip minutes ≈ each store's one-way minutes + the farthest store's way home. Saved on this device only (with the family's other So Giá settings); not shared with anyone. Delivery (Amazon) is not part of a trip.

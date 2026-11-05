@@ -1641,3 +1641,6 @@ html[data-theme="dark"] .trip-tab{background:#18221d;border-color:#2c3a32}html[d
 .scout-trips{container-type:inline-size}
 @container (max-width:520px){.trip-tabs{grid-template-columns:1fr;gap:6px}.trip-tab{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:2px;align-items:center;padding:8px 12px}.trip-tab .tt-name{grid-column:1;grid-row:1}.trip-tab b{grid-column:2;grid-row:1;justify-self:end}.trip-tab small{grid-column:1;grid-row:2}.trip-tab .tt-min{grid-column:2;grid-row:2;justify-self:end}}
 .trip-tab b,.trip-tab .tt-min{white-space:nowrap}
+.trip-tab .tt-diff{display:block;color:var(--green2);font-weight:600;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px))}
+@container (max-width:520px){.trip-tab .tt-diff{grid-column:1/-1;grid-row:3}}
+html[data-theme="dark"] .trip-tab .tt-diff{color:#8fd0a7}
