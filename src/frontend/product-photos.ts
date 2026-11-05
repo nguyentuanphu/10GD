@@ -16,5 +16,6 @@ async function ppRefresh(force=false){if(!navigator.onLine||(globalThis as any).
  try{const r=await fetch('/.netlify/functions/grocery?op=photos',{cache:'no-store'});if(!r.ok)return;const d=await r.json();ppData={at:Date.now(),items:d&&typeof d.items==='object'?d.items:{}};try{localStorage.setItem(PP_KEY,JSON.stringify(ppData))}catch{}
   if(typeof render==='function'&&Object.keys(ppData.items).length)try{render()}catch{}}catch{}}
 (function installProductPhotos(){const g:any=globalThis;if(g.__bepProductPhotos||typeof g.ingredientArtwork!=='function')return;g.__bepProductPhotos=true;const base=g.ingredientArtwork;
- g.ingredientArtwork=function(id:string){const drawn=base.apply(this,arguments as any),p=productPhotoFor(id);return p?ppWrap(drawn,p):drawn};
+ // an item with no ingredient drawing gets its own drawing (ui-art 'item:<id>') instead of the generic bag
+ g.ingredientArtwork=function(id:string){let drawn=base.apply(this,arguments as any);const item=ppItemFor(id),own=item&&typeof g.uiArt==='function'?g.uiArt('item:'+item.id,'item-art'):'';if(own&&/ingredient-vector/.test(drawn))drawn=`<span class="ingredient-art ingredient-own" aria-hidden="true">${own}</span>`;const p=productPhotoFor(id);return p?ppWrap(drawn,p):drawn};
  setTimeout(()=>ppRefresh(),1500);addEventListener('online',()=>ppRefresh())})();
