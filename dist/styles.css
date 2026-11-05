@@ -1520,3 +1520,6 @@ html[data-text-size="xlarge"]{--fs-mul:1.22;--fs-floor:16px;--fs-floor-small:14p
 /* v1.7.5 · larger text: icons keep their drawn size; grid columns may shrink so scrolling tab rows never widen the page */
 .nav-icon{--fs-mul:1;--fs-floor:0px;--fs-floor-small:0px}
 .dashboard-grid>*{min-width:0}
+/* v1.7.5 · larger text: the visible column labels of the member list may wrap (“Portions / meal” overflowed at 320 px) */
+.kitchen-member-row label{white-space:normal;overflow-wrap:anywhere}
+.kitchen-member-row+.kitchen-member-row label{white-space:nowrap}

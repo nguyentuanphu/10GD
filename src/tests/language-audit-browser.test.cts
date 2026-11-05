@@ -24,7 +24,7 @@ for(const WIDTH of [375,1280])for(const lang of ['vi','en']){
  await page.evaluate(()=>{try{const g=globalThis.eval;g("familyGenerate(state,weekStart,{sourceMode:'library'});save();render()")}catch(e){}});await page.waitForTimeout(800);
  const hits=new Map();const add=(t,where)=>{if(!hits.has(t))hits.set(t,new Set());hits.get(t).add(where)};
  const collect=async(where,scope)=>{const found=await page.evaluate(({lang,VIs,ENs,LOANs,scope})=>{const VI=new RegExp(VIs,'i'),EN=new RegExp(ENs,'i'),LOAN=new RegExp(LOANs,'gi');const st=globalThis.eval('typeof state!=="undefined"?state:null');
-   const names=[...(st?.members||[]).map(m=>m.name),...(st?.recipes||[]).filter(r=>r.custom).map(r=>r.name),...(st?.stores||[]).map(s=>s.name),...(st?.recipes||[]).map(r=>r.name),...(st?.recipes||[]).map(r=>r.prep),...Object.values(st?.ingredientCatalog||{}).map(x=>x.name)].filter(Boolean).sort((a,b)=>b.length-a.length);
+   const names=[...(st?.members||[]).map(m=>m.name),...(st?.recipes||[]).filter(r=>r.custom).map(r=>r.name),...(st?.stores||[]).map(s=>s.name),...(st?.recipes||[]).map(r=>r.name),...(st?.recipes||[]).map(r=>r.prep),...(st?.recipes||[]).filter(r=>!r.custom).flatMap(r=>r.steps||[]),...Object.values(st?.ingredientCatalog||{}).map(x=>x.name)].filter(Boolean).sort((a,b)=>b.length-a.length);
    const strip=t=>{let x=t;for(const n of names)x=x.split(n).join(' ');return x};
    const bad=t0=>{if(/2 kg pork belly với một bó rau muống/.test(t0))return null;const t=strip(t0).replace(/\s+/g,' ').trim();if(t.length<2||!/[a-zA-Zà-ỹ]/.test(t))return null;return lang==='en'?(VI.test(t)?t0.trim():null):(EN.test(t.replace(LOAN,' '))?t0.trim():null)};
    const rootEl=scope?document.querySelector(scope):document.body;if(!rootEl)return[];

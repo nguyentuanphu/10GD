@@ -25,6 +25,7 @@ Branch `release/v1.7.5`, stacked on #12 (artwork fixes) which is stacked on #11 
 | 13 | ½ shown as 1 | `parseQty` reads 1/2, ½, 1 1/2, 0,5; recipe view no longer rounds counts up; `fmtQty` shows ½ / 1½. Pasted free text saved from what the row shows (it was re-read as “2 quả”). | v175-recipes, recipe-ingredients, v175-feedback |
 | 14 | “Tự chia phần”? | “Tự tính theo số người”, “½ lượng (50%)”…“Gấp đôi (200%)” plus an explanation. | v175-feedback |
 | 16 | Icon badge | Service worker counts urgent / attendance / calendar pushes while the app is not on screen; cleared on open. | npm test (service-worker suites) |
+| — | Language, second report (5 Nov, photo of the protein list) | The first audit read only visible page text; dropdown options and dialogs were never opened. A deep audit now opens every screen, every dialog one click away and every action inside it (312 in total, VI/EN × 375/1280 px, with a generated week), including option lists. It found and fixed: Shopping/Pantry/Menu dialogs, ingredient names in lists and patterns (“Đã mua Tôm”, “Cần 3 quả · Có 0 quả”), the shared shopping list, purchase-amount messages, and Vietnamese-mode English (“Nhớ nhập receipt”, “Library”, “Tick”). The missing-slot list said “Bữa tối: Bữa trưa · Món canh” (fixed). New households started in English get English default member and store names; existing family data is never renamed. | language-audit (deep, in CI) |
 | — | Language | No half-translated sentences (whole-word name protection, leftover Vietnamese → whole Vietnamese sentence), new full-sentence translations, bilingual labels. | language-audit (VI/EN × 3 sizes) |
 
 Items 2 and 15 were empty in the note.
@@ -47,5 +48,6 @@ Items 2 and 15 were empty in the note.
 ## Limits
 - Browser viewport simulation in Chromium only — not physical iPhone/iPad/Android, Safari/WebKit or Firefox. The photo-picker fix and the badge need a check on Henry's iPhone after deploy (badge: Home Screen app, notifications allowed, iOS 16.4+).
 - Reference-recipe cooking steps remain Vietnamese in English mode (owner-approved separate release); they are excluded from the language audit by name.
-- The language audit covers the guest/device-only state and the listed screens; Studio, voice sheets and the So Giá extension are not covered by it.
+- The language audit covers the device-only state with a generated week: 8 screens, every dialog one click away and the actions inside them (two levels). Not covered: deeper dialogs, signed-in-only sheets, Studio and the So Giá extension.
+- Reference-recipe names, preparation notes and steps are excluded from the audit by rule (separate English release).
 - Text at Rất lớn is checked for overflow on the listed screens only.

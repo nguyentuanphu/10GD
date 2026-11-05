@@ -173,7 +173,7 @@ window.addEventListener('hashchange',()=>{view=location.hash.slice(1)||'today';r
 window.addEventListener('storage',e=>{if(e.key===storageScope+KEY&&e.newValue){try{const other=JSON.parse(e.newValue);if(validImport(other)){if(unsaved){toast('Có thay đổi từ tab khác. Xuất sao lưu trước khi tải lại.',true);return}state=other;render();toast('Đã cập nhật thay đổi từ tab khác trên thiết bị này.')}}catch(err){}}});
 if('serviceWorker'in navigator&&location.protocol!=='file:'){navigator.serviceWorker.register('./sw.js').catch(()=>toast('Chế độ offline chưa sẵn sàng. Các chức năng đang mở vẫn dùng được.',true))}
 // v1.7.5: opening the app clears the Home Screen badge (urgent / không ăn / absence notices).
-function clearAppIconBadge(){try{navigator.clearAppBadge?.()?.catch?.(()=>{})}catch{}try{navigator.serviceWorker?.controller?.postMessage({type:'clear-badge'})}catch{}}
+function clearAppIconBadge(){try{navigator.serviceWorker?.controller?.postMessage({type:'clear-badge'})}catch{}}
 clearAppIconBadge();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')clearAppIconBadge()});
 if(!recoveryBlocked)save();
 if(loadError)modal('Cần kiểm tra dữ liệu đã lưu',`<p>${esc(loadError)}</p>`,`<button class="btn" data-action="recovery-export">Xuất dữ liệu cũ</button><button class="btn primary" data-action="recovery-reset">Dùng mẫu & cho phép lưu</button>`);

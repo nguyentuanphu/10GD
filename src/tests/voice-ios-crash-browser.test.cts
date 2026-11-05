@@ -134,7 +134,7 @@ async function main(){
   // 4. iPhone permission-first tap: the first press only asks for the microphone; the next hold records.
   for(const lang of ['vi','en']){const {page,context,errors}=await open({ios:true,lang,mic:{delay:400}});
    await page.evaluate('closeModal();voiceModal()');await page.waitForSelector('#voice-text');const mic=page.locator('#voice-continue');
-   const press=async(ms:number)=>{const b=await mic.boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.waitForTimeout(ms);await page.mouse.up()};
+   const press=async(ms:number)=>{await mic.scrollIntoViewIfNeeded();/* v1.7.5 larger text: the sheet is taller, the mic may start below the fold */const b=await mic.boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.waitForTimeout(ms);await page.mouse.up()};
    await press(150);
    assert.equal(await page.evaluate(()=>(window as any).__recs.length),0,'first press: no recognition started');
    assert.match(await page.locator('#voice-status').innerText(),lang==='vi'?/Cho phép micro/:/Allow the microphone/);
