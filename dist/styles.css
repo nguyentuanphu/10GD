@@ -1652,7 +1652,7 @@ html[data-theme="dark"] .pp-wrap .pp-img{background:#f4f4ef}
 .trip-tab .tt-add{display:block;color:var(--muted);font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px))}
 @container (max-width:520px){.trip-tab .tt-add{grid-column:1/-1}}
 /* v1.7.5 rule 19: emoji shown as our drawings (emoji-art.ts) — sized like the text around them */
-.emo-art{display:inline-block;width:1.25em;height:1.25em;vertical-align:-.25em;line-height:0;flex:none}
+.emo-art{display:inline-block;width:1.2em;height:1.2em;vertical-align:middle;position:relative;top:-.1em;margin-right:.15em;line-height:0;flex:none;overflow:hidden}
 .emo-art svg{width:100%;height:100%;display:inline-block;vertical-align:top}
 /* v1.7.5 (owner): meal card header — meal name, one line of facts, small “Cooked” only when there are dishes */
 .family-meal-card>header{display:flex;align-items:center;justify-content:space-between;gap:10px}
