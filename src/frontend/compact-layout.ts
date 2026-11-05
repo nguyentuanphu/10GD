@@ -16,15 +16,15 @@ function clShoppingSummary(){const r=(globalThis as any).scoutLast?.result;if(!r
  if(!parts.length)return'';
  return`<button type="button" class="cl-scout-summary" data-cl="open-scout"><span class="cl-sum-title">${clText('So Giá','Price Check')}</span><span class="cl-sum-text">${parts.join(' · ')}</span><span class="cl-sum-go" aria-hidden="true">›</span></button>`}
 // the menu is one flat list of buttons: groups and nested disclosures added by other modules are opened up
-function clFlattenTools(main:HTMLElement){const body=main.querySelector('.more-tools-body');if(!body)return;const tools=main.querySelector('.week-tools .toolbar');
+function clFlattenTools(main:HTMLElement){const body=main.querySelector('.cl-tools-body');if(!body)return;const tools=main.querySelector('.week-tools .toolbar');
  // late additions (other modules render after us) join the menu too
- if(tools)for(const el of [...tools.children])if(!el.matches('[data-change="shop-range"],[data-action="add-extra"],.more-tools'))body.appendChild(el);
+ if(tools)for(const el of [...tools.children])if(!el.matches('[data-change="shop-range"],[data-action="add-extra"],.cl-tools'))body.appendChild(el);
  for(let i=0;i<3;i++)for(const g of [...body.children])if(!g.matches('button,a')){const inner=[...g.querySelectorAll('button,a.btn')].filter(x=>!x.closest('summary'));for(const x of inner)body.insertBefore(x,g);g.remove()}
  const seen=new Set<string>();for(const b of [...body.querySelectorAll('button,a')] as HTMLElement[]){const k=(b.dataset.action||b.dataset.feature||b.dataset.planning||b.dataset.pushAction||'')+'|'+b.textContent!.trim();if(!b.textContent!.trim()||seen.has(k)){b.remove();continue}seen.add(k);b.classList.add('btn','small')}}
 function clCompactShopping(main:HTMLElement){
  const tools=main.querySelector('.week-tools .toolbar');
- if(tools&&!tools.querySelector('.more-tools')){const keep=(b:Element)=>b.matches('[data-change="shop-range"],[data-action="add-extra"]');const moving=[...tools.children].filter(b=>!keep(b));
-  if(moving.length){const d=document.createElement('details');d.className='more-tools';d.innerHTML=`<summary class="btn small">${clText('Công cụ','Tools')} <span aria-hidden="true">▾</span></summary><div class="more-tools-body"></div>`;const body=d.querySelector('.more-tools-body')!;for(const b of moving)body.appendChild(b);
+ if(tools&&!tools.querySelector('.cl-tools')){const keep=(b:Element)=>b.matches('[data-change="shop-range"],[data-action="add-extra"]');const moving=[...tools.children].filter(b=>!keep(b));
+  if(moving.length){const d=document.createElement('details');d.className='cl-tools';d.innerHTML=`<summary class="btn small">${clText('Công cụ','Tools')} <span aria-hidden="true">▾</span></summary><div class="cl-tools-body"></div>`;const body=d.querySelector('.cl-tools-body')!;for(const b of moving)body.appendChild(b);
    // other tool buttons that sit between the week tools and the list (products, notes) join the same menu
    for(const b of main.querySelectorAll('.week-tools ~ .toolbar .btn, .shopping-extra-tools .btn'))body.appendChild(b);tools.appendChild(d)}}
  clFlattenTools(main)

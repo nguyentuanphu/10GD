@@ -1665,13 +1665,13 @@ html[data-theme="dark"] .family-meal-card .meal-cook-btn.done{background:#1f3a2a
 /* v1.7.5 (owner): every screen opens on what matters — compact-layout.ts */
 #main.cl .callout.cl-slim{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 8px 6px 14px;margin-bottom:12px;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px))}
 #main.cl .callout.cl-slim .btn{min-height:40px;white-space:nowrap}
-.more-tools{position:relative;display:inline-block}
-.more-tools>summary{list-style:none;cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px}
-.more-tools>summary::-webkit-details-marker{display:none}
-.more-tools[open]>summary{background:var(--mint)}
-.more-tools-body{position:absolute;z-index:30;right:0;top:calc(100% + 6px);display:grid;gap:6px;min-width:220px;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--white);box-shadow:var(--shadow)}
-.more-tools-body .btn{width:100%;justify-content:flex-start;min-height:44px}
-html[data-theme="dark"] .more-tools-body{background:#18221d;border-color:#2c3a32}
+.cl-tools{position:relative;display:inline-block}
+.cl-tools>summary{list-style:none;cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px}
+.cl-tools>summary::-webkit-details-marker{display:none}
+.cl-tools[open]>summary{background:var(--mint)}
+.cl-tools-body{position:absolute;z-index:30;right:0;top:calc(100% + 6px);display:grid;gap:6px;min-width:220px;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--white);box-shadow:var(--shadow)}
+.cl-tools-body .btn{width:100%;justify-content:flex-start;min-height:44px}
+html[data-theme="dark"] .cl-tools-body{background:#18221d;border-color:#2c3a32}
 .cl-scout-summary{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;margin:0 0 14px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--mint);color:var(--text);text-align:left;cursor:pointer;font:inherit}
 .cl-scout-summary .cl-sum-title{font-weight:700;color:var(--green);white-space:nowrap}
 .cl-scout-summary .cl-sum-text{flex:1;min-width:0;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px))}
@@ -1680,8 +1680,8 @@ html[data-theme="dark"] .cl-scout-summary{background:#1f3a2a;border-color:#2c3a3
 .price-scout.cl-below{margin-top:18px}
 @media(max-width:760px){
  #main.cl:not([data-cl-screen="today"]) .page-heading .eyebrow,#main.cl:not([data-cl-screen="today"]) .page-heading .subheading{display:none}
- #main.cl .page-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
- #main.cl .page-heading h1{margin:0}
+ #main.cl:not([data-cl-screen="today"]) .page-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+ #main.cl:not([data-cl-screen="today"]) .page-heading h1{margin:0}
  #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 8px}
  #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock .btn{min-height:44px;padding:6px 10px;font-size:max(calc(14px * var(--fs-mul,1)),var(--fs-floor,0px));box-shadow:none;animation:none;border-width:1px}
  #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock .btn img,#main.cl:not([data-cl-screen="today"]) .kitchen-action-dock .btn svg{width:18px;height:18px}
@@ -1700,18 +1700,18 @@ html[data-theme="dark"] .cl-scout-summary{background:#1f3a2a;border-color:#2c3a3
  #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock .btn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px))}
 }
 @media(max-width:760px){
- #main.cl[data-cl-screen="shopping"] .week-tools .toolbar>.more-tools{flex:none}
+ #main.cl[data-cl-screen="shopping"] .week-tools .toolbar>.cl-tools{flex:none}
  #main.cl[data-cl-screen="shopping"] .week-tools .toolbar>select{flex:1 1 0}
- .more-tools>summary{white-space:nowrap}
+ .cl-tools>summary{white-space:nowrap}
 }
 @media(max-width:760px){#main.cl[data-cl-screen="shopping"] .week-tools .toolbar>select{width:0!important;min-width:0!important;flex:1 1 0!important;max-width:none}}
 @media(max-width:760px){#main.cl[data-cl-screen="shopping"] .week-tools .toolbar{display:grid!important;grid-template-columns:minmax(0,1fr) auto auto;gap:8px}#main.cl[data-cl-screen="shopping"] .week-tools .toolbar>select{width:100%!important;min-width:0!important}}
-.more-tools-body{grid-template-columns:1fr}
+.cl-tools-body{grid-template-columns:1fr}
 /* tablet and desktop too: the content starts high on every screen (owner: “kiểm tra luôn các màn hình khác”) */
 @media(max-width:1100px){
  #main.cl:not([data-cl-screen="today"]) .page-heading .eyebrow,#main.cl:not([data-cl-screen="today"]) .page-heading .subheading{display:none}
- #main.cl .page-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
- #main.cl .page-heading h1{margin:0}
+ #main.cl:not([data-cl-screen="today"]) .page-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+ #main.cl:not([data-cl-screen="today"]) .page-heading h1{margin:0}
 }
 #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 8px}
 #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock .btn{min-height:44px;padding:6px 14px;font-size:max(calc(14px * var(--fs-mul,1)),var(--fs-floor,0px));box-shadow:none;animation:none;border-width:1px}
@@ -1724,4 +1724,4 @@ html[data-theme="dark"] .cl-scout-summary{background:#1f3a2a;border-color:#2c3a3
 #main.cl .heading-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 #main.cl .screen-switch.cl-in-heading{margin:0}
 #main.cl .screen-switch.cl-in-heading .btn{min-height:44px;padding:0 12px}
-#main.cl .page-heading h1{white-space:nowrap}
+#main.cl .page-heading>div:first-child{min-width:0}#main.cl .page-heading h1{overflow-wrap:anywhere}
