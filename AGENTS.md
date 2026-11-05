@@ -41,3 +41,11 @@ This is an agent workflow rule, not a claim that GitHub branch protection or hos
     Owner decision, 5 Nov 2026: **ingredient and grocery-product pictures use the supermarket's product photo** (Coles, ALDI, Woolworths or Harris Farm, as returned by Pinch / WhichGrocer for the owner-confirmed product), with the source named; only items without such a photo get a new drawing in the shared style. Dish/recipe illustrations stay drawn, never product photos. When the photo cannot load (offline, removed), the drawing or a neutral placeholder shows instead — never an emoji.
 20. A new picture gets a new drawing of its own, never a borrowed one or an emoji. Pictures are decorative (`aria-hidden`) next to words that carry the meaning; small motions stop under `prefers-reduced-motion`; touch targets stay ≥ 44 px.
 21. New or changed UI must not add emoji. Existing emoji are replaced screen by screen (planned and reviewed like any release); family-authored text (names, notes, recipes) is never rewritten.
+
+## Time zone — owner instruction, 6 November 2026
+
+22. Everything is in Sydney time (Australia/Sydney, AEST/AEDT): reports to Henry, schedules and reminders, release records, Studio and app displays, and issue text. Show the zone when it is not obvious ("giờ Sydney" / "Sydney time"). UTC may only be used internally (stored timestamps, cron fields written with `CRON_TZ=Australia/Sydney`).
+
+## Agent does the preparation — owner instruction, 6 November 2026
+
+23. Henry only says **DEPLOY**. Everything before it is the agent's job without asking: create the release branch, implement and test, keep the release record and evidence, push, open the pull request to `main` as soon as the release is ready for review (not a draft), watch CI, fix real failures, and tell Henry — in Sydney time, with the PR and CI links — when the exact PR head is green and ready. Opening or updating a PR is not a deploy; rules 1–3, 15–16 and 18 still apply: nothing is merged into `main` or built on the hosting provider until Henry says DEPLOY for that release. Questions to Henry are only for real product decisions (plans under rule 4, data or privacy choices), asked with the pop-up question tool when available.

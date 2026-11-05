@@ -167,4 +167,31 @@ let firstId='';
  const cron=await getStoreFn({name:'bep-studio'}).get('cron/feedback-cleanup',{type:'json'});assert.ok(cron?.at,'cleanup run recorded');
  console.log('PASS retention: 13-month cleanup of reports, pictures, receipts and counters');
 }
+// ---------- v1.7.6: reports filed as issues in a PRIVATE GitHub repository ----------
+{const {issueFor,githubConfig,resetGithubPrivacyCache}=await import('../netlify/lib/feedback-github.mjs');
+ const calls:any[]=[];let issueNo=40;
+ const fetchFn=async(url:string,init:any={})=>{calls.push({url,method:init.method||'GET',auth:init.headers?.Authorization,body:init.body?JSON.parse(init.body):null});
+  if(/\/issues$/.test(url))return new Response(JSON.stringify({number:++issueNo,html_url:'https://github.com/qa-owner/famtray-feedback/issues/'+issueNo}),{status:201});
+  return new Response('{}',{status:404})};
+ const ghEnv={...env,FEEDBACK_GITHUB_REPO:'qa-owner/famtray-feedback',FEEDBACK_GITHUB_TOKEN:'synthetic-token-'+'x'.repeat(24)};
+ assert.equal(githubConfig(env),null,'off unless the token is set');assert.equal(githubConfig({FEEDBACK_GITHUB_REPO:'not a repo',FEEDBACK_GITHUB_TOKEN:'x'.repeat(30)}),null);
+ const fb2=createFeedbackHandler({getStoreFn,env:ghEnv,nowFn,notify:async()=>({sent:1}),fetchFn});
+ const call2=async(op:string,o:any={})=>{const r=await fb2(req('feedback','op='+op,o));let d:any=null;try{d=await r.json()}catch{}return{status:r.status,d}};
+ resetGithubPrivacyCache();clock+=3600000;
+ const sent=await call2('submit',{method:'POST',cookie:henry,body:report({note:'Ô ngày và bữa đè lên nhau'})});assert.equal(sent.status,201);
+ const issue=calls.find(c=>/\/issues$/.test(c.url));assert.ok(issue,'a new report is filed as an issue');assert.equal(issue.url,'https://api.github.com/repos/qa-owner/famtray-feedback/issues');
+ assert.match(issue.auth,/^Bearer synthetic-token-/);assert.match(issue.body.title,/^\[bug\] Ô ngày và bữa đè lên nhau/);assert.match(issue.body.body,/> Ô ngày và bữa đè lên nhau/);assert.match(issue.body.body,/route=planner/);
+ assert.doesNotMatch(JSON.stringify(issue.body),/henrynguyen|synthetic-device|u-\d|[\w.]+@[\w-]+\./,'no account, device key, IP or e-mail in the issue');assert.deepEqual(issue.body.labels,['feedback','bug']);
+ const det=await call2('studio-detail&id='+sent.d.id,{cookie:henry});assert.equal(det.d.github.number,issueNo,'issue number kept on the report for Studio');
+ // owner decision: the app repository by default (no repository setting needed)
+ assert.equal(githubConfig({FEEDBACK_GITHUB_TOKEN:'synthetic-token-'+'x'.repeat(24)})!.repo,'nguyentuanphu/10GD','default repository is the app repository');
+ // Studio: file the open reports that have no issue yet (owner only, CSRF)
+ calls.length=0;
+ assert.equal((await call2('studio-github',{method:'POST',cookie:henry,body:{}})).status,403,'CSRF required');
+ let total=0;for(let i=0;i<20;i++){const sync=await call2('studio-github',{method:'POST',...H,body:{}});assert.equal(sync.status,200);assert.equal(sync.d.failed,0);assert.ok(sync.d.filed<=20,'at most 20 per press');total+=sync.d.filed;if(sync.d.filed<20)break}
+ assert.ok(total>=1,'older open reports filed');const again=await call2('studio-github',{method:'POST',...H,body:{}});assert.equal(again.d.filed,0,'nothing left to file');
+ const ids=calls.filter(c=>/\/issues$/.test(c.url)).map(c=>/feedback `([a-f0-9]{18})`/.exec(c.body.body)?.[1]);assert.equal(new Set(ids).size,ids.length,'no report filed twice');
+ assert.equal((await call('studio-github',{method:'POST',...H,body:{}})).status,400,'not configured → clear message');
+ console.log('PASS GitHub feed: new reports filed as GitHub issues (no personal identifiers), default repository 10GD, Studio files older open reports once');
+}
 console.log('feedback: all passed');

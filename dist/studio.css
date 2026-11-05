@@ -340,3 +340,9 @@ dialog::backdrop{background:#0008}
 /* v1.7.5: product photo in the online-price review */
 .online-prod{display:flex;align-items:center;gap:10px}.online-thumb{width:48px;height:48px;object-fit:contain;background:#fff;border-radius:8px;flex:none}
 .emo-art{display:inline-block;width:1.2em;height:1.2em;vertical-align:middle;position:relative;top:-.1em;margin-right:.15em;line-height:0;flex:none;overflow:hidden}.emo-art svg{width:100%;height:100%;display:inline-block;vertical-align:top}
+/* v1.7.6 · always-visible way back to the app (the side-panel link was hidden behind the menu on phones) */
+.back-app{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;white-space:nowrap;text-decoration:none;font-weight:600}
+@media(max-width:960px){.topbar .back-app{padding:0 10px;flex:none}.topbar .back-app .back-app-label{font-size:14px}}
+.back-app-short{display:none}
+@media(max-width:420px){.topbar .back-app .back-app-label{display:none}.topbar .back-app .back-app-short{display:inline}.topbar .back-app{padding:0 8px}}
+.topbar .net{white-space:nowrap}

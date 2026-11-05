@@ -19,6 +19,9 @@ function scheduleSummary(s,m){if(!m?.scheduleDate)return[];return s.members.flat
 function validAvailability(s){if(s.availability===undefined)return true;return s.availability&&typeof s.availability==='object'&&!Array.isArray(s.availability)&&Object.values(s.availability).every(dates=>dates&&typeof dates==='object'&&!Array.isArray(dates)&&Object.entries(dates).every(([date,types])=>/^\d{4}-\d{2}-\d{2}$/.test(date)&&Number.isFinite(Date.parse(date))&&types&&typeof types==='object'&&!Array.isArray(types)&&Object.entries(types).every(([type,e])=>MEAL_TYPES.includes(type)&&validAvailabilityEntry(e))))}
 // v1.7.3 family calendar (owner request): one shared notice of who is busy/away. Pure helpers, no DOM.
 // The portion wording always follows the entry's own deduct flag: deduct → no portion is cooked for them.
+// v1.7.6 (owner report 6 Nov 2026): "Who is eating?" shows what the calendar says. A calendar entry with no portion
+// away (or busy with no portion) shows as "Away" even when the meal's own attendance still says "At home".
+function effectiveAttendance(s,m,memberId){const e=m?.scheduleDate?availabilityEntry(s,memberId,m.scheduleDate,m.scheduleType):null;return e&&(e.status==='away'||availabilityNoPortion(e))?'away':m?.attendance?.[memberId]}
 function availabilityNoPortion(e){return !!e&&e.deduct===true&&['away','busy'].includes(e.status)}
 function availabilityStatusLabel(e,lang='vi'){const en=lang==='en',none=availabilityNoPortion(e);return (e?.status==='away'?(en?'Away':'Vắng'):(en?'Busy':'Bận'))+' · '+(none?(en?'no portion':'không nấu phần'):(en?'still cooking their portion':'vẫn nấu phần'))}
 const AVAILABILITY_MEAL_LETTER={vi:{breakfast:'S',lunch:'Tr',dinner:'T'},en:{breakfast:'B',lunch:'L',dinner:'D'}};

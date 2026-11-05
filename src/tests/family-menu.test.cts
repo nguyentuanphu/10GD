@@ -19,3 +19,27 @@ const t=defaults();t.weeks={};t.recipes=[{...recipe('bf-only','Breakfast','main'
 const breakfast=tw.days['2026-11-02'].breakfast;breakfast.servings=2;if(mealIngredients(breakfast,t).egg!==2)throw Error('Yield scaling');breakfast.cooked=true;if(!validImport(t))throw Error('Breakfast backup rejected');breakfast.recipes[0].ingredients[0].qty=-2;if(validImport(t))throw Error('Invalid breakfast ingredients accepted');
 const custom=defaults();custom.ingredientCatalog={'family-ing-test':{name:'Nguyên liệu riêng',unit:'bó',group:'veg'}};if(!hydrateFamilyIngredients(custom)||INGREDIENTS['family-ing-test'][1]!=='bó')throw Error('Custom ingredient hydration');
 `,c);console.log('PASS missing pools, breakfast yield, strict breakfast validation and custom ingredient hydration');
+// v1.7.6: the family's menu week can start on another day (ladybug report: shopping on Saturday → menu Sat–Fri).
+vm.runInContext(`{
+const s=defaults();s.weeks={};s.pantry=[];s.recipes=[];
+for(const[purpose,category,id]of [['breakfast','main','bf'],['main','main','main'],['side','soup','soup'],['side','veg','veg'],['friday','noodle','fri'],['feast','noodle','feast']])s.recipes.push({...recipe(id,id,category,'chicken',20,{chicken:400},'prep',['cook']),custom:true,purposes:[purpose],yield:4});
+if(weekStartDay(s)!==1||planStartOf(s,'2026-11-05')!=='2026-11-02')throw Error('default: Monday weeks as before');
+if(planWeek(s,'2026-11-02')!==ensureWeek(s,'2026-11-02'))throw Error('Monday start: the stored week itself');
+s.preferences.weekStartDay=6;
+if(planStartOf(s,'2026-11-05')!=='2026-10-31'||planStartOf(s,'2026-11-07')!=='2026-11-07'||planStartOf(s,'2026-11-13')!=='2026-11-07')throw Error('Saturday start');
+const start='2026-11-07',pw=planWeek(s,start);const dates=Object.keys(pw.days);
+if(dates.join(',')!=='2026-11-07,2026-11-08,2026-11-09,2026-11-10,2026-11-11,2026-11-12,2026-11-13')throw Error('7 days from Saturday: '+dates);
+if(Object.keys(s.weeks).some(k=>parseDate(k).getDay()!==1))throw Error('storage stays keyed by Monday');
+const r=familyGenerate(s,start,{random:()=>.5});if(r.missing.length)throw Error('gaps');
+const day=d=>s.weeks[monday(d)].days[d];
+if(day('2026-11-09').dinner.recipes.map(x=>x.id).join(',')!=='soup,main,veg'||day('2026-11-12').dinner.recipes.map(x=>x.id).join(',')!=='soup,main,veg')throw Error('Mon–Thu dinner by weekday');
+if(day('2026-11-13').dinner.recipes[0].id!=='fri')throw Error('Friday dinner');
+const b=day('2026-11-07').dinner.recipes[0]?.batchId;if(!b||day('2026-11-08').lunch.recipes[0]?.batchId!==b||day('2026-11-09').breakfast.recipes[0]?.batchId!==b)throw Error('Weekends feast Sat dinner → Mon breakfast inside the Saturday week');
+if(Object.keys(s.weeks).some(k=>parseDate(k).getDay()!==1))throw Error('auto-plan writes Monday-keyed weeks only');
+// edits through the window change the stored day; shopping over the window counts both stored weeks
+pw.days['2026-11-10'].note='qa';if(s.weeks['2026-11-09'].days['2026-11-10'].note!=='qa')throw Error('window edits the stored day');
+const rows=shopping(s,pw,start,addDays(start,6)),chicken=rows.find(x=>x.id==='chicken');if(!chicken||!(chicken.needed>0))throw Error('shopping over the window');
+const split=shopping(s,s.weeks['2026-11-02'],'2026-11-07','2026-11-08').find(x=>x.id==='chicken').needed+shopping(s,s.weeks['2026-11-09'],'2026-11-09','2026-11-13').find(x=>x.id==='chicken').needed;
+if(Math.abs(split-chicken.needed)>.001)throw Error('window total = both stored weeks: '+split+' vs '+chicken.needed);
+if(!validImport(s))throw Error('backup still valid');
+}`,c);console.log('PASS menu week from the family’s shopping day: Saturday window over Monday-keyed weeks, weekday schedule, feast inside the window, shopping across both weeks');

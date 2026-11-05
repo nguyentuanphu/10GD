@@ -211,6 +211,8 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
   await noOverflow(page,'overview '+tag);
   if(touch){assert.equal(await page.locator('#nav').isVisible(),false,'menu closed on '+size);assert.equal(await page.locator('#navbtn').isVisible(),true);
    assert.match(await page.locator('#navcur').innerText(),lang==='en'?/Overview/:/Tổng quan/);assert.equal(await page.locator('#net').isVisible(),true,'online state in the top bar');
+   // v1.7.6 (owner: no way back to the app from Studio): “← App” always visible in the top bar, 44 px, back to Today
+   {const back=page.locator('#back-app');assert.equal(await back.isVisible(),true,'back to the app visible without opening the menu');assert.equal(await back.getAttribute('href'),'/#today');assert.ok((await back.boundingBox())!.height>=44,'back button is a 44 px target')}
    assert.deepEqual(await smallTargets(page,'#navbtn,.topbar button'),[],'top bar targets '+tag);
    await shot(page,'overview-'+tag);
    await page.locator('#navbtn').click();await page.locator('#nav a[href="#scout"]').waitFor();assert.equal(await page.locator('#navbtn').getAttribute('aria-expanded'),'true');

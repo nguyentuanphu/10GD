@@ -344,6 +344,18 @@ function voiceLangToggleRefresh(attr,lang,auto=false){if(typeof document==='unde
 // ---------- v1.7.1: hold to talk (default everywhere) ----------
 // Owner decision: hold the mic button to talk, release to stop and send. Tap-to-toggle stays an option in Voice
 // settings. A stored choice from before v1.7.1 is reset once to hold; a later explicit choice is kept.
+// v1.7.6 (owner, iPhone: “đã cho phép micro rồi mà mỗi lần hold to talk lại đòi thêm cho phép”): iOS asks again whenever a
+// page opens the microphone after every earlier stream was stopped. Each hold used to open its own stream (level meter,
+// on-device voice) and stop it on release. Now one stream is shared while the voice sheet is open and reused by every
+// hold; it is stopped when the sheet closes, the app goes to the background, or after 2 idle minutes.
+const BEP_MIC:any={stream:null,timer:0,opening:null};
+function bepMicLive(){const s=BEP_MIC.stream;if(!s)return false;const tracks=(s.getAudioTracks?.()||s.getTracks?.()||[]);return tracks.length>0&&tracks.some((t:any)=>t.readyState!=='ended')}
+async function bepMicOpen(){clearTimeout(BEP_MIC.timer);if(bepMicLive())return BEP_MIC.stream;if(BEP_MIC.opening)return BEP_MIC.opening;
+ BEP_MIC.opening=navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}}).then((s:any)=>{BEP_MIC.stream=s;return s}).finally(()=>{BEP_MIC.opening=null});return BEP_MIC.opening}
+function bepMicIdle(ms=120000){clearTimeout(BEP_MIC.timer);BEP_MIC.timer=setTimeout(bepMicRelease,ms)}
+function bepMicRelease(){clearTimeout(BEP_MIC.timer);try{BEP_MIC.stream?.getTracks().forEach((t:any)=>t.stop())}catch{}BEP_MIC.stream=null}
+if(typeof document!=='undefined')document.addEventListener('visibilitychange',()=>{if(document.hidden)bepMicRelease()});
+(globalThis as any).bepMicOpen=bepMicOpen;(globalThis as any).bepMicIdle=bepMicIdle;(globalThis as any).bepMicRelease=bepMicRelease;
 const VOICE_HOLD_KEY='bep-voice-ptt',VOICE_HOLD_MIGRATED='bep-voice-ptt-v171',VOICE_HOLD_MIN_MS=250;
 function voiceHoldMode(){try{if(localStorage.getItem(VOICE_HOLD_MIGRATED)!=='1'){localStorage.removeItem(VOICE_HOLD_KEY);localStorage.setItem(VOICE_HOLD_MIGRATED,'1')}return localStorage.getItem(VOICE_HOLD_KEY)!=='0'}catch{return true}}
 function voiceSetHoldMode(on){try{localStorage.setItem(VOICE_HOLD_MIGRATED,'1');localStorage.setItem(VOICE_HOLD_KEY,on?'1':'0')}catch{}}
@@ -402,7 +414,7 @@ function vpRenderRows(){const box=document.getElementById('vp-rows');if(!box)ret
  box.innerHTML=rows.length?`<p class="hint">${vpT(`Nghe được ${rows.length} giá. Bấm Xác nhận từng giá để kiểm tra rồi lưu.`,`Heard ${rows.length} price${rows.length>1?'s':''}. Confirm each one to check and save it.`)}</p><ul class="vp-list">${rows.map(vpRowHtml).join('')}</ul>`:(vpState.text.trim()?`<p class="hint">${vpT('Chưa nghe ra giá nào. Thử nói “… hai đô rưỡi” hoặc gõ “$2.50”.','No price heard yet. Try “… two dollars fifty” or type “$2.50”.')}</p>`:'')}
 function vpParseNow(){const box=document.getElementById('vp-text');if(box)vpState.text=box.value;const res=parsePriceUtterance(vpState.text,{learned:vpLearned(),stores:voiceAppState()?.stores||[],want:vpState.want});vpState.rows=res.rows;vpRenderRows()}
 function vpSetMode(mode){const live=document.getElementById('vp-live'),st=document.getElementById('vp-state'),mic=document.getElementById('vp-mic');if(live)live.dataset.mode=mode==='listening'?'listening':'stopped';
- if(st)st.textContent=mode==='listening'?vpT('Đang nghe…','Listening…'):mode==='offline'?vpT('Đang offline — hãy gõ giá vào ô bên dưới.','Offline — type the price below.'):mode==='unsupported'?vpT('Trình duyệt chưa hỗ trợ mic trực tiếp — dùng mic bàn phím hoặc gõ.','Speech recognition is unsupported — use keyboard dictation or type.'):mode==='blocked'?vpT('Mic đang bị chặn — cho phép mic hoặc gõ.','Microphone blocked — allow it or type.'):vpT('Đã dừng','Stopped');
+ if(st)st.textContent=mode==='listening'?vpT('Đang nghe…','Listening…'):mode==='offline'?vpT('Đang offline — hãy gõ giá vào ô bên dưới.','Offline — type the price below.'):mode==='unsupported'?vpT('Trình duyệt chưa hỗ trợ mic trực tiếp — dùng mic bàn phím hoặc gõ.','Speech recognition is unsupported — use keyboard dictation or type.'):mode==='blocked'?vpT('Mic đang bị chặn — cho phép mic hoặc gõ.','Microphone blocked — allow it or type.'):vpT('Mic đang tắt','Microphone off');
  if(mic){if(mic.hasAttribute('data-hold-mic'))mic.textContent=mode==='listening'?'🎙 '+vpT('Đang nghe — thả ra để dừng','Listening — release to stop'):'🎙 '+vpT('Giữ để nói','Hold to talk');else{mic.textContent=mode==='listening'?'⏹ '+vpT('Dừng','Stop'):'🎙 '+vpT('Bắt đầu nói','Start speaking');mic.setAttribute('aria-pressed',String(mode==='listening'))}}
  if(mode==='stopped'&&vpState.text.trim())vpParseNow()}
 function voicePriceOpen(want=null,keepRows=false){
@@ -411,7 +423,7 @@ function voicePriceOpen(want=null,keepRows=false){
  vpState.want=want||null;vpState.lang=vpDefaultLang();
  const wantName=want?vpItemName(want):'';
  modal(vpT('🎙 Nói giá','🎙 Say a price'),`<div class="vp-sheet"><p class="hint">${wantName?vpT(`Đang so giá: <b>${vpEsc(wantName)}</b>. Chỉ cần nói giá và cửa hàng.`,`Hunting a price for <b>${vpEsc(wantName)}</b>. Just say the price and the store.`):vpT('Ví dụ: “Rau muống hai đô rưỡi một bó, chợ Cabramatta”. Nói nhiều giá liền cũng được.','e.g. “eggs twelve pack six dollars fifty at Aldi Bankstown”. Several prices in one go is fine.')}</p>
- <div class="voice-live vp-live" id="vp-live" data-mode="stopped"><span class="voice-dot" aria-hidden="true"></span><b id="vp-state" aria-live="polite">${vpT('Đã dừng','Stopped')}</b></div>
+ <div class="voice-live vp-live" id="vp-live" data-mode="stopped"><span class="voice-dot" aria-hidden="true"></span><b id="vp-state" aria-live="polite">${vpT('Mic đang tắt','Microphone off')}</b></div>
  <div class="field"><label for="vp-text">${vpT('Lời nói (sửa hoặc gõ được)','What you said (edit or type)')}</label><textarea class="input" id="vp-text" rows="3" maxlength="2000" placeholder="${vpT('thịt ba chỉ mười bốn đô chín mươi chín một ký ở Woolworths','pork belly fourteen ninety nine a kilo at Woolworths')}">${vpEsc(vpState.text)}</textarea></div>
  <div class="vp-controls">${vpLangToggle('data-vp-lang',vpState.lang)}${vpMicHtml('vp-mic','vp',vpT('Bắt đầu nói','Start speaking'))}<button type="button" class="btn" data-vp="read">🔎 ${vpT('Đọc giá','Read prices')}</button></div>
  <div id="vp-rows" aria-live="polite"></div>

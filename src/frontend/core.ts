@@ -5,6 +5,13 @@ const sydneyDate=()=>new Intl.DateTimeFormat('en-CA',{timeZone:globalThis.BEP_TI
 const parseDate=s=>new Date(s+'T12:00:00');
 const addDays=(s,n)=>{const d=parseDate(s);d.setDate(d.getDate()+n);return isoDate(d)};
 const monday=s=>{const d=parseDate(s);return addDays(s,-((d.getDay()+6)%7))};
+// v1.7.6 (ladybug report 5 Nov: "menu cover từ thứ 7 cho đến t6 tuần tiếp theo"): the family chooses the first day of its
+// menu week (preferences.weekStartDay, 0 = Sunday … 6 = Saturday, default 1 = Monday). Storage is unchanged — weeks stay keyed
+// by their Monday — and a menu week that starts on another day is a 7-day window over the stored weeks.
+const weekStartDay=s=>{const d=s?.preferences?.weekStartDay;return Number.isInteger(d)&&d>=0&&d<=6?d:1};
+const planStartOf=(s,date)=>{const d=parseDate(date).getDay();return addDays(date,-((d-weekStartDay(s)+7)%7))};
+// first Saturday of the window: the Weekends feast (Sat dinner → Mon breakfast) is anchored on it
+const windowSaturday=start=>{for(let i=0;i<7;i++){const d=addDays(start,i);if(parseDate(d).getDay()===6)return d}return addDays(start,5)};
 const uid=()=>globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2);
 // v1.7.5: counts show common fractions (½ quả, 1¼ muỗng) instead of 0.5 / rounded 0.3; grams and millilitres unchanged.
 const QTY_FRACTIONS=[[1/4,'¼'],[1/3,'⅓'],[1/2,'½'],[2/3,'⅔'],[3/4,'¾']];
@@ -82,3 +89,9 @@ function retireReferenceRecipes(s){if(!s||!Array.isArray(s.recipes)||typeof RETI
  if(removed.length){s.recipes=keep;mergeDeletedRecipeIds(s,removed)}return removed.length}
 // Add the reference collection once; preserve authored edits, menus and deliberate deletions (tombstones) afterwards.
 function upgradeReferenceCatalog(s,knownDeleted){if(!s||!Array.isArray(s.recipes))return 0;mergeDeletedRecipeIds(s,knownDeleted);if(typeof repairArtworkReferenceState==='function')repairArtworkReferenceState(s);const version=s.seedVersion||1;let added=0;if(version<5){const ids=new Set(s.recipes.map(r=>r.id)),gone=new Set(s.deletedRecipeIds||[]);for(const[edition,recipes]of [[4,WESTERN_HEALTHY_RECIPES],[5,PLANT_RECIPES]])if(version<edition)for(const r of recipes)if(!ids.has(r.id)&&!gone.has(r.id)){s.recipes.push(clone(r));ids.add(r.id);added++}s.seedVersion=5}if((s.seedVersion||1)<6&&typeof RETIRED_REFERENCE_IDS!=='undefined'){retireReferenceRecipes(s);s.seedVersion=6}recordDeletedReferenceRecipes(s);if(!(s.appEdition>=APP_EDITION))s.appEdition=APP_EDITION;return added}
+
+// The menu week starting at `start`: the stored week itself when it starts on Monday; otherwise a view whose `days` are the
+// 7 stored day objects (edits change the stored days) and whose other fields (extras, bought marks…) are those of the week
+// holding the first day. Nothing new is written by building the view.
+function planWeek(state,start){if(monday(start)===start)return ensureWeek(state,start);const dates=[0,1,2,3,4,5,6].map(i=>addDays(start,i)),anchor=ensureWeek(state,monday(start)),second=ensureWeek(state,monday(dates[6]));if(anchor.familyMode&&!second.familyMode)second.familyMode=true;const days={};for(const d of dates)days[d]=ensureWeek(state,monday(d)).days[d];
+ return new Proxy(anchor,{get(t,k){return k==='days'?days:k==='__planStart'?start:t[k]},set(t,k,v){if(k==='days')return true;t[k]=v;return true}})}

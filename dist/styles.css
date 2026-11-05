@@ -114,7 +114,7 @@ html[data-theme="dark"] .push-guidance{background:#2a2219;color:var(--text);bord
 .scout-toggle{flex:1 1 220px;min-height:44px;display:grid;grid-template-columns:1fr auto;align-items:center;text-align:left;background:none;border:0;padding:4px 0;color:var(--text);cursor:pointer;font:inherit}
 .scout-title{font-size:max(calc(16px * var(--fs-mul,1)),var(--fs-floor,0px));font-weight:700}
 .scout-sub{grid-column:1;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--muted);line-height:1.4;overflow-wrap:anywhere}
-.scout-chevron{grid-column:2;grid-row:1/3;font-size:max(calc(16px * var(--fs-mul,1)),var(--fs-floor,0px));padding:0 6px}
+.scout-chevron{grid-column:2;grid-row:1/4;font-size:max(calc(16px * var(--fs-mul,1)),var(--fs-floor,0px));padding:0 6px}
 .price-scout .btn,.scout-tray .btn,.scout-form .btn,.scout-links .btn{min-height:44px;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));white-space:normal;text-align:center}
 .price-scout .input,.scout-form .input{min-height:44px;font-size:max(calc(15px * var(--fs-mul,1)),var(--fs-floor,0px))}
 .price-scout .icon,.scout-tray .icon{min-width:44px;min-height:44px}
@@ -1672,12 +1672,6 @@ html[data-theme="dark"] .family-meal-card .meal-cook-btn.done{background:#1f3a2a
 .cl-tools-body{position:absolute;z-index:30;right:0;top:calc(100% + 6px);display:grid;gap:6px;min-width:220px;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--white);box-shadow:var(--shadow)}
 .cl-tools-body .btn{width:100%;justify-content:flex-start;min-height:44px}
 html[data-theme="dark"] .cl-tools-body{background:#18221d;border-color:#2c3a32}
-.cl-scout-summary{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;margin:0 0 14px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--mint);color:var(--text);text-align:left;cursor:pointer;font:inherit}
-.cl-scout-summary .cl-sum-title{font-weight:700;color:var(--green);white-space:nowrap}
-.cl-scout-summary .cl-sum-text{flex:1;min-width:0;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px))}
-.cl-scout-summary .cl-sum-go{font-size:20px;color:var(--muted)}
-html[data-theme="dark"] .cl-scout-summary{background:#1f3a2a;border-color:#2c3a32}html[data-theme="dark"] .cl-scout-summary .cl-sum-title{color:#8fd0a7}
-.price-scout.cl-below{margin-top:18px}
 @media(max-width:760px){
  #main.cl:not([data-cl-screen="today"]) .page-heading .eyebrow,#main.cl:not([data-cl-screen="today"]) .page-heading .subheading{display:none}
  #main.cl:not([data-cl-screen="today"]) .page-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
@@ -1727,3 +1721,111 @@ html[data-theme="dark"] .cl-scout-summary{background:#1f3a2a;border-color:#2c3a3
 #main.cl .page-heading>div:first-child{min-width:0}#main.cl .page-heading h1{overflow-wrap:anywhere}
 .cl-tools-body>a,.cl-tools-body>button{display:flex;align-items:center;min-height:44px;box-sizing:border-box}
 #main .cl-tools-body>a,#main .cl-tools-body>button{min-height:44px!important}
+
+/* v1.7.6 · So Giá folded above the list; folded cards; "Help fill missing prices" buttons in a 2×2 grid on phones */
+.price-scout.cl-above{margin-bottom:14px}
+.scout-plan-sum{display:block;grid-column:1;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--ink);text-align:left;margin-top:2px;overflow-wrap:anywhere}
+details.scout-wanted>summary h3,details.scout-community>summary h3{margin:0}
+details.scout-wanted:not([open]),details.scout-community:not([open]){padding-top:6px;padding-bottom:6px}
+.scout-want-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.scout-want-actions .btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:44px;padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scout-want-actions .btn .emo-art{flex:0 0 auto}
+@media (min-width:700px){.scout-want-actions{display:flex;flex-wrap:wrap}.scout-want-actions .btn{flex:0 0 auto}}
+/* v1.7.6 · text audit (owner, 6 Nov 2026: "chữ bị wrap xuống… audit lại tất cả"): no word is broken in the middle,
+   short labels and names stay on one line, nothing is cut off. Checked at 320 / 375 / 820 / 1280 px, VI and EN. */
+#main.cl .page-heading h1{overflow-wrap:normal;word-break:normal;hyphens:manual}
+#main.cl:not([data-cl-screen="today"]) .page-heading{flex-wrap:wrap}
+@media(max-width:400px){#main.cl:not([data-cl-screen="today"]) .page-heading h1{font-size:max(calc(24px * var(--fs-mul,1)),var(--fs-floor,0px))}}
+/* My kitchen / Voice input: whole words, never cut; they share a row when they fit, otherwise each takes a row */
+#main.cl:not([data-cl-screen="today"]) .kitchen-action-dock{display:flex!important;flex-wrap:wrap}
+#main.cl:not([data-cl-screen="today"]) .kitchen-action-dock .btn{flex:1 1 auto;width:auto!important;min-width:0;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;padding:6px 10px;gap:6px}
+/* very narrow phones: the range picker takes its own row so "Cả tuần" is not cut; store tools stack */
+@media(max-width:350px){
+ #main.cl[data-cl-screen="shopping"] .week-tools .toolbar{grid-template-columns:1fr 1fr!important}
+ #main.cl[data-cl-screen="shopping"] .week-tools .toolbar>select{grid-column:1/-1}
+ #main.cl[data-cl-screen="shopping"] .week-tools .toolbar>.cl-tools>summary{width:100%;justify-content:center}
+ #main.cl .shopping-store-tools{grid-template-columns:1fr!important}
+}
+/* packed-lunch schedule on phones: each name on its own line above that person's seven days (names were split) */
+@media(max-width:560px){
+ .pack-table,.pack-table>tbody{display:block;width:100%}
+ .pack-table tr{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));column-gap:2px;align-items:center}
+ .pack-table tr:first-child>th:first-child{display:none}
+ .pack-table th[scope=row]{grid-column:1/-1;width:auto!important;max-width:none;text-align:left;padding:10px 2px 2px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;font-size:max(calc(15px * var(--fs-mul,1)),var(--fs-floor,0px))}
+ .pack-table td{display:flex;justify-content:center}
+ .pack-table .pack-cell{display:flex;align-items:center;justify-content:center;min-height:44px;min-width:36px}
+}
+/* short labels never split over two lines */
+.sidebar nav a,.sidebar .side-link,.text-btn,.link-btn,.list-heading .pill,.store-pill,.mr-who,.screen-switch .btn,.cl-tools>summary,.mobile-more,.trip-tab .tt-name,.tabbar button{white-space:nowrap!important}
+.tabbar{flex-wrap:wrap}
+.attendance .tabbar{flex-wrap:wrap;overflow:visible;white-space:normal;row-gap:0}
+.attendance .tabbar button{white-space:nowrap;padding:9px 8px}
+.more-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+@media(max-width:380px){.more-row .more-label{font-size:max(calc(16px * var(--fs-mul,1)),var(--fs-floor,0px))}}
+.pack-table th[scope=row]{white-space:nowrap;overflow-wrap:normal}
+.kitchen-action-dock>.btn{white-space:nowrap}
+@media(max-width:420px){#main.cl[data-cl-screen="today"] .kitchen-action-dock{display:flex!important;flex-wrap:wrap}#main.cl[data-cl-screen="today"] .kitchen-action-dock>.btn{flex:1 1 100%;padding:12px 14px}
+ #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock .btn{padding:6px 8px;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px))}}
+.recipe-filters button,.lib-filters button,.filter-chips button{white-space:nowrap}
+.brand{min-width:0}.brand small{letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* v1.7.6 · weekly menu on tablet/desktop: with 4 meals a day (Bữa phụ added in v1.7.5) the meals sat side by side in
+   ~60 px columns, one word per line. Each day now puts its meals in a grid of readable cards (≥210 px), day title on top. */
+.family-week-grid .plan-day{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));align-content:start}
+.family-week-grid .plan-day>header{grid-column:1/-1;width:auto!important;min-width:0!important;flex-direction:row!important;justify-content:space-between;border-right:0!important;border-bottom:1px solid var(--line)}
+.family-week-grid .family-meal-card{min-width:0}
+.family-week-grid h3.meal-label{white-space:normal;overflow:visible}
+/* names and short labels stay whole (text audit, 6 Nov 2026) */
+.mobile-brand span,.breadcrumb b,.breadcrumb span,.who-busy-head b,.urgent-summary-title b,.week-switch b,.budget-line b,.family-meal-footer .btn,.family-meal-card .toolbar .btn,.chip,.tag,.family-tag{white-space:nowrap}
+.sidebar .device-card b,.sidebar [class*="device"] b{white-space:nowrap;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor-small,0px))}
+@media(max-width:1100px) and (min-width:601px){.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:380px){.budget-card .btn{flex:1 1 100%;white-space:nowrap}}
+.breadcrumb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+@media(min-width:761px){.sidebar nav a{min-width:0}.sidebar nav a .nav-count{flex:none}.sidebar nav a{gap:10px}}
+@media(min-width:761px) and (max-width:1100px){.sidebar nav a .nav-count{display:none!important}}
+.brand>span,.brand>div{min-width:0;overflow:hidden}
+/* one day per row on laptops (two side by side only on wide screens); its meals 230 px or wider, side by side */
+.family-week-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr))!important}
+.family-week-grid .plan-day{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))!important}
+.family-week-grid .family-meal-footer{flex-wrap:wrap;gap:6px}
+@media(max-width:420px){
+ #main.cl[data-cl-screen="shopping"] .week-tools select,#main.cl .shopping-store-tools select{padding-left:10px!important;padding-right:24px!important;font-size:max(calc(14px * var(--fs-mul,1)),var(--fs-floor,0px));background-position:right 6px center}
+ #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock{gap:6px}
+ #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock .btn{padding:6px 6px!important;gap:4px;font-size:max(calc(12.5px * var(--fs-mul,1)),var(--fs-floor,0px))!important}
+ #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock .btn img,#main.cl:not([data-cl-screen="today"]) .kitchen-action-dock .btn svg{width:16px;height:16px}
+}
+/* phones: the 14 px text floor leaves no room for both pictures, so the two words-buttons drop their small pictures
+   and share one row (on Today they stay large, one per row) */
+@media(max-width:420px){#main.cl:not([data-cl-screen="today"]) .kitchen-action-dock .btn img,#main.cl:not([data-cl-screen="today"]) .kitchen-action-dock .btn svg{display:none}}
+@media(max-width:420px){
+ #main.cl[data-cl-screen="shopping"] .week-tools .toolbar>.btn,#main.cl[data-cl-screen="shopping"] .week-tools .toolbar>.cl-tools>summary{padding-left:10px!important;padding-right:10px!important}
+ #main.cl[data-cl-screen="shopping"] .week-tools select,#main.cl .shopping-store-tools select{padding-left:8px!important;padding-right:22px!important}
+ #main.cl[data-cl-screen="shopping"] .week-tools .toolbar{gap:6px!important}
+ #main.cl .shopping-store-tools{gap:6px}
+}
+@media(max-width:420px){#product-retailer-filter{min-width:140px;padding-left:10px;padding-right:26px}}
+.who-busy-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;column-gap:10px}
+.week-switch{flex-wrap:wrap;row-gap:4px}
+/* v1.7.6 · voice sheet: the talk button in the middle, right under the listening status */
+.voice-controls.voice-controls-top{margin:10px 0 14px}
+.voice-controls.voice-controls-top .voice-hold-btn,.voice-controls.voice-controls-top .voice-continue-big{min-height:64px}
+/* v1.7.6 · dish pictures show the whole plate (handoff note: “rounded card top crops the top of the plate”). The pictures
+   are square; the 4:3 card frame used to cut the plate's top and bottom. The square now fits inside the frame. */
+.lib-card .lib-card-img .food-illustration{width:auto!important;height:100%!important;aspect-ratio:1/1;max-width:100%}
+.recipe-visual .food-illustration{max-height:100%;max-width:100%;aspect-ratio:1/1}
+.lib-card .recipe-visual.lib-card-img{background:var(--art-bg,#f3efe3)}
+html[data-theme="dark"] .lib-card .recipe-visual.lib-card-img{background:#24312a}
+/* v1.7.6 · ladybug report 4 Nov (iPhone, voice card): "Ô hiển thị ngày và bữa bị đè lên nhau. Ô ngày bị to quá".
+   iOS gives date inputs a fixed native width and height, so in a two-column row the date box ran over the meal box.
+   Date inputs now shrink to their column and keep the normal 44 px field height; on phones the two fields stack. */
+input[type="date"],input[type="time"],input[type="datetime-local"]{min-width:0;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none;min-height:44px;line-height:1.3}
+input[type="date"]::-webkit-date-and-time-value,input[type="time"]::-webkit-date-and-time-value{text-align:left;margin:0}
+.voice-card .form-grid>*,.form-grid>.field{min-width:0}
+@media(max-width:480px){.voice-card .form-grid{grid-template-columns:minmax(0,1fr)!important}}
+/* v1.7.6 · meal editor: the meal's ingredients on top */
+.meal-ingredients{padding:10px 14px;margin:0 0 14px}
+.meal-ingredients>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.meal-ing-dish h4{margin:10px 0 4px}
+/* v1.7.6 · menu week start picker next to the week switch */
+.week-start-pick{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
+.week-start-pick span{font-size:max(calc(14px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--muted);white-space:nowrap}
+.week-start-pick select{width:auto;min-width:120px;min-height:44px}

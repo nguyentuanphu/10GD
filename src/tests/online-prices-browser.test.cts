@@ -27,9 +27,9 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
 (async()=>{
  mkdirSync(out,{recursive:true});const browser=await chromium.launch();
  const version=JSON.parse(readFileSync('package.json','utf8')).version;assert.equal(JSON.parse(readFileSync('dist/build.json','utf8')).version,version,'build.json carries the release number (Studio reads it)');
- async function open(size:string,lang='vi',theme='light'){
+ async function open(size:string,lang='vi',theme='light',scoutSeed?:any){
   const context=await browser.newContext({viewport:sizes[size],serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any,timezoneId:'Australia/Sydney'});
-  const scope='account/qa-household/',scout={version:1,open:true,postcode:'2166',state:'NSW',prefs:{},local:[],pending:[],pool:null};
+  const scope='account/qa-household/',scout=scoutSeed||{version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:[],pending:[],pool:null};
   await context.addInitScript(({scope,lang,theme,scout}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem(scope+'bep-language',lang);localStorage.setItem('bep-account-present','yes');localStorage.setItem(scope+'bep-price-scout-v1',JSON.stringify(scout))},{scope,lang,theme,scout});
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route(origin+'/**',async(route:any)=>{const url=new URL(route.request().url()),path=url.pathname,op=url.searchParams.get('op');
@@ -113,6 +113,18 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
    if(lang==='en')assert.match(await page.locator('.modal').innerText(),/Price history · .*Marked special, but the usual price is \$14\.00; the “was” price is higher than ever seen/s);
    await shot(page,`price-history-${lang}-${theme}`,size);await page.keyboard.press('Escape');
    if(lang==='en'){await page.locator('.top-avatar').click();await page.locator('#account-menu [data-personal="account-security"]').click();await page.waitForSelector('#app-version');assert.match(await page.locator('#app-version').innerText(),new RegExp('FamTray · Version '+version.replace(/\./g,'\\.')+' · build '))}
+   assert.deepEqual(errors,[]);await context.close()}
+  // v1.7.6 (owner, 6 Nov 2026): a copy saved by v1.7.5 (open) is folded once; So Giá sits ABOVE the list as one line with the
+  // chosen trip plan, the list keeps its online price lines, and opening it is remembered.
+  for(const size of ['mobile','tablet','desktop']){const {page,context,errors}=await open(size,'vi','light',{version:1,open:true,postcode:'2166',state:'NSW',prefs:{},local:[],pending:[],pool:null});
+   assert.equal(await page.locator('.price-scout #scout-body').count(),0,size+': So Giá starts folded');
+   assert.ok(await page.evaluate(()=>{const a=document.querySelector('#main .price-scout'),b=document.querySelector('#main .shopping-layout');return!!a&&!!b&&!!(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)}),size+': So Giá is above the list');
+   assert.match(await page.locator('.price-scout .scout-plan-sum').innerText(),/phút/,size+': folded header shows the chosen trip plan');
+   assert.ok(await page.locator('.shop-row .online-line').count()>0,size+': list keeps online prices while folded');
+   const h=await page.locator('#main .price-scout').evaluate((e:any)=>e.getBoundingClientRect().height);assert.ok(h<220,size+': folded So Giá is short ('+h+'px)');
+   await noOverflow(page,'folded '+size);await shot(page,'v176-folded-above-list',size);
+   await page.locator('[data-scout="toggle"]').click();await page.waitForSelector('#scout-body');
+   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('account/qa-household/bep-price-scout-v1')||'{}').open),true,size+': opening is remembered');
    assert.deepEqual(errors,[]);await context.close()}
   console.log('PASS product photos over drawings (missing photo → drawing), trip plans (nearest / balanced / cheapest, minutes saved, estimate flag, stops grouped by store) and online prices on the shopping list: cheapest online price per row, real / not real / unverified / lowest / higher deal chips, Deals this week card, price history sheet with chart (≥44 px, no overflow at 320/375/820/1280, VI/EN, light/dark), release number in Account & settings');
  }finally{await browser.close()}
