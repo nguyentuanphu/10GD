@@ -9,6 +9,8 @@
 const REPO_RE=/^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/;
 const TYPE_WORD:any={bug:'Lỗi / Bug',looks:'Hiển thị sai / Looks wrong',words:'Chữ, dịch / Words',idea:'Ý tưởng / Idea',other:'Khác / Other'};
 const CTX_KEYS=['route','view','modal','platform','viewport','lang','theme','online','build','edition','standalone','textSize'];
+// owner instruction 6 Nov 2026: everything in Sydney time
+const sydneyTime=(v:any)=>{const d=new Date(v);return isNaN(+d)?'':d.toLocaleString('en-AU',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})+' Sydney time'};
 export const FEEDBACK_GITHUB_DEFAULT_REPO='nguyentuanphu/10GD';
 export function githubConfig(env:any=process.env){const repo=String(env?.FEEDBACK_GITHUB_REPO||FEEDBACK_GITHUB_DEFAULT_REPO).trim(),token=String(env?.FEEDBACK_GITHUB_TOKEN||'').trim();
  return REPO_RE.test(repo)&&token.length>=20?{repo,token}:null}
@@ -18,7 +20,7 @@ export function issueFor(rec:any){const note=String(rec?.note||'').replace(/\s+/
  const ctx=CTX_KEYS.filter(k=>rec?.ctx?.[k]!==undefined&&rec?.ctx?.[k]!==null&&rec?.ctx?.[k]!=='').map(k=>`${k}=${rec.ctx[k]}`).join(', ');
  const quote=String(rec?.note||'').split('\n').map((l:string)=>'> '+l).join('\n');
  const errors=(Array.isArray(rec?.errors)?rec.errors:[]).slice(0,5).map((e:any)=>'- `'+String(e?.message||e||'').replace(/`/g,"'").slice(0,300)+'`').join('\n');
- const body=[`**${TYPE_WORD[rec?.type]||TYPE_WORD.other}** · ${String(rec?.at||'').slice(0,16).replace('T',' ')} UTC · FamTray feedback \`${rec?.id}\``,'',quote,'',
+ const body=[`**${TYPE_WORD[rec?.type]||TYPE_WORD.other}** · ${sydneyTime(rec?.at)} · FamTray feedback \`${rec?.id}\``,'',quote,'',
   ctx?`Context: ${ctx}`:null,errors?`\nErrors seen on the device:\n${errors}`:null,rec?.hasShot?'\nA picture is attached — open this report in Studio → Góp ý.':null,
   '\n<sub>Filed automatically from the in-app ladybug (public: the reporter\'s words and technical context only — no account, e-mail, IP or picture). Reply and status changes are made in Studio.</sub>'].filter(x=>x!==null).join('\n');
  return{title,body,labels:['feedback',String(rec?.type||'other')]}}
