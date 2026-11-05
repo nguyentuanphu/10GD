@@ -97,9 +97,13 @@ if (!packHashPattern.test(loader)) throw new Error('Startup loader hash placehol
 // Sortable build id: UTC build time + pack hash. Studio can require every device to run at least this build.
 const buildId = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z') + '-' + hash.slice(0, 8);
 if (!loader.includes("'__BEP_BUILD_ID__'")) throw new Error('Startup loader build id placeholder is missing');
-writeFileSync('dist/bootstrap.js', loader.replace(packHashPattern, `const packHash = '${hash}'`).replace("'__BEP_BUILD_ID__'", `'${buildId}'`));
+// v1.7.5: the release number (package.json) is shown in Settings and in Studio.
+const appVersion = String(JSON.parse(readFileSync('package.json', 'utf8')).version || '');
+if (!/^\d+\.\d+\.\d+$/.test(appVersion)) throw new Error('package.json version is missing');
+if (!loader.includes("'__BEP_APP_VERSION__'")) throw new Error('Startup loader version placeholder is missing');
+writeFileSync('dist/bootstrap.js', loader.replace(packHashPattern, `const packHash = '${hash}'`).replace("'__BEP_BUILD_ID__'", `'${buildId}'`).replace("'__BEP_APP_VERSION__'", `'${appVersion}'`));
 // v1.7.2: `extension` = the Price Check extension version this release ships (Studio flags older computers).
-writeFileSync('dist/build.json', JSON.stringify({build: buildId, pack: hash, extension: JSON.parse(readFileSync('extension/manifest.json','utf8')).version}));
+writeFileSync('dist/build.json', JSON.stringify({version: appVersion, build: buildId, pack: hash, extension: JSON.parse(readFileSync('extension/manifest.json','utf8')).version}));
 
 // The service worker keeps only the current catalog download (older versions are replaced on update).
 const worker=readFileSync('dist/sw.js','utf8');

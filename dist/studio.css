@@ -335,3 +335,5 @@ dialog::backdrop{background:#0008}
 #scanlist-main .sl-search{display:flex;flex-direction:column;gap:4px;max-width:420px;margin-bottom:8px}
 #scanlist-main .btn{min-height:44px}
 /* === v1.7.2 studio-nav end === */
+/* v1.7.5: release number in the side panel */
+.studio-version{display:block;font-size:12px;line-height:1.4}

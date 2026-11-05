@@ -2,7 +2,7 @@
 // and spends no credits). Matching guard, size/unit parsing, budget, cross-check hold, switches, failure keeps old data,
 // and the merge into the existing official-price path used by So Giá.
 import assert from 'node:assert/strict';
-import {parseSize,unitPriceFor,nameMatches,isItem,pinchPrices,whichGrocerPrices,crossCheck,refreshOnlinePrices,ONLINE_KEY,ONLINE_STATUS_KEY,ONLINE_MAPPING_KEY,ONLINE_PROPOSALS_KEY} from '../netlify/lib/online-prices.mjs';
+import {parseSize,unitPriceFor,nameMatches,isItem,pinchPrices,whichGrocerPrices,crossCheck,refreshOnlinePrices,ONLINE_KEY,ONLINE_STATUS_KEY,ONLINE_MAPPING_KEY,ONLINE_PROPOSALS_KEY,ONLINE_HISTORY_KEY,addToHistory,dealSignal,cleanInsight} from '../netlify/lib/online-prices.mjs';
 import {officialPrices} from '../netlify/lib/grocery-pricing.mjs';
 
 const porkBelly={id:'thit-ba-chi',nameEn:'Pork belly',aliases:['pork belly','ba roi'],channels:['woolworths','coles','aldi'],unitBasis:'per_kg'};
@@ -75,4 +75,24 @@ assert.equal(keep.kept,'previous');assert.deepEqual(cache.m.get(ONLINE_KEY('2026
 const offNow=await officialPrices(cache,'NSW','2026-11-04');assert.ok(offNow.observations.some((o:any)=>o.observedBy==='Pinch'&&o.state==='NSW'));assert.deepEqual(offNow.attribution,['Price data by Pinch','Product data by WhichGrocer']);
 const nextWeek=await officialPrices(cache,'QLD','2026-11-11');assert.ok(nextWeek.observations.length>0,'previous cycle used until the next run');assert.ok(nextWeek.observations.every((o:any)=>o.observedAt==='2026-11-05'),'dates kept, never refreshed by display');
 assert.equal(await officialPrices(memStore(),'NSW','2026-11-04'),null,'nothing → nothing');
+// ---- Phase C: price history + real / fake specials
+{const ob=(price:number,extra:any={})=>({itemId:'thit-ba-chi',retailer:'coles',productId:'c1',price,unitPrice:null,wasPrice:null,promo:null,...extra});
+ let h:any=null;for(const [d,p] of [['2026-09-02',20],['2026-09-09',20.5],['2026-09-16',19.5],['2026-09-23',20]] as const)h=addToHistory(h,[ob(p)],d);
+ assert.equal(h.items['thit-ba-chi|coles'].points.length,4);h=addToHistory(h,[ob(21)],'2026-09-23');assert.equal(h.items['thit-ba-chi|coles'].points.length,4,'one point per day');
+ const line=h.items['thit-ba-chi|coles'];
+ const real=dealSignal(line,ob(15,{promo:'special',wasPrice:21}),'2026-09-30');assert.equal(real.signal,'real');assert.equal(real.usual,20.25);assert.equal(real.pct,26);
+ const fake=dealSignal(line,ob(20.25,{promo:'special',wasPrice:27}),'2026-09-30');assert.equal(fake.signal,'fake','“special” at the usual price');assert.equal(fake.wasInflated,true,'“was $27” never seen');
+ assert.equal(dealSignal(line,ob(18.9),'2026-09-30').signal,'lowest');assert.equal(dealSignal(line,ob(23),'2026-09-30').signal,'higher');assert.equal(dealSignal(line,ob(20.5),'2026-09-30').signal,'usual');
+ assert.equal(dealSignal(null,ob(15,{promo:'special'}),'2026-09-30').signal,'unverified','special without history is not called real');assert.equal(dealSignal(null,ob(15),'2026-09-30').signal,'new');
+ // a different product restarts the line; points older than 26 weeks drop
+ h=addToHistory(h,[{...ob(9),productId:'c2'}],'2026-10-01');assert.deepEqual(h.items['thit-ba-chi|coles'].points.map((p:any)=>p[1]),[9]);
+ h=addToHistory(h,[ob(8,{retailer:'woolworths'})],'2027-06-01');assert.ok(!h.items['thit-ba-chi|coles'],'26-week window');
+ assert.equal(cleanInsight({signal:'hack'}),null);assert.deepEqual(cleanInsight({signal:'real',usual:20,pct:500,points:[['x',1],['2026-09-02',20,1]]}).points,[['2026-09-02',20,1]]);
+ // the refresh stores the history and each saved price carries its check; So Giá receives it
+ const hc=memStore();hc.m.set(ONLINE_MAPPING_KEY,{'thit-ba-chi':{woolworths:{productId:'764465',ok:true,label:'x',by:'h',at:'2026-11-05',rejected:[]}}});
+ hc.m.set(ONLINE_HISTORY_KEY,{version:1,items:{'thit-ba-chi|woolworths':{productId:'764465',points:[['2026-10-15',30,20,null,0],['2026-10-22',30,20,null,0],['2026-10-29',29,19.33,null,0]]}}});
+ const run=await refreshOnlinePrices({items:[porkBelly],env:{PINCH_API_KEY:'k'},settings:{flags:{onlinePinch:true}},fetchFn:pinchFetch,cacheStore:hc,statusStore:hc,cycle:'2026-11-04',today:'2026-11-05'});
+ assert.deepEqual(run.deals,{real:1,fake:0},'Woolworths $27 (was $30) vs usual $30 → real −10 %');assert.equal(hc.m.get(ONLINE_HISTORY_KEY).items['thit-ba-chi|woolworths'].points.length,4);
+ const shown=await officialPrices(hc,'NSW','2026-11-04');const ww2=shown.observations.find((o:any)=>o.retailer==='woolworths');assert.equal(ww2.insight.signal,'real');assert.equal(ww2.insight.usual,30);assert.equal(ww2.insight.points.length,4);}
+console.log('PASS price history (one point per day, new product restarts, 26 weeks) + deal check (real / fake / inflated was-price / unverified / lowest / higher) carried to So Giá');
 console.log('PASS online prices: parsing, matching guard, Pinch basket ≤5/request, WhichGrocer budget + pacing, cross-check hold, switches, failure keeps old prices, keys never stored, only owner-confirmed products shown, merge into official prices');

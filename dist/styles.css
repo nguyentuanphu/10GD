@@ -1560,3 +1560,32 @@ html[data-theme="dark"] .studio-link{background:#18221d;color:var(--text)}
 @media(max-width:1023px){.studio-link{display:none}}
 .account-menu .account-menu-item.studio-menu-item{font-weight:650;color:var(--green)}
 html[data-theme="dark"] .account-menu .account-menu-item.studio-menu-item{color:var(--text)}
+/* v1.7.5: release number at the end of Account & settings */
+.app-version{margin:18px 4px 4px;color:var(--muted);font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));text-align:center}
+/* v1.7.5 Phase C: online price per shopping row, deal chips, price history */
+.shop-row.has-online{flex-wrap:wrap}
+.online-line{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:-4px 0 0 32px;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--text)}
+.online-line .online-price small{display:inline;font-size:inherit;color:var(--muted)}
+.online-line .was,.price-history-store .was{color:var(--muted)}
+.online-history-btn{min-height:44px;padding:0 12px;margin-left:auto}
+.deal-chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-weight:600;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));line-height:1.4}
+.deal-real{background:#e3f1e6;color:#1d5a37}
+.deal-fake{background:#fbe9dd;color:#8a3d12}
+.deal-unverified{background:#eef0ea;color:#4f5a52}
+.deal-higher{background:#f6ecd8;color:#6d4b10}
+html[data-theme="dark"] .deal-real{background:#1f3a2a;color:#bfe6c9}
+html[data-theme="dark"] .deal-fake{background:#43281a;color:#ffd0b0}
+html[data-theme="dark"] .deal-unverified{background:#2a302c;color:#d5ddd7}
+html[data-theme="dark"] .deal-higher{background:#3d321b;color:#f3dca8}
+.deal-list{list-style:none;margin:0 0 8px;padding:0}.deal-list li{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.deal-warn{margin:8px 0 2px;font-weight:600;color:#8a3d12}html[data-theme="dark"] .deal-warn{color:#ffd0b0}
+.price-history-store{padding:12px 0;border-bottom:1px solid var(--line)}.price-history-store h3{margin-bottom:2px}.price-history-store h3 small{display:inline}
+.price-history-stats{margin:8px 0 4px}
+.price-spark{margin:8px 0 0}.price-spark svg{width:100%;max-width:420px;height:auto;display:block}
+.price-spark path{fill:none;stroke:var(--green2);stroke-width:2;stroke-linejoin:round}
+.price-spark circle{fill:var(--green2)}.price-spark circle.special{fill:#c87649}
+.price-spark .usual{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 4}
+.price-spark figcaption{display:flex;justify-content:space-between;gap:8px;max-width:420px;color:var(--muted);font-size:max(calc(11px * var(--fs-mul,1)),var(--fs-floor,0px))}
+html[data-theme="dark"] .price-spark path{stroke:#8fd0a7}html[data-theme="dark"] .price-spark circle{fill:#8fd0a7}html[data-theme="dark"] .price-spark circle.special{fill:#f0a77a}
+.shop-purchase-row .online-line{grid-column:2/-1;margin:0}
+@media(max-width:760px){.shop-row.has-online .online-line{grid-column:2/-1;margin:0}}

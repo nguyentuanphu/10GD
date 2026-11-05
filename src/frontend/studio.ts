@@ -413,7 +413,7 @@ function shell(){document.documentElement.lang=lang;document.title='Studio · Fa
  $('#navbtn').setAttribute('aria-label',T('Mở menu Studio','Open the Studio menu'));
  $('#lang').textContent=lang==='en'?'Tiếng Việt':'English';$('#lang').setAttribute('aria-label',lang==='en'?'Chuyển sang tiếng Việt':'Switch to English');
  $('#theme').textContent=({auto:T('Giao diện: tự động','Theme: auto'),light:T('Giao diện: sáng','Theme: light'),dark:T('Giao diện: tối','Theme: dark')} as any)[themePref];
- $('#who').textContent=me?`${me.username} · ${canManage()?T('chủ','owner'):T('hỗ trợ','support')}`:'';$('#net').textContent=navigator.onLine?T('Trực tuyến','Online'):T('Ngoại tuyến','Offline');$('#net').className='net '+(navigator.onLine?'on':'off')}
+ showVersion();$('#who').textContent=me?`${me.username} · ${canManage()?T('chủ','owner'):T('hỗ trợ','support')}`:'';$('#net').textContent=navigator.onLine?T('Trực tuyến','Online'):T('Ngoại tuyến','Offline');$('#net').className='net '+(navigator.onLine?'on':'off')}
 // Phones and tablets: a compact top bar; the menu opens as a sheet from the left.
 function openNav(){const side=$('#side');if(side.classList.contains('open'))return;side.classList.add('open');$('#navbtn').setAttribute('aria-expanded','true');$('#nav-backdrop').hidden=false;$('#main').inert=true;($('#nav a[aria-current]')||$('#nav a'))?.focus()}
 function closeNav(focusBtn=false){const side=$('#side');if(!side.classList.contains('open'))return;side.classList.remove('open');$('#navbtn').setAttribute('aria-expanded','false');$('#nav-backdrop').hidden=true;$('#main').inert=false;if(focusBtn)$('#navbtn').focus()}
@@ -500,7 +500,9 @@ const keepMe=(m:any)=>{try{m?sessionStorage.setItem('studio-me',JSON.stringify({
 // Main data of the page Studio opens on, requested together with `me` on a first visit (shared with the page).
 const PRELOAD:any={overview:'op=overview',settings:'op=settings',notifications:'op=notifications'};
 function denied(e:any){cacheClear();keepMe(null);me=null;const d=e.data||{};$('#main').removeAttribute('aria-busy');$('#main').innerHTML=`<div class="card notice"><h1>${e.status===401?T('Cần đăng nhập','Sign in required'):d.disabled?T('Studio đang tắt','Studio is disabled'):T('Không có quyền','No access')}</h1><p>${esc(e.message)}</p>${e.status===401?`<p><a class="btn primary" href="/login?return=/studio.html">${T('Đăng nhập','Sign in')}</a></p>`:''}<p><a href="/">${T('← Về ứng dụng','← Back to the app')}</a></p></div>`;$('#nav').innerHTML='';navSig=''}
-async function boot(){shell();$('#main').innerHTML=`<div class="view">${skeleton()}</div>`;
+// v1.7.5: release number + build date in the side panel (from /build.json, written by the build)
+let buildInfo:any=null;function showVersion(){const el=$('#studio-version');if(!el)return;const v=String(buildInfo?.version||''),m=String(buildInfo?.build||'').match(/^(\d{4})(\d{2})(\d{2})T/);el.textContent=/^\d+\.\d+\.\d+$/.test(v)?`FamTray · ${T('Phiên bản','Version')} ${v}${m?` · ${T('bản dựng','build')} ${m[3]}/${m[2]}/${m[1]}`:''}`:''}
+async function boot(){fetch('/build.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(b=>{buildInfo=b;showVersion()}).catch(()=>{});shell();$('#main').innerHTML=`<div class="view">${skeleton()}</div>`;
  const meP=api('me');meReady=meP.catch(()=>null);const was=savedMe(),key=OLD_HASH[hashInfo().key]||hashInfo().key;
  if(was){me=was;cacheUser=was.username+'.'+was.role;route({boot:true})}
  else if(PRELOAD[key])shared(API+'?'+PRELOAD[key]).catch(()=>{});

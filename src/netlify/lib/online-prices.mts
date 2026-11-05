@@ -24,6 +24,40 @@ export const ONLINE_STATUS_KEY='online-prices/status';
 // (lime → lime & chilli tuna, beef bones → T-bone steak). Proposed products are saved for review; only products the
 // owner confirmed in Studio (✓) are saved as prices for families. ✗ remembers “not this product”.
 export const ONLINE_MAPPING_KEY='online-prices/mapping',ONLINE_PROPOSALS_KEY='online-prices/proposals';
+// v1.7.5 Phase C: price history per item and retailer (confirmed product only; a new product starts a new history) and
+// a deal check against it. Runs are Wed + Sat, so 12 weeks ≈ 24 points; the check needs ≥ 3 earlier prices.
+export const ONLINE_HISTORY_KEY='online/history.json';
+const HISTORY_DAYS=182,HISTORY_POINTS=60,USUAL_DAYS=84,MIN_POINTS=3;
+const dayMs=(d:string)=>Date.parse(d+'T00:00:00Z');
+const median=(a:number[])=>{const b=[...a].sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2};
+const r2=(n:number)=>Math.round(n*100)/100;
+/** Add today's confirmed prices to the history (one point per day; a different product restarts its line). */
+export function addToHistory(history:any,observations:any[],today:string){const h:any=history&&typeof history==='object'&&history.items&&typeof history.items==='object'?history:{version:1,items:{}};
+ const cutoff=dayMs(today)-HISTORY_DAYS*864e5;
+ for(const o of observations){if(!o?.itemId||!o.retailer||!(o.price>0))continue;const key=o.itemId+'|'+o.retailer,pid=String(o.productId||'');let line=h.items[key];if(!line||line.productId!==pid)line=h.items[key]={productId:pid,points:[]};
+  line.points=line.points.filter((p:any)=>p[0]!==today);line.points.push([today,r2(o.price),o.unitPrice??null,o.wasPrice??null,o.promo?1:0]);}
+ for(const [k,line] of Object.entries(h.items) as any){line.points=line.points.filter((p:any)=>dayMs(p[0])>=cutoff).sort((a:any,b:any)=>a[0].localeCompare(b[0])).slice(-HISTORY_POINTS);if(!line.points.length)delete h.items[k]}
+ h.version=1;h.updatedAt=today;return h}
+/**
+ * Deal check for today's price against the same product's earlier prices.
+ * signal: real (special ≥ 10 % below the usual price) · fake (marked special but not really lower; wasInflated when the
+ * "was" price is above anything seen) · unverified (special, not enough history) · lowest (lowest seen, no special) ·
+ * higher (≥ 10 % above usual) · usual · new (not enough history).
+ */
+export function dealSignal(line:any,o:any,today:string){const pts=(line?.points||[]).filter((p:any)=>p[0]<today);const recent=pts.filter((p:any)=>dayMs(p[0])>=dayMs(today)-USUAL_DAYS*864e5);
+ const special=!!(o.promo||o.wasPrice),price=o.price,out:any={signal:'new',points:[...pts,[today,price,o.unitPrice??null,o.wasPrice??null,special?1:0]].slice(-16).map((p:any)=>[p[0],p[1],p[4]?1:0]),weeks:0};
+ if(recent.length<MIN_POINTS){if(special)out.signal='unverified';return out}
+ const regular=recent.filter((p:any)=>!p[4]).map((p:any)=>p[1]),base=regular.length>=MIN_POINTS?regular:recent.map((p:any)=>p[1]),usual=r2(median(base)),low=Math.min(...recent.map((p:any)=>p[1])),high=Math.max(...recent.map((p:any)=>p[1]));
+ Object.assign(out,{usual,low:r2(low),high:r2(high),weeks:Math.max(1,Math.round((dayMs(today)-dayMs(recent[0][0]))/(7*864e5)))});
+ const pct=Math.round((usual-price)/usual*100);out.pct=pct;
+ if(special){out.signal=price<=usual*0.9?'real':'fake';if(o.wasPrice&&o.wasPrice>high*1.05)out.wasInflated=true}
+ else if(price<low)out.signal='lowest';else if(price>=usual*1.1)out.signal='higher';else out.signal='usual';
+ return out}
+const SIGNALS=['real','fake','unverified','lowest','higher','usual','new'];
+/** Validated copy of an observation's deal check (shown to families with the price). */
+export function cleanInsight(v:any){if(!v||typeof v!=='object'||!SIGNALS.includes(v.signal))return null;const n=(x:any)=>typeof x==='number'&&Number.isFinite(x)&&x>=0&&x<=100000?r2(x):null;
+ const pts=Array.isArray(v.points)?v.points.filter((p:any)=>Array.isArray(p)&&/^\d{4}-\d{2}-\d{2}$/.test(String(p[0]))&&n(p[1])!=null).slice(-16).map((p:any)=>[String(p[0]),n(p[1]),p[2]?1:0]):[];
+ return{signal:v.signal,usual:n(v.usual),low:n(v.low),high:n(v.high),pct:typeof v.pct==='number'&&Number.isFinite(v.pct)?Math.max(-999,Math.min(100,Math.round(v.pct))):null,weeks:Math.max(0,Math.min(52,Math.round(+v.weeks||0))),wasInflated:v.wasInflated===true,points:pts}}
 export function cleanMapping(v:any){const out:any={};if(!v||typeof v!=='object'||Array.isArray(v))return out;for(const[item,byR]of Object.entries(v).slice(0,400)){if(!/^[a-z0-9-]{1,60}$/.test(item)||!byR||typeof byR!=='object')continue;for(const[r,m]of Object.entries(byR as any)){if(!['woolworths','coles','aldi','chemist'].includes(r)||!m||typeof m!=='object')continue;const pid=String((m as any).productId||'').slice(0,80),ok=(m as any).ok===true;if(!pid)continue;(out[item]??={})[r]={productId:pid,ok,label:String((m as any).label||'').slice(0,160),by:String((m as any).by||'').slice(0,80),at:String((m as any).at||'').slice(0,30),rejected:Array.isArray((m as any).rejected)?(m as any).rejected.map(String).slice(0,20):[]}}}return out}
 /** Split a run's observations into confirmed prices and proposals waiting for review. */
 export function applyMapping(observations:any[],mapping:any){const confirmed:any[]=[],proposals:any[]=[];
@@ -81,7 +115,11 @@ export async function refreshOnlinePrices({items,env=process.env,settings={},fet
  const checked=usePinch?crossCheck(p.observations,w.observations):{kept:w.observations,held:[]},{confirmed:kept,proposals}=applyMapping(checked.kept,mapping),held=checked.held;
  await statusStore?.setJSON?.(ONLINE_PROPOSALS_KEY,{at:status.at,items:proposals.slice(0,600)});status.proposals=proposals.length;status.confirmed=kept.length;
  status.pinch={...status.pinch,requests:p.requests,prices:p.observations.length};status.whichgrocer={...status.whichgrocer,credits:w.credits,creditsRemaining:w.remaining,prices:w.observations.length};status.errors=[...p.errors,...w.errors].slice(0,20);status.held=held.slice(0,50);status.saved=kept.length;
- if(kept.length){const prev=await cacheStore?.get?.(ONLINE_KEY(cycle),{type:'json'}).catch(()=>null);const merged=new Map((prev?.observations||[]).map((o:any)=>[o.id,o]));for(const o of kept)merged.set(o.id,o);
+ if(kept.length){let hist:any=null;try{hist=await cacheStore?.get?.(ONLINE_HISTORY_KEY,{type:'json'})}catch{}hist=hist&&hist.items?hist:{version:1,items:{}};
+  // deal check against earlier prices of the same product, then today's prices join the history
+  for(const o of kept){const line=hist.items[o.itemId+'|'+o.retailer];o.insight=dealSignal(line&&line.productId===String(o.productId||'')?line:null,o,today)}
+  await cacheStore.setJSON(ONLINE_HISTORY_KEY,addToHistory(hist,kept,today));status.deals={real:kept.filter((o:any)=>o.insight.signal==='real').length,fake:kept.filter((o:any)=>o.insight.signal==='fake').length};
+  const prev=await cacheStore?.get?.(ONLINE_KEY(cycle),{type:'json'}).catch(()=>null);const merged=new Map((prev?.observations||[]).map((o:any)=>[o.id,o]));for(const o of kept)merged.set(o.id,o);
   await cacheStore.setJSON(ONLINE_KEY(cycle),{version:1,cycle,importedAt:status.at,source:'online',attribution:[usePinch?'Price data by Pinch':null,useWg?'Product data by WhichGrocer':null].filter(Boolean),observations:[...merged.values()].slice(0,5000)})}
  else status.kept='previous';
  await statusStore?.setJSON?.(ONLINE_STATUS_KEY,status);return status}

@@ -19,6 +19,7 @@ interface Window {
   BepConnectivity?: { reportSuccess(): void; reportFailure(kind: 'network' | 'timeout' | 'server'): Promise<boolean>; wake(): Promise<boolean> };
   BEP_STARTUP?: { cachedIdentity: boolean; packHash: string; ready?: number; packMismatch?: boolean };
   BEP_BUILD?: string;
+  BEP_VERSION?: string;
   // Optional async steps registered by earlier scripts, run before the named script ('@ready': after all).
   BEP_SCRIPT_HOOKS?: Record<string, () => Promise<void> | void>;
 }
@@ -31,6 +32,9 @@ interface Window {
   // Replaced by the build with a sortable build id (UTC time + pack hash), used by forced updates.
   const buildId: string = '__BEP_BUILD_ID__';
   window.BEP_BUILD = buildId;
+  // Replaced by the build with the release number from package.json (shown in Settings).
+  const appVersion: string = '__BEP_APP_VERSION__';
+  window.BEP_VERSION = appVersion;
   let packMismatch = false;
   const params = new URLSearchParams(location.search);
   const retrying = params.has('startup-retry');
