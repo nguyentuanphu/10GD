@@ -54,6 +54,15 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  const widths=await page.locator('#main .family-meal-card').evaluateAll((a:any[])=>a.filter(e=>e.offsetParent).slice(0,8).map(e=>Math.round(e.getBoundingClientRect().width)));
  assert.ok(widths.length&&Math.min(...widths)>=200,`${label}: weekly menu meal cards ≥ 200 px wide, got ${widths}`);
  await textOk('planner');await shot('planner');
+ // 4a. the family chooses the first day of its menu week (ladybug report: shopping on Saturday → menu Saturday to Friday)
+ if(size==='mobile'||size==='desktop'){const pick=page.locator('#week-start-day');await pick.waitFor();assert.equal(await pick.inputValue(),'1','Monday by default');
+  await pick.selectOption('6');await page.waitForTimeout(250);
+  const first=await page.evaluate(`Object.keys(currentWeek().days)[0]`),wd=await page.evaluate(`parseDate(Object.keys(currentWeek().days)[0]).getDay()`);assert.equal(wd,6,`${label}: menu week starts on Saturday (${first})`);
+  assert.equal(await page.evaluate(`Object.keys(state.weeks).every(k=>parseDate(k).getDay()===1)`),true,'stored weeks stay keyed by Monday');
+  assert.equal(await page.evaluate(`state.preferences.weekStartDay`),6,'family-wide setting saved');
+  await textOk('planner-saturday');await shot('planner-saturday');
+  await page.evaluate(`view='shopping';render()`);assert.equal(await page.evaluate(`shopDates().join(' ')`),await page.evaluate(`[weekStart,addDays(weekStart,6)].join(' ')`));assert.equal(await page.evaluate(`parseDate(shopDates()[0]).getDay()`),6,'whole-week shopping from Saturday');
+  await page.evaluate(`view='planner';render()`);await page.locator('#week-start-day').selectOption('1');await page.waitForTimeout(200);assert.equal(await page.evaluate(`parseDate(Object.keys(currentWeek().days)[0]).getDay()`),1,'back to Monday')}
  // 4b. meal editor opens with the meal's ingredients (ladybug report: “không thấy nguyên liệu cho bữa ăn này”)
  if(size==='mobile'||size==='desktop'){const d=await page.evaluate(`Object.keys(currentWeek().days).find(d=>currentWeek().days[d].dinner.recipes.length)`);await page.evaluate(`familyEditMeal(${JSON.stringify(d)},'dinner')`);
   const box=page.locator('#modal-root .meal-ingredients');await box.waitFor();assert.equal(await box.evaluate((e:any)=>e.open),true);
@@ -73,4 +82,4 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  // 6. connection label in the chosen language (it said “Online” in Vietnamese)
  const net=await page.locator('#network-status').innerText().catch(()=>'');if(net.trim())assert.equal(net.trim(),lang==='en'?'Online':'Trực tuyến',`${label}: connection label`);
  assert.deepEqual(errors,[],label+': no page errors');await ctx.close()}
-await browser.close();console.log('PASS v1.7.6: whole plate on dish cards, talk button in the middle of the voice sheet, calendar away shown in “Who is eating?” and lifted when back home, “Chi tiêu” translated with a member called Chi, More / packed-lunch names on one line, weekly menu readable on desktop, no text cut off or word broken on 9 screens at 320 / 375 / 820 / 1280 in VI and EN')})().catch((e:any)=>{console.error(e);process.exit(1)});
+await browser.close();console.log('PASS v1.7.6: menu week from the family’s chosen day, whole plate on dish cards, talk button in the middle of the voice sheet, calendar away shown in “Who is eating?” and lifted when back home, “Chi tiêu” translated with a member called Chi, More / packed-lunch names on one line, weekly menu readable on desktop, no text cut off or word broken on 9 screens at 320 / 375 / 820 / 1280 in VI and EN')})().catch((e:any)=>{console.error(e);process.exit(1)});

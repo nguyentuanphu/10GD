@@ -1825,3 +1825,7 @@ input[type="date"]::-webkit-date-and-time-value,input[type="time"]::-webkit-date
 .meal-ingredients{padding:10px 14px;margin:0 0 14px}
 .meal-ingredients>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .meal-ing-dish h4{margin:10px 0 4px}
+/* v1.7.6 · menu week start picker next to the week switch */
+.week-start-pick{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
+.week-start-pick span{font-size:max(calc(14px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--muted);white-space:nowrap}
+.week-start-pick select{width:auto;min-width:120px;min-height:44px}

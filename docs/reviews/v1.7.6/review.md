@@ -28,7 +28,7 @@ Branch `release/v1.7.6` from `main` at `c751349` (Release v1.7.5). **Not deploy-
 | 14 | Report 4 Nov: “Đã dừng và ô màu cam là gì… Thử lại và Gỡ gói… màn hình trắng rồi về homepage” | The status now reads **Mic đang tắt** instead of “Đã dừng”. The accurate-voice notice explains in one line that the white screen was the phone running out of memory and that the app switched accurate voice off. It also says what **Thử lại** (test once more) and **Gỡ gói** (delete the downloaded pack) do. |
 | 15 | Report 4 Nov: “Ô ngày và bữa bị đè lên nhau. Ô ngày to quá” | iOS date boxes have a fixed native width and height. They now shrink to their column and keep the normal 44 px height, and in the voice card the two fields stack on phones. This could not be reproduced in Chromium; check on the iPhone. |
 | 16 | Report 4 Nov: microphone asked on every hold | Same fix as row 9. |
-| — | Report 5 Nov: menu should cover the family's own shopping week (e.g. Saturday to Friday) | **Not built yet. Needs owner approval of the plan (rule 4).** Every week is stored from Monday, so changing the start day touches stored family data. |
+| 17 | Report 5 Nov: “Người dùng phải được tự ý chọn menu cover từ ngày nào… sáng thứ 7… cover từ thứ 7 cho đến t6” | The owner approved the plan on 6 Nov: one setting for the whole family. **Tuần thực đơn bắt đầu** (Thứ 2 … Chủ nhật, default Thứ 2) sits next to the week switch on the weekly menu. The weekly menu, the week switch, **Lên thực đơn cả tuần**, **Lặp lại tuần trước** and the whole-week shopping list all follow that 7-day window. Stored data is unchanged: weeks stay keyed by their Monday, and a Saturday-to-Friday window is a view over the two stored weeks, so edits change the stored days. Auto-plan now schedules by weekday (Mon–Thu dinner, Friday dinner, Saturday lunch, Weekends feast Sat dinner → Mon breakfast), which gives the same result as before for a Monday week. |
 
 ## Text audit — every screen, VI and EN, 320 / 375 / 820 / 1280 px
 
@@ -61,6 +61,8 @@ New suite `test:v176-fixes:browser` (in `test:all`). In VI and EN at 320, 375, 8
 
 - the talk button sits above the words box and shows without scrolling;
 - the dish picture sits whole inside its card frame;
+- choosing Saturday makes the menu week and whole-week shopping start on Saturday, and stored weeks stay keyed by Monday;
+- the meal editor lists the meal's ingredients;
 
 - calendar away is shown as Away, and is lifted when the member is set back home;
 - “Chi tiêu” is translated with a member called Chi;
