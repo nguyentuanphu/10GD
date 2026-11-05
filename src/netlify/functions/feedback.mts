@@ -13,7 +13,7 @@ import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount,accountStore} from '../lib/accounts.mjs';
 import {platformSettings,roleFor,csrfFor,writeAudit,readIndex} from '../lib/studio.mjs';
 import {notifyAccount} from '../lib/scout-notify.mjs';
-import {access,submit,mine,markSeen,reporterConfirm,reporterKey,inbox,detail,shotOf,update,setMode,setTester,testerRows,feedbackConfig,ownerMessage,replyMessage,unreadCount,FB_LIMITS} from '../lib/feedback.mjs';
+import {access,submit,mine,markSeen,reporterConfirm,reporterKey,inbox,devExport,detail,shotOf,update,setMode,setTester,testerRows,feedbackConfig,ownerMessage,replyMessage,unreadCount,FB_LIMITS} from '../lib/feedback.mjs';
 
 const BASE_HEADERS={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const admins=(env:any)=>String(env?.STUDIO_ADMINS||'').split(',').map((x:string)=>x.trim().toLowerCase()).filter(Boolean);
@@ -50,11 +50,12 @@ export function createFeedbackHandler({getStoreFn=getStore,env=process.env,nowFn
    if(op.startsWith('studio-')){
     if(!ctx)return json({error:'Cần đăng nhập tài khoản.',errorEn:'Sign in to your account first.',login:'/login'},401);
     const ps=await platformSettings(getStoreFn,{env,now}),role=roleFor(username!,env,ps.values);
-    if(role!=='owner'){await writeAudit(getStoreFn,{actor:username!,role:role||'none',action:'access_denied',target:{type:'feedback',id:op},result:'denied'},now);return json({error:'Chỉ chủ Studio xem được góp ý.',errorEn:'Only the Studio owner can view feedback.'},403)}
+    if(!(role==='owner'||role==='admin'||(role==='moderator'&&!['studio-mode','studio-tester'].includes(op)))){await writeAudit(getStoreFn,{actor:username!,role:role||'none',action:'access_denied',target:{type:'feedback',id:op},result:'denied'},now);return json({error:'Chỉ chủ Studio xem được góp ý.',errorEn:'Only the Studio owner can view feedback.'},403)}
     const audit=(action:string,target:any=null,extra:any={})=>writeAudit(getStoreFn,{actor:username!,role,action,target,...extra},now);
     if(!isRead){const token=request.headers.get('x-studio-csrf')||'',want=csrfFor(ctx.sessionKey);if(!origin||token.length!==want.length||!timingSafeEqual(Buffer.from(token),Buffer.from(want)))return json({error:'Phiên Studio đã hết hạn. Tải lại trang.',errorEn:'Studio session token mismatch. Reload the page.'},403)}
     const overview=async()=>({config:await feedbackConfig(getStoreFn),...await testerRows(getStoreFn,env)});
     if(op==='studio-inbox'&&isRead)return json({...await inbox(getStoreFn,{status:q('status'),type:q('type'),route:q('route'),reporter:q('reporter'),page:+q('page')||1,size:+q('size')||25}),...await overview()});
+    if(op==='studio-export'&&isRead){const items=await devExport(getStoreFn);await writeAudit(getStoreFn,{actor:username!,role,action:'feedback_export',target:{type:'feedback',id:'open'},count:items.length},now);return json({items})}
     if(op==='studio-detail'&&isRead){const d=await detail(getStoreFn,q('id'));await audit('feedback_view',{type:'feedback',id:d.id});return json(d)}
     if(op==='studio-shot'&&isRead){const s=await shotOf(getStoreFn,q('id'));if(!s)return json({error:'Không có ảnh.',errorEn:'No picture.'},404);await audit('feedback_view_shot',{type:'feedback',id:q('id')});return json({shot:s})}
     if(op==='studio-update'&&method==='POST'){

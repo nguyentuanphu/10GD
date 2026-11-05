@@ -172,6 +172,12 @@ window.addEventListener('hashchange',()=>{view=location.hash.slice(1)||'today';r
 // Saves use the scoped key (guest/… or account/<family>/…) from storage-context.ts.
 window.addEventListener('storage',e=>{if(e.key===storageScope+KEY&&e.newValue){try{const other=JSON.parse(e.newValue);if(validImport(other)){if(unsaved){toast('Có thay đổi từ tab khác. Xuất sao lưu trước khi tải lại.',true);return}state=other;render();toast('Đã cập nhật thay đổi từ tab khác trên thiết bị này.')}}catch(err){}}});
 if('serviceWorker'in navigator&&location.protocol!=='file:'){navigator.serviceWorker.register('./sw.js').catch(()=>toast('Chế độ offline chưa sẵn sàng. Các chức năng đang mở vẫn dùng được.',true))}
+// v1.7.5 (owner request 5 Nov 2026): a Studio button in the top bar for accounts that have a Studio role. The answer is
+// asked once per session from op=access (no audit entry) and only when signed in and online.
+async function installStudioLink(){try{if(document.querySelector('.studio-link'))return;const sess=typeof accountSession!=='undefined'?accountSession:null;if(!sess||sess.mode==='guest'||!navigator.onLine)return;let ok=null;try{ok=sessionStorage.getItem('bep-studio-access')}catch{}
+ if(ok===null){const r=await fetch('/.netlify/functions/studio?op=access',{credentials:'same-origin',cache:'no-store'});const d=r.ok?await r.json():{studio:false};ok=d.studio?'1':'0';try{sessionStorage.setItem('bep-studio-access',ok)}catch{}}
+ if(ok!=='1'||document.querySelector('.studio-link'))return;const a=document.createElement('a');a.className='studio-link';a.href='/studio.html';a.textContent='Studio';a.setAttribute('aria-label',typeof tr==='function'?tr('Mở Studio','Open Studio'):'Mở Studio');a.title=a.getAttribute('aria-label')!;document.querySelector('.top-actions')?.prepend(a)}catch{}}
+setTimeout(installStudioLink,1200);
 // v1.7.5: opening the app clears the Home Screen badge (urgent / không ăn / absence notices).
 function clearAppIconBadge(){try{navigator.serviceWorker?.controller?.postMessage({type:'clear-badge'})}catch{}}
 clearAppIconBadge();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')clearAppIconBadge()});

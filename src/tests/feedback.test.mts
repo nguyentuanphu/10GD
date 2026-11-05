@@ -118,6 +118,10 @@ let firstId='';
 {clock+=3600000;const before=(await listLog(getStoreFn,'audit',{now:clock,limit:100})).items.length;
  const inbox=await call('studio-inbox&status=open&reporter=tina',{cookie:henry});assert.equal(inbox.status,200);assert.ok(inbox.d.rows.some((r:any)=>r.id===firstId));assert.ok(inbox.d.rows.every((r:any)=>r.reporter==='tina'&&r.tester));assert.ok(inbox.d.routes.includes('planner'));
  assert.equal((await call('studio-inbox',{cookie:tina})).status,403,'inbox owner-only');
+ // v1.7.5 “Sao chép cho dev”: open reports with text, context and errors, never the reporter; audited; Studio roles only
+ const ex=await call('studio-export',{cookie:henry});assert.equal(ex.status,200);const it=ex.d.items.find((r:any)=>r.id===firstId);assert.ok(it,'open report exported');assert.equal(it.note,'Nút Lưu không phản hồi khi sửa món');assert.equal(it.ctx.route,'planner');
+ assert.ok(!JSON.stringify(ex.d).includes('tina')&&ex.d.items.every((r:any)=>!('reporter' in r)&&!('notes' in r)&&!('replies' in r)),'no reporter, notes or replies in the export');
+ assert.equal((await call('studio-export',{cookie:tina})).status,403,'export is Studio-only');
  assert.equal((await call('studio-inbox&type=idea',{cookie:henry})).d.rows.length,0,'type filter');
  const det=await call('studio-detail&id='+firstId,{cookie:henry});assert.equal(det.status,200);assert.equal(det.d.note,'Nút Lưu không phản hồi khi sửa món');assert.equal(det.d.reporter.tester,true);assert.ok(!('key' in det.d.reporter),'device key never leaves the server');
  assert.equal((await call('studio-update',{method:'POST',cookie:henry,body:{id:firstId,status:'triaged'}})).status,403,'CSRF on updates');

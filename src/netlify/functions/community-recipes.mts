@@ -32,7 +32,7 @@ export function createCommunityRecipesHandler({getStoreFn=getStore,env=process.e
    if(op.startsWith('studio-')){
     if(!ctx)return json({error:'Cần đăng nhập tài khoản.',errorEn:'Sign in first.'},401);
     const actor=ctx.account.username,role=roleFor(actor,env,settings.values);
-    if(role!=='owner'||ctx.account.disabled===true){await writeAudit(getStoreFn,{actor,role:role||'none',action:'access_denied',target:{type:'community-recipes',id:op},result:'denied'},now);return json({error:'Chỉ chủ Studio được xem mục này.',errorEn:'Owner only.'},403)}
+    if(!(role==='owner'||role==='admin'||role==='moderator')||ctx.account.disabled===true){await writeAudit(getStoreFn,{actor,role:role||'none',action:'access_denied',target:{type:'community-recipes',id:op},result:'denied'},now);return json({error:'Chỉ chủ Studio được xem mục này.',errorEn:'Owner only.'},403)}
     const audit=(action:string,target:any=null,extra:any={})=>writeAudit(getStoreFn,{actor,role,action,target,...extra},now);
     if(op==='studio-list'&&isRead){const d=await recipeModerationData(getStoreFn);await audit('view_community_recipes',null,{details:{items:d.items.length}});return json({...d,enabled,flagSource:settings.sources['flags.communityRecipes']||'default'})}
     if(op==='studio-photo'&&isRead){const id=url.searchParams.get('id')||'';const bytes=await recipePhoto(getStoreFn,id,{admin:true});await audit('view_community_recipe_photo',{type:'community-recipe',id},{result:bytes?'ok':'missing'});return bytes?image(bytes,'no-store'):json({error:'Không có ảnh.',errorEn:'No photo.'},404)}

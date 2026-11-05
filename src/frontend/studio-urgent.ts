@@ -50,7 +50,7 @@ function devices(d:any){if(!d)return `<span class="muted">${T('Không có chi ti
 const fixLine=(r:string)=>{const f=fixText(r);return f?`<p class="ur-fix"><b>${T('Cách khắc phục','How to fix')}:</b> ${esc(f)}</p>`:''};
 
 function render(){
- if(!host)return;const owner=me?.role==='owner',d=data;
+ if(!host)return;const owner=(me?.role==='owner'||me?.role==='admin'),d=data;
  const head=`<header class="page-head"><div><h1 tabindex="-1">${T('Tin khẩn','Urgent')}</h1><p class="muted">${T('Vì sao tin khẩn không gửi được thông báo, 30 ngày gần nhất. Chỉ thông tin gửi (giờ, số máy, lý do) — nội dung tin là riêng tư và không hiển thị.','Why urgent messages did not deliver a notification, last 30 days. Delivery metadata only (time, device counts, reason) — message text is private and never shown.')}</p></div>
   <div class="row"><button class="btn" id="ur-refresh" type="button">↻ ${T('Làm mới','Refresh')}</button></div></header>`;
  if(error){host.innerHTML=head+`<div class="card notice"><p>${esc(error)}</p></div>`;wire();return}

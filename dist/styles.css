@@ -1551,3 +1551,8 @@ html[data-theme="dark"] .who-busy-row.away{background:#2a302d;color:#e4e8e2;bord
 .pack-table .pack-cell input.check{width:22px;height:22px;margin:0}
 .pack-all-btn{min-width:0;width:100%;padding:0}
 .who-busy-pack b{font-weight:650}
+
+/* v1.7.5 · Studio button in the top bar (Studio roles only) */
+.studio-link{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--white);color:var(--green);font-weight:650;text-decoration:none;white-space:nowrap}
+.studio-link:focus-visible{outline:3px solid #c87649;outline-offset:2px}
+html[data-theme="dark"] .studio-link{background:#18221d;color:var(--text)}
