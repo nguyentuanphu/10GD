@@ -1562,13 +1562,22 @@ html[data-theme="dark"] .studio-link{background:#18221d;color:var(--text)}
 html[data-theme="dark"] .account-menu .account-menu-item.studio-menu-item{color:var(--text)}
 /* v1.7.5: release number at the end of Account & settings */
 .app-version{margin:18px 4px 4px;color:var(--muted);font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));text-align:center}
-/* v1.7.5 Phase C: online price per shopping row, deal chips, price history */
+/* v1.7.5 Phase C: online price per shopping row (one tappable line), deal chips, price meter, price history */
+.ui-art{width:1.25em;height:1.25em;flex:none;display:inline-block;vertical-align:-.25em}
+.ua-flicker{animation:ua-flicker 1.6s ease-in-out infinite}.ua-nudge-down{animation:ua-nudge-down 1.8s ease-in-out infinite}.ua-nudge-up{animation:ua-nudge-up 1.8s ease-in-out infinite}
+@keyframes ua-flicker{0%,100%{transform:scale(1)}50%{transform:scale(1.06,.94)}}@keyframes ua-nudge-down{0%,100%{transform:translateY(0)}50%{transform:translateY(2px)}}@keyframes ua-nudge-up{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@media(prefers-reduced-motion:reduce){.ui-art *{animation:none!important}}
 .shop-row.has-online{flex-wrap:wrap}
-.online-line{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:-4px 0 0 32px;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--text)}
-.online-line .online-price small{display:inline;font-size:inherit;color:var(--muted)}
-.online-line .was,.price-history-store .was{color:var(--muted)}
-.online-history-btn{min-height:44px;padding:0 12px;margin-left:auto}
-.deal-chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-weight:600;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));line-height:1.4}
+.online-line{flex-basis:100%;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-height:44px;margin:-4px 0 0 32px;padding:4px 6px 4px 10px;border:1px solid var(--line);border-radius:12px;background:var(--white);color:var(--text);text-align:left;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));cursor:pointer}
+.online-line:hover{border-color:#c9d6cc}
+.online-line .ol-store{display:inline-flex;align-items:center;gap:4px;color:var(--muted);white-space:nowrap}
+.online-line .ol-price{font-size:max(calc(15px * var(--fs-mul,1)),var(--fs-floor,0px));white-space:nowrap}
+.online-line .ol-open{margin-left:auto;display:inline-flex;align-items:center;gap:2px}
+@media(max-width:480px){.online-line .ol-cart,.online-line .ol-chart{display:none}}
+.ol-dot{width:.9em;height:.9em;vertical-align:-.1em}.ol-chev{width:1em;height:1em;opacity:.6}
+.h-art{margin-right:6px}
+html[data-theme="dark"] .online-line{background:#18221d;border-color:#2c3a32}
+.deal-chip{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;border-radius:999px;padding:3px 10px;font-weight:600;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));line-height:1.4}
 .deal-real{background:#e3f1e6;color:#1d5a37}
 .deal-fake{background:#fbe9dd;color:#8a3d12}
 .deal-unverified{background:#eef0ea;color:#4f5a52}
@@ -1577,7 +1586,7 @@ html[data-theme="dark"] .deal-real{background:#1f3a2a;color:#bfe6c9}
 html[data-theme="dark"] .deal-fake{background:#43281a;color:#ffd0b0}
 html[data-theme="dark"] .deal-unverified{background:#2a302c;color:#d5ddd7}
 html[data-theme="dark"] .deal-higher{background:#3d321b;color:#f3dca8}
-.deal-list{list-style:none;margin:0 0 8px;padding:0}.deal-list li{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.deal-list{list-style:none;margin:0 0 8px;padding:0}.deal-list li{border-bottom:1px solid var(--line)}.deal-row{display:flex;align-items:center;gap:8px;width:100%;min-height:52px;padding:6px 0;border:0;background:none;color:inherit;text-align:left;cursor:pointer}.deal-row .dr-name{flex:1;min-width:0}.deal-row .dr-name small{display:flex;align-items:center;gap:4px}
 .deal-warn{margin:8px 0 2px;font-weight:600;color:#8a3d12}html[data-theme="dark"] .deal-warn{color:#ffd0b0}
 .price-history-store{padding:12px 0;border-bottom:1px solid var(--line)}.price-history-store h3{margin-bottom:2px}.price-history-store h3 small{display:inline}
 .price-history-stats{margin:8px 0 4px}
@@ -1588,4 +1597,16 @@ html[data-theme="dark"] .deal-higher{background:#3d321b;color:#f3dca8}
 .price-spark figcaption{display:flex;justify-content:space-between;gap:8px;max-width:420px;color:var(--muted);font-size:max(calc(11px * var(--fs-mul,1)),var(--fs-floor,0px))}
 html[data-theme="dark"] .price-spark path{stroke:#8fd0a7}html[data-theme="dark"] .price-spark circle{fill:#8fd0a7}html[data-theme="dark"] .price-spark circle.special{fill:#f0a77a}
 .shop-purchase-row .online-line{grid-column:2/-1;margin:0}
+.simple-screen .shop-row.has-online .online-line,.shop-row.has-online.shop-purchase-row .online-line{grid-column:2/-1;margin:0}
 @media(max-width:760px){.shop-row.has-online .online-line{grid-column:2/-1;margin:0}}
+.price-history-store .deal-chip{white-space:normal;border-radius:12px;margin:4px 0}
+.price-meter{margin:12px 0 6px;max-width:420px}
+.pm-bar{position:relative;height:10px;margin:26px 8px 6px;border-radius:999px;background:linear-gradient(90deg,#d9efe0,#f3efe2 50%,#f8dccb)}
+.pm-usual{position:absolute;top:-4px;width:2px;height:18px;margin-left:-1px;background:var(--muted)}
+.pm-now{position:absolute;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#7b8379;border:2.6px solid #3b2a4f}
+.pm-now.good{background:#4caf6e}.pm-now.warn{background:#ffb84d}
+.pm-now b{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px))}
+.pm-scale{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px))}
+html[data-theme="dark"] .pm-bar{background:linear-gradient(90deg,#1f3a2a,#2a302c 50%,#43281a)}
+.pm-now.edge-l b{left:-6px;transform:none}.pm-now.edge-r b{left:auto;right:-6px;transform:none}
+.deal-row .dr-name small{white-space:nowrap}

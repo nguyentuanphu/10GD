@@ -48,25 +48,28 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
   await page.locator('[data-scout="refresh"]').click();await page.waitForSelector('.online-line',{timeout:10000});await page.waitForTimeout(200);
   return{context,page,errors};
  }
- const noOverflow=async(page:any,label:string)=>{const w=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert.ok(w<=1,label+': horizontal overflow '+w)};
- const targets=async(page:any,label:string)=>{const small=await page.evaluate(()=>[...document.querySelectorAll('.online-history-btn,.modal .btn')].filter((e:any)=>e.offsetParent&&e.getBoundingClientRect().height<43.5).map((e:any)=>e.textContent.trim().slice(0,30)));assert.deepEqual(small,[],label+': touch targets under 44 px')};
+ const noOverflow=async(page:any,label:string)=>{const w=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert.ok(w<=1,label+': horizontal overflow '+w);const clipped=await page.evaluate(()=>[...document.querySelectorAll('.online-line,.deal-row')].flatMap((b:any)=>{const r=b.getBoundingClientRect();return[...b.querySelectorAll('.deal-chip,.ol-price,.ol-store,.ol-chev')].filter((c:any)=>{const q=c.getBoundingClientRect();return q.width&&(q.right>r.right+0.5||q.left<r.left-0.5)}).map((c:any)=>c.textContent.trim())}));assert.deepEqual(clipped,[],label+': nothing cut off inside the price line')};
+ const targets=async(page:any,label:string)=>{const small=await page.evaluate(()=>[...document.querySelectorAll('.online-line,.deal-row,.modal .btn')].filter((e:any)=>e.offsetParent&&e.getBoundingClientRect().height<43.5).map((e:any)=>e.textContent.trim().slice(0,30)));assert.deepEqual(small,[],label+': touch targets under 44 px')};
  const rowOf=(page:any,name:string)=>page.locator('.shop-row.has-online',{hasText:name}).first();
  const shot=async(page:any,name:string,size:string)=>(await page.evaluate(()=>{const t=document.getElementById('toast');if(t)t.style.visibility='hidden'}),page.screenshot({path:`${out}/${name}-${sizes[size].width}x${sizes[size].height}.png`}));
  const scrollTo=async(page:any,sel:string)=>{await page.evaluate((sel:string)=>{const el=document.querySelector(sel);if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-80)},sel);await page.waitForTimeout(150)};
  try{
   // 1. shopping rows (VI, phone): cheapest online price per row and its deal check
   {const {context,page,errors}=await open('mobile');
-   const milk=await rowOf(page,'Sữa tươi').locator('.online-line').innerText();assert.match(milk,/Coles \$2\.60/);assert.match(milk,/\$1\.30\/L/);assert.match(milk,/KM thật −16%/);assert.match(milk,/so 2 nơi/);
-   const rice=await rowOf(page,'Gạo').locator('.online-line').innerText();assert.match(rice,/KM ảo/);assert.match(rice,/giá thường vẫn \$14\.00/);assert.match(rice,/giá “trước” bị đẩy lên/);
-   assert.match(await rowOf(page,'Tôm').locator('.online-line').innerText(),/Thấp nhất 12 tuần/);const lw=await rowOf(page,'Sữa tươi').evaluate((r:any)=>r.querySelector('.online-line').getBoundingClientRect().width/r.getBoundingClientRect().width);assert.ok(lw>0.8,'online line spans the row ('+lw.toFixed(2)+')');assert.match(await rowOf(page,'Finish').locator('.online-line').innerText(),/chưa đủ lịch sử/);assert.match(await rowOf(page,'Giấy').locator('.online-line').innerText(),/Đắt hơn thường lệ 18%/);
+   const milk=await rowOf(page,'Sữa tươi').locator('.online-line').innerText();assert.match(milk,/Coles\s*\$2\.60/);assert.match(milk,/KM thật −16%/);assert.doesNotMatch(milk,/\/L|so 2 nơi|thường/,'one short line: details live in the history sheet');
+   assert.match(await rowOf(page,'Sữa tươi').locator('.online-line').getAttribute('aria-label'),/Giá online rẻ nhất: Coles \$2\.60\. Khuyến mãi thật: rẻ hơn giá thường \(\$3\.10\) 16%\. Xem lịch sử giá\./);
+   assert.equal(await page.locator('.online-line .ui-art').first().evaluate((e:any)=>e.tagName.toLowerCase()),'svg');assert.ok(!/\p{Extended_Pictographic}/u.test(await page.locator('.online-line').first().innerText()),'own art, no phone emoji');
+   const oneLine=await rowOf(page,'Gạo').locator('.online-line').evaluate((e:any)=>e.getBoundingClientRect().height);assert.ok(oneLine<=72,'compact: at most two short lines on a phone ('+oneLine+' px)');
+   const rice=await rowOf(page,'Gạo').locator('.online-line').innerText();assert.match(rice,/KM ảo/);assert.doesNotMatch(rice,/trước/);
+   assert.match(await rowOf(page,'Tôm').locator('.online-line').innerText(),/Thấp nhất/);const lw=await rowOf(page,'Sữa tươi').evaluate((r:any)=>r.querySelector('.online-line').getBoundingClientRect().width/r.getBoundingClientRect().width);assert.ok(lw>0.8,'online line spans the row ('+lw.toFixed(2)+')');assert.match(await rowOf(page,'Finish').locator('.online-line').innerText(),/KM/);assert.match(await rowOf(page,'Giấy').locator('.online-line').innerText(),/\+18%/);
    assert.equal(await page.locator('.shop-row',{hasText:'Bánh tráng'}).locator('.online-line').count(),0,'no online price → nothing shown');
    const deals=await page.locator('.scout-deals').innerText();assert.match(deals,/Khuyến mãi tuần này/);assert.match(deals,/Sữa tươi/);assert.match(deals,/Tôm/);assert.match(deals,/không rẻ hơn thường lệ/);assert.match(deals,/Gạo/);
    await noOverflow(page,'list 375');await targets(page,'list 375');await scrollTo(page,'.shop-row.has-online');await shot(page,'shopping-list-vi-light',  'mobile');
    await scrollTo(page,'.scout-deals');await shot(page,'deals-card-vi-light','mobile');
    // 2. price history sheet with chart, usual / low / high, attribution
-   await rowOf(page,'Sữa tươi').locator('[data-scout="price-history"]').click();await page.waitForSelector('.modal .price-spark');const m=await page.locator('.modal').innerText();
+   await rowOf(page,'Sữa tươi').locator('.online-line').click();await page.waitForSelector('.modal .price-spark');const m=await page.locator('.modal').innerText();
    assert.match(m,/Lịch sử giá · Sữa tươi/);assert.match(m,/thường \$3\.10 · thấp nhất \$3\.10 · cao nhất \$3\.20/);assert.match(m,/Price data by Pinch/);assert.equal(await page.locator('.modal .price-history-store').count(),2,'both retailers');
-   assert.ok(await page.locator('.modal .price-spark circle.special').count()>=1,'special marked on the chart');assert.ok((await page.locator('.modal .price-spark svg').first().getAttribute('aria-label'))!.includes('thấp nhất'),'chart has a text description');
+   assert.ok(await page.locator('.modal .price-spark circle.special').count()>=1,'special marked on the chart');assert.match(await page.locator('.modal .price-meter').first().getAttribute('aria-label'),/Hôm nay \$2\.60; 6 tuần qua từ \$3\.10 đến \$3\.20, thường \$3\.10\./);assert.match(await page.locator('.modal').innerText(),/Khuyến mãi thật: rẻ hơn giá thường \(\$3\.10\) 16%/);assert.ok((await page.locator('.modal .price-spark svg').first().getAttribute('aria-label'))!.includes('thấp nhất'),'chart has a text description');
    await noOverflow(page,'history 375');await targets(page,'history 375');await shot(page,'price-history-vi-light','mobile');await page.locator('.modal [data-action="close-modal"]').last().click();
    // 3. release number at the end of Account & settings
    await page.locator('.top-avatar').click();await page.locator('#account-menu [data-personal="account-security"]').click();await page.waitForSelector('#app-version');
@@ -76,10 +79,11 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
   // 4. other sizes, English, dark
   for(const [size,lang,theme] of [['narrow','vi','light'],['tablet','en','dark'],['desktop','en','light'],['desktop','vi','dark']] as const){
    const {context,page,errors}=await open(size,lang,theme);await noOverflow(page,'list '+size);await targets(page,'list '+size);
-   if(lang==='en'){const t=await rowOf(page,'Sữa tươi').locator('.online-line').innerText();assert.match(t,/Online Coles \$2\.60/);assert.match(t,/Real deal −16%/);assert.match(await rowOf(page,'Gạo').locator('.online-line').innerText(),/Not a real deal/);assert.match(await page.locator('.scout-deals').innerText(),/Deals this week/)}
+   if(lang==='en'){const t=await rowOf(page,'Sữa tươi').locator('.online-line').innerText();assert.match(t,/Coles\s*\$2\.60/);assert.match(t,/Real deal −16%/);assert.match(await rowOf(page,'Gạo').locator('.online-line').innerText(),/Fake deal/);assert.match(await page.locator('.scout-deals').innerText(),/Deals this week/)}
+   if(size==='tablet'||size==='desktop'){const h=await rowOf(page,'Gạo').locator('.online-line').evaluate((e:any)=>e.getBoundingClientRect().height);assert.ok(h<=50,'one line on '+size+' ('+h+' px)')}
    await scrollTo(page,'.shop-row.has-online');await shot(page,`shopping-list-${lang}-${theme}`,size);
-   await rowOf(page,'Gạo').locator('[data-scout="price-history"]').click();await page.waitForSelector('.modal .price-spark');await noOverflow(page,'history '+size);await targets(page,'history '+size);
-   if(lang==='en')assert.match(await page.locator('.modal').innerText(),/Price history · .*Not a real deal.*“was” price inflated/s);
+   await rowOf(page,'Gạo').locator('.online-line').click();await page.waitForSelector('.modal .price-spark');await noOverflow(page,'history '+size);await targets(page,'history '+size);
+   if(lang==='en')assert.match(await page.locator('.modal').innerText(),/Price history · .*Marked special, but the usual price is \$14\.00; the “was” price is higher than ever seen/s);
    await shot(page,`price-history-${lang}-${theme}`,size);await page.keyboard.press('Escape');
    if(lang==='en'){await page.locator('.top-avatar').click();await page.locator('#account-menu [data-personal="account-security"]').click();await page.waitForSelector('#app-version');assert.match(await page.locator('#app-version').innerText(),new RegExp('FamTray · Version '+version.replace(/\./g,'\\.')+' · build '))}
    assert.deepEqual(errors,[]);await context.close()}
