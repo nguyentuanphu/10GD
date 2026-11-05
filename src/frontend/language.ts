@@ -52,7 +52,7 @@ Object.assign(EN_UI,{
 'Nguyên liệu cho phần món trong bữa này':'Ingredients for this meal’s portion',
 'Nguyên liệu cho':'Ingredients for',
 // v1.7.5 deep audit: dialogs reached from Shopping, Pantry, Menu and Today
-'+ Thêm cửa hàng':'+ Add store','Bỏ qua':'Skip','Bỏ qua lần mua này':'Skip this purchase','Chia sẻ với nhà mình':'Share with the family',
+'+ Thêm cửa hàng':'+ Add store','Sao chép nội dung':'Copy text','Trình duyệt chưa cho phép sao chép tự động. Chọn nội dung bên dưới và sao chép.':'The browser did not allow automatic copying. Select the text below and copy it.','Chọn toàn bộ':'Select all','Đã sao chép. Bạn có thể dán vào Messenger.':'Copied. You can paste it into Messenger.','Bỏ qua':'Skip','Bỏ qua lần mua này':'Skip this purchase','Chia sẻ với nhà mình':'Share with the family',
 'Chưa chọn / tùy nơi':'Not chosen / anywhere','Chỉ thay các bữa chưa khóa và chưa nấu. Điểm danh, ghi chú và trạng thái nấu sẽ được đặt lại cho các bữa được sao chép.':'Only meals that are not locked or cooked are replaced. Attendance, notes and cooked status are reset for the copied meals.',
 'Có sẵn, còn hạn nhập':'In stock, not past entered expiry','Cần cho các bữa chưa nấu':'Needed for meals not yet cooked','Cần mua thêm':'Still to buy','Dùng cho':'Used for',
 'Dự kiến tổng tiền (AUD)':'Estimated total (AUD)','Hạn dùng (tùy chọn)':'Use-by date (optional)','Kiểm tra trước khi đi chợ':'Check before shopping','Lưu lựa chọn':'Save choice','Lưu thực phẩm':'Save food',

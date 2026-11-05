@@ -148,12 +148,12 @@ async function main(){
    assert.equal(await page.evaluate(()=>(window as any).__gum),1,'asked once');
    assert.deepEqual(errors,[]);await context.close()}
   {const {page,context,errors}=await open({ios:true,lang:'vi',mic:{delay:100,deny:true}});await page.evaluate('closeModal();voiceModal()');await page.waitForSelector('#voice-text');
-   const b=await page.locator('#voice-continue').boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.mouse.up();
+   await page.locator('#voice-continue').scrollIntoViewIfNeeded();const b=await page.locator('#voice-continue').boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.mouse.up();
    await page.waitForFunction(()=>/Micro đang bị chặn/.test(document.getElementById('voice-status')?.textContent||''));assert.equal(await page.evaluate(()=>(window as any).__recs.length),0);
    assert.deepEqual(errors,[]);await context.close()}
   // Desktop (not iOS): unchanged — the first hold records directly.
   {const {page,context,errors}=await open({viewport:sizes.desktop,lang:'vi'});await page.evaluate('closeModal();voiceModal()');await page.waitForSelector('#voice-text');
-   const b=await page.locator('#voice-continue').boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.waitForTimeout(200);
+   await page.locator('#voice-continue').scrollIntoViewIfNeeded();const b=await page.locator('#voice-continue').boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.waitForTimeout(200);
    assert.equal(await page.evaluate(()=>(window as any).__recs.filter((r:any)=>r.started).length),1);await page.mouse.up();assert.deepEqual(errors,[]);await context.close()}
   console.log('PASS iPhone permission-first tap (VI/EN), denied microphone message, desktop unchanged');
  }finally{await browser.close()}
