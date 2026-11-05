@@ -14,6 +14,8 @@ Branch `release/v1.7.6` from `main` at `c751349` (Release v1.7.5). **Not deploy-
 | 5 | “Tôi hôm nay away nhưng vẫn ghi là at home” | The calendar's away only took the portion off. **Ai ăn bữa này?** showed the meal's own attendance (*At home*). | **Ai ăn bữa này?** shows **Không ăn / Away** whenever the calendar says away (or busy with no portion). Choosing *At home / Packed / Pending* for that meal lifts the calendar entry for that one meal, so *Tuần này ai bận* and *Ai ăn bữa này?* always agree. |
 | 6 | Names in the packed-lunch table split (“Every / one”, “Ba / Phú”, “Mẹ / Mi”) | The name column was about 50 px wide on phones. | On phones each name sits on its own line above that person's seven day boxes. Names stay whole, and the boxes keep their 44 px touch area. |
 | 7 | “Chữ bị wrap xuống dòng nhìn không đẹp. Audit lại tất cả” | — | Full text audit (below). |
+| 8 | “Nút hold to talk nằm quá sâu phía dưới, nên để nó nằm ở giữa” | — | In the voice sheet, VI/EN and **Giữ để nói** now sit right under the listening status, above the words box. On a 375 px phone they show without scrolling, and the button is 64 px tall. |
+| 9 | “Đã cho phép bật micro rồi mà mỗi lần hold to talk lại đòi thêm cho phép” | iOS asks again whenever a page opens the microphone after all its earlier streams were stopped. Every hold opened its own stream (level meter, on-device voice) and stopped it on release. | One microphone stream is shared while the voice sheet is open and reused by every hold. It is released when the sheet closes, when the app goes to the background, or after 2 idle minutes. The iPhone may still ask once each time the app is opened again, which is iOS's rule for web apps. |
 
 ## Text audit — every screen, VI and EN, 320 / 375 / 820 / 1280 px
 
@@ -44,6 +46,8 @@ Fixed along the way:
 
 New suite `test:v176-fixes:browser` (in `test:all`). In VI and EN at 320, 375, 820 and 1280 px, it checks:
 
+- the talk button sits above the words box and shows without scrolling;
+
 - calendar away is shown as Away, and is lifted when the member is set back home;
 - “Chi tiêu” is translated with a member called Chi;
 - More tools and packed-lunch names stay on one line;
@@ -59,12 +63,13 @@ Other suites:
   - the folded header shows the trip plan;
   - online lines stay on the list;
   - opening So Giá is remembered.
+- **`voice-commands:browser` / `voice-ios-crash:browser`:** the second and third holds reuse the microphone (one permission request), and closing the sheet releases it. These assertions replace the earlier “stream stopped on every release”, which was the behaviour the owner reported. The meter's audio context is still released on every release.
 - **Seed data:** the So Giá seed in six existing suites is marked as already migrated (`fold176`) and has its cards opened, because those suites exercise the opened panel. No assertion was removed or weakened.
 
 ## Local checks run
 
 - `npm run check`, `npm run typecheck` and `npm test` pass.
-- All 39 browser suites ran locally. `units` and `voice-default` failed once because the app was rebuilt while they were running; both pass when run again. The new `v176-fixes` suite passes.
+- All 39 browser suites ran locally; the 7 voice suites ran again after the microphone change and all pass. `units` and `voice-default` failed once because the app was rebuilt while they were running; both pass when run again. The new `v176-fixes` suite passes.
 
 ## Evidence
 

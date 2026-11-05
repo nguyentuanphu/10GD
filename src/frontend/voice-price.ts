@@ -344,6 +344,18 @@ function voiceLangToggleRefresh(attr,lang,auto=false){if(typeof document==='unde
 // ---------- v1.7.1: hold to talk (default everywhere) ----------
 // Owner decision: hold the mic button to talk, release to stop and send. Tap-to-toggle stays an option in Voice
 // settings. A stored choice from before v1.7.1 is reset once to hold; a later explicit choice is kept.
+// v1.7.6 (owner, iPhone: “đã cho phép micro rồi mà mỗi lần hold to talk lại đòi thêm cho phép”): iOS asks again whenever a
+// page opens the microphone after every earlier stream was stopped. Each hold used to open its own stream (level meter,
+// on-device voice) and stop it on release. Now one stream is shared while the voice sheet is open and reused by every
+// hold; it is stopped when the sheet closes, the app goes to the background, or after 2 idle minutes.
+const BEP_MIC:any={stream:null,timer:0,opening:null};
+function bepMicLive(){const s=BEP_MIC.stream;if(!s)return false;const tracks=(s.getAudioTracks?.()||s.getTracks?.()||[]);return tracks.length>0&&tracks.some((t:any)=>t.readyState!=='ended')}
+async function bepMicOpen(){clearTimeout(BEP_MIC.timer);if(bepMicLive())return BEP_MIC.stream;if(BEP_MIC.opening)return BEP_MIC.opening;
+ BEP_MIC.opening=navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}}).then((s:any)=>{BEP_MIC.stream=s;return s}).finally(()=>{BEP_MIC.opening=null});return BEP_MIC.opening}
+function bepMicIdle(ms=120000){clearTimeout(BEP_MIC.timer);BEP_MIC.timer=setTimeout(bepMicRelease,ms)}
+function bepMicRelease(){clearTimeout(BEP_MIC.timer);try{BEP_MIC.stream?.getTracks().forEach((t:any)=>t.stop())}catch{}BEP_MIC.stream=null}
+if(typeof document!=='undefined')document.addEventListener('visibilitychange',()=>{if(document.hidden)bepMicRelease()});
+(globalThis as any).bepMicOpen=bepMicOpen;(globalThis as any).bepMicIdle=bepMicIdle;(globalThis as any).bepMicRelease=bepMicRelease;
 const VOICE_HOLD_KEY='bep-voice-ptt',VOICE_HOLD_MIGRATED='bep-voice-ptt-v171',VOICE_HOLD_MIN_MS=250;
 function voiceHoldMode(){try{if(localStorage.getItem(VOICE_HOLD_MIGRATED)!=='1'){localStorage.removeItem(VOICE_HOLD_KEY);localStorage.setItem(VOICE_HOLD_MIGRATED,'1')}return localStorage.getItem(VOICE_HOLD_KEY)!=='0'}catch{return true}}
 function voiceSetHoldMode(on){try{localStorage.setItem(VOICE_HOLD_MIGRATED,'1');localStorage.setItem(VOICE_HOLD_KEY,on?'1':'0')}catch{}}

@@ -56,7 +56,12 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  await textOk('planner');await shot('planner');
  // 5. the other screens: nothing cut off, no word broken in the middle
  for(const v of ['shopping','recipes','pantry','expenses','insights','products']){await page.evaluate(`view=${JSON.stringify(v)};render();scrollTo(0,0)`);await textOk(v);if(v==='shopping')await shot('shopping')}
+ // 7. voice sheet (owner: “nút hold to talk nằm quá sâu phía dưới”): the talk button sits under the status, above the words box
+ await page.evaluate('closeModal();voiceModal()');await page.locator('#voice-text').waitFor();
+ const pos=await page.evaluate(()=>{const r=(s:string)=>document.querySelector(s)!.getBoundingClientRect();return{btn:r('#voice-continue').top,box:r('#voice-text').top,bottom:r('#voice-continue').bottom}});
+ assert.ok(pos.btn<pos.box,`${label}: talk button above the words box`);assert.ok(pos.bottom<viewport.height,`${label}: talk button visible without scrolling (${Math.round(pos.bottom)}px)`);
+ await textOk('voice');await shot('voice');await page.evaluate('closeModal()');
  // 6. connection label in the chosen language (it said “Online” in Vietnamese)
  const net=await page.locator('#network-status').innerText().catch(()=>'');if(net.trim())assert.equal(net.trim(),lang==='en'?'Online':'Trực tuyến',`${label}: connection label`);
  assert.deepEqual(errors,[],label+': no page errors');await ctx.close()}
-await browser.close();console.log('PASS v1.7.6: calendar away shown in “Who is eating?” and lifted when back home, “Chi tiêu” translated with a member called Chi, More / packed-lunch names on one line, weekly menu readable on desktop, no text cut off or word broken on 9 screens at 320 / 375 / 820 / 1280 in VI and EN')})().catch((e:any)=>{console.error(e);process.exit(1)});
+await browser.close();console.log('PASS v1.7.6: talk button in the middle of the voice sheet, calendar away shown in “Who is eating?” and lifted when back home, “Chi tiêu” translated with a member called Chi, More / packed-lunch names on one line, weekly menu readable on desktop, no text cut off or word broken on 9 screens at 320 / 375 / 820 / 1280 in VI and EN')})().catch((e:any)=>{console.error(e);process.exit(1)});

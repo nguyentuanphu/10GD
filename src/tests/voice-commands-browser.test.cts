@@ -128,9 +128,13 @@ async function main(){
    await page.locator('#voice-noise-hint').waitFor({state:'visible',timeout:3000});assert.match(await page.locator('#voice-noise-hint').innerText(),/Ồn quá — nói gần máy hơn/);
    await check(page,'ptt holding');await shot(page,'ptt-meter-noisy-vi-light-mobile');
    await page.mouse.up();await page.waitForTimeout(80);assert.equal(await page.evaluate(()=>!!(window as any).__live()),false,'release stops');
-   assert.deepEqual(await page.evaluate(()=>[(window as any).__tracksStopped,(window as any).__ctxClosed]),[1,1],'microphone stream and audio context released');assert.equal(await page.locator('#voice-noise-hint').isVisible(),false);
+   // v1.7.6: the microphone stream stays shared while the sheet is open (iOS asked again on every hold); the meter's audio
+   // context is released at once, the stream when the sheet closes (asserted below)
+   assert.deepEqual(await page.evaluate(()=>[(window as any).__tracksStopped,(window as any).__ctxClosed,(window as any).__gum]),[0,1,1],'audio context released; one shared microphone stream');assert.equal(await page.locator('#voice-noise-hint').isVisible(),false);
    await btn.focus();await page.keyboard.down('Space');await page.waitForFunction(()=>!!(window as any).__live());await page.keyboard.up('Space');await page.waitForTimeout(60);assert.equal(await page.evaluate(()=>!!(window as any).__live()),false,'keyboard hold/release');assert.equal(await page.evaluate(()=>document.activeElement?.id),'voice-continue','focus stays on the talk button');
    assert.equal(await page.evaluate(()=>(window as any).__recs.length),2);
+   assert.equal(await page.evaluate(()=>(window as any).__gum),1,'the second hold reuses the microphone: no second permission request');
+   await page.evaluate('closeModal()');assert.equal(await page.evaluate(()=>(window as any).__tracksStopped),1,'closing the sheet releases the microphone');
    assert.deepEqual(errors,[]);await context.close()}
   // 6. Pluggable recogniser: an on-device recogniser registered from outside drives the same sheet, even offline.
   {const {page,context,errors}=await open({lang:'en'});

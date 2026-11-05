@@ -76,7 +76,7 @@ async function main(){
     await page.evaluate('closeModal();voiceModal()');await page.waitForSelector('#vl-rec-note');
     assert.match(await page.locator('#vl-rec-note').innerText(),/giọng nói thường của máy[\s\S]*đã tắt trên máy này/);await page.locator('#vl-fail').waitFor();
     await page.locator('#vl-rec-note').scrollIntoViewIfNeeded();await page.screenshot({path:`${out}/sheet-after-crash-vi-light-mobile-375x812.png`});shots++;
-    const mic=page.locator('#voice-continue');const box=await mic.boundingBox();if(!box)throw Error('no mic');await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(200);
+    const mic=page.locator('#voice-continue');await mic.scrollIntoViewIfNeeded();const box=await mic.boundingBox();if(!box)throw Error('no mic');await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.waitForTimeout(200);
     assert.equal(await page.evaluate(()=>(window as any).__recs.filter((r:any)=>r.started).length),1,'browser recogniser used');await page.mouse.up();await page.waitForTimeout(100);
     await page.evaluate('closeModal()');
     // One-time: a reload does not show it again; the device stays marked; still no worker.
@@ -141,11 +141,15 @@ async function main(){
    assert.match(await page.locator('.voice-hold-hint').innerText(),lang==='vi'?/Cho phép micro/:/Allow the microphone/,'the hint next to the button explains the prompt (not “hold longer”)');
    assert.doesNotMatch(await mic.innerText(),/Đang nghe|Listening/,'not stuck in “listening”');
    await page.screenshot({path:`${out}/ios-permission-first-tap-${lang}-light-mobile-375x812.png`});shots++;
-   await page.waitForFunction(()=>(window as any).__gumStopped===1);assert.match(await page.locator('#voice-status').innerText(),lang==='vi'?/Đã bật micro — giờ giữ nút để nói/:/Microphone on — now hold the button to talk/);
+   // v1.7.6: the permitted stream is kept for the holds that follow (iOS asked again on every hold when it was stopped)
+   await page.waitForFunction(()=>/Đã bật micro|Microphone on/.test(document.getElementById('voice-status')?.textContent||''));assert.match(await page.locator('#voice-status').innerText(),lang==='vi'?/Đã bật micro — giờ giữ nút để nói/:/Microphone on — now hold the button to talk/);assert.equal(await page.evaluate(()=>(window as any).__gumStopped||0),0,'stream kept open for the next hold');
    const b=await mic.boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.waitForTimeout(250);
    assert.equal(await page.evaluate(()=>(window as any).__recs.filter((r:any)=>r.started&&!r.ended).length),1,'second hold records');assert.match(await mic.innerText(),lang==='vi'?/Đang nghe/:/Listening/);
    await page.mouse.up();await page.waitForTimeout(150);assert.doesNotMatch(await mic.innerText(),/Đang nghe|Listening/,'released');
    assert.equal(await page.evaluate(()=>(window as any).__gum),1,'asked once');
+   await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.waitForTimeout(250);await page.mouse.up();await page.waitForTimeout(100);
+   assert.equal(await page.evaluate(()=>(window as any).__gum),1,'a third hold still does not ask again');
+   await page.evaluate('closeModal()');assert.equal(await page.evaluate(()=>(window as any).__gumStopped),1,'closing the sheet releases the microphone');
    assert.deepEqual(errors,[]);await context.close()}
   {const {page,context,errors}=await open({ios:true,lang:'vi',mic:{delay:100,deny:true}});await page.evaluate('closeModal();voiceModal()');await page.waitForSelector('#voice-text');
    await page.locator('#voice-continue').scrollIntoViewIfNeeded();const b=await page.locator('#voice-continue').boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.mouse.up();

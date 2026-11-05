@@ -508,7 +508,8 @@ async function voiceLocalActivate(id,{force=false,quiet=false}={}){
 function voiceLocalNote(kind){if(typeof document==='undefined')return;const text=kind==='loading'?vlT('Đang nạp gói giọng nói trên máy… lần đầu có thể mất 10–60 giây.','Loading the on-device speech pack… the first time can take 10–60 seconds.'):kind==='recognizing'?vlT('Đang nhận dạng…','Recognising…'):kind==='listening'?vlT('Đang nghe trên máy (không gửi âm thanh).','Listening on this device (no audio sent).'):'';for(const el of [document.getElementById('voice-status'),document.getElementById('vp-status')])if(el&&text)el.textContent=text;const live=document.getElementById('voice-live')||document.getElementById('vp-live');if(live){if(kind==='loading'||kind==='recognizing')live.dataset.local=kind;else delete live.dataset.local}}
 const VOICE_LOCAL_WORKLET=`class BepCapture extends AudioWorkletProcessor{process(inputs){const i=inputs[0];if(i&&i.length&&i[0].length){const chans=i.map(c=>c.slice(0));this.port.postMessage(chans,chans.map(c=>c.buffer))}return true}}registerProcessor('bep-capture',BepCapture)`;
 async function voiceLocalRecorder(onFrame){
- const stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+ // v1.7.6: the shared voice-sheet stream (voice-price.js) so iOS does not ask for the microphone on every hold
+ const shared=typeof bepMicOpen==='function',stream=shared?await bepMicOpen():await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
  let ctx;try{ctx=new AudioContext({sampleRate:16000})}catch{ctx=new AudioContext()}
  let src;try{src=ctx.createMediaStreamSource(stream)}catch{await ctx.close().catch(()=>{});ctx=new AudioContext();src=ctx.createMediaStreamSource(stream)}
  const url=URL.createObjectURL(new Blob([VOICE_LOCAL_WORKLET],{type:'text/javascript'}));
@@ -516,7 +517,7 @@ async function voiceLocalRecorder(onFrame){
  const node=new AudioWorkletNode(ctx,'bep-capture',{numberOfInputs:1,numberOfOutputs:0,channelCount:1});
  const rate=ctx.sampleRate;node.port.onmessage=e=>onFrame(voiceLocalResample(voiceLocalDownmix(e.data),rate,16000));
  src.connect(node);if(ctx.state==='suspended')await ctx.resume().catch(()=>{});
- return{stop(){try{src.disconnect()}catch{}try{node.port.onmessage=null;node.disconnect()}catch{}for(const t of stream.getTracks())t.stop();ctx.close().catch(()=>{})}};
+ return{stop(){try{src.disconnect()}catch{}try{node.port.onmessage=null;node.disconnect()}catch{}if(shared)bepMicIdle();else for(const t of stream.getTracks())t.stop();ctx.close().catch(()=>{})}};
 }
 // Recognizer object (same shape as registerVoiceRecognizer expects).
 function voiceLocalRecognizer(id,deps={}){

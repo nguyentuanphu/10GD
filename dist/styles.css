@@ -1805,3 +1805,6 @@ details.scout-wanted:not([open]),details.scout-community:not([open]){padding-top
 @media(max-width:420px){#product-retailer-filter{min-width:140px;padding-left:10px;padding-right:26px}}
 .who-busy-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;column-gap:10px}
 .week-switch{flex-wrap:wrap;row-gap:4px}
+/* v1.7.6 · voice sheet: the talk button in the middle, right under the listening status */
+.voice-controls.voice-controls-top{margin:10px 0 14px}
+.voice-controls.voice-controls-top .voice-hold-btn,.voice-controls.voice-controls-top .voice-continue-big{min-height:64px}
