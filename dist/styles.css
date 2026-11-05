@@ -1814,3 +1814,14 @@ details.scout-wanted:not([open]),details.scout-community:not([open]){padding-top
 .recipe-visual .food-illustration{max-height:100%;max-width:100%;aspect-ratio:1/1}
 .lib-card .recipe-visual.lib-card-img{background:var(--art-bg,#f3efe3)}
 html[data-theme="dark"] .lib-card .recipe-visual.lib-card-img{background:#24312a}
+/* v1.7.6 · ladybug report 4 Nov (iPhone, voice card): "Ô hiển thị ngày và bữa bị đè lên nhau. Ô ngày bị to quá".
+   iOS gives date inputs a fixed native width and height, so in a two-column row the date box ran over the meal box.
+   Date inputs now shrink to their column and keep the normal 44 px field height; on phones the two fields stack. */
+input[type="date"],input[type="time"],input[type="datetime-local"]{min-width:0;max-width:100%;box-sizing:border-box;-webkit-appearance:none;appearance:none;min-height:44px;line-height:1.3}
+input[type="date"]::-webkit-date-and-time-value,input[type="time"]::-webkit-date-and-time-value{text-align:left;margin:0}
+.voice-card .form-grid>*,.form-grid>.field{min-width:0}
+@media(max-width:480px){.voice-card .form-grid{grid-template-columns:minmax(0,1fr)!important}}
+/* v1.7.6 · meal editor: the meal's ingredients on top */
+.meal-ingredients{padding:10px 14px;margin:0 0 14px}
+.meal-ingredients>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.meal-ing-dish h4{margin:10px 0 4px}
