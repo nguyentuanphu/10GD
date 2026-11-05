@@ -71,7 +71,7 @@ Evidence: `docs/reviews/v1.7/*/review.md`.
 - **Voice:** Auto language by default (no VI/EN choice needed), Vietlish understanding ("1kg salmon", "sa mơn"), spoken lists split into items, did-you-mean confirmation, commands (bought / remove / change meal / not eating tonight / pantry / urgent message / questions), read-back and spoken confirmation, regional words and per-family learned corrections, mic level meter and push-to-talk. Optional on-device recognition (download, off by default) and opt-in text-only voice statistics in Studio.
 - **Price Scout:** say a price ("rau muống hai đô rưỡi một bó, chợ Cabramatta"), recipe dictation for family recipes, and Studio's Price Scout switch/states now really control the app (off hides everything; states greyed out in Studio).
 - **FamTray Scout (Auto Scout):** desktop extension (semi-auto by default, Auto behind Studio + device switches), multi-computer network managed in Studio, "Ghép máy tính này" pairing in My kitchen, results flow into community prices.
-- **Bandwidth & offline:** lite first install (~0.4 MB precache instead of ~17.7 MB), lazy 740-recipe catalogue, thumbnails, "Tải về để dùng offline" with sizes (Wi-Fi only by default), offline readiness card, self-hosted receipt OCR.
+- **Bandwidth & offline:** lite first install (~0.4 MB precache instead of ~17.7 MB), lazy recipe catalogue (475 since v1.7.5), thumbnails, "Tải về để dùng offline" with sizes (Wi-Fi only by default), offline readiness card, self-hosted receipt OCR.
 - **Force update:** idle devices update automatically; busy devices see a notice; Studio can require a minimum build (blocking screen after data is saved).
 - **Fixes:** Today invite button no longer flashes; startup setup prompt is an inline notice instead of a popup.
 - **Release process:** full suite on GitHub CI in parallel (AGENTS.md 14–17); no hosting builds before DEPLOY (rule 18).
@@ -173,7 +173,7 @@ Scheduled Functions check due reminders every 15 minutes. Roles and selected rec
 
 ## Artwork
 
-The built-in catalog has 106 ingredient illustrations and 740 recipe-specific illustrations, explicitly mapped to the matching ingredient IDs and recipe signatures. The existing gouache artwork is extended with companion sheets; all built-in recipes have painted artwork. Family-authored or edited recipes retain an ingredient-led fallback. See [ARTWORK.md](ARTWORK.md) and [the audit and review](docs/reviews/artwork/review.md). Illustrations are not exact recipe photographs, and family data is preserved.
+The built-in catalog has 106 ingredient illustrations and recipe-specific illustrations for every reference recipe (475 offered since v1.7.5; retired ones keep theirs), explicitly mapped to the matching ingredient IDs and recipe signatures. The existing gouache artwork is extended with companion sheets; all built-in recipes have painted artwork. Family-authored or edited recipes retain an ingredient-led fallback. See [ARTWORK.md](ARTWORK.md) and [the audit and review](docs/reviews/artwork/review.md). Illustrations are not exact recipe photographs, and family data is preserved.
 
 ## Family-authored menu
 

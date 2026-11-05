@@ -59,7 +59,7 @@ function registerBuiltInOfflinePacks(){
  cachePack('art','art',()=>otr('Toàn bộ hình món ăn','All dish pictures'),()=>otr('Ảnh nhỏ cho mọi món và nguyên liệu trong danh sách.','Small pictures for every dish and ingredient in lists.'),OFFLINE_CACHES.art);
  cachePack('sheets','sheets',()=>otr('Hình chi tiết độ nét cao','High-detail dish pictures'),()=>otr('Chỉ cần nếu muốn ảnh lớn sắc nét khi xem chi tiết món offline.','Only needed for sharp large pictures in recipe details offline.'),OFFLINE_CACHES.sheets);
  registerOfflinePack({id:'catalog',large:false,
-  label:()=>{const n=offlineManifestCache?.catalogCount||740;return otr(`Kho ${n} món (dữ liệu)`,`${n}-recipe library (data)`)},
+  label:()=>{const n=offlineManifestCache?.catalogCount||475;return otr(`Kho ${n} món (dữ liệu)`,`${n}-recipe library (data)`)},
   description:()=>otr('Bộ lọc thư viện, gợi ý thực đơn và món mẫu khi offline. Món ăn của gia đình luôn có sẵn.','Library filters, menu suggestions and sample dishes offline. Family recipes are always available.'),
   sizeBytes:async()=>(await offlineManifest()).catalog.transfer,
   status:async()=>{const m=await offlineManifest(),c=await offlineCacheCount(OFFLINE_CACHES.catalog,m.catalog.files);return{state:c.have?'ready':'none',have:c.have,total:1}},
