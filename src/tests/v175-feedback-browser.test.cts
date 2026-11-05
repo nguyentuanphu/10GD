@@ -81,7 +81,7 @@ for(const [size,opts] of SIZES){
  await tap(page.locator('[data-house="pack-save"]'));await page.locator('#pack-schedule-form').waitFor({state:'detached'});
  const packed=await page.evaluate((id:string)=>{const g=(globalThis as any).eval;const s=g('state'),today=g('sydneyDate()');let n=0,total=0;for(let i=0;i<14;i++){const d=g(`addDays('${today}',${i})`),w=s.weeks[g(`monday('${d}')`)],m=w?.days?.[d]?.lunch;if(!m||m.cooked)continue;const wd=new Date(d+'T12:00:00Z').getUTCDay();if(wd>=1&&wd<=5){total++;if(m.attendance[id]==='packed')n++}}return {n,total,schedule:s.packSchedule}},firstId);
  assert.ok(packed.total>0&&packed.n===packed.total,'weekday lunches set to Mang đi for the scheduled person '+JSON.stringify(packed));
- assert.match(await page.locator('#main .who-busy-pack').innerText(),/🍱 Mang cơm trưa:.*T2–T6/,'packed-lunch line on Today');
+ assert.match(await page.locator('#main .who-busy-pack').innerText(),/Mang cơm trưa:.*T2–T6/,'packed-lunch line on Today');assert.equal(await page.locator('#main .who-busy-pack span.emo-art').count(),1,'lunch-box drawing, not an emoji');
  await noOverflow('today with pack line');await page.locator('#main .who-busy-pack').scrollIntoViewIfNeeded();await shot('today-pack-line');
  // ---- Today and settings: Cỡ chữ switch
  await page.evaluate(()=>{location.hash='today'});await page.waitForTimeout(500);await noOverflow('today');await shot('today');
