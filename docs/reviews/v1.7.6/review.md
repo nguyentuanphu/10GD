@@ -18,6 +18,18 @@ Branch `release/v1.7.6` from `main` at `c751349` (Release v1.7.5). **Not deploy-
 | 9 | “Đã cho phép bật micro rồi mà mỗi lần hold to talk lại đòi thêm cho phép” | iOS asks again whenever a page opens the microphone after all its earlier streams were stopped. Every hold opened its own stream (level meter, on-device voice) and stopped it on release. | One microphone stream is shared while the voice sheet is open and reused by every hold. It is released when the sheet closes, when the app goes to the background, or after 2 idle minutes. The iPhone may still ask once each time the app is opened again, which is iOS's rule for web apps. |
 | 10 | Open item from the 5 Nov handoff note: “rounded card top crops the top of the plate” | Dish pictures are square, but the recipe card frame is 4:3, so the plate's top and bottom were cut. | The square picture now fits inside the frame and the whole plate shows. The other handoff item (meal checkboxes in English in Vietnamese mode) was already fixed in v1.7.5; checked again. |
 
+## Ladybug reports and Studio (owner, 6 Nov — second round)
+
+| # | Report | Change |
+|---|--------|--------|
+| 11 | “Copy for developer… why doesn't it feed through directly?” | Every new ladybug report is also filed as an issue in a **private** GitHub repository (`FEEDBACK_GITHUB_REPO` + `FEEDBACK_GITHUB_TOKEN`, a fine-grained token with Issues: read and write on that repository only). The server checks that the repository is private and refuses to file otherwise; the app repository `10GD` is public. Each issue carries the reporter's words, the type and the technical context only: no account, device key, IP, e-mail or picture. A failure never blocks the report. Studio → Góp ý shows the issue link, and **Gửi lên GitHub** files the open reports that have none yet (20 per press, never twice). The feature stays off until both variables are set. |
+| 12 | No way back to the app from Studio | **← Về app / Back to app** is always visible in Studio's top bar (short **← App** on narrow phones, 44 px). |
+| 13 | Report 2 Nov: “Không thấy nguyên liệu cho bữa ăn này” | The meal editor opens with **Nguyên liệu cho bữa này**: each dish's ingredients for this meal's portions. |
+| 14 | Report 4 Nov: “Đã dừng và ô màu cam là gì… Thử lại và Gỡ gói… màn hình trắng rồi về homepage” | The status now reads **Mic đang tắt** instead of “Đã dừng”. The accurate-voice notice explains in one line that the white screen was the phone running out of memory and that the app switched accurate voice off. It also says what **Thử lại** (test once more) and **Gỡ gói** (delete the downloaded pack) do. |
+| 15 | Report 4 Nov: “Ô ngày và bữa bị đè lên nhau. Ô ngày to quá” | iOS date boxes have a fixed native width and height. They now shrink to their column and keep the normal 44 px height, and in the voice card the two fields stack on phones. This could not be reproduced in Chromium; check on the iPhone. |
+| 16 | Report 4 Nov: microphone asked on every hold | Same fix as row 9. |
+| — | Report 5 Nov: menu should cover the family's own shopping week (e.g. Saturday to Friday) | **Not built yet. Needs owner approval of the plan (rule 4).** Every week is stored from Monday, so changing the start day touches stored family data. |
+
 ## Text audit — every screen, VI and EN, 320 / 375 / 820 / 1280 px
 
 A script walked Today, Weekly menu, Shopping, Recipes, Pantry, Spending, Insights, Products, How to use, plus the More tools sheet, the packed-lunch sheet and the calendar, with the owner's five family names. It flagged:
