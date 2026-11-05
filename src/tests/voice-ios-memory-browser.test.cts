@@ -70,14 +70,14 @@ async function main(){
    assert.equal(JSON.parse(await ls(page,'bep-voice-local-crashes')).n,1);
    await page.evaluate('voiceModal()');await page.waitForSelector('#vl-dictate-voice-text');
    const tip=page.locator('#vl-dictate-voice-text');
-   assert.match(await tip.innerText(),lang==='vi'?/Trên iPhone: chạm vào ô chữ rồi bấm 🎤 trên bàn phím để đọc chính tả \(tiếng Việt rất tốt\)\.[\s\S]*Mở bàn phím để nói/:/On iPhone: tap the text box, then tap 🎤 on the keyboard to dictate[\s\S]*Open the keyboard to talk/);
+   assert.match(await tip.innerText(),lang==='vi'?/Trên iPhone: chạm vào ô chữ rồi bấm\s+trên bàn phím để đọc chính tả \(tiếng Việt rất tốt\)\.[\s\S]*Mở bàn phím để nói/:/On iPhone: tap the text box, then tap\s+on the keyboard to dictate[\s\S]*Open the keyboard to talk/);
    await check(page,`sheet ${size} ${lang} ${theme}`,'#vl-dictate-voice-text');
    const box=await tip.boundingBox(),vw=sizes[size].width;assert.ok(box&&box.x>=0&&box.x+box.width<=vw+1,'tip inside the viewport');
    await tip.scrollIntoViewIfNeeded();await page.waitForTimeout(60);
    await page.screenshot({path:`${out}/sheet-dictation-tip-${lang}-${theme}-${size}-${vw}x${sizes[size].height}.png`});shots++;
    await tip.locator('[data-vl-dictate]').click();
    assert.equal(await page.evaluate(()=>document.activeElement?.id),'voice-text','keyboard opens on the text box');
-   assert.match(await page.locator('#voice-status').innerText(),lang==='vi'?/Bấm 🎤 trên bàn phím/:/Tap 🎤 on the keyboard/);
+   assert.match(await page.locator('#voice-status').innerText(),lang==='vi'?/Bấm\s+trên bàn phím/:/Tap\s+on the keyboard/);
    if(size==='mobile'&&lang==='vi'&&theme==='light'){
     // Language switch keeps the tip in the app language.
     await page.evaluate("appLanguage='en';render()");await page.waitForFunction(()=>/On iPhone/.test(document.getElementById('vl-dictate-voice-text')?.textContent||''));await page.evaluate("appLanguage='vi';render()");

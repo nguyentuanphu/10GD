@@ -104,6 +104,8 @@ if (!/^\d+\.\d+\.\d+$/.test(appVersion)) throw new Error('package.json version i
 if (!loader.includes("'__BEP_APP_VERSION__'")) throw new Error('Startup loader version placeholder is missing');
 writeFileSync('dist/bootstrap.js', loader.replace(packHashPattern, `const packHash = '${hash}'`).replace("'__BEP_BUILD_ID__'", `'${buildId}'`).replace("'__BEP_APP_VERSION__'", `'${appVersion}'`));
 // v1.7.2: `extension` = the Price Check extension version this release ships (Studio flags older computers).
+// v1.7.5: Studio shows emoji as our drawings too; the drawings ride inside studio.js (no extra request before content)
+{const studioJs=readFileSync('dist/studio.js','utf8');if(!studioJs.startsWith('/* emoji-art */'))writeFileSync('dist/studio.js','/* emoji-art */\n'+readFileSync('dist/emoji-art.js','utf8').replace(/\/\/# sourceMappingURL=.*$/gm,'')+'\n'+studioJs)}
 writeFileSync('dist/build.json', JSON.stringify({version: appVersion, build: buildId, pack: hash, extension: JSON.parse(readFileSync('extension/manifest.json','utf8')).version}));
 
 // The service worker keeps only the current catalog download (older versions are replaced on update).

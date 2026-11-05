@@ -70,7 +70,7 @@ async function main(){
   //    each confirm opens the existing confirm sheet (source voice, family-only), then the sheet returns.
   for(const[size,lang,theme]of[['mobile','vi','light'],['tablet','en','dark'],['desktop','vi','dark']]as const){
    const {page,context,errors}=await open({viewport:sizes[size],lang,theme});
-   const btn=page.locator('.scout-capture [data-scout="voice"]');await btn.scrollIntoViewIfNeeded();assert.equal((await btn.innerText()).trim(),lang==='en'?'🎙 Say a price':'🎙 Nói giá');
+   const btn=page.locator('.scout-capture [data-scout="voice"]');await btn.scrollIntoViewIfNeeded();assert.equal((await btn.innerText()).trim(),lang==='en'?'Say a price':'Nói giá');assert.equal(await btn.locator('span.emo-art').count(),1,'microphone drawing, not an emoji');
    await check(page,'capture '+size,PRICE_TARGETS);
    await btn.click();await page.waitForSelector('#vp-text');
    assert.deepEqual(await recLangs(page),[lang==='en'?'en-AU':'vi-VN'],'recognition starts in the UI language');
