@@ -411,6 +411,8 @@ function shell(){document.documentElement.lang=lang;document.title='Studio · Fa
  for(const g of $$('.ngroup',nav)){const has=!!$('a[aria-current]',g);g.classList.toggle('has-current',has);if(has){const b=$('[data-group-toggle]',g);if(b.getAttribute('aria-expanded')!=='true'){b.setAttribute('aria-expanded','true');$('.ngroup-items',g).hidden=false}}}
  const p=pages[cur],g=groups().find(x=>x.pages.includes(cur));$('#navcur').textContent=p&&!p.hidden?(lang==='en'?p.en:p.vi):T('Menu','Menu');$('#navbtn').title=g?T(g.vi,g.en):'';
  $('#navbtn').setAttribute('aria-label',T('Mở menu Studio','Open the Studio menu'));
+ // v1.7.6 (owner: no way back to the app from Studio on the phone): a visible “← App” in the top bar
+ {const b=$('#back-app');if(b){const l=b.querySelector('.back-app-label');if(l)l.textContent=lang==='en'?'Back to app':'Về app';b.setAttribute('aria-label',lang==='en'?'Back to the FamTray app':'Quay lại app Bếp Gia Đình')}}
  $('#lang').textContent=lang==='en'?'Tiếng Việt':'English';$('#lang').setAttribute('aria-label',lang==='en'?'Chuyển sang tiếng Việt':'Switch to English');
  $('#theme').textContent=({auto:T('Giao diện: tự động','Theme: auto'),light:T('Giao diện: sáng','Theme: light'),dark:T('Giao diện: tối','Theme: dark')} as any)[themePref];
  showVersion();$('#who').textContent=me?`${me.username} · ${canManage()?T('chủ','owner'):T('hỗ trợ','support')}`:'';$('#net').textContent=navigator.onLine?T('Trực tuyến','Online'):T('Ngoại tuyến','Offline');$('#net').className='net '+(navigator.onLine?'on':'off')}

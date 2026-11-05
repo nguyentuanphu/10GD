@@ -13,11 +13,12 @@ import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount,accountStore} from '../lib/accounts.mjs';
 import {platformSettings,roleFor,csrfFor,writeAudit,readIndex} from '../lib/studio.mjs';
 import {notifyAccount} from '../lib/scout-notify.mjs';
-import {access,submit,mine,markSeen,reporterConfirm,reporterKey,inbox,devExport,detail,shotOf,update,setMode,setTester,testerRows,feedbackConfig,ownerMessage,replyMessage,unreadCount,FB_LIMITS} from '../lib/feedback.mjs';
+import {access,submit,mine,markSeen,reporterConfirm,reporterKey,inbox,devExport,detail,shotOf,update,setMode,setTester,testerRows,feedbackConfig,ownerMessage,replyMessage,unreadCount,FB_LIMITS,setGithub,openWithoutGithub} from '../lib/feedback.mjs';
+import {fileIssue,githubConfig} from '../lib/feedback-github.mjs';
 
 const BASE_HEADERS={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const admins=(env:any)=>String(env?.STUDIO_ADMINS||'').split(',').map((x:string)=>x.trim().toLowerCase()).filter(Boolean);
-export function createFeedbackHandler({getStoreFn=getStore,env=process.env,nowFn=()=>Date.now(),notify}:any={}){
+export function createFeedbackHandler({getStoreFn=getStore,env=process.env,nowFn=()=>Date.now(),notify,fetchFn=fetch}:any={}){
  // notify(username, message): push to that account's own devices (quiet hours and per-device switches apply).
  const push=notify||((u:string,m:any)=>notifyAccount(getStoreFn,u,m));
  return async(request:Request,context?:any)=>{
@@ -35,7 +36,9 @@ export function createFeedbackHandler({getStoreFn=getStore,env=process.env,nowFn
    if(op==='submit'&&method==='POST'){
     const ip=request.headers.get('x-nf-client-connection-ip')||context?.ip||'';
     const r:any=await submit(getStoreFn,{body,username,deviceToken:device,ip,env,now});
-    if(r.status===201){const m=ownerMessage(r.record);for(const owner of admins(env))if(owner!==username){try{await push(owner,m)}catch(e:any){console.warn('Feedback owner push failed',e?.message)}}}
+    if(r.status===201){// v1.7.6: also filed as an issue in the private feedback repository (never blocks the report)
+     try{const gh:any=await fileIssue(r.record,{env,fetchFn});if(gh?.number)await setGithub(getStoreFn,r.record.id,gh,now);else if(gh?.error)console.warn('Feedback GitHub issue not filed',gh.error)}catch(e:any){console.warn('Feedback GitHub issue failed',e?.message)}
+     const m=ownerMessage(r.record);for(const owner of admins(env))if(owner!==username){try{await push(owner,m)}catch(e:any){console.warn('Feedback owner push failed',e?.message)}}}
     return json(r.body,r.status)}
    if(['mine','seen','confirm'].includes(op)){
     const a=await access(getStoreFn,{username,env}),who=reporterKey(username,device);
@@ -53,8 +56,12 @@ export function createFeedbackHandler({getStoreFn=getStore,env=process.env,nowFn
     if(!(role==='owner'||role==='admin'||(role==='moderator'&&!['studio-mode','studio-tester'].includes(op)))){await writeAudit(getStoreFn,{actor:username!,role:role||'none',action:'access_denied',target:{type:'feedback',id:op},result:'denied'},now);return json({error:'Chỉ chủ Studio xem được góp ý.',errorEn:'Only the Studio owner can view feedback.'},403)}
     const audit=(action:string,target:any=null,extra:any={})=>writeAudit(getStoreFn,{actor:username!,role,action,target,...extra},now);
     if(!isRead){const token=request.headers.get('x-studio-csrf')||'',want=csrfFor(ctx.sessionKey);if(!origin||token.length!==want.length||!timingSafeEqual(Buffer.from(token),Buffer.from(want)))return json({error:'Phiên Studio đã hết hạn. Tải lại trang.',errorEn:'Studio session token mismatch. Reload the page.'},403)}
-    const overview=async()=>({config:await feedbackConfig(getStoreFn),...await testerRows(getStoreFn,env)});
+    const overview=async()=>({config:await feedbackConfig(getStoreFn),...await testerRows(getStoreFn,env),github:githubConfig(env)?{repo:githubConfig(env)!.repo}:null});
     if(op==='studio-inbox'&&isRead)return json({...await inbox(getStoreFn,{status:q('status'),type:q('type'),route:q('route'),reporter:q('reporter'),page:+q('page')||1,size:+q('size')||25}),...await overview()});
+    // v1.7.6: file the open reports that have no GitHub issue yet (reports sent before the switch, or when GitHub was down)
+    if(op==='studio-github'&&method==='POST'){if(role!=='owner'&&role!=='admin')return json({error:'Chỉ chủ Studio làm được việc này.',errorEn:'Owner only.'},403);if(!githubConfig(env))return json({error:'Chưa cài FEEDBACK_GITHUB_REPO / FEEDBACK_GITHUB_TOKEN.',errorEn:'FEEDBACK_GITHUB_REPO / FEEDBACK_GITHUB_TOKEN are not set.',code:'not_configured'},400);
+     const list=await openWithoutGithub(getStoreFn,20);let filed=0,failed=0,lastError='';for(const rec of list){const gh:any=await fileIssue(rec,{env,fetchFn});if(gh?.number){await setGithub(getStoreFn,rec.id,gh,now);filed++}else{failed++;lastError=gh?.error||'';if(gh?.error==='repo-not-private')break}}
+     await audit('feedback_github_sync',{type:'feedback',id:'open'},{details:{filed,failed}});return json({filed,failed,error:lastError||null})}
     if(op==='studio-export'&&isRead){const items=await devExport(getStoreFn);await writeAudit(getStoreFn,{actor:username!,role,action:'feedback_export',target:{type:'feedback',id:'open'},count:items.length},now);return json({items})}
     if(op==='studio-detail'&&isRead){const d=await detail(getStoreFn,q('id'));await audit('feedback_view',{type:'feedback',id:d.id});return json(d)}
     if(op==='studio-shot'&&isRead){const s=await shotOf(getStoreFn,q('id'));if(!s)return json({error:'Không có ảnh.',errorEn:'No picture.'},404);await audit('feedback_view_shot',{type:'feedback',id:q('id')});return json({shot:s})}

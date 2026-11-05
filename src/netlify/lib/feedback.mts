@@ -125,7 +125,7 @@ export async function reporterConfirm(getStoreFn:any,who:string,id:any,fixed:boo
 
 // ---------- Studio ----------
 const row=(r:any,testers:any)=>({id:r.id,at:r.at,type:r.type,status:r.status,route:r.ctx?.route||'',platform:r.ctx?.platform||null,lang:r.ctx?.lang||'vi',hasShot:!!r.hasShot,replies:(r.replies||[]).length,notes:(r.notes||[]).length,
- reporter:r.reporter?.account||null,reporterRole:r.reporter?.role||'none',tester:!!(r.reporter?.account&&testers[r.reporter.account]),excerpt:String(r.note||'').slice(0,120),updatedAt:r.updatedAt||r.at});
+ reporter:r.reporter?.account||null,reporterRole:r.reporter?.role||'none',tester:!!(r.reporter?.account&&testers[r.reporter.account]),excerpt:String(r.note||'').slice(0,120),github:r.github?.number||null,updatedAt:r.updatedAt||r.at});
 export async function inbox(getStoreFn:any,{status='',type='',route='',reporter='',page=1,size=25}:any={}){
  const S=feedbackStore(getStoreFn),keys=(await keysOf(S,'r/',FB_LIMITS.inboxMax)),testers=await testerList(getStoreFn);
  const all=(await pool(keys,16,(k:string)=>readJSON(S,k))).filter(Boolean).map((r:any)=>row(r,testers)).sort((a:any,b:any)=>b.at.localeCompare(a.at));
@@ -170,3 +170,9 @@ export async function prune(getStoreFn:any,now=Date.now(),max=20000){const S=fee
 const TYPE_WORD:any={bug:['Lỗi','Bug'],looks:['Hiển thị sai','Looks wrong'],words:['Chữ / dịch','Words'],idea:['Ý tưởng','Idea'],other:['Khác','Other']};
 export function ownerMessage(rec:any){const t=TYPE_WORD[rec.type]||TYPE_WORD.other,where=rec.ctx?.route?' · #'+rec.ctx.route:'';return{type:'feedback',key:'feedback-new',tag:'feedback-new',url:'/#today',title:'Góp ý mới',enTitle:'New feedback',body:`${t[0]}${where}. Mở Studio → Góp ý.`,enBody:`${t[1]}${where}. Open Studio → Feedback.`}}
 export const replyMessage={type:'feedback',key:'feedback-reply',tag:'feedback-reply',url:'/#today',title:'Có trả lời góp ý của bạn',enTitle:'Your feedback has a reply',body:'Chạm con bọ rùa → Góp ý của tôi.',enBody:'Tap the ladybug → My feedback.'};
+
+// v1.7.6: the GitHub issue a report was filed as (lib/feedback-github.mts); kept on the report for Studio's link
+export async function setGithub(getStoreFn:any,id:string,gh:{number:number,url:string},now:number){if(!/^[a-f0-9]{18}$/.test(String(id||''))||!Number.isInteger(gh?.number))return null;
+ return editRecord(feedbackStore(getStoreFn),'r/'+id,(r:any)=>r?{...r,github:{number:gh.number,url:/^https:\/\/github\.com\//.test(gh.url)?gh.url:'',at:new Date(now).toISOString()}}:undefined)}
+export async function openWithoutGithub(getStoreFn:any,max=20){const S=feedbackStore(getStoreFn),keys=await keysOf(S,'r/',FB_LIMITS.inboxMax);
+ const all=(await pool(keys,16,(k:string)=>readJSON(S,k))).filter((r:any)=>r&&OPEN.includes(r.status)&&!r.github?.number).sort((a:any,b:any)=>String(a.at).localeCompare(String(b.at)));return all.slice(0,max)}
