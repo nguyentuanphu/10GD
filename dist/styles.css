@@ -1644,3 +1644,7 @@ html[data-theme="dark"] .trip-tab{background:#18221d;border-color:#2c3a32}html[d
 .trip-tab .tt-diff{display:block;color:var(--green2);font-weight:600;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px))}
 @container (max-width:520px){.trip-tab .tt-diff{grid-column:1/-1;grid-row:3}}
 html[data-theme="dark"] .trip-tab .tt-diff{color:#8fd0a7}
+/* v1.7.5: supermarket product photo over our drawing (the drawing shows if the photo cannot load) */
+.pp-wrap{position:relative;display:inline-block;line-height:0;flex:none}
+.pp-wrap .pp-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;border-radius:10px;z-index:1}
+html[data-theme="dark"] .pp-wrap .pp-img{background:#f4f4ef}

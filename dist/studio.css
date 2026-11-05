@@ -337,3 +337,5 @@ dialog::backdrop{background:#0008}
 /* === v1.7.2 studio-nav end === */
 /* v1.7.5: release number in the side panel */
 .studio-version{display:block;font-size:12px;line-height:1.4}
+/* v1.7.5: product photo in the online-price review */
+.online-prod{display:flex;align-items:center;gap:10px}.online-thumb{width:48px;height:48px;object-fit:contain;background:#fff;border-radius:8px;flex:none}

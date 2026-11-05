@@ -2,7 +2,7 @@
 // and spends no credits). Matching guard, size/unit parsing, budget, cross-check hold, switches, failure keeps old data,
 // and the merge into the existing official-price path used by So Giá.
 import assert from 'node:assert/strict';
-import {parseSize,unitPriceFor,nameMatches,isItem,pinchPrices,whichGrocerPrices,crossCheck,refreshOnlinePrices,ONLINE_KEY,ONLINE_STATUS_KEY,ONLINE_MAPPING_KEY,ONLINE_PROPOSALS_KEY,ONLINE_HISTORY_KEY,addToHistory,dealSignal,cleanInsight} from '../netlify/lib/online-prices.mjs';
+import {parseSize,unitPriceFor,nameMatches,isItem,pinchPrices,whichGrocerPrices,crossCheck,refreshOnlinePrices,ONLINE_KEY,ONLINE_STATUS_KEY,ONLINE_MAPPING_KEY,ONLINE_PROPOSALS_KEY,ONLINE_HISTORY_KEY,ONLINE_PHOTOS_KEY,cleanPhoto,addToHistory,dealSignal,cleanInsight} from '../netlify/lib/online-prices.mjs';
 import {officialPrices} from '../netlify/lib/grocery-pricing.mjs';
 
 const porkBelly={id:'thit-ba-chi',nameEn:'Pork belly',aliases:['pork belly','ba roi'],channels:['woolworths','coles','aldi'],unitBasis:'per_kg'};
@@ -94,5 +94,15 @@ assert.equal(await officialPrices(memStore(),'NSW','2026-11-04'),null,'nothing �
  const run=await refreshOnlinePrices({items:[porkBelly],env:{PINCH_API_KEY:'k'},settings:{flags:{onlinePinch:true}},fetchFn:pinchFetch,cacheStore:hc,statusStore:hc,cycle:'2026-11-04',today:'2026-11-05'});
  assert.deepEqual(run.deals,{real:1,fake:0},'Woolworths $27 (was $30) vs usual $30 → real −10 %');assert.equal(hc.m.get(ONLINE_HISTORY_KEY).items['thit-ba-chi|woolworths'].points.length,4);
  const shown=await officialPrices(hc,'NSW','2026-11-04');const ww2=shown.observations.find((o:any)=>o.retailer==='woolworths');assert.equal(ww2.insight.signal,'real');assert.equal(ww2.insight.usual,30);assert.equal(ww2.insight.points.length,4);}
+// ---- product photos (owner, 5 Nov): supermarket image hosts only; stored for owner-confirmed products only
+assert.equal(cleanPhoto('https://productimages.coles.com.au/productimages/2/2839579.jpg'),'https://productimages.coles.com.au/productimages/2/2839579.jpg');assert.equal(cleanPhoto('https://images.whichgrocer.com/product_images/woolworths_764465.jpg')!==null,true);
+for(const bad of ['http://productimages.coles.com.au/a.jpg','https://evil.example/a.jpg','javascript:alert(1)','',null,'https://productimages.coles.com.au.evil.io/a.jpg'])assert.equal(cleanPhoto(bad),null,String(bad));
+{const pc=memStore();pc.m.set(ONLINE_MAPPING_KEY,{'thit-ba-chi':{woolworths:{productId:'764465',ok:true,label:'x',by:'h',at:'2026-11-05',rejected:[]}}});
+ const photoFetch=async(u:string,i:any)=>{const r=await pinchFetch(u,i);const b=await r.json();for(const it of b.data.items)for(const c of it.candidates||[])c.image_url=c.retailer==='Woolworths'?'https://images.whichgrocer.com/product_images/woolworths_764465.jpg':'https://productimages.coles.com.au/productimages/2/1.jpg';return new Response(JSON.stringify(b),{status:200})};
+ const run=await refreshOnlinePrices({items:[porkBelly],env:{PINCH_API_KEY:'k'},settings:{flags:{onlinePinch:true}},fetchFn:photoFetch,cacheStore:pc,statusStore:pc,cycle:'2026-11-04',today:'2026-11-05'});
+ assert.equal(run.photos,1);assert.deepEqual(Object.keys(pc.m.get(ONLINE_PHOTOS_KEY).items),['thit-ba-chi']);assert.equal(pc.m.get(ONLINE_PHOTOS_KEY).items['thit-ba-chi'].retailer,'woolworths','only the confirmed product (Coles was not confirmed)');
+ assert.match(pc.m.get(ONLINE_PROPOSALS_KEY).items.find((x:any)=>x.retailer==='coles').photo,/coles/,'proposals carry the photo for the owner review');
+ const shown=await officialPrices(pc,'NSW','2026-11-04');assert.match(shown.observations[0].photo,/whichgrocer/);}
+console.log('PASS product photos: supermarket hosts only, confirmed products only, carried to review and So Giá');
 console.log('PASS price history (one point per day, new product restarts, 26 weeks) + deal check (real / fake / inflated was-price / unverified / lowest / higher) carried to So Giá');
 console.log('PASS online prices: parsing, matching guard, Pinch basket ≤5/request, WhichGrocer budget + pacing, cross-check hold, switches, failure keeps old prices, keys never stored, only owner-confirmed products shown, merge into official prices');

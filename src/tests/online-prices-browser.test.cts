@@ -34,6 +34,7 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route(origin+'/**',async(route:any)=>{const url=new URL(route.request().url()),path=url.pathname,op=url.searchParams.get('op');
    if(path.startsWith('/.netlify/')){
+    if(path.endsWith('/grocery')&&op==='photos'){await route.fulfill({json:{updatedAt:today,items:{'sua-tuoi':{photo:'https://productimages.coles.com.au/productimages/1/qa-milk.png',retailer:'coles',label:'Coles Full Cream Milk 2L'},'gao-jasmine':{photo:'https://productimages.coles.com.au/productimages/1/qa-missing.png',retailer:'coles',label:'x'}}}});return}
     if(path.endsWith('/grocery')){await route.fulfill({json:op==='prices'?{householdId:'qa-household',state:'NSW',cycleId:today,today,observations:[],official:OFFICIAL}:{}});return}
     if(path.includes('/accounts')&&op==='families'){await route.fulfill({json:{families:[{id:'qa-household',name:'QA',role:'owner'}],account:{username:'qa',name:'Mẹ'}}});return}
     const status={configured:true,connected:true,mode:'account',account:{username:'qa',name:'Mẹ'},household:{id:'qa-household',name:'QA kitchen',role:'owner',memberId:null}};
@@ -41,6 +42,8 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
    if(path==='/startup-scripts.json'){await route.fulfill({json:JSON.parse(readFileSync('dist/startup-scripts.json','utf8'))});return}
    const file=resolve('dist',path==='/'?'index.html':path.slice(1));
    try{await route.fulfill({contentType:mime[extname(file)]||'application/octet-stream',body:readFileSync(file)})}catch{await route.fulfill({status:404,body:'Not found'})}});
+  // synthetic product photo (a 2×2 PNG); the second photo is missing on purpose → the drawing must show
+  await page.route('https://productimages.coles.com.au/**',async(r:any)=>/qa-milk/.test(r.request().url())?r.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR42mNk+M9Qz0AEYBxVSF+FAP5FDvcfRYWgAAAAAElFTkSuQmCC','base64')}):r.fulfill({status:404,body:''}));
   await page.goto(origin+'/#shopping',{waitUntil:'domcontentloaded'});
   // the live account check can reload once at start; retry the setup until it settles
   for(let i=0;i<6;i++){try{await page.waitForTimeout(700);await page.waitForFunction(()=>typeof (globalThis as any).scoutMount==='function'&&document.querySelector('#main h1'),null,{timeout:15000});
@@ -59,6 +62,11 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
    // the item name has the whole first line (owner, 5 Nov: “Gạo thơm jasmine” fell onto two lines next to the amount)
    for(const nm of ['Gạo thơm jasmine','Viên rửa chén Finish']){const r=await page.locator('.shop-row',{hasText:nm}).first().evaluate((row:any)=>{const l=row.querySelector('.item-label').getBoundingClientRect(),q=row.querySelector('.qty').getBoundingClientRect();return{lines:Math.round(l.height/parseFloat(getComputedStyle(row.querySelector('.item-label')).lineHeight)),qtyBelow:q.top>=l.bottom-2}});assert.equal(r.lines,1,nm+' on one line');assert.ok(r.qtyBelow,nm+': amount under the name')}
    const ing=await page.locator('.shop-purchase-row').count();assert.ok(ing>0,'ingredient rows from the planned dinner');
+   // product photos (owner, 5 Nov): the confirmed product's photo over our drawing; a missing photo falls back to the drawing
+   await page.evaluate(()=>{(globalThis as any).ppRefresh(true)});await page.waitForFunction(()=>!!document.querySelector('.shop-row .pp-img'),null,{timeout:8000}).catch(()=>{});await page.evaluate(()=>render());await page.waitForTimeout(400);
+   {await rowOf(page,'Sữa tươi').scrollIntoViewIfNeeded();const milkPhoto=await rowOf(page,'Sữa tươi').locator('.pp-img').evaluate((i:any)=>i.complete&&i.naturalWidth>0?true:new Promise(res=>{i.addEventListener('load',()=>res(i.naturalWidth>0));i.addEventListener('error',()=>res(false));setTimeout(()=>res(false),5000)}));assert.ok(milkPhoto,'milk shows the supermarket photo');
+    assert.equal(await page.locator('.shop-row',{hasText:'Gạo thơm jasmine'}).first().locator('.pp-img').count(),0,'a photo that cannot load is removed');assert.ok(await page.locator('.shop-row',{hasText:'Gạo thơm jasmine'}).first().locator('.ingredient-art').count()>0,'…and the drawing shows');
+    assert.ok(!/\p{Extended_Pictographic}/u.test(await rowOf(page,'Sữa tươi').locator('.item-label').innerText()),'no emoji');}
    const milk=await rowOf(page,'Sữa tươi').locator('.online-line').innerText();assert.match(milk,/Coles\s*\$2\.60/);assert.match(milk,/KM thật −16%/);assert.doesNotMatch(milk,/\/L|so 2 nơi|thường/,'one short line: details live in the history sheet');
    assert.match(await rowOf(page,'Sữa tươi').locator('.online-line').getAttribute('aria-label'),/Giá online rẻ nhất: Coles \$2\.60\. Khuyến mãi thật: rẻ hơn giá thường \(\$3\.10\) 16%\. Xem lịch sử giá\./);
    assert.equal(await page.locator('.online-line .ui-art').first().evaluate((e:any)=>e.tagName.toLowerCase()),'svg');assert.ok(!/\p{Extended_Pictographic}/u.test(await page.locator('.online-line').first().innerText()),'own art, no phone emoji');
@@ -104,6 +112,6 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
    await shot(page,`price-history-${lang}-${theme}`,size);await page.keyboard.press('Escape');
    if(lang==='en'){await page.locator('.top-avatar').click();await page.locator('#account-menu [data-personal="account-security"]').click();await page.waitForSelector('#app-version');assert.match(await page.locator('#app-version').innerText(),new RegExp('FamTray · Version '+version.replace(/\./g,'\\.')+' · build '))}
    assert.deepEqual(errors,[]);await context.close()}
-  console.log('PASS trip plans (nearest / balanced / cheapest, minutes saved, estimate flag, stops grouped by store) and online prices on the shopping list: cheapest online price per row, real / not real / unverified / lowest / higher deal chips, Deals this week card, price history sheet with chart (≥44 px, no overflow at 320/375/820/1280, VI/EN, light/dark), release number in Account & settings');
+  console.log('PASS product photos over drawings (missing photo → drawing), trip plans (nearest / balanced / cheapest, minutes saved, estimate flag, stops grouped by store) and online prices on the shopping list: cheapest online price per row, real / not real / unverified / lowest / higher deal chips, Deals this week card, price history sheet with chart (≥44 px, no overflow at 320/375/820/1280, VI/EN, light/dark), release number in Account & settings');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

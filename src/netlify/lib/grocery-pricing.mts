@@ -3,7 +3,7 @@
 // inside their own household. Optional official prices come from a licensed
 // feed imported by grocery-cron into a shared cache. No retailer scraping.
 import {supportedState} from './geo-resolver.mjs';
-import {cleanInsight} from './online-prices.mjs';
+import {cleanInsight,cleanPhoto} from './online-prices.mjs';
 export const OBSERVATIONS_KEY='grocery/observations.json';
 export const CACHE_STORE='bep-grocery-cache';
 export const MAX_OBSERVATIONS=3000;
@@ -78,7 +78,7 @@ export async function officialPrices(cacheStore,state,cycle){
  try{online=await cacheStore.get(`online/${cycle}.json`,{type:'json'})||await cacheStore.get(`online/${addDays(cycle,-7)}.json`,{type:'json'})}catch{}
  const rows=[...(Array.isArray(feed?.observations)?feed.observations:[]),...(Array.isArray(online?.observations)?online.observations:[])];
  if(!rows.length)return null;
- return{cycleId:cycle,importedAt:feed?.importedAt||online?.importedAt||null,source:feed?(online?'licensed-feed+online':feed.source||'licensed-feed'):'online',attribution:Array.isArray(online?.attribution)?online.attribution.slice(0,3):[],observations:rows.map(o=>{const c=cleanObservation({...o,state,source:'official'},{official:true});if(c&&o?.insight){const i=cleanInsight(o.insight);if(i)c.insight=i}return c}).filter(Boolean).slice(0,20000)}
+ return{cycleId:cycle,importedAt:feed?.importedAt||online?.importedAt||null,source:feed?(online?'licensed-feed+online':feed.source||'licensed-feed'):'online',attribution:Array.isArray(online?.attribution)?online.attribution.slice(0,3):[],observations:rows.map(o=>{const c=cleanObservation({...o,state,source:'official'},{official:true});if(c&&o?.insight){const i=cleanInsight(o.insight);if(i)c.insight=i}if(c&&o?.photo){const ph=cleanPhoto(o.photo);if(ph)c.photo=ph}return c}).filter(Boolean).slice(0,20000)}
 }
 // Licensed-feed import only (configured by GROCERY_FEED_URL). Expected JSON:
 // {version:1, cycleId?:'YYYY-MM-DD', states:{NSW:[observation…], QLD:[…]}}.
