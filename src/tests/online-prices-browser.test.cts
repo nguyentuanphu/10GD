@@ -44,7 +44,7 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
   await page.goto(origin+'/#shopping',{waitUntil:'domcontentloaded'});
   // the live account check can reload once at start; retry the setup until it settles
   for(let i=0;i<6;i++){try{await page.waitForTimeout(700);await page.waitForFunction(()=>typeof (globalThis as any).scoutMount==='function'&&document.querySelector('#main h1'),null,{timeout:15000});
-   await page.evaluate(`(()=>{const extras=${JSON.stringify(EXTRAS)};const w=currentWeek();w.extras=extras.map(([name,qty],i)=>({id:'qa-extra-'+i,name,qty,cost:0,currency:'AUD',done:false}));state.preferences.onboardingComplete=true;save();closeModal();view='shopping';render()})()`);break}catch(e){if(i===5)throw e}}
+   await page.evaluate(`(()=>{const extras=${JSON.stringify(EXTRAS)};const w=currentWeek();const day=w.days[selectedDate]||Object.values(w.days)[0];const r=state.recipes.find(x=>x.id==='r1')||state.recipes[0];day.dinner.recipes=[clone(r)];day.dinner.cooked=false;w.extras=extras.map(([name,qty],i)=>({id:'qa-extra-'+i,name,qty,cost:0,currency:'AUD',done:false}));state.preferences.onboardingComplete=true;save();closeModal();view='shopping';render()})()`);break}catch(e){if(i===5)throw e}}
   await page.locator('[data-scout="refresh"]').click();await page.waitForSelector('.online-line',{timeout:10000});await page.waitForTimeout(200);
   return{context,page,errors};
  }
@@ -56,6 +56,9 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
  try{
   // 1. shopping rows (VI, phone): cheapest online price per row and its deal check
   {const {context,page,errors}=await open('mobile');
+   // the item name has the whole first line (owner, 5 Nov: “Gạo thơm jasmine” fell onto two lines next to the amount)
+   for(const nm of ['Gạo thơm jasmine','Viên rửa chén Finish']){const r=await page.locator('.shop-row',{hasText:nm}).first().evaluate((row:any)=>{const l=row.querySelector('.item-label').getBoundingClientRect(),q=row.querySelector('.qty').getBoundingClientRect();return{lines:Math.round(l.height/parseFloat(getComputedStyle(row.querySelector('.item-label')).lineHeight)),qtyBelow:q.top>=l.bottom-2}});assert.equal(r.lines,1,nm+' on one line');assert.ok(r.qtyBelow,nm+': amount under the name')}
+   const ing=await page.locator('.shop-purchase-row').count();assert.ok(ing>0,'ingredient rows from the planned dinner');
    const milk=await rowOf(page,'Sữa tươi').locator('.online-line').innerText();assert.match(milk,/Coles\s*\$2\.60/);assert.match(milk,/KM thật −16%/);assert.doesNotMatch(milk,/\/L|so 2 nơi|thường/,'one short line: details live in the history sheet');
    assert.match(await rowOf(page,'Sữa tươi').locator('.online-line').getAttribute('aria-label'),/Giá online rẻ nhất: Coles \$2\.60\. Khuyến mãi thật: rẻ hơn giá thường \(\$3\.10\) 16%\. Xem lịch sử giá\./);
    assert.equal(await page.locator('.online-line .ui-art').first().evaluate((e:any)=>e.tagName.toLowerCase()),'svg');assert.ok(!/\p{Extended_Pictographic}/u.test(await page.locator('.online-line').first().innerText()),'own art, no phone emoji');
