@@ -39,7 +39,7 @@ for(const [name,width,height] of [['mobile',375,812],['tablet',820,1100],['deskt
  assert.equal(counts['samples:seed-salad'],35);assert.equal(counts['samples:dressing'],25);assert.equal(counts['all:seed-salad'],await page.evaluate(()=>PLANT_RECIPES.filter(r=>r.recipeKind==='seed-salad').length));assert.equal(counts['all:dressing'],await page.evaluate(()=>PLANT_RECIPES.filter(r=>r.recipeKind==='dressing').length));
  for(const scope of ['own','samples','all'])assert.ok(counts[scope+':vegetarian']>counts[scope+':vegan'],`${scope}: Vegetarian is strictly larger than Thuần chay`);
  assert.equal(counts['own:vegan'],1);assert.equal(counts['own:vegetarian'],2);assert.equal(counts['own:noodle'],1);
- assert.ok(counts['samples:western']>=79&&counts['samples:healthy']>=65&&counts['samples:noodle']>=150);
+ assert.ok(counts['samples:western']>=79&&counts['samples:healthy']>=65&&counts['samples:noodle']>=80/* v1.7.5: Vietnamese references halved (noodle 167 → 84) */);
  summary[name]=counts;
  // Vegetarian and Thuần chay really show different dishes (an egg dish appears only under Vegetarian).
  await page.locator('[data-fm="samples"]').first().click();await chip(page,'tag','vegetarian').click();const vegNames=new Set(await page.evaluate(()=>familyRecipeRows().map(r=>r.name)));await chip(page,'tag','vegan').click();const veganNames=await page.evaluate(()=>familyRecipeRows().map(r=>r.name));assert.ok(veganNames.every(n=>vegNames.has(n))&&vegNames.has('Canh cà chua trứng')&&!veganNames.includes('Canh cà chua trứng'));

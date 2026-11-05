@@ -33,7 +33,7 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  const ids=()=>page.evaluate(()=>guideSteps.map(s=>s.id)),total=(await ids()).length;assert.deepEqual(await ids(),['welcome','menu','shopping','scout','family','voice','alerts']);
  assert.equal(await page.locator('.guide-dot').count(),total);assert.match(await page.locator('#guide-progress').innerText(),new RegExp(`1/${total}`,'i'));assert.ok(await page.locator('#guide-back').isDisabled(),'Back disabled on step 1');
  await page.locator('#guide-next').click();assert.equal(await page.locator('.guide-step').getAttribute('data-step-id'),'menu');assert.equal(await page.locator('.guide-dot.active').count(),1);assert.ok(await page.locator('.guide-show a[href="#recipes"]').count(),'menu step can show the Library');
- assert.match(await page.locator('.guide-step').innerText(),/740 món tham khảo/);
+ assert.match(await page.locator('.guide-step').innerText(),/475 món tham khảo/);
  await page.locator('#guide-back').click();assert.equal(await page.locator('.guide-step').getAttribute('data-step-id'),'welcome');
  await page.keyboard.press('ArrowRight');assert.equal(await page.locator('.guide-step').getAttribute('data-step-id'),'menu','ArrowRight moves on');
  const vp=await page.locator('#guide-viewport').boundingBox();await page.mouse.move(vp.x+vp.width*0.8,vp.y+40);await page.mouse.down();await page.mouse.move(vp.x+vp.width*0.2,vp.y+44,{steps:4});await page.mouse.up();assert.equal(await page.locator('.guide-step').getAttribute('data-step-id'),'shopping','swipe left = next');
