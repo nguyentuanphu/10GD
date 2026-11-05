@@ -22,6 +22,12 @@ const UI_ART:Record<string,string>={
  up:`<path d="M8 43h32" ${UA_W}/><g class="ua-nudge-up"><path d="M24 40V18" stroke="${UA_O}" stroke-width="9" stroke-linecap="round"/><path d="M24 40V18" stroke="#e0a030" stroke-width="5" stroke-linecap="round"/><path d="M12 22L24 8l12 14z" fill="#e0a030" ${UA_W}/></g>`,
  // price history: card with a line chart and an orange special dot
  chart:`<rect x="5" y="7" width="38" height="34" rx="5" fill="#fff" ${UA_W}/><path d="M11 31l8-8 6 5 7-10 6 4" fill="none" stroke="#2f7054" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>${uaCirc(38,22,3.4,'#ff8a3d')}<path d="M11 36h26" stroke="#c9ccc4" stroke-width="2" stroke-linecap="round"/>`,
+ // travel time: round clock, hands turn slowly
+ clock:`${uaCirc(24,25,18,'#fff6d6')}<g class="ua-spin" style="transform-origin:24px 25px"><path d="M24 25V14" stroke="${UA_O}" stroke-width="3" stroke-linecap="round"/></g><path d="M24 25l7 4" stroke="${UA_O}" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="25" r="2.4" fill="${UA_O}"/>`,
+ // trip plan: dotted path from home to a map pin
+ route:`<path d="M10 40c6-10 18-4 22-16" fill="none" stroke="#2f7054" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 6"/><path d="M4 40l6-6 6 6v6H4z" fill="#f2d39a" ${UA_W}/><path d="M34 4a9 9 0 0 1 9 9c0 7-9 15-9 15s-9-8-9-15a9 9 0 0 1 9-9z" fill="#e8433a" ${UA_W}/>${uaCirc(34,13,3,'#fff')}`,
+ // a stop: little shop with an awning
+ shop:`<path d="M8 22h32v20H8z" fill="#fff6d6" ${UA_W}/><path d="M6 12h36l-3 10H9z" fill="#7cc79a" ${UA_W}/><path d="M15 12l-2 10M24 12v10M33 12l2 10" stroke="${UA_O}" stroke-width="2"/><path d="M20 42V31h8v11" fill="#c9e7d3" ${UA_W}/>`,
  // open (row → history): chevron
  chevron:`<path d="M18 10l14 14-14 14" fill="none" stroke="${UA_O}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`,
 };

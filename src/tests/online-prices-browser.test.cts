@@ -48,8 +48,8 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
   await page.locator('[data-scout="refresh"]').click();await page.waitForSelector('.online-line',{timeout:10000});await page.waitForTimeout(200);
   return{context,page,errors};
  }
- const noOverflow=async(page:any,label:string)=>{const w=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert.ok(w<=1,label+': horizontal overflow '+w);const clipped=await page.evaluate(()=>[...document.querySelectorAll('.online-line,.deal-row')].flatMap((b:any)=>{const r=b.getBoundingClientRect();return[...b.querySelectorAll('.deal-chip,.ol-price,.ol-store,.ol-chev')].filter((c:any)=>{const q=c.getBoundingClientRect();return q.width&&(q.right>r.right+0.5||q.left<r.left-0.5)}).map((c:any)=>c.textContent.trim())}));assert.deepEqual(clipped,[],label+': nothing cut off inside the price line')};
- const targets=async(page:any,label:string)=>{const small=await page.evaluate(()=>[...document.querySelectorAll('.online-line,.deal-row,.modal .btn')].filter((e:any)=>e.offsetParent&&e.getBoundingClientRect().height<43.5).map((e:any)=>e.textContent.trim().slice(0,30)));assert.deepEqual(small,[],label+': touch targets under 44 px')};
+ const noOverflow=async(page:any,label:string)=>{const w=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert.ok(w<=1,label+': horizontal overflow '+w);const clipped=await page.evaluate(()=>[...document.querySelectorAll('.online-line,.deal-row,.trip-tab')].flatMap((b:any)=>{const r=b.getBoundingClientRect();return[...b.querySelectorAll('.deal-chip,.ol-price,.ol-store,.ol-chev,b,.tt-min')].filter((c:any)=>{const q=c.getBoundingClientRect();return q.width&&(q.right>r.right+0.5||q.left<r.left-0.5)}).map((c:any)=>c.textContent.trim())}));assert.deepEqual(clipped,[],label+': nothing cut off inside the price line')};
+ const targets=async(page:any,label:string)=>{const small=await page.evaluate(()=>[...document.querySelectorAll('.online-line,.deal-row,.modal .btn,.trip-tab,.trip-settings summary,#scout-travel-form .input,#scout-travel-form .btn')].filter((e:any)=>e.offsetParent&&e.getBoundingClientRect().height<43.5).map((e:any)=>e.textContent.trim().slice(0,30)));assert.deepEqual(small,[],label+': touch targets under 44 px')};
  const rowOf=(page:any,name:string)=>page.locator('.shop-row.has-online',{hasText:name}).first();
  const shot=async(page:any,name:string,size:string)=>(await page.evaluate(()=>{const t=document.getElementById('toast');if(t)t.style.visibility='hidden'}),page.screenshot({path:`${out}/${name}-${sizes[size].width}x${sizes[size].height}.png`}));
  const scrollTo=async(page:any,sel:string)=>{await page.evaluate((sel:string)=>{const el=document.querySelector(sel);if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-80)},sel);await page.waitForTimeout(150)};
@@ -69,6 +69,18 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
    const deals=await page.locator('.scout-deals').innerText();assert.match(deals,/Khuyến mãi tuần này/);assert.match(deals,/Sữa tươi/);assert.match(deals,/Tôm/);assert.match(deals,/không rẻ hơn thường lệ/);assert.match(deals,/Gạo/);
    await noOverflow(page,'list 375');await targets(page,'list 375');await scrollTo(page,'.shop-row.has-online');await shot(page,'shopping-list-vi-light',  'mobile');
    await scrollTo(page,'.scout-deals');await shot(page,'deals-card-vi-light','mobile');
+   // trip plans (owner, 5 Nov): Gần nhất / Cân bằng / Rẻ nhất with money and minutes; stops grouped by store
+   {const tabs=page.locator('.scout-trips .trip-tab');assert.equal(await tabs.count(),3);assert.deepEqual((await tabs.allInnerTexts()).map((t:string)=>t.split('\n')[0]),['Gần nhất','Cân bằng','Rẻ nhất']);
+    assert.equal(await page.locator('.scout-trips .trip-tab[aria-checked="true"]').innerText().then((t:string)=>t.split('\n')[0]),'Cân bằng','balanced by default');
+    assert.match(await page.locator('.scout-trips .trip-stops').innerText(),/tạm tính/,'unknown minutes are shown as an estimate');
+    // the family writes its minutes: Woolworths 5, Coles 30, Chemist 12
+    await page.locator('.scout-trips .trip-settings summary').click();await page.fill('#scout-travel-form input[name="woolworths"]','5');await page.fill('#scout-travel-form input[name="coles"]','30');await page.fill('#scout-travel-form input[name="chemist"]','12');await page.locator('#scout-travel-form button[type="submit"]').click();await page.waitForTimeout(200);
+    const near=await page.locator('.scout-trips .trip-tab[data-plan="near"]').innerText();assert.match(near,/~29 phút/,'nearest = Woolworths 5 + Chemist 12 + 12 home (Coles 30 min left out)');assert.match(near,/5\/6/,'≥ 80 % of the priced items');
+    await page.locator('.scout-trips .trip-tab[data-plan="cheap"]').click();await page.waitForTimeout(150);assert.equal(await page.locator('.scout-trips .trip-tab[data-plan="cheap"]').getAttribute('aria-checked'),'true');
+    const stops=await page.locator('.scout-trips .trip-stop').allInnerTexts();assert.ok(stops.length>=2,'cheapest uses more than one store');assert.ok(stops.some((t:string)=>/Coles/.test(t)&&/30 phút/.test(t)));assert.ok(!stops.some((t:string)=>/tạm tính/.test(t)),'no estimate once written');
+    assert.match(stops.join(' '),/Sữa tươi/,'items grouped under their store');
+    const saved=await page.evaluate(()=>JSON.parse(familyStorage.getItem('bep-price-scout-v1')).prefs);assert.deepEqual(saved.travel,{woolworths:5,coles:30,chemist:12});assert.equal(saved.tripPlan,'cheap');
+    await noOverflow(page,'trips 375');await targets(page,'trips 375');await scrollTo(page,'.scout-trips');await shot(page,'trip-plans-vi-light','mobile');}
    // 2. price history sheet with chart, usual / low / high, attribution
    await rowOf(page,'Sữa tươi').locator('.online-line').click();await page.waitForSelector('.modal .price-spark');const m=await page.locator('.modal').innerText();
    assert.match(m,/Lịch sử giá · Sữa tươi/);assert.match(m,/thường \$3\.10 · thấp nhất \$3\.10 · cao nhất \$3\.20/);assert.match(m,/Price data by Pinch/);assert.equal(await page.locator('.modal .price-history-store').count(),2,'both retailers');
@@ -85,11 +97,12 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
    if(lang==='en'){const t=await rowOf(page,'Sữa tươi').locator('.online-line').innerText();assert.match(t,/Coles\s*\$2\.60/);assert.match(t,/Real deal −16%/);assert.match(await rowOf(page,'Gạo').locator('.online-line').innerText(),/Fake deal/);assert.match(await page.locator('.scout-deals').innerText(),/Deals this week/)}
    if(size==='tablet'||size==='desktop'){const h=await rowOf(page,'Gạo').locator('.online-line').evaluate((e:any)=>e.getBoundingClientRect().height);assert.ok(h<=50,'one line on '+size+' ('+h+' px)')}
    await scrollTo(page,'.shop-row.has-online');await shot(page,`shopping-list-${lang}-${theme}`,size);
+   await page.locator('.scout-trips .trip-settings summary').click();await noOverflow(page,'trips '+size);await targets(page,'trips '+size);await scrollTo(page,'.scout-trips');await shot(page,`trip-plans-${lang}-${theme}`,size);
    await rowOf(page,'Gạo').locator('.online-line').click();await page.waitForSelector('.modal .price-spark');await noOverflow(page,'history '+size);await targets(page,'history '+size);
    if(lang==='en')assert.match(await page.locator('.modal').innerText(),/Price history · .*Marked special, but the usual price is \$14\.00; the “was” price is higher than ever seen/s);
    await shot(page,`price-history-${lang}-${theme}`,size);await page.keyboard.press('Escape');
    if(lang==='en'){await page.locator('.top-avatar').click();await page.locator('#account-menu [data-personal="account-security"]').click();await page.waitForSelector('#app-version');assert.match(await page.locator('#app-version').innerText(),new RegExp('FamTray · Version '+version.replace(/\./g,'\\.')+' · build '))}
    assert.deepEqual(errors,[]);await context.close()}
-  console.log('PASS online prices on the shopping list: cheapest online price per row, real / not real / unverified / lowest / higher deal chips, Deals this week card, price history sheet with chart (≥44 px, no overflow at 320/375/820/1280, VI/EN, light/dark), release number in Account & settings');
+  console.log('PASS trip plans (nearest / balanced / cheapest, minutes saved, estimate flag, stops grouped by store) and online prices on the shopping list: cheapest online price per row, real / not real / unverified / lowest / higher deal chips, Deals this week card, price history sheet with chart (≥44 px, no overflow at 320/375/820/1280, VI/EN, light/dark), release number in Account & settings');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

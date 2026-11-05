@@ -229,3 +229,29 @@ const prefs=(x:any={})=>({catalog,today,state:'NSW',...x});
  const r=plain(P.optimizeBasket([{key:'a',label:'Gạo',itemId:'gao-jasmine',qty:5,unit:'kg'}],[obs('gao-jasmine','woolworths',12,5,'kg',{source:'screenshot',evidence:{type:'screenshot',capturedAt:at}}),obs('gao-jasmine','coles',14,5,'kg')],prefs()));
  const it=r.split.stops.flatMap((s:any)=>s.items)[0];assert.equal(it.capturedAt,at,'plan item keeps the capture time');
  console.log('PASS capture time label (VI/EN, relative + absolute, old > 7 days, day-only) and plan items keep the capture time')}
+
+// ---- v1.7.5 trip plans: minutes per store, near / balanced / cheap (owner, 5 Nov 2026) ----
+{const T='2026-10-31',items=[{key:'a',label:'Gạo',itemId:'gao-jasmine',qty:5,unit:'kg'},{key:'b',label:'Sữa',itemId:'sua-tuoi',qty:2,unit:'L'},{key:'c',label:'Dầu ăn',itemId:'dau-an',qty:2,unit:'L'}];
+ const o=[obs('gao-jasmine','coles',14,5,'kg'),obs('gao-jasmine','aldi',11,5,'kg'),obs('sua-tuoi','coles',3.1,2,'L'),obs('sua-tuoi','aldi',2.6,2,'L'),obs('dau-an','coles',9,2,'L'),obs('dau-an','aldi',6.5,2,'L'),obs('dau-an','woolworths',8.8,2,'L')];
+ const plan=(travel:any,timeValue=5)=>plain(P.optimizeBasket(items,o,{catalog,state:'NSW',today:T,travel,timeValue})).trips;
+ // Coles 5 min, ALDI 25 min: nearest = Coles; cheapest = ALDI; time valued at $5/10 min → Coles (save $8.10 but 40 extra minutes)
+ let t=plan({coles:5,aldi:25,woolworths:12});
+ assert.deepEqual(t.plans.near.stores.map((s:any)=>s.retailer),['coles']);assert.equal(t.plans.near.minutes,10,'one store: there and back');assert.equal(t.plans.near.total,26.1);
+ assert.deepEqual(t.plans.cheap.stores.map((s:any)=>s.retailer),['aldi']);assert.equal(t.plans.cheap.total,20.1);assert.equal(t.plans.cheap.minutes,50);
+ assert.deepEqual(t.plans.balanced.stores.map((s:any)=>s.retailer),['coles'],'$6 saving is not worth 40 more minutes at $5 / 10 min');
+ // ALDI closer (8 min) → balanced and cheapest agree
+ t=plan({coles:5,aldi:8});assert.deepEqual(t.plans.balanced.stores.map((s:any)=>s.retailer),['aldi']);
+ // ALDI 15 min: at $5 / 10 min the $6 saving does not pay for 20 more minutes; at $2 / 10 min it does
+ t=plan({coles:5,aldi:15});assert.deepEqual(t.plans.balanced.stores.map((s:any)=>s.retailer),['coles']);
+ t=plan({coles:5,aldi:15},2);assert.deepEqual(t.plans.balanced.stores.map((s:any)=>s.retailer),['aldi']);
+ // unknown minutes → 10 min estimate, flagged; items grouped by store with totals
+ t=plan({});assert.equal(t.defaultMinutes,10);assert.equal(t.plans.cheap.estimated,true);assert.equal(t.plans.cheap.stores[0].estimated,true);
+ assert.deepEqual(t.plans.cheap.stores[0].items.map((x:any)=>x.label).sort(),['Dầu ăn','Gạo','Sữa']);
+ // two stores: minutes = both one-way + the farthest way home
+ assert.equal(P.tripMinutes(['coles','aldi'],{coles:5,aldi:25}),55);assert.equal(P.tripMinutes(['coles'],{coles:'x'}),20,'bad value → 10 min estimate');
+ // an item only one store has: cheapest plan must include it; nearest may leave ≤ 20 % behind
+ const o2=[...o,obs('nuoc-mam','woolworths',5,500,'mL')],items2=[...items,{key:'d',label:'Nước mắm',itemId:'nuoc-mam',qty:500,unit:'mL'}];
+ const t2=plain(P.optimizeBasket(items2,o2,{catalog,state:'NSW',today:T,travel:{coles:5,aldi:25,woolworths:12}})).trips;
+ assert.ok(t2.plans.cheap.stores.some((s:any)=>s.retailer==='woolworths'),'cheapest gets every priced item');assert.equal(t2.plans.cheap.covered,4);
+ assert.ok(t2.plans.near.covered>=Math.ceil(4*0.8),'nearest still gets ≥ 80 %');assert.ok(t2.plans.near.minutes<=t2.plans.cheap.minutes);
+ console.log('PASS trip plans: minutes per store (estimate when unknown), nearest / balanced (time value) / cheapest, items grouped by store, coverage rules')}

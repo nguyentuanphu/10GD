@@ -44,7 +44,7 @@ function scoutBasket(){
 function scoutTrips(){return PS.tripsFromReceipts(state.receipts||[],{ingredientGroup:id=>INGREDIENTS[id]?.[2]})}
 function scoutCompute(){
  const persona=PS.detectPersona(scoutTrips(),{override:scoutData.personaOverride});
- const prefs={...persona.prefs,...(scoutData.prefs.minSavings!=null?{minSavings:scoutData.prefs.minSavings}:{}),catalog:scoutCatalog(),state:scoutData.state,...scoutCommunityPrefs()};
+ const prefs={travel:scoutData.prefs.travel||{},timeValue:scoutData.prefs.timeValue??5,...persona.prefs,...(scoutData.prefs.minSavings!=null?{minSavings:scoutData.prefs.minSavings}:{}),catalog:scoutCatalog(),state:scoutData.state,...scoutCommunityPrefs()};
  const items=scoutBasket(),observations=scoutObservations();
  scoutLast={persona,items,observations,result:PS.optimizeBasket(items,observations,prefs)};return scoutLast;
 }
@@ -88,8 +88,18 @@ function scoutPanel(){
  body+=scoutRecent(own);
  return`<section class="card price-scout" aria-label="${esc(scoutT('So Giá','Price Check'))}">${head}<div id="scout-body">${body}</div></section>`;
 }
+// v1.7.5 trip plans: Gần nhất / Cân bằng / Rẻ nhất — money AND minutes, items grouped by store (owner, 5 Nov)
+const SCOUT_PLAN_NAMES={near:['Gần nhất','Nearest'],balanced:['Cân bằng','Balanced'],cheap:['Rẻ nhất','Cheapest']};
+function scoutTripCard(r){const t=r.trips;if(!t)return'';const pick=['near','balanced','cheap'].includes(scoutData.prefs.tripPlan)?scoutData.prefs.tripPlan:'balanced',p=t.plans[pick];
+ const same=id=>['near','balanced','cheap'].filter(k=>k!==id&&JSON.stringify(t.plans[k].stores.map(x=>x.retailer))===JSON.stringify(t.plans[id].stores.map(x=>x.retailer)));
+ const tab=id=>{const q=t.plans[id],on=id===pick;return`<button type="button" class="trip-tab${on?' on':''}" role="radio" aria-checked="${on}" data-scout="trip-plan" data-plan="${id}"><span class="tt-name">${scoutT(...SCOUT_PLAN_NAMES[id])}</span><b>${scoutMoney(q.total)}</b><span class="tt-min">${scoutArt('clock')}~${q.minutes} ${scoutT('phút','min')}</span><small>${q.stores.length} ${scoutT('nơi','stop'+(q.stores.length>1?'s':''))} · ${q.covered}/${q.itemCount} ${scoutT('món','items')}</small></button>`};
+ const dup=same(pick).map(k=>scoutT(...SCOUT_PLAN_NAMES[k]));
+ const stops=p.stores.map((st,i)=>`<li class="trip-stop"><span class="ts-step" aria-hidden="true">${i+1}</span><div class="ts-body"><div class="ts-head">${scoutArt('store:'+st.retailer,'ol-dot')}<b>${esc(scoutRetailer(st.retailer))}</b><span class="ts-min">${scoutArt('clock')}${st.minutes} ${scoutT('phút','min')}${st.estimated?` <small>(${scoutT('tạm tính','estimate')})</small>`:''}</span><span class="ts-total">${scoutMoney(st.total)}</span></div><p class="ts-items" data-user-content>${st.items.map(x=>esc(x.label)).join(', ')}</p></div></li>`).join('');
+ return`<article class="scout-card scout-trips"><h3>${scoutArt('route','h-art')}${scoutT('Đi chợ thế nào?','How to shop this week')}</h3><div class="trip-tabs" role="radiogroup" aria-label="${esc(scoutT('Chọn phương án đi chợ','Choose a shopping plan'))}">${['near','balanced','cheap'].map(tab).join('')}</div>
+ ${dup.length?`<p class="hint">${scoutT('Giống phương án','Same as')} ${dup.join(', ')}.</p>`:''}<ol class="trip-stops">${stops}</ol>${p.missing.length?`<p class="hint">${scoutT('Chưa có giá ở các nơi này','No price at these stores')}: ${p.missing.slice(0,8).map(esc).join(', ')}</p>`:''}
+ <details class="trip-settings"><summary>${scoutArt('clock','h-art')}${scoutT('Thời gian đi tới từng nơi','Travel time to each store')}${p.estimated?` <span class="pill">${scoutT('cần ghi','to fill in')}</span>`:''}</summary><form id="scout-travel-form" class="trip-travel"><p class="hint">${scoutT(`Số phút đi một chiều từ nhà tới chi nhánh nhà mình hay đi. Chưa ghi thì tạm tính ${t.defaultMinutes} phút. Chỉ lưu trên máy này.`,`One-way minutes from home to the branch you usually use. Not filled in = ${t.defaultMinutes} min estimate. Saved on this device only.`)}</p>${t.stores.map(id=>`<label class="trip-min-row"><span>${scoutArt('store:'+id,'ol-dot')}${esc(scoutRetailer(id))}</span><span class="trip-min-input"><input class="input" type="number" inputmode="numeric" min="0" max="240" step="1" name="${esc(id)}" value="${esc(scoutData.prefs.travel?.[id]??'')}" placeholder="${t.defaultMinutes}"> ${scoutT('phút','min')}</span></label>`).join('')}<label class="trip-min-row"><span>${scoutT('Đáng đi thêm 10 phút nếu tiết kiệm','10 more minutes are worth')}</span><select class="input" name="timeValue">${[2,5,10,15].map(v=>`<option value="${v}" ${t.timeValue===v?'selected':''}>${scoutMoney(v)}</option>`).join('')}</select></label><button class="btn primary" type="submit">${scoutT('Lưu thời gian đi','Save travel times')}</button></form></details></article>`}
 function scoutCards(r,persona){
- const o=r.oneStop,s=r.split;let html='<div class="scout-cards">';
+ const o=r.oneStop,s=r.split;let html='<div class="scout-cards">'+scoutTripCard(r);
  const unknownList=r.unknown.length?`<p class="scout-unknown"><b>${scoutT('Chưa có giá','No price yet')} (${r.unknown.length}):</b> ${r.unknown.slice(0,12).map(u=>esc(u.label)).join(', ')}${r.unknown.length>12?'…':''}</p>`:'';
  // One-stop
  html+=`<article class="scout-card"><h3>🛒 ${scoutT('Một điểm mua','One-stop')}</h3>`;
@@ -304,6 +314,7 @@ document.addEventListener('click',event=>{
   case'tray':scoutTray();break;
   case'price-history':scoutHistorySheet(b.dataset.id);break;
   case'tray-close':scoutCloseTray();break;
+  case'trip-plan':scoutData.prefs.tripPlan=b.dataset.plan;scoutSave();scoutRerender();document.querySelector(`[data-scout="trip-plan"][data-plan="${b.dataset.plan}"]`)?.focus();break;
  }
 });
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySelector('.scout-tray'))scoutCloseTray()});
@@ -319,7 +330,8 @@ document.addEventListener('change',event=>{
 });
 document.addEventListener('input',event=>{const t=event.target;if(!t.closest?.('#scout-obs-form'))return;if(t.id==='scout-unit-price'){t.form.dataset.manualUnit=t.value?'yes':'';scoutSanity()}else if(['scout-price','scout-pack','scout-pack-unit','scout-units','scout-basis'].includes(t.id))scoutRecalc()});
 document.addEventListener('submit',async event=>{
- const form=event.target;if(!['scout-postcode-form','scout-obs-form','scout-paste-form'].includes(form.id))return;event.preventDefault();
+ const form=event.target;if(!['scout-postcode-form','scout-obs-form','scout-paste-form','scout-travel-form'].includes(form.id))return;event.preventDefault();
+ if(form.id==='scout-travel-form'){const travel={};for(const el of form.querySelectorAll('input[type=number]')){const v=String(el.value).trim();if(v==='')continue;const n=Math.round(+v);if(!(n>=0&&n<=240)){toast(scoutT('Số phút từ 0 đến 240.','Minutes must be 0–240.'),true);el.focus();return}travel[el.name]=n}scoutData.prefs.travel=travel;const tv=+form.timeValue.value;scoutData.prefs.timeValue=[2,5,10,15].includes(tv)?tv:5;if(scoutSave())toast(scoutT('Đã lưu thời gian đi.','Travel times saved.'));scoutRerender();return}
  if(form.id==='scout-postcode-form'){const pc=String(form.postcode.value||'').trim(),r=PS.postcodeState(pc);if(!r.valid){toast(scoutT('Postcode Úc gồm 4 chữ số.','An Australian postcode has 4 digits.'),true);return}scoutData.postcode=pc;scoutData.state=r.supported?r.state:null;scoutSave();scoutRerender();if(!r.supported)document.querySelector('.scout-unsupported')?.focus?.();return}
  if(form.id==='scout-paste-form'){const text=form.text.value.trim();if(!text)return;const parsed=PS.parsePriceText(text,{catalog:scoutCatalog()});scoutConfirm(scoutFromParsed(parsed,'manual',text));return}
  const o=scoutCollect(form);
