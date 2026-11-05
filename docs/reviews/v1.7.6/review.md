@@ -16,6 +16,7 @@ Branch `release/v1.7.6` from `main` at `c751349` (Release v1.7.5). **Not deploy-
 | 7 | “Chữ bị wrap xuống dòng nhìn không đẹp. Audit lại tất cả” | — | Full text audit (below). |
 | 8 | “Nút hold to talk nằm quá sâu phía dưới, nên để nó nằm ở giữa” | — | In the voice sheet, VI/EN and **Giữ để nói** now sit right under the listening status, above the words box. On a 375 px phone they show without scrolling, and the button is 64 px tall. |
 | 9 | “Đã cho phép bật micro rồi mà mỗi lần hold to talk lại đòi thêm cho phép” | iOS asks again whenever a page opens the microphone after all its earlier streams were stopped. Every hold opened its own stream (level meter, on-device voice) and stopped it on release. | One microphone stream is shared while the voice sheet is open and reused by every hold. It is released when the sheet closes, when the app goes to the background, or after 2 idle minutes. The iPhone may still ask once each time the app is opened again, which is iOS's rule for web apps. |
+| 10 | Open item from the 5 Nov handoff note: “rounded card top crops the top of the plate” | Dish pictures are square, but the recipe card frame is 4:3, so the plate's top and bottom were cut. | The square picture now fits inside the frame and the whole plate shows. The other handoff item (meal checkboxes in English in Vietnamese mode) was already fixed in v1.7.5; checked again. |
 
 ## Text audit — every screen, VI and EN, 320 / 375 / 820 / 1280 px
 
@@ -47,6 +48,7 @@ Fixed along the way:
 New suite `test:v176-fixes:browser` (in `test:all`). In VI and EN at 320, 375, 820 and 1280 px, it checks:
 
 - the talk button sits above the words box and shows without scrolling;
+- the dish picture sits whole inside its card frame;
 
 - calendar away is shown as Away, and is lifted when the member is set back home;
 - “Chi tiêu” is translated with a member called Chi;

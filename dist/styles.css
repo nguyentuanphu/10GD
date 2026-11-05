@@ -1808,3 +1808,9 @@ details.scout-wanted:not([open]),details.scout-community:not([open]){padding-top
 /* v1.7.6 · voice sheet: the talk button in the middle, right under the listening status */
 .voice-controls.voice-controls-top{margin:10px 0 14px}
 .voice-controls.voice-controls-top .voice-hold-btn,.voice-controls.voice-controls-top .voice-continue-big{min-height:64px}
+/* v1.7.6 · dish pictures show the whole plate (handoff note: “rounded card top crops the top of the plate”). The pictures
+   are square; the 4:3 card frame used to cut the plate's top and bottom. The square now fits inside the frame. */
+.lib-card .lib-card-img .food-illustration{width:auto!important;height:100%!important;aspect-ratio:1/1;max-width:100%}
+.recipe-visual .food-illustration{max-height:100%;max-width:100%;aspect-ratio:1/1}
+.lib-card .recipe-visual.lib-card-img{background:var(--art-bg,#f3efe3)}
+html[data-theme="dark"] .lib-card .recipe-visual.lib-card-img{background:#24312a}

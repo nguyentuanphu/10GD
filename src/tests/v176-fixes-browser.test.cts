@@ -61,7 +61,11 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  const pos=await page.evaluate(()=>{const r=(s:string)=>document.querySelector(s)!.getBoundingClientRect();return{btn:r('#voice-continue').top,box:r('#voice-text').top,bottom:r('#voice-continue').bottom}});
  assert.ok(pos.btn<pos.box,`${label}: talk button above the words box`);assert.ok(pos.bottom<viewport.height,`${label}: talk button visible without scrolling (${Math.round(pos.bottom)}px)`);
  await textOk('voice');await shot('voice');await page.evaluate('closeModal()');
+ // 8. dish pictures show the whole plate (square picture fits inside the 4:3 card frame instead of being cut)
+ await page.evaluate(`view='recipes';render();scrollTo(0,0)`);await page.locator('[data-fm="samples"]').first().click();await page.locator('#main .lib-card .lib-card-img .food-illustration').first().waitFor({timeout:15000});
+ const fit=await page.locator('#main .lib-card .lib-card-img').first().evaluate((f:any)=>{const a=f.querySelector('.food-illustration').getBoundingClientRect(),b=f.getBoundingClientRect();return{inside:a.top>=b.top-0.5&&a.bottom<=b.bottom+0.5&&a.left>=b.left-0.5&&a.right<=b.right+0.5,square:Math.abs(a.width-a.height)<1}});
+ assert.deepEqual(fit,{inside:true,square:true},`${label}: dish picture whole inside its card frame`);if(size==='mobile')await shot('recipes');
  // 6. connection label in the chosen language (it said “Online” in Vietnamese)
  const net=await page.locator('#network-status').innerText().catch(()=>'');if(net.trim())assert.equal(net.trim(),lang==='en'?'Online':'Trực tuyến',`${label}: connection label`);
  assert.deepEqual(errors,[],label+': no page errors');await ctx.close()}
-await browser.close();console.log('PASS v1.7.6: talk button in the middle of the voice sheet, calendar away shown in “Who is eating?” and lifted when back home, “Chi tiêu” translated with a member called Chi, More / packed-lunch names on one line, weekly menu readable on desktop, no text cut off or word broken on 9 screens at 320 / 375 / 820 / 1280 in VI and EN')})().catch((e:any)=>{console.error(e);process.exit(1)});
+await browser.close();console.log('PASS v1.7.6: whole plate on dish cards, talk button in the middle of the voice sheet, calendar away shown in “Who is eating?” and lifted when back home, “Chi tiêu” translated with a member called Chi, More / packed-lunch names on one line, weekly menu readable on desktop, no text cut off or word broken on 9 screens at 320 / 375 / 820 / 1280 in VI and EN')})().catch((e:any)=>{console.error(e);process.exit(1)});
