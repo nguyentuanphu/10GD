@@ -18,17 +18,17 @@ const read=(f:string)=>fs.readFileSync('dist/'+f,'utf8');
  // A family's own recipes and planned meals need no catalog; nothing is removed or tombstoned.
  const own={id:'fam-1',name:'Canh chua nhà bà',custom:true,origin:'family',category:'soup',protein:'fish',time:30,ingredients:[{id:'fish',qty:500}],steps:['Nấu']};
  const existing={...vm.runInContext('clone(defaults())',c),seedVersion:5,appEdition:5,recipes:[own,...vm.runInContext('clone(RECIPES)',c)]};
- vm.runInContext('upgradeReferenceCatalog',c)(existing);assert.ok(existing.recipes.some((r:any)=>r.id==='fam-1'),'family recipe kept');assert.equal(existing.seedVersion,5);assert.ok(!(existing.deletedRecipeIds||[]).length,'nothing tombstoned');
+ vm.runInContext('upgradeReferenceCatalog',c)(existing);assert.ok(existing.recipes.some((r:any)=>r.id==='fam-1'),'family recipe kept');assert.equal(existing.seedVersion,5/* v1.7.5: retiring waits until the catalogue data has loaded */);assert.ok(!(existing.deletedRecipeIds||[]).length,'nothing tombstoned');
  // Family sync never uploads a pre-catalog household.
  let synced=0;c.syncFamilyState=async()=>{synced++};c.state=fresh;vm.runInContext('installCatalogSyncGuard()',c);await vm.runInContext('syncFamilyState()',c);assert.equal(synced,0,'pre-catalog state not uploaded');
  // Catalog arrives: the reference recipes are added once and the state is complete; family deletions are respected.
  vm.runInContext(read('recipe-catalog-data.js'),c);assert.equal(vm.runInContext('catalogLoaded()',c),true);
  fresh.deletedRecipeIds=['family-v3-1'];const added=vm.runInContext('upgradeReferenceCatalog',c)(fresh);
- assert.equal(fresh.seedVersion,5);assert.ok(added>600,'added '+added);assert.ok(!fresh.recipes.some((r:any)=>r.id==='family-v3-1'),'deleted reference recipe stays deleted');
+ assert.equal(fresh.seedVersion,6/* v1.7.5 catalogue edition */);assert.ok(added>400/* v1.7.5: 475-recipe catalogue */,'added '+added);assert.ok(!fresh.recipes.some((r:any)=>r.id==='family-v3-1'),'deleted reference recipe stays deleted');
  assert.equal(fresh.recipes.length,vm.runInContext('RECIPES.length',c)-1);
  await vm.runInContext('syncFamilyState()',c);assert.equal(synced,1,'complete state syncs');
  // After the catalog: a fresh household is complete at once.
- assert.equal(vm.runInContext('newHouseholdState()',c).seedVersion,5);
+ assert.equal(vm.runInContext('newHouseholdState()',c).seedVersion,6/* v1.7.5 catalogue edition */);
  console.log('PASS lazy catalog: helpers without data, pre-catalog households marked and never synced, upgrade adds '+added+' reference recipes once, family recipes and deletions kept');
 }
 // ---------- 2. Downloads manager: Wi-Fi gating, resumable downloads, remove, storage ----------

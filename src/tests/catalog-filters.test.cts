@@ -4,7 +4,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const c=vm.createContext({console,Intl,Date,Math:Object.create(Math),structuredClone,crypto:require('node:crypto').webcrypto});
 vm.runInContext(['seed','recipe-catalog','core','spending-core','purchase-units','planning-core','insights-core','family-menu-core'].map(f=>fs.readFileSync('dist/'+f+'.js','utf8')).join('\n')+'\nthis.api={RECIPES,PLANT_RECIPES,WESTERN_HEALTHY_RECIPES,defaults,recipeDiet,recipeCuisine,ownRecipe,isVegetarianRecipe,isVeganRecipe,recipeNeedsDietCheck,recipeMatchesLibraryTag,recipeMatchesLibraryFilters,libraryRecipeMeta,LIBRARY_FILTER_TAGS}',c);
 const a=c.api,recipes=a.defaults().recipes,by=tag=>recipes.filter(r=>a.recipeMatchesLibraryTag(r,tag)),names=list=>new Set(list.map(r=>r.name));
-assert.equal(recipes.length,740,'fresh device holds the 740-recipe catalogue');
+assert.equal(recipes.length,475,'fresh device holds the 475-recipe catalogue (v1.7.5: Vietnamese references halved)');
 assert.deepEqual([...a.LIBRARY_FILTER_TAGS],['western','healthy','vegetarian','vegan','seed-salad','dressing']);
 
 // Salad hạt and Dressing: exactly the catalogue's seed salads and dressings.
@@ -49,7 +49,7 @@ assert.ok(noodle.some(r=>/^Phở/.test(r.name))&&noodle.some(r=>/^Bún/.test(r.n
 const noodleVegan=recipes.filter(r=>a.recipeMatchesLibraryFilters(r,{category:'noodle',tag:'vegan'})),quickVeg=recipes.filter(r=>a.recipeMatchesLibraryFilters(r,{tag:'vegetarian',maxTime:'20'}));
 assert.ok(noodleVegan.length>0&&noodleVegan.every(r=>r.category==='noodle'&&a.isVeganRecipe(r)));
 assert.ok(quickVeg.length>0&&quickVeg.every(r=>r.time<=20)&&quickVeg.length<vegetarian.length);
-assert.equal(recipes.filter(r=>a.recipeMatchesLibraryFilters(r,{})).length,740,'no filter keeps everything');
+assert.equal(recipes.filter(r=>a.recipeMatchesLibraryFilters(r,{})).length,475,'no filter keeps everything');
 
 // A reference copy saved by an older edition without catalogue metadata still lands in the right chips; the stored
 // copy is not mutated, and family-authored recipes are never re-labelled from the catalogue.

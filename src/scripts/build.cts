@@ -22,7 +22,7 @@ if(catalog.version!==1||!Array.isArray(catalog.items)||catalog.items.length<100)
 writeFileSync('dist/master-catalog.js',"'use strict';\nglobalThis.MASTER_CATALOG=Object.freeze("+JSON.stringify(catalog)+");\n");
 
 // v1.6 lazy reference catalog: dist/recipe-catalog.js (complete, used by tests, Studio and the artwork audit)
-// is split at its marker into recipe-catalog-data.js (740 reference recipes, fetched on demand) and small helpers
+// is split at its marker into recipe-catalog-data.js (475 reference recipes since v1.7.5, fetched on demand) and small helpers
 // that ship in the startup pack together with the loader as recipe-catalog-core.js.
 const stripMap=(code:string)=>code.replace(/\/\/# sourceMappingURL=.*$/gm,'');
 const fullCatalog=stripMap(readFileSync('dist/recipe-catalog.js','utf8'));
@@ -43,11 +43,11 @@ let catalogCount=0;
 {
  const vm=require('node:vm') as typeof import('node:vm');
  const ctx=vm.createContext({foodArt:()=>'',appLanguage:'vi',normalizeText:(t:string)=>String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').toLowerCase(),esc:(t:string)=>String(t)});
- vm.runInContext(['seed','recipe-catalog','dish-composition','artwork'].map(f=>readFileSync('dist/'+f+'.js','utf8')).join('\n')+'\nthis.count=RECIPES.length;this.hashes=Object.fromEntries(RECIPES.filter(r=>Object.hasOwn(REVIEWED_DISH_ART,r.id)).map(r=>[r.id,artSignatureHash(dishArtSignature(r))]))',ctx);
+ vm.runInContext(['seed','recipe-catalog','dish-composition','artwork'].map(f=>readFileSync('dist/'+f+'.js','utf8')).join('\n')+'\nthis.count=RECIPES.length;this.hashes=Object.fromEntries([...RECIPES,...(typeof RETIRED_REFERENCE_RECIPES==="undefined"?[]:RETIRED_REFERENCE_RECIPES)].filter(r=>Object.hasOwn(REVIEWED_DISH_ART,r.id)).map(r=>[r.id,artSignatureHash(dishArtSignature(r))]))',ctx);
  const artwork=readFileSync('dist/artwork.js','utf8'),placeholder=/const CATALOG_ART_HASHES\s*=\s*null;\s*\/\*__BEP_CATALOG_ART_HASHES__\*\//;
  if(!placeholder.test(artwork))throw new Error('Artwork hash placeholder is missing');
- // v1.7.5: the reference library was halved by the owner (740 → 372); every remaining recipe keeps its reviewed art
- if(Object.keys(ctx.hashes).length<360||Object.keys(ctx.hashes).length<ctx.count*0.95)throw new Error('Too few artwork hashes');
+ // v1.7.5: the owner halved the Vietnamese reference recipes (740 → 475); every remaining recipe keeps its reviewed art
+ if(Object.keys(ctx.hashes).length<470||Object.keys(ctx.hashes).length<ctx.count*0.95)throw new Error('Too few artwork hashes');
  catalogCount=ctx.count;
  writeFileSync('dist/artwork.js',artwork.replace(placeholder,'const CATALOG_ART_HASHES=Object.freeze('+JSON.stringify(ctx.hashes)+');'));
 }
