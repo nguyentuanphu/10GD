@@ -1725,3 +1725,5 @@ html[data-theme="dark"] .cl-scout-summary{background:#1f3a2a;border-color:#2c3a3
 #main.cl .screen-switch.cl-in-heading{margin:0}
 #main.cl .screen-switch.cl-in-heading .btn{min-height:44px;padding:0 12px}
 #main.cl .page-heading>div:first-child{min-width:0}#main.cl .page-heading h1{overflow-wrap:anywhere}
+.cl-tools-body>a,.cl-tools-body>button{display:flex;align-items:center;min-height:44px;box-sizing:border-box}
+#main .cl-tools-body>a,#main .cl-tools-body>button{min-height:44px!important}
