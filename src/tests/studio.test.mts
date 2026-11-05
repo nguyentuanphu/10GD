@@ -144,4 +144,13 @@ assert.ok(audit.items.every((a:any)=>a.actor&&a.at),'who/when recorded');
 const fam2=await (await S('audit&family='+fam.id,{cookie:henry})).json();assert.ok(fam2.items.length>0&&fam2.items.every((a:any)=>a.family===fam.id));
 assert.equal(maskEndpoint('https://fcm.googleapis.com/fcm/send/abcdefghijk123456'),'fcm.googleapis.com …123456');
 assert.equal((await S('rollout',{cookie:henry})).status,200);
+// v1.7.6: "Run now" for online prices. A skipped run (switches off) must not start the 10-minute wait, and the
+// switches shown and used are read fresh (the owner pressed Run now right after switching on and got "Ran recently").
+{const r1=await P('online-prices-run',{});assert.equal(r1.status,200);assert.equal((await r1.json()).status.skipped,'disabled');
+ const r2=await P('online-prices-run',{});assert.equal(r2.status,200,'a skipped run does not block the next one');
+ await (await S('settings',{cookie:henry})).json();// warm the 60 s settings cache with the switches off
+ const flip=createStudioHandler({getStoreFn,env:{...env,PINCH_API_KEY:'synthetic'},limits:{all:1000,mutate:1000}});
+ await getStoreFn({name:'bep-studio'}).setJSON('settings/platform',{...(await getStoreFn({name:'bep-studio'}).get('settings/platform',{type:'json'})||{}),flags:{...((await getStoreFn({name:'bep-studio'}).get('settings/platform',{type:'json'}))?.flags||{}),onlinePinch:true}});
+ const st=await (await flip(req('studio','op=online-prices',{cookie:henry}))).json();assert.equal(st.flags.onlinePinch,true,'switches are read fresh, not from the cache');
+ await P('settings-save',{patch:{flags:{onlinePinch:false}}});resetSettingsCache()}
 console.log('Studio tests passed.');

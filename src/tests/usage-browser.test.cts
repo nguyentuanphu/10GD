@@ -107,7 +107,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
   assert.deepEqual(errors,[]);await context.close();banner={...banner,flags:{...banner.flags,usageAnalytics:true}}}
 
  // ---------- 6. one-time "Terms updated" notice for existing contributors (non-modal) ----------
- {const init=`localStorage.setItem('guest/bep-price-scout-v1',JSON.stringify({version:1,open:true,postcode:'2220',state:'NSW',prefs:{},local:[],pending:[],pool:null,communityStatus:{termsAcceptedAt:'2026-10-20T00:00:00Z',termsVersion:'2026-11-01',acceptedTermsVersion:'2026-11-draft'}}))`;
+ {const init=`localStorage.setItem('guest/bep-price-scout-v1',JSON.stringify({version:1,open:true,fold176:true,postcode:'2220',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:[],pending:[],pool:null,communityStatus:{termsAcceptedAt:'2026-10-20T00:00:00Z',termsVersion:'2026-11-01',acceptedTermsVersion:'2026-11-draft'}}))`;
   for(const [size,lang,theme] of [['mobile','vi','light'],['tablet','en','light'],['desktop','vi','dark']] as const){
    const {context,page,errors}=await openApp({viewport:sizes[size],lang,theme,init});const n=page.locator('#terms-notice');await n.waitFor({timeout:8000});
    assert.equal(await page.locator('.modal').count(),0,'no modal at startup');assert.match(await n.innerText(),lang==='en'?/Terms updated/:/Điều khoản đã cập nhật/);assert.equal(await n.locator('a').getAttribute('href'),'/privacy.html#community');

@@ -65,7 +65,7 @@ async function main(){
  }
  async function shot(page,name){await page.screenshot({path:`${out}/${name}.png`,fullPage:false});shots.push(name)}
  const scrollTo=async(page,sel)=>{await page.evaluate(sel=>{const el=document.querySelector(sel);if(el){const y=el.getBoundingClientRect().top+scrollY-70;scrollTo(0,y)}},sel);await page.waitForTimeout(150)};
- const withData={version:1,open:true,postcode:'2166',state:'NSW',prefs:{},local:SAMPLE,pending:[],pool:null};
+ const withData={version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:SAMPLE,pending:[],pool:null};
  try{
   // 1. Setup / empty state (no postcode yet)
   for(const[size,viewport]of Object.entries(sizes)){const {page,context,errors}=await open({viewport});await scrollTo(page,'.price-scout');assert.ok(await page.locator('#scout-postcode').isVisible());await check(page,'setup '+size);await shot(page,`setup-vi-light-${size}`);assert.deepEqual(errors,[]);await context.close()}
@@ -107,7 +107,7 @@ async function main(){
   {const {page,context}=await open({theme:'dark',lang:'en',scout:withData,viewport:sizes.tablet});await page.locator('[data-scout="tray"]').click();await page.waitForSelector('.scout-tray.open');await shot(page,'amazon-tray-en-dark-tablet');await context.close()}
   // 7. Family account mode: refresh loads the family pool; saving posts to the family API
   {let posted:any=null;const api=(req:any,op:string)=>{if(op==='prices')return{json:{householdId:'qa-household',state:'NSW',cycleId:'x',today,observations:SAMPLE.slice(0,12),official:null}};if(op==='observe'&&req.method()==='POST'){posted=JSON.parse(req.postData());return{status:201,json:{saved:posted.observations.map((x:any)=>x.id)}}}return{status:404,json:{}}};
-   const {page,context,calls,errors}=await open({account:true,api,scout:{version:1,open:true,postcode:'2166',state:'NSW',prefs:{},local:[],pending:[],pool:null}});
+   const {page,context,calls,errors}=await open({account:true,api,scout:{version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:[],pending:[],pool:null}});
    await page.locator('[data-scout="refresh"]').click();await page.waitForFunction(()=>!document.querySelector('[data-scout="refresh"][disabled]'));await page.waitForTimeout(200);
    assert.ok(calls.includes('GET prices'));assert.match(await page.locator('.price-scout').innerText(),/Đồng bộ gia đình/);assert.doesNotMatch(await page.locator('.price-scout').innerText(),/Netlify|Blobs/i);
    await page.locator('[data-scout="manual"]').click();await page.fill('#scout-label','Bok choy');await page.selectOption('#scout-item','cai-thia');await page.fill('#scout-price','2.50');await page.fill('#scout-pack','500');await page.selectOption('#scout-pack-unit','g');await page.locator('.modal-footer .btn.primary').click();await page.waitForTimeout(300);

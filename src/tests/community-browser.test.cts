@@ -40,7 +40,7 @@ async function main(){
  const browser=await chromium.launch();const shots:string[]=[];
  async function open({viewport=sizes.mobile,lang='vi',theme='light',status=STATUS(),api,account=true,community=COMMUNITY,family=FAMILY,rewards=REWARDS,scoutExtra={}}:any={}){
   const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme});
-  const scope=account?'account/qa-household/':'guest/',scout={version:1,open:true,postcode:'2166',state:'NSW',prefs:{},local:[],pending:[],pool:account?{at:Date.now(),observations:family,official:null}:null,...scoutExtra};
+  const scope=account?'account/qa-household/':'guest/',scout={version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:[],pending:[],pool:account?{at:Date.now(),observations:family,official:null}:null,...scoutExtra};
   await context.addInitScript(({scope,lang,theme,scout,account}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem(scope+'bep-language',lang);if(account)localStorage.setItem('bep-account-present','yes');else localStorage.setItem('bep-local-locked','yes');localStorage.setItem(scope+'bep-price-scout-v1',JSON.stringify(scout))},{scope,lang,theme,scout,account});
   const page=await context.newPage(),errors:string[]=[],calls:any[]=[];let linked:any=null;
   page.on('pageerror',e=>errors.push(e.message));
