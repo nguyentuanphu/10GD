@@ -1523,3 +1523,31 @@ html[data-text-size="xlarge"]{--fs-mul:1.22;--fs-floor:16px;--fs-floor-small:14p
 /* v1.7.5 · larger text: the visible column labels of the member list may wrap (“Portions / meal” overflowed at 320 px) */
 .kitchen-member-row label{white-space:normal;overflow-wrap:anywhere}
 .kitchen-member-row+.kitchen-member-row label{white-space:nowrap}
+
+/* v1.7.5 · Tuần này ai bận: one line per person; packed-lunch schedule table */
+.who-busy-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.who-busy-head .link-btn{background:none;border:0;color:var(--green2);font:inherit;min-height:44px;padding:0 4px;cursor:pointer}
+.who-busy-rows{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.who-busy-row{display:block;width:100%;min-height:44px;padding:8px 10px;border-radius:8px;border:1px solid;font:inherit;text-align:left;cursor:pointer;overflow-wrap:anywhere}
+.who-busy-row.busy{background:#fbe3c0;color:#5f3805;border-color:#e2a14f}.who-busy-row.away{background:#ecedea;color:#363b37;border-color:#a9ada6}
+.who-busy-name{font-weight:650}.who-busy-status{font-weight:500}
+.who-busy-pack{margin:8px 0 0}
+.pack-shortcut{margin:0 0 15px 8px}
+.pack-table-wrap{overflow-x:auto;max-width:100%}
+.pack-table{border-collapse:collapse;width:100%;min-width:300px}
+.pack-table th,.pack-table td{padding:4px 2px;text-align:center}
+.pack-table th[scope=row]{text-align:left;padding-right:8px;overflow-wrap:anywhere;max-width:110px}
+.pack-table input.check{width:24px;height:24px;margin:10px 0}
+.pack-all-btn{min-width:32px;min-height:44px;border:1px dashed var(--line);border-radius:8px;background:var(--white);color:var(--green2);font:inherit;cursor:pointer}
+html[data-theme="dark"] .who-busy-row.busy{background:#4a3416;color:#ffe3bd;border-color:#a8742d}
+html[data-theme="dark"] .who-busy-row.away{background:#2a302d;color:#e4e8e2;border-color:#5a615c}
+
+/* v1.7.5 · packed-lunch table fits 7 days at 320 px; the whole cell is the touch target */
+.calendar-shortcut,.pack-shortcut{margin:0 8px 12px 0;vertical-align:top}
+.pack-table{min-width:0;table-layout:fixed}
+.pack-table th,.pack-table td{padding:2px 1px}
+.pack-table th[scope=row]{width:22%;max-width:none;padding-right:4px;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor-small,0px))}
+.pack-cell{display:flex;align-items:center;justify-content:center;min-height:44px;cursor:pointer}
+.pack-table .pack-cell input.check{width:22px;height:22px;margin:0}
+.pack-all-btn{min-width:0;width:100%;padding:0}
+.who-busy-pack b{font-weight:650}

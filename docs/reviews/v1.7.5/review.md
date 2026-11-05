@@ -30,6 +30,18 @@ Branch `release/v1.7.5`, stacked on #12 (artwork fixes) which is stacked on #11 
 
 Items 2 and 15 were empty in the note.
 
+### Second request (5 Nov 2026): attendance, packed lunches, “Tuần này ai bận”
+Owner decisions (popup): compact busy box grouped by person; packed-lunch schedule per person plus an everyone row; “Chưa báo” counted like eating at home; in v1.7.5.
+
+| Request | Change | Covered by |
+|---|---|---|
+| “Có lịch báo ngày nào mang đồ ăn trưa theo?” | **Lịch mang cơm** (Today → “Ai ăn bữa này?” → 🍱 Lịch mang cơm): people × weekdays with a “Cả nhà” row. Upcoming lunches of a scheduled person become “Mang đi” unless cooked/locked, the calendar has them away, or the family chose otherwise; removing a day reverts only what the schedule set (`meal.autoPacked`). Lunch-box dishes are cooked for the people packing only and planned on days someone packs. | pack-schedule (unit), v175-feedback (4 sizes) |
+| Busy box grows too large | One line per person in date order (“Ba Phú vắng T5 trưa · T6 trưa · T4 11/11 trưa”), at most 3 lines, “Xem cả tuần ›”, 🍱 line for packed lunches. A day in another week shows its date (the old list ended with an unexplained “T4 trưa”); Bữa phụ has a word (it would have read “undefined”). | pack-schedule, family-calendar |
+| “Chưa báo” | Counted in portions like “Ăn ở nhà”. | pack-schedule |
+
+Data: `state.packSchedule` (`{members:{id:[weekday…]}}`, validated) and `meal.autoPacked`; both edition 6.
+
+
 ## Data implications
 - **Edition 6** (`APP_EDITION`): new meal `snack`, dish types `dessert/snack/lunchbox`, family ingredient units such as `tép`, `đòn`. Older apps receiving edition-6 family data show “Có bản cập nhật — tải lại” and do not overwrite it. The reference-catalogue edition stays 5 (`CATALOG_EDITION`), so deleted-reference tombstones keep working (caught by catalog-fixes).
 - **No stored data is rewritten.** Legacy `purposes` (main/side/friday) are read as meals; an unchanged save keeps them exactly. Saved note lines with an amount open unticked (shopping lists unchanged); name-only lines open ticked so adding an amount counts them.

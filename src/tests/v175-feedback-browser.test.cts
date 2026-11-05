@@ -68,6 +68,21 @@ for(const [size,opts] of SIZES){
  const portion=page.locator('#modal-root select[name^="size-"]').first();if(await portion.count()){const opts2=await portion.locator('option').allInnerTexts();assert.equal(opts2[0],'Tự tính theo số người');assert.ok(opts2.includes('½ lượng (50%)')&&opts2.includes('Gấp đôi (200%)'))}
  assert.match(await page.locator('#modal-root').innerText(),/Tự tính theo số người.*nấu đủ cho những người ăn bữa này/s,'portion choice explained');
  await noOverflow('meal editor');await shot('meal-editor');await page.evaluate(()=>(globalThis as any).eval('closeModal()'));
+ // ---- Lịch mang cơm (5 Nov 2026): “Cả nhà” ticks a day for everyone; saving marks the coming lunches “Mang đi”
+ await page.evaluate(()=>{location.hash='today'});await page.waitForTimeout(500);
+ await tap(page.locator('#main [data-house="pack-schedule"]'));await page.locator('#pack-schedule-form').waitFor();
+ const firstId=await page.evaluate(()=>(globalThis as any).eval('state.members[0].id'));
+ await tap(page.locator('[data-house="pack-all"][data-day="1"]'));
+ assert.equal(await page.locator('#pack-schedule-form input[data-day="1"]:checked').count(),await page.locator('#pack-schedule-form input[data-day="1"]').count(),'Cả nhà ticks Monday for everyone');
+ for(const d of [2,3,4,5])await tap(page.locator(`#pack-schedule-form input[data-member="${firstId}"][data-day="${d}"]`));
+ await noOverflow('pack schedule');assert.ok(await page.evaluate(()=>{const w=document.querySelector('.pack-table-wrap')!;return w.scrollWidth<=w.clientWidth+1}),'all 7 days fit without sideways scrolling');
+ for(const box of await page.locator('#pack-schedule-form .pack-cell').all()){const b=await box.boundingBox();assert.ok(b&&b.height>=44,'44 px tap target per day')}
+ await shot('pack-schedule');
+ await tap(page.locator('[data-house="pack-save"]'));await page.locator('#pack-schedule-form').waitFor({state:'detached'});
+ const packed=await page.evaluate((id:string)=>{const g=(globalThis as any).eval;const s=g('state'),today=g('sydneyDate()');let n=0,total=0;for(let i=0;i<14;i++){const d=g(`addDays('${today}',${i})`),w=s.weeks[g(`monday('${d}')`)],m=w?.days?.[d]?.lunch;if(!m||m.cooked)continue;const wd=new Date(d+'T12:00:00Z').getUTCDay();if(wd>=1&&wd<=5){total++;if(m.attendance[id]==='packed')n++}}return {n,total,schedule:s.packSchedule}},firstId);
+ assert.ok(packed.total>0&&packed.n===packed.total,'weekday lunches set to Mang đi for the scheduled person '+JSON.stringify(packed));
+ assert.match(await page.locator('#main .who-busy-pack').innerText(),/🍱 Mang cơm trưa:.*T2–T6/,'packed-lunch line on Today');
+ await noOverflow('today with pack line');await page.locator('#main .who-busy-pack').scrollIntoViewIfNeeded();await shot('today-pack-line');
  // ---- Today and settings: Cỡ chữ switch
  await page.evaluate(()=>{location.hash='today'});await page.waitForTimeout(500);await noOverflow('today');await shot('today');
  await page.evaluate(()=>{localStorage.setItem('bep-text-size','xlarge');(globalThis as any).eval('applyThemePreferences()')});await page.waitForTimeout(200);
@@ -78,5 +93,5 @@ for(const [size,opts] of SIZES){
  assert.deepEqual(await page.locator('#text-size-select option').allInnerTexts(),['Vừa','Lớn (mặc định)','Rất lớn']);await page.locator('#text-size-select').scrollIntoViewIfNeeded();await noOverflow('settings');await shot('settings-text-size');
  assert.deepEqual(errors,[],'no page errors '+size);await ctx.close()}
 await browser.close();
-console.log('PASS v1.7.5 owner feedback at 375, 320, 820 and 1280 px: photo pickers open, meal/dish types, untickable meals, paste box, per-row shopping tick, đòn, ½, unnumbered method, Bữa phụ, 5 suggestions + Xem thêm, portion wording, text size, no overflow');
+console.log('PASS v1.7.5 owner feedback at 375, 320, 820 and 1280 px: photo pickers open, meal/dish types, untickable meals, paste box, per-row shopping tick, đòn, ½, unnumbered method, Bữa phụ, 5 suggestions + Xem thêm, portion wording, packed-lunch schedule, text size, no overflow');
 })().catch((e:any)=>{console.error(e);process.exit(1)});
