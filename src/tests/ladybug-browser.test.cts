@@ -197,12 +197,17 @@ const dim=(s:string)=>`${sizes[s].width}x${sizes[s].height}`;
 
  // ---------- 6. responsive evidence: bug + sheet at every size ----------
  for(const [size,lang,theme] of [['narrow','vi','light'],['tablet','vi','light'],['desktop','vi','light'],['desktop','en','dark'],['mobile','en','dark']] as const){
-  const {context,page,errors}=await openApp({who:'henrynguyen',size,lang,theme});await bug(page).waitFor();const b=await box(page);
+  const {context,page,errors}=await openApp({who:'henrynguyen',size,lang,theme});await bug(page).waitFor();
+  // v1.7.5 Studio shortcut for the owner: a top-bar button on desktop; on phones and tablets the top bar has no room, so it is the
+  // first item of the account menu (the button arrives ~1.2 s after start, so wait for it before the overflow checks)
+  await page.waitForSelector('.studio-link',{state:'attached'});assert.equal(await page.locator('.studio-link').isVisible(),size==='desktop','Studio button in the top bar only when it fits (desktop)');
+  await page.locator('.top-avatar').click();const si=page.locator('#account-menu [data-personal="studio"]');await si.waitFor();const siH=await page.waitForFunction(()=>{const n=document.querySelector('#account-menu [data-personal="studio"]');const h=n?n.getBoundingClientRect().height:0;return h>0&&h},null,{timeout:5000});assert.ok(+(await siH.jsonValue())>=44,'Studio menu item ≥44 px');assert.equal((await si.innerText()).trim(),lang==='en'?'Open Studio':'Mở Studio');await noOverflow(page,'account menu '+size);await shot(page,`studio-shortcut-${lang}-${theme}-${size}-${dim(size)}`);await page.keyboard.press('Escape');await page.waitForSelector('#account-menu',{state:'detached'});
+  const b=await box(page);
   const side=await page.locator('.sidebar').boundingBox();if(size==='desktop'||size==='tablet')assert.ok(b.x>=side!.x+side!.width,'not over the side navigation');else assert.ok(b.y+b.height<=side!.y-7,'above the bottom navigation');
   await noOverflow(page,'app '+size);await shot(page,`bug-${lang}-${theme}-${size}-${dim(size)}`);
   await openSheet(page);await noOverflow(page,'sheet '+size);const s=(await page.locator('.lb-sheet').boundingBox())!;assert.ok(s.x>=0&&s.x+s.width<=sizes[size].width+1,'sheet inside the screen');await shot(page,`sheet-${lang}-${theme}-${size}-${dim(size)}`);
   assert.deepEqual(errors,[]);await context.close()}
- console.log('PASS responsive: bug and sheet at 320×740, 375×812, 820×1100, 1280×800 (light/dark, VI/EN), no overflow');
+ console.log('PASS responsive: Studio shortcut (top bar on desktop, account menu everywhere); bug and sheet at 320×740, 375×812, 820×1100, 1280×800 (light/dark, VI/EN), no overflow');
  // privacy page section linked from the sheet
  for(const lang of ['vi','en']){const context=await browser.newContext({viewport:sizes.mobile});const page=await context.newPage();await route(page,null);await page.goto(origin+`/privacy.html?lang=${lang}#feedback`);await page.waitForSelector(`main[lang="${lang}"] h1`);
   const t=await page.locator(`main[lang="${lang}"] #${lang==='en'?'feedback-en':'feedback'}`).innerText();for(const w of lang==='en'?['only when you press','13 months','Network addresses are not stored']:['chỉ khi bạn bấm','13 tháng','Không lưu địa chỉ IP'])assert.ok(t.includes(w),lang+': '+w);assert.ok(!/netlify|blobs/i.test(t));await noOverflow(page,'privacy '+lang);await context.close()}

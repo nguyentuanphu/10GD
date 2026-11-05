@@ -8,7 +8,7 @@ const CACHE='bep-family-v22-lite';
 const ASSETS=['./','./index.html','./bootstrap.js','./offline-access.js','./startup-scripts.json','./styles.css','./offline-packs.json','./family-logo.png','./icon.svg','./notification-icon.png','./notification-icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
 const ART_PINNED='bep-art-pinned-v1',ART_RUNTIME='bep-art-runtime-v1',ART_INDEX='/__bep-art-index';
 const PACK_ART='bep-pack-art-v1',PACK_SHEETS='bep-pack-sheets-v1',PACK_CATALOG='bep-pack-catalog-v1',PACK_OCR='bep-pack-ocr-v1';
-const ART_RUNTIME_MAX_ENTRIES=240,ART_RUNTIME_MAX_BYTES=6*1024*1024,ART_REVALIDATE_MS=86400000,PIN_LIMIT=600;
+const ART_RUNTIME_MAX_ENTRIES=240,ART_RUNTIME_MAX_BYTES=16*1024*1024,ART_REVALIDATE_MS=86400000,PIN_LIMIT=600;
 const CATALOG_HASH='__BEP_CATALOG_HASH__';
 async function fetchWithDeadline(input,options={},ms=8000){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),ms);
@@ -138,7 +138,7 @@ self.addEventListener('fetch',event=>{
   try{const response=await fetchWithDeadline(event.request);if(response.ok&&!response.redirected&&publicAsset(event.request)){const cache=await caches.open(CACHE);await cache.put(event.request,response.clone())}return response}catch{return cachedOfflineResponse(event.request)}
  })());
 });
-self.addEventListener('message',event=>{
+self.addEventListener('message',event=>{if(event.data?.type==='clear-badge'){event.waitUntil(setBadge(0));return}
  if(event.data?.type==='SKIP_WAITING'){event.waitUntil(self.skipWaiting());return}
  if(event.data?.type==='CHECK_OFFLINE_READY')event.waitUntil((async()=>{const cache=await caches.open(CACHE),matches=await Promise.all(ASSETS.map(path=>cache.match(new URL(path,self.location.href).href)));let identityReady=true;if(event.data.householdId){try{const saved=await(await caches.open(ACCESS_CACHE)).match('/offline-access'),access=saved&&await verifyOfflineAccess(await saved.json());identityReady=access?.household?.id===event.data.householdId}catch{identityReady=false}}event.source?.postMessage({type:'OFFLINE_READY',ready:matches.every(Boolean)&&identityReady})})());
  // The page lists the artwork cells of this week's menu and the family's own recipes; keep exactly those offline.
@@ -149,5 +149,12 @@ self.addEventListener('message',event=>{
  if(event.data?.type==='CLEAR_PRIVATE_CACHE')event.waitUntil(caches.delete(ACCESS_CACHE));
 });
 // Push: show the notification and tell open app windows so urgent lists refresh immediately.
-self.addEventListener('push',event=>{let data={};try{data=event.data?.json()||{}}catch(e){}const url=['/#today','/#shopping','/#planner','/#expenses','/#pantry'].includes(data.url)?data.url:'/#today';event.waitUntil(Promise.all([self.registration.showNotification(data.title||'Bếp Gia Đình',{body:data.body||'Nhà mình có việc bếp cần xem.',icon:'./family-logo.png',tag:data.tag||'bep-reminder',data:{url,type:String(data.type||'reminder').slice(0,20)},timestamp:Date.now(),...(data.type==='urgent'?{renotify:true,requireInteraction:true,vibrate:[200,100,200]}:{})}),self.clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>list.forEach(c=>{try{c.postMessage({type:'family-push',kind:String(data.type||'reminder').slice(0,20),url})}catch{}})).catch(()=>{})]))});
+// v1.7.5 · app-icon badge (owner feedback #16): urgent messages, “không ăn / báo cơm” and absence notices add 1 to
+// the badge on the Home Screen icon (iPhone/iPad 16.4+ installed app with notifications allowed, Android, desktop).
+// Nothing is counted while the app is open on screen; the app clears the badge when it is opened.
+const BADGE_KINDS=['urgent','attendance','calendar'],BADGE_CACHE='bep-badge-v1',BADGE_KEY='./__badge-count';
+async function badgeCount(){try{const r=await (await caches.open(BADGE_CACHE)).match(BADGE_KEY);return r?Math.max(0,parseInt(await r.text(),10)||0):0}catch{return 0}}
+async function setBadge(n){const before=await badgeCount();if(before===n&&n===0)return;try{await (await caches.open(BADGE_CACHE)).put(BADGE_KEY,new Response(String(n)))}catch{}try{if(n>0)await self.navigator.setAppBadge?.(n);else await self.navigator.clearAppBadge?.()}catch{}}
+async function bumpBadge(kind){if(!BADGE_KINDS.includes(kind))return;const list=await self.clients.matchAll({type:'window',includeUncontrolled:true}).catch(()=>[]);if(list.some(c=>c.visibilityState==='visible'))return;await setBadge((await badgeCount())+1)}
+self.addEventListener('push',event=>{let data={};try{data=event.data?.json()||{}}catch(e){}const url=['/#today','/#shopping','/#planner','/#expenses','/#pantry'].includes(data.url)?data.url:'/#today';event.waitUntil(Promise.all([bumpBadge(String(data.type||'')),self.registration.showNotification(data.title||'Bếp Gia Đình',{body:data.body||'Nhà mình có việc bếp cần xem.',icon:'./family-logo.png',tag:data.tag||'bep-reminder',data:{url,type:String(data.type||'reminder').slice(0,20)},timestamp:Date.now(),...(data.type==='urgent'?{renotify:true,requireInteraction:true,vibrate:[200,100,200]}:{})}),self.clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>list.forEach(c=>{try{c.postMessage({type:'family-push',kind:String(data.type||'reminder').slice(0,20),url})}catch{}})).catch(()=>{})]))});
 self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(async list=>{const target=new URL(event.notification.data?.url||'./#today',self.location.href).href;const client=list.find(c=>new URL(c.url).origin===self.location.origin);if(client){try{if(typeof client.navigate==='function')await client.navigate(target)}catch{try{client.postMessage({type:'family-push-open',url:event.notification.data?.url||'/#today'})}catch{}}try{return await client.focus()}catch{}}return self.clients.openWindow?self.clients.openWindow(target):undefined}))});

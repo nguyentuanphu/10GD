@@ -9,8 +9,8 @@
 // day; only today and future dates; only status / portion changes (a note-only edit or re-saving identical entries is quiet).
 import {createHash} from 'node:crypto';
 import {sendPushBatch,sydneyClock,pushKeys} from './push.mjs';
-const MEALS=['breakfast','lunch','dinner'];
-const WORD:any={vi:{breakfast:'sáng',lunch:'trưa',dinner:'tối'},en:{breakfast:'breakfast',lunch:'lunch',dinner:'dinner'}};
+const MEALS=['breakfast','lunch','snack','dinner'];
+const WORD:any={vi:{breakfast:'sáng',lunch:'trưa',snack:'phụ',dinner:'tối'},en:{breakfast:'breakfast',lunch:'lunch',snack:'snack',dinner:'dinner'}};
 export const AVAILABILITY_MAX_PER_DAY=20;
 const isObj=(x:any)=>!!x&&typeof x==='object'&&!Array.isArray(x);
 const validEntry=(e:any)=>isObj(e)&&['away','busy'].includes(e.status)&&typeof e.deduct==='boolean';

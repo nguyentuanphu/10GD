@@ -7,10 +7,14 @@ import masterCatalog from '../../data/master-catalog.json' with {type:'json'};
 
 export type MatchItem={itemId:string,names:string[],exclude?:string[],nameVi?:string,nameEn?:string};
 /** Words that turn a product into a different thing from the plain ingredient. */
-export const VARIANT_WORDS=['smoked','canned','tinned','tin','can','cat','kitten','dog','puppy','pet','treat','treats','flavour','flavoured','flavored','chips','crisps','crackers','cracker','oil','jerky','dip','spread','pate','sushi','snack','snacks','seasoning','stock','soup','baby','infant','supplement','capsules','vitamin','shampoo','wipes','candle','toy'];
+export const VARIANT_WORDS=['smoked','canned','tinned','tin','can','cat','kitten','dog','puppy','pet','treat','treats','flavour','flavoured','flavored','chips','crisps','crackers','cracker','oil','jerky','dip','spread','pate','sushi','snack','snacks','seasoning','stock','soup','baby','infant','supplement','capsules','vitamin','shampoo','wipes','candle','toy',
+ // v1.7.5: false matches seen in a live run of the national online price providers (5 Nov 2026)
+ 'microwave','cups','cleaner','pod','pods','mash','tea','drink','drinks','juice','marinated','brine','kit','sauce','paste','powder','flour','cooked','conditioner','hydralyte','liquid','lozenges','soap'];
 /** Item-specific extra names and exclusions (small, reviewed table; ids from data/master-catalog.json). */
 export const SYNONYMS:Record<string,{names?:string[],exclude?:string[]}>={
  'ca-hoi':{names:['salmon fillet','salmon fillets','salmon portion','salmon portions','atlantic salmon'],exclude:['pink salmon','red salmon','salmon roe','caviar']},
+ 'hung-que':{exclude:['sweet chilli','stir fry']},
+ 'dau-an':{exclude:['coconut']},
 };
 const BRAND=/\b(woolworths|coles|aldi|macro|community co|essentials|simply|select|finest|specially selected)\b/g;
 export function norm(s:any){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/&/g,' and ').replace(/[^a-z0-9]+/g,' ').replace(BRAND,' ').replace(/\s+/g,' ').trim()}

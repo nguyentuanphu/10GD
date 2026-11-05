@@ -40,7 +40,7 @@ function ensureCatalog({timeout=30000}={}){
 // A household created before the catalog arrived keeps a low seedVersion (2) so any device, old or new,
 // adds the reference recipes itself; it is never synced as an "already complete" edition (that would make
 // older app versions tombstone the reference recipes it lacks).
-function catalogPendingFor(s){return !!s&&Array.isArray(s.recipes)&&((s.seedVersion||1)<5||!!globalThis.__bepExpandedPending)}
+function catalogPendingFor(s){return !!s&&Array.isArray(s.recipes)&&((s.seedVersion||1)<(typeof CATALOG_EDITION==='number'?CATALOG_EDITION:6)||!!globalThis.__bepExpandedPending)}
 function catalogAddExpanded(s){if((s.seedVersion||1)>=3&&!globalThis.__bepExpandedPending)return 0;globalThis.__bepExpandedPending=false;const ids=new Set(s.recipes.map(r=>r.id)),gone=new Set(s.deletedRecipeIds||[]);let added=0;for(const r of RECIPES)if(r.expanded&&!ids.has(r.id)&&!gone.has(r.id)){s.recipes.push(clone(r));ids.add(r.id);added++}if((s.seedVersion||1)<3)s.seedVersion=3;return added}
 function scheduleCatalogUpgrade(){
  if(catalogUpgradeQueued)return;catalogUpgradeQueued=true;

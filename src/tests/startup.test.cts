@@ -60,6 +60,18 @@ async function main() {
       await page.waitForFunction(() => document.querySelector('.connectivity-status') || document.querySelector('[data-personal]'));
       await page.waitForTimeout(500);
       assert.ok((await page.locator('#main').innerText()).length > 500);
+      if (name === 'mobile') {
+        // v1.7.4: the bottom "Thêm / More" tab lines up with the other tabs (icon and label tops within 2 px).
+        const tabs = await page.evaluate(() => [...document.querySelectorAll('#nav > a, #nav > .mobile-more')].filter((e: any) => e.getBoundingClientRect().height > 0).map((e: any) => { const i = e.querySelector('.nav-icon').getBoundingClientRect(), l = e.querySelector('span:not(.nav-icon)').getBoundingClientRect(); return { more: e.classList.contains('mobile-more'), icon: Math.round(i.top), iconH: Math.round(i.height), label: Math.round(l.top) }; }));
+        const more = tabs.find((t: any) => t.more), first = tabs.find((t: any) => !t.more);
+        assert.ok(more && first, 'mobile tabs found: ' + JSON.stringify(tabs));
+        assert.ok(Math.abs(more.icon - first.icon) <= 2 && Math.abs(more.label - first.label) <= 2 && Math.abs(more.iconH - first.iconH) <= 2, 'More tab aligned with the other tabs: ' + JSON.stringify(tabs));
+        // v1.7.4: "Các mục khác" rows share one layout — icon and label start at the same x on every row, incl. the guide row.
+        await page.click('#nav .mobile-more'); await page.locator('.more-tools .more-guide').waitFor();
+        const rows = await page.evaluate(() => [...document.querySelectorAll('.more-tools .more-row')].map((e: any) => [Math.round(e.querySelector('.more-icon').getBoundingClientRect().left), Math.round(e.querySelector('.more-label').getBoundingClientRect().left), Math.round(e.getBoundingClientRect().height)]));
+        assert.ok(rows.length >= 5 && rows.every((r: any) => r[0] === rows[0][0] && r[1] === rows[0][1] && r[2] >= 44), 'More sheet rows aligned: ' + JSON.stringify(rows));
+        await page.click('#modal-root [data-action="close-modal"]');
+      }
       await page.evaluate(() => { location.hash = 'shopping'; });
       await page.waitForTimeout(200);
       assert.match(await page.locator('#main').innerText(), /Đi chợ|Shopping/);

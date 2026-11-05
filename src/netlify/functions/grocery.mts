@@ -4,6 +4,7 @@
 import {getStore} from '@netlify/blobs';
 import {resolveAccount,scopedStore} from '../lib/accounts.mjs';
 import {postcodeToState,supportedState} from '../lib/geo-resolver.mjs';
+import {ONLINE_PHOTOS_KEY,cleanPhoto} from '../lib/online-prices.mjs';
 import {cleanObservation,readObservations,mutateObservations,rateLimit,officialPrices,cycleId,sydneyDate,CACHE_STORE} from '../lib/grocery-pricing.mjs';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 export function createGroceryHandler({getStoreFn=getStore,now=()=>new Date()}={}){
@@ -12,6 +13,8 @@ export function createGroceryHandler({getStoreFn=getStore,now=()=>new Date()}={}
  return async request=>{
   const url=new URL(request.url),op=url.searchParams.get('op'),method=request.method;
   if(op==='region'&&method==='GET')return json(postcodeToState(url.searchParams.get('postcode')));
+  // v1.7.5: product photos of owner-confirmed products (public catalogue pictures, no family data; device-only too)
+  if(op==='photos'&&method==='GET'){let ph:any=null;try{ph=await cacheStore()?.get(ONLINE_PHOTOS_KEY,{type:'json'})}catch{}const items:any={};for(const[k,v]of Object.entries(ph?.items||{}) as any){const photo=cleanPhoto(v?.photo);if(/^[a-z0-9-]{1,60}$/.test(k)&&photo)items[k]={photo,retailer:String(v.retailer||'').slice(0,20),label:String(v.label||'').slice(0,160)}}return Response.json({updatedAt:ph?.updatedAt||null,items},{headers:{'Cache-Control':'public, max-age=3600'}})}
   if(!['GET','HEAD'].includes(method)&&request.headers.get('origin')!==url.origin)return json({error:'Same-origin request required.'},403);
   const context=await resolveAccount(request,getStoreFn);
   if(!context)return json({error:'Sign in to family storage.'},401);

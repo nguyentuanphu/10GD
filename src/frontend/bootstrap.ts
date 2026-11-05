@@ -1,4 +1,6 @@
 'use strict';
+// v1.7.5 · text size is applied before anything renders (Vừa / Lớn / Rất lớn; default Lớn), so the page never jumps.
+try{const ts=localStorage.getItem('bep-text-size');document.documentElement.dataset.textSize=ts==='medium'||ts==='xlarge'?ts:'large'}catch{document.documentElement.dataset.textSize='large'}
 // This entry point is checked with strict TypeScript independently of legacy globals.
 declare function clearOfflineAccess(): void;
 declare function rememberOfflineAccess(status: SessionStatus): Promise<void>;
@@ -17,18 +19,22 @@ interface Window {
   BepConnectivity?: { reportSuccess(): void; reportFailure(kind: 'network' | 'timeout' | 'server'): Promise<boolean>; wake(): Promise<boolean> };
   BEP_STARTUP?: { cachedIdentity: boolean; packHash: string; ready?: number; packMismatch?: boolean };
   BEP_BUILD?: string;
+  BEP_VERSION?: string;
   // Optional async steps registered by earlier scripts, run before the named script ('@ready': after all).
   BEP_SCRIPT_HOOKS?: Record<string, () => Promise<void> | void>;
 }
 (async (): Promise<void> => {
   const local = ['terminal.local', 'localhost', '127.0.0.1'].includes(location.hostname);
-  const scripts = ['storage-context.js','seed.js','recipe-catalog-core.js','core.js','spending-core.js','unit-registry.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','voice-learning.js','master-catalog.js','shopping-optimizer.js','app.js','dish-composition.js','artwork.js','unit-picker.js','sync-merge-core.js','family-features.js','shopping-planning.js','push-ui.js','simple-view.js','language.js','push-settings-ui.js','insights-ui.js','products-ui.js','price-scout-ui.js','voice-price.js','family-menu-ui.js','voice-recipe.js','household-ui.js','platform-banner.js','personal-ui.js','offline-downloads.js','app-update.js','scout-pair-ui.js','voice-local.js','voice-stats.js','voice-commands.js','onboarding-guide.js','usage-analytics.js','ladybug.js','recipe-community.js','menu-reactions-core.js','menu-reactions-ui.js','receipt-parse.js','receipt-ui.js','receipt-match.js','receipt-match-ui.js','sync-merge-ui.js'];
+  const scripts = ['storage-context.js','emoji-art.js','seed.js','recipe-catalog-core.js','core.js','spending-core.js','unit-registry.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','voice-learning.js','master-catalog.js','shopping-optimizer.js','app.js','dish-composition.js','artwork.js','product-photos.js','unit-picker.js','sync-merge-core.js','family-features.js','shopping-planning.js','push-ui.js','simple-view.js','language.js','push-settings-ui.js','insights-ui.js','products-ui.js','ui-art.js','price-scout-ui.js','voice-price.js','family-menu-ui.js','voice-recipe.js','household-ui.js','platform-banner.js','personal-ui.js','offline-downloads.js','app-update.js','scout-pair-ui.js','voice-local.js','voice-stats.js','voice-commands.js','onboarding-guide.js','usage-analytics.js','ladybug.js','recipe-community.js','menu-reactions-core.js','menu-reactions-ui.js','receipt-parse.js','receipt-ui.js','receipt-match.js','receipt-match-ui.js','sync-merge-ui.js','compact-layout.js'];
   // Replaced by the build with the startup pack's content hash. The service worker
   // answers instantly from its cache when hashes match and refreshes in the background.
   const packHash: string = '__BEP_STARTUP_PACK_HASH__';
   // Replaced by the build with a sortable build id (UTC time + pack hash), used by forced updates.
   const buildId: string = '__BEP_BUILD_ID__';
   window.BEP_BUILD = buildId;
+  // Replaced by the build with the release number from package.json (shown in Settings).
+  const appVersion: string = '__BEP_APP_VERSION__';
+  window.BEP_VERSION = appVersion;
   let packMismatch = false;
   const params = new URLSearchParams(location.search);
   const retrying = params.has('startup-retry');

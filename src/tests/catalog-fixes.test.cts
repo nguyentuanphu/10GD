@@ -8,7 +8,7 @@ const c=load(),a=c.api,json=x=>JSON.parse(JSON.stringify(x));
 const old=vm.createContext({INGREDIENTS:structuredClone(MAIN_INGREDIENTS)});vm.runInContext(MAIN_VALID_IMPORT+'\nthis.validImport=validImport;',old);
 const fresh=json(a.defaults());
 assert.equal(old.validImport(fresh),false,'documented one-time risk: the main client rejects a state containing the new catalogue ingredients');
-const legacy=json(a.defaults());legacy.seedVersion=3;delete legacy.appEdition;legacy.recipes=legacy.recipes.filter(r=>!r.catalogEdition||r.catalogEdition<4);
+const legacy=json(a.defaults());legacy.seedVersion=3;delete legacy.appEdition;legacy.recipes=JSON.parse(fs.readFileSync('docs/reviews/artwork-audit-20261102/source.json','utf8')).recipes.filter(r=>!r.catalogEdition||r.catalogEdition<4); // frozen pre-correction recipes: current defaults now contain spaghetti, introduced in edition 4.
 assert.equal(old.validImport(json(legacy)),true,'a v3 state without new ingredients is still readable by main');
 assert.equal(a.validImport(legacy),true);assert.equal(a.upgradeReferenceCatalog(legacy),200);assert.equal(legacy.appEdition,a.APP_EDITION);
 // The new client keeps unknown ids written by a newer edition instead of rejecting or dropping them.
@@ -56,5 +56,5 @@ const ANIMAL=['pork','ribs','chicken','beef','salmon','fish','shrimp','fishSauce
 let vegan=0,veg=0,check=0;for(const r of a.RECIPES){const ids=r.ingredients.map(i=>i.id);if(a.isVeganRecipe(r)){vegan++;assert.ok(ids.every(id=>!ANIMAL.includes(id)&&!DAIRY_EGG.includes(id)&&!CHECK.includes(id)),r.name+' wrongly vegan')}if(a.isVegetarianRecipe(r)){veg++;assert.ok(ids.every(id=>!ANIMAL.includes(id)&&!CHECK.includes(id)),r.name+' wrongly vegetarian')}if(a.recipeNeedsDietCheck(r)){check++;assert.ok(ids.some(id=>CHECK.includes(id))&&!ids.some(id=>ANIMAL.includes(id)))}if(ids.some(id=>ANIMAL.includes(id)))assert.equal(a.recipeDiet(r),'meat',r.name)}
 assert.equal(a.isVeganRecipe({ingredients:[{id:'eggNoodle',qty:200},{id:'bokchoy',qty:200}]}),false);assert.equal(a.isVegetarianRecipe({ingredients:[{id:'eggNoodle',qty:200},{id:'bokchoy',qty:200}]}),true);
 assert.equal(a.isVegetarianRecipe({ingredients:[{id:'miso',qty:20},{id:'tofu',qty:200}]}),false);assert.equal(a.recipeNeedsDietCheck({ingredients:[{id:'miso',qty:20}]}),true);assert.equal(a.isVegetarianRecipe({ingredients:[{id:'family-ing-x',qty:1}]}),false);
-const vietMeatless=a.RECIPES.filter(r=>!r.catalogEdition&&a.isVegetarianRecipe(r)).length;assert.ok(vietMeatless>=140,'meatless Vietnamese dishes now carry diet labels: '+vietMeatless);
+const vietMeatless=a.RECIPES.filter(r=>!r.catalogEdition&&a.isVegetarianRecipe(r)).length;/* v1.7.5: the owner halved the Vietnamese references, 140+ → 78 */assert.ok(vietMeatless>=75,'meatless Vietnamese dishes now carry diet labels: '+vietMeatless);
 console.log(`PASS mixed-version sync guard (main rejects new state; newer-edition ids kept), tombstones across older copies/backups, 50-week Vietnamese-first menus (0 dressings, rice kept, <=2 treats/week), main-dish rice rule, scoring-only prices, ingredient-checked diet labels (${vegan} vegan, ${veg} vegetarian, ${check} need label check)`);

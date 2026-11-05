@@ -68,7 +68,7 @@ s.pantry.push({id:'qa-lot',ingredient:rows[0].id,qty:0,place:'dry',expiry:'',pur
 ok(a.validUnitState(json(s))&&a.validImport(json(s)),'new client accepts old and new unit strings');
 // Released main client (0bcef70): its validators read state written with new units.
 const old=vm.createContext({INGREDIENTS:structuredClone(MAIN_INGREDIENTS)});vm.runInContext(MAIN_UNIT_CODE+'\n'+MAIN_VALID_IMPORT+'\nthis.validImport=validImport;this.validUnitState=validUnitState;this.purchaseUnitOptions=purchaseUnitOptions;',old);
-const legacy=json(s);legacy.seedVersion=3;delete legacy.appEdition;legacy.recipes=legacy.recipes.filter(r=>!r.catalogEdition||r.catalogEdition<4);
+const legacy=json(s);legacy.seedVersion=3;delete legacy.appEdition;legacy.recipes=JSON.parse(fs.readFileSync('docs/reviews/artwork-audit-20261102/source.json','utf8')).recipes.filter(r=>!r.catalogEdition||r.catalogEdition<4); // Frozen pre-correction state: current defaults now use edition-4 spaghetti.
 for(const k of Object.keys(legacy.purchaseUnitPreferences))if(!MAIN_INGREDIENTS[k])delete legacy.purchaseUnitPreferences[k];
 const ids=[rows[0].id,rows[1].id,rows[2].id].filter(id=>MAIN_INGREDIENTS[id]);ok(ids.length>=2,'test rows exist in the released ingredient table');
 ok(old.validUnitState(legacy),'main validUnitState accepts lọ / lạng / lần giặt / hũ / custom unit strings');

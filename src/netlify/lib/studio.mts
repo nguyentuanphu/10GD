@@ -18,7 +18,20 @@ export const dayKey=(ms:number)=>new Date(ms).toISOString().slice(0,10);
 // ---------- roles ----------
 const names=(v:any)=>String(v||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
 export function studioRoles(env:any=process.env){const admins=new Set(names(env.STUDIO_ADMINS)),support=new Set(names(env.STUDIO_SUPPORT));return{enabled:admins.size>0,admins,support}}
-export function roleFor(username:string,env:any=process.env,settings?:any){const r=studioRoles(env),u=String(username||'').toLowerCase();if(!r.enabled)return null;if(r.admins.has(u))return 'owner';if(r.support.has(u)&&settings?.flags?.supportRole===true)return 'support';return null}
+// v1.7.5 Studio levels (owner request 5 Nov 2026). Owner = STUDIO_ADMINS in the hosting settings (cannot be removed from
+// Studio) and is the only level that assigns roles. The owner assigns the others in Studio → Quyền Studio:
+//  admin     – everything except assigning roles, deleting/transferring accounts or families and the forced-update build;
+//  moderator – community recipes and prices, bug reports, overview; nothing else;
+//  support   – read-only (the former STUDIO_SUPPORT role).
+export const STUDIO_LEVELS=['admin','moderator','support'] as const;
+export function sanitizeStudioRoles(v:any){const out:any={};if(!v||typeof v!=='object'||Array.isArray(v))return out;for(const[k,l]of Object.entries(v).slice(0,200)){const u=String(k).trim().toLowerCase();if(/^[a-z0-9._@-]{1,80}$/.test(u)&&(STUDIO_LEVELS as readonly string[]).includes(l as string))out[u]=l}return out}
+export function roleFor(username:string,env:any=process.env,settings?:any){const r=studioRoles(env),u=String(username||'').toLowerCase();if(!r.enabled)return null;if(r.admins.has(u))return 'owner';const assigned=sanitizeStudioRoles(settings?.studioRoles)[u];if(assigned)return assigned;if(r.support.has(u)&&settings?.flags?.supportRole===true)return 'support';return null}
+/** owner and admin manage the platform; the other levels are narrower. */
+export function isPrivilegedRole(role:any){return role==='owner'||role==='admin'}
+export const MODERATOR_READS=new Set(['me','overview','nav-badges','community','community-ledger','community-photo']);
+export const MODERATOR_WRITES=new Set(['community-action']);
+export const OWNER_ONLY_WRITES=new Set(['roles-save','account-delete','family-delete','family-transfer']);
+export function studioCan(role:any,op:string,isRead:boolean){if(role==='owner')return true;if(role==='admin')return isRead||!OWNER_ONLY_WRITES.has(op);if(role==='moderator')return isRead?MODERATOR_READS.has(op):MODERATOR_WRITES.has(op);if(role==='support')return isRead&&op!=='roles';return false}
 
 // ---------- small utils ----------
 export function maskEmail(email:any){if(typeof email!=='string'||!email.includes('@'))return null;const [user,domain]=email.split('@'),dot=domain.lastIndexOf('.'),host=dot>0?domain.slice(0,dot):domain,tld=dot>0?domain.slice(dot):'';return (user[0]||'')+'•••'+(user.length>1?user[user.length-1]:'')+'@'+(host[0]||'')+'•••'+tld}
@@ -81,7 +94,7 @@ export async function pruneLogs(getStoreFn:any,now=Date.now(),budget=2000){const
  for await(const k of listKeys(store,'trash/')){const r=await readJSON(store,k);if(r?.purgeAfter&&Date.parse(r.purgeAfter)<now){await store.delete(k);removed++}}return removed}
 
 // ---------- platform settings ----------
-export const SETTINGS_DEFAULTS={signups:'open',maxFamiliesPerAccount:5,maxMembersPerFamily:20,maxDevicesPerFamily:50,maintenanceMessage:'',flags:{priceScout:true,voice:true,urgentMessages:true,supportRole:false,communityPrices:true,autoScout:false,usageAnalytics:true,communityRecipes:true},priceScoutStates:['NSW','QLD'],rewards:{confirmed:10,specialBonus:5,corroborate:3,gapBonus:5,gapFamilies:3,penalty:20,dailyCap:100,levels:[100,500,1500]} as any,minAppEdition:'',updateNotice:true,minBuild:'',banner:null as any,links:{privacy:'',terms:'',supportEmail:''},checklist:{} as Record<string,boolean>};
+export const SETTINGS_DEFAULTS={signups:'open',maxFamiliesPerAccount:5,maxMembersPerFamily:20,maxDevicesPerFamily:50,maintenanceMessage:'',flags:{priceScout:true,voice:true,urgentMessages:true,supportRole:false,communityPrices:true,autoScout:false,usageAnalytics:true,communityRecipes:true,onlinePinch:false,onlineWhichGrocer:false},priceScoutStates:['NSW','QLD'],rewards:{confirmed:10,specialBonus:5,corroborate:3,gapBonus:5,gapFamilies:3,penalty:20,dailyCap:100,levels:[100,500,1500]} as any,minAppEdition:'',updateNotice:true,minBuild:'',banner:null as any,links:{privacy:'',terms:'',supportEmail:''},checklist:{} as Record<string,boolean>};
 const bool=(v:any)=>v===undefined||v===''?undefined:/^(1|true|yes|on)$/i.test(String(v));
 const int=(v:any,min:number,max:number)=>{const n=Number(v);return v===undefined||v===''||!Number.isInteger(n)?undefined:Math.min(max,Math.max(min,n))};
 export function envSettings(env:any=process.env){const o:any={},flags:any={};const s=String(env.STUDIO_SIGNUPS||'').toLowerCase();if(['open','closed','invite-only'].includes(s))o.signups=s;else if(env.ALLOW_ACCOUNT_SIGNUP==='false')o.signups='closed';
@@ -93,6 +106,7 @@ export async function platformSettings(getStoreFn:any,{env=process.env,fresh=fal
  let stored:any={};if(!fresh&&settingsCache&&now-settingsCache.at<60000)stored=settingsCache.value;else{try{stored=await studioStore(getStoreFn).get('settings/platform',{type:'json'})||{}}catch{stored={}}settingsCache={at:now,value:stored}}
  const fromEnv=envSettings(env),values:any=structuredClone(SETTINGS_DEFAULTS),sources:any={};
  for(const k of Object.keys(values)){if(k==='flags'){for(const f of Object.keys(values.flags)){sources['flags.'+f]='default';if(stored.flags?.[f]!==undefined){values.flags[f]=stored.flags[f];sources['flags.'+f]='stored'}if(fromEnv.flags?.[f]!==undefined){values.flags[f]=fromEnv.flags[f];sources['flags.'+f]='env'}}continue}sources[k]='default';if(stored[k]!==undefined){values[k]=stored[k];sources[k]='stored'}if(fromEnv[k]!==undefined){values[k]=fromEnv[k];sources[k]='env'}}
+values.studioRoles=sanitizeStudioRoles(stored.studioRoles);
  return{values,sources,stored};
 }
 export function resetSettingsCache(){settingsCache=null}

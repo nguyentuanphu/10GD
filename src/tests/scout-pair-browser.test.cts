@@ -95,13 +95,13 @@ async function main() {
         await kitchen(page);
         const card = page.locator('#kitchen-family .scout-pair-card');
         await card.waitFor();
-        assert.equal(await card.locator('h4').innerText(), lang === 'vi' ? '💻 Ghép máy tính này' : '💻 Pair this computer');
+        assert.equal((await card.locator('h4').innerText()).trim(), lang === 'vi' ? 'Ghép máy tính này' : 'Pair this computer');assert.equal(await card.locator('h4 span.emo-art').count(), 1, 'computer drawing, not an emoji');
         await card.locator('[data-scout-devices] li').first().waitFor();
         await page.evaluate(() => document.querySelector('.scout-pair-card')?.scrollIntoView({ block: 'start' }));
         // No extension answers: illustrated install steps + waiting status; manual code in a fold.
         await card.locator('[data-scout-state="install"]').waitFor();
         assert.equal(await card.locator('.scout-install-steps li').count(), 5, 'five install steps');
-        assert.equal(await card.locator('.scout-install-steps svg').count(), 5, 'each step illustrated');
+        assert.equal(await card.locator('.scout-install-steps svg:not(.emo-art)').count(), 5, 'each step illustrated (inline emoji drawings not counted)');
         assert.equal(await card.locator('[data-scout-ext-page]').inputValue(), 'chrome://extensions', 'copyable extensions page address');
         assert.equal(await card.locator('[data-scout-store]').count(), 0, 'no store button unless configured');
         assert.match(await card.locator('[data-scout-waiting]').innerText(), lang === 'vi' ? /Đang chờ tiện ích/ : /Waiting for the extension/);

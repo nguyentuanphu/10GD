@@ -39,7 +39,7 @@ for(const [name,width,height] of [['mobile',375,812],['tablet',820,1100],['deskt
  assert.equal(counts['samples:seed-salad'],35);assert.equal(counts['samples:dressing'],25);assert.equal(counts['all:seed-salad'],await page.evaluate(()=>PLANT_RECIPES.filter(r=>r.recipeKind==='seed-salad').length));assert.equal(counts['all:dressing'],await page.evaluate(()=>PLANT_RECIPES.filter(r=>r.recipeKind==='dressing').length));
  for(const scope of ['own','samples','all'])assert.ok(counts[scope+':vegetarian']>counts[scope+':vegan'],`${scope}: Vegetarian is strictly larger than Thuần chay`);
  assert.equal(counts['own:vegan'],1);assert.equal(counts['own:vegetarian'],2);assert.equal(counts['own:noodle'],1);
- assert.ok(counts['samples:western']>=79&&counts['samples:healthy']>=65&&counts['samples:noodle']>=150);
+ assert.ok(counts['samples:western']>=79&&counts['samples:healthy']>=65&&counts['samples:noodle']>=80/* v1.7.5: Vietnamese references halved (noodle 167 → 84) */);
  summary[name]=counts;
  // Vegetarian and Thuần chay really show different dishes (an egg dish appears only under Vegetarian).
  await page.locator('[data-fm="samples"]').first().click();await chip(page,'tag','vegetarian').click();const vegNames=new Set(await page.evaluate(()=>familyRecipeRows().map(r=>r.name)));await chip(page,'tag','vegan').click();const veganNames=await page.evaluate(()=>familyRecipeRows().map(r=>r.name));assert.ok(veganNames.every(n=>vegNames.has(n))&&vegNames.has('Canh cà chua trứng')&&!veganNames.includes('Canh cà chua trứng'));
@@ -65,7 +65,7 @@ for(const [name,width,height] of [['mobile',375,812],['tablet',820,1100],['deskt
  // 3. Meal editor dish search filters both sections live, IME-safe, and keeps ticked dishes.
  await page.evaluate(()=>{location.hash='planner'});await page.locator('[data-fm="edit-meal"]').first().waitFor();const mealDate=await page.evaluate(()=>{const d=Object.keys(currentWeek().days)[0];currentWeek().days[d].breakfast.recipes=[];currentWeek().days[d].breakfast.cooked=false;save();render();familyEditMeal(d,'breakfast');return d});await page.locator('#meal-dish-search').waitFor();
  const ownRows=()=>page.locator('#meal-own-list .family-select-row').allInnerTexts(),libRows=()=>page.locator('#meal-lib-list .family-select-row').allInnerTexts(),mealStatus=()=>page.locator('#meal-search-status').innerText();
- assert.equal((await libRows()).length,30,'30 suggestions before typing');assert.ok((await ownRows()).length>=4);
+ assert.equal((await libRows()).length,5,'v1.7.5 owner feedback #11: 5 suggestions before typing, with Xem thêm');assert.ok((await ownRows()).length>=4);
  await page.evaluate(()=>{document.querySelector('#meal-dish-search').dataset.same='1'});await page.locator('#meal-dish-search').click();await page.keyboard.type('spag');await settle(page);
  let lib=await libRows();assert.ok(lib.length===5&&lib.every(t=>/Spaghetti|Mì Ý/.test(t)),'spag filters the reference list (v1.7.1: top 5 + Xem thêm): '+lib.slice(0,3));assert.equal(await page.locator('#meal-lib-list [data-meal-more="lib"]').count(),1,'Show more for the remaining spaghetti dishes');assert.equal((await ownRows()).length,0);assert.match(await mealStatus(),/món khớp “spag”/);
  const spagId=await page.locator('#meal-lib-list input[name="recipe"]').first().getAttribute('value');await page.locator(`#meal-lib-list input[value="${spagId}"]`).check();

@@ -165,7 +165,7 @@ async function main() {
       assert.equal(await page.locator('.other-settings.account-sheet #settings-account').count(), 1, 'account part on top');
       assert.equal(await page.locator('.other-settings #settings-other-title').innerText(), 'Cài đặt khác');
       assert.ok(await page.evaluate(() => !!(document.querySelector('#settings-account')!.compareDocumentPosition(document.querySelector('#settings-other-title')!) & Node.DOCUMENT_POSITION_FOLLOWING)), 'Other settings sits under the account part');
-      assert.deepEqual(await page.$$eval('.other-settings .kitchen-section', nodes => nodes.map(n => n.id).filter(id => id.startsWith('settings-') && id !== 'settings-account')), ['settings-appearance', 'settings-currency', 'settings-offline-ready', 'settings-offline-downloads', 'settings-data', 'settings-usage']);
+      assert.deepEqual(await page.$$eval('.other-settings .kitchen-section', nodes => nodes.map(n => n.id).filter(id => id.startsWith('settings-') && id !== 'settings-account')), ['settings-appearance', 'settings-currency', 'settings-voice', 'settings-offline-ready', 'settings-offline-downloads', 'settings-data', 'settings-usage']);
       for (const sel of ['#theme-mode-select', '#festival-theme-select', '[data-personal=currency]', '[data-action=export]', '[data-action=import]']) assert.equal(await page.locator('.other-settings ' + sel).count(), 1, sel + ' in Other settings');
       assert.equal(await page.locator('.other-settings :is([data-personal=invite], #members-form, #settings-form)').count(), 0, 'nothing from My kitchen');
       await page.locator('#theme-mode-select').selectOption('dark');
@@ -517,7 +517,7 @@ async function main() {
         await page.keyboard.press('Escape');
       } else {
         assert.equal(await page.locator('.sidebar .side-link').count(), 2, 'desktop sidebar: Reminders and (v1.7) How to use'); assert.equal(await page.locator('.sidebar .side-link.guide-side-link').count(), 1);
-        assert.deepEqual(await page.$$eval('.sidebar .side-link', nodes => nodes.map(n => n.textContent!.trim())), ['Nhắc nhở', '🧭 Hướng dẫn sử dụng']);
+        assert.deepEqual(await page.$$eval('.sidebar .side-link', nodes => nodes.map(n => n.textContent!.trim())), ['Nhắc nhở', 'Hướng dẫn sử dụng'] /* v1.7.5: the compass is a drawing now */);
         await page.locator('.sidebar .side-link[data-section=reminders]').click();
         await page.locator('.kitchen-hub #kitchen-reminders').waitFor();
         await page.keyboard.press('Escape');

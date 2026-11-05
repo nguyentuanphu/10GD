@@ -3,10 +3,10 @@
 function dishCompositionModel(r){
  const ids=(r?.ingredients||[]).map(i=>i.id),name=normalizeText(r?.name||'');
  const porridge=ids.includes('cookedRice')||/^chao\b/.test(name);
- const pasta=ids.includes('pasta'),dryPasta=pasta&&(/mi y|bolognese/.test(name));
+ const pastaId=ids.find(id=>['pasta','spaghetti'].includes(id)),pasta=!!pastaId,dryPasta=pasta&&(/mi y|bolognese|spaghetti/.test(name));
  const liquid=!dryPasta&&(r?.category==='soup'||r?.category==='noodle');
  const visible=ids.filter(id=>['pork','ribs','chicken','cookedChicken','beef','salmon','fish','shrimp','tofu','egg','spinach','waterSpinach','cabbage','bokchoy','broccoli','carrot','potato','pumpkin','gourd','tomato','cucumber','mushroom','onion','pineapple','okra','bean','corn','peas','wonton','fishBall','seaweed'].includes(id));
- return {ids,name,porridge,pasta,dryPasta,liquid,visible,omelette:ids.includes('egg')&&/chien|omelette/.test(name),noodle:ids.find(id=>['noodle','riceNoodle','eggNoodle','vermicelli','udon','huTieu','banhCanh'].includes(id))};
+ return {ids,name,porridge,pastaId,pasta,dryPasta,liquid,visible,omelette:ids.includes('egg')&&/chien|omelette/.test(name),noodle:ids.find(id=>['noodle','riceNoodle','eggNoodle','vermicelli','udon','huTieu','banhCanh'].includes(id))};
 }
 function composedDressingArtwork(r){const ids=(r.ingredients||[]).map(i=>i.id),color=ids.includes('avocado')?'#a8b87a':ids.includes('tomato')?'#c77e55':ids.includes('yogurt')?'#eee5cf':ids.includes('orange')?'#dcba79':'#c9b48c';const en=typeof appLanguage!=='undefined'&&appLanguage==='en';return `<svg class="food-illustration composed-dish" viewBox="0 0 300 280" role="img" aria-label="${esc((en?'Dressing ingredient illustration: ':'Minh họa thành phần sốt: ')+(r.name||''))}" xmlns="http://www.w3.org/2000/svg"><rect width="300" height="280" fill="#fffefa"/><ellipse cx="150" cy="200" rx="78" ry="9" fill="#eee9dc"/><path d="M64 125q8 81 86 81t86-81" fill="#e8e1cd"/><ellipse cx="150" cy="125" rx="86" ry="54" fill="#faf5e8"/><ellipse cx="150" cy="125" rx="72" ry="42" fill="${color}"/><path d="M103 116q36-22 83-1" fill="none" stroke="#fff8e7" stroke-width="4" opacity=".55"/></svg>`}
 function composedDishArtwork(r){
@@ -31,8 +31,8 @@ function composedDishArtwork(r){
  const base=m.liquid?(m.porridge?'#e6d9ba':m.ids.includes('tomato')?'#d8ad78':m.ids.includes('pumpkin')?'#deb15f':'#dcc895'):'#ede8d5';
  shapes+=ellipse(150,155,112,69,'#d6cfb7')+ellipse(150,144,113,72,'#faf5e7')+ellipse(150,144,99,59,base);
  if(m.noodle)for(let i=0;i<13;i++)shapes+=`<path data-food="${m.noodle}" d="M${87+i*3} ${123+i*3}q42-29 82-3t-64 20" fill="none" stroke="${m.noodle==='eggNoodle'?'#e6c780':'#f4e8ce'}" stroke-width="${m.noodle==='udon'||m.noodle==='banhCanh'?5:m.noodle==='vermicelli'?1.5:3}" stroke-linecap="round"/>`;
- if(m.dryPasta){for(let i=0;i<27;i++)shapes+=`<path data-food="pasta" d="M${82+i*3} ${117+i%5*8}q69-35 69 8t-55 25q-29-15 27-27" fill="none" stroke="#d6b66f" stroke-width="3" stroke-linecap="round"/>`;shapes+=ellipse(150,140,52,31,'#bb724b');}
- if(m.pasta&&!m.dryPasta)for(let i=0;i<18;i++){let x=90+i*31%115,y=110+i*17%64;shapes+=`<path data-food="pasta" d="M${x} ${y}q-10 10 4 16" fill="none" stroke="#dfc588" stroke-width="7"/>`;}
+ if(m.dryPasta){for(let i=0;i<27;i++)shapes+=`<path data-food="${m.pastaId}" d="M${82+i*3} ${117+i%5*8}q69-35 69 8t-55 25q-29-15 27-27" fill="none" stroke="#d6b66f" stroke-width="3" stroke-linecap="round"/>`;shapes+=ellipse(150,140,52,31,'#bb724b');}
+ if(m.pasta&&!m.dryPasta)for(let i=0;i<18;i++){let x=90+i*31%115,y=110+i*17%64;shapes+=`<path data-food="${m.pastaId}" d="M${x} ${y}q-10 10 4 16" fill="none" stroke="#dfc588" stroke-width="7"/>`;}
  if(m.porridge)for(let i=0;i<45;i++)shapes+=`<path data-food="cookedRice" d="M${77+i*31%143} ${110+i*19%65}l4 1" stroke="#f6ebd3" stroke-width="2" stroke-linecap="round"/>`;
  if(m.omelette)shapes+=`<path data-food="egg" d="M69 141Q86 87 177 100Q226 115 225 151Q165 196 79 163z" fill="#dfbd65" stroke="#bb8f46" stroke-width="3"/>`;
  // Each visible ingredient receives its own region and recognizable silhouette.

@@ -33,7 +33,7 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  const ids=()=>page.evaluate(()=>guideSteps.map(s=>s.id)),total=(await ids()).length;assert.deepEqual(await ids(),['welcome','menu','shopping','scout','family','voice','alerts']);
  assert.equal(await page.locator('.guide-dot').count(),total);assert.match(await page.locator('#guide-progress').innerText(),new RegExp(`1/${total}`,'i'));assert.ok(await page.locator('#guide-back').isDisabled(),'Back disabled on step 1');
  await page.locator('#guide-next').click();assert.equal(await page.locator('.guide-step').getAttribute('data-step-id'),'menu');assert.equal(await page.locator('.guide-dot.active').count(),1);assert.ok(await page.locator('.guide-show a[href="#recipes"]').count(),'menu step can show the Library');
- assert.match(await page.locator('.guide-step').innerText(),/740 món tham khảo/);
+ assert.match(await page.locator('.guide-step').innerText(),/475 món tham khảo/);
  await page.locator('#guide-back').click();assert.equal(await page.locator('.guide-step').getAttribute('data-step-id'),'welcome');
  await page.keyboard.press('ArrowRight');assert.equal(await page.locator('.guide-step').getAttribute('data-step-id'),'menu','ArrowRight moves on');
  const vp=await page.locator('#guide-viewport').boundingBox();await page.mouse.move(vp.x+vp.width*0.8,vp.y+40);await page.mouse.down();await page.mouse.move(vp.x+vp.width*0.2,vp.y+44,{steps:4});await page.mouse.up();assert.equal(await page.locator('.guide-step').getAttribute('data-step-id'),'shopping','swipe left = next');
@@ -66,7 +66,9 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  const row=page.locator('#family-recipe-chips .lib-cat-row');
  // One row: every main chip on the same line; diet/time chips are not in the row.
  const tops=await row.locator('.chip').evaluateAll(els=>[...new Set(els.map(e=>Math.round(e.offsetTop)))]);assert.equal(tops.length,1,'category chips stay on one line');
- assert.deepEqual(await row.locator('.chip').evaluateAll(els=>els.map(e=>e.dataset.key)),['all','main','soup','veg','noodle','western','seed-salad','dressing']);
+ // v1.7.5 owner order (Phân loại món ăn): Món chính, Món phụ, Món canh / soup, Món sợi; empty dish types (dessert, snack,
+ // lunch box) have no chip until the family has such a recipe.
+ assert.deepEqual(await row.locator('.chip').evaluateAll(els=>els.map(e=>e.dataset.key)),['all','main','veg','soup','noodle','western','seed-salad','dressing']);
  assert.equal(await page.locator('#family-recipe-chips [data-fm="diet-filter"],#family-recipe-chips [data-fm="time-filter"]').count(),0,'diet/time live in the Filters sheet');
  const rowBox=await page.locator('#family-recipe-chips').boundingBox();assert.ok(rowBox.height<=(phone?72:72),`chip area is compact (${rowBox.height}px)`);
  if(phone)assert.ok(await row.evaluate(e=>e.scrollWidth>e.clientWidth),'row scrolls sideways on a phone');

@@ -35,12 +35,12 @@ async function main() {
       await page.goto(origin + '/', { waitUntil: 'domcontentloaded' }); await ready();
       // New household: the reference recipes arrive with the first start.
       assert.equal(await loaded(), true, 'new household loads the catalog at start');
-      assert.equal(await page.evaluate(() => state.recipes.length), 740);
+      assert.equal(await page.evaluate(() => state.recipes.length), 475/* v1.7.5: Vietnamese references halved */);
       await waitAsync(page, async () => !!(await navigator.serviceWorker.getRegistration())?.active, undefined, 60000);
       await page.reload({ waitUntil: 'domcontentloaded' }); await ready(); await page.waitForFunction(() => !!navigator.serviceWorker.controller);
       // Existing household: the catalog is not part of startup; painted art still matches (build-time hashes).
       assert.equal(await loaded(), false, 'repeat start without the catalog');
-      assert.equal(await page.evaluate(() => state.recipes.filter((r: any) => (window as any).dishArtworkCell(r) !== null).length), 740, 'all painted art matched before the catalog loads');
+      assert.equal(await page.evaluate(() => state.recipes.filter((r: any) => (window as any).dishArtworkCell(r) !== null).length), 475/* v1.7.5 */, 'all painted art matched before the catalog loads');
       const lazyPath = async (label: string, run: string, selector: string) => {
         await page.evaluate(() => { location.hash = 'today'; }); await page.reload({ waitUntil: 'domcontentloaded' }); await ready();
         assert.equal(await loaded(), false, label + ': starts without catalog');
@@ -85,9 +85,9 @@ async function main() {
       // Offline-ready status and the header indicator.
       await page.evaluate(() => { (window as any).closeModal(); (window as any).otherSettingsModal('offline-ready'); });
       await page.locator('#offline-ready-body .offline-ready-list').waitFor();
-      await page.waitForFunction(() => /Kho 740 món/.test((document.querySelector('#offline-ready-body') as HTMLElement)?.innerText || '') && !/…/.test((document.querySelector('#offline-ready-body') as HTMLElement)?.innerText || ''), null, { timeout: 15000 });
+      await page.waitForFunction(() => /Kho 475 món/.test((document.querySelector('#offline-ready-body') as HTMLElement)?.innerText || '') && !/…/.test((document.querySelector('#offline-ready-body') as HTMLElement)?.innerText || ''), null, { timeout: 15000 });
       const readyText = await page.locator('#offline-ready-body').innerText();
-      assert.match(readyText, /✓\s*Thực đơn tuần này/); assert.match(readyText, /✓\s*Hình món ăn tuần này/); assert.match(readyText, /✗\s*Kho 740 món/);
+      assert.match(readyText, /✓\s*Thực đơn tuần này/); assert.match(readyText, /✓\s*Hình món ăn tuần này/); assert.match(readyText, /✗\s*Kho 475 món/);
       assert.match(await page.locator('#network-status').getAttribute('title') || '', /Sẵn sàng offline: .*Kho món ăn ✗/);
       await page.screenshot({ path: `${shots}/offline-status-375-vi-offline.png` });
       await context.setOffline(false);
@@ -109,7 +109,7 @@ async function main() {
       // v1.7.1: only the on-device "More accurate" pack fills the voice slot (the Light pack is retired).
       assert.deepEqual(info.rows, ['art', 'sheets', 'catalog', 'ocr', 'voice-local-small', 'price-scout']);
       assert.equal(info.wifi, true, 'Wi-Fi only is on by default'); assert.equal(info.overflow, false, 'no horizontal overflow'); assert.equal(info.small, 0, 'buttons ≥44px');
-      assert.match(info.text!, lang === 'vi' ? /Tải về để dùng offline[\s\S]*Chỉ tải khi có Wi-Fi[\s\S]*Toàn bộ hình món ăn[\s\S]*Kho 740 món[\s\S]*Đọc hoá đơn\/giá bằng camera[\s\S]*Nhận giọng nói trên máy · Chính xác hơn/ : /Downloads for offline use[\s\S]*Download on Wi-Fi only[\s\S]*All dish pictures[\s\S]*740-recipe library[\s\S]*Read receipts & prices with the camera[\s\S]*On-device speech · More accurate/);
+      assert.match(info.text!, lang === 'vi' ? /Tải về để dùng offline[\s\S]*Chỉ tải khi có Wi-Fi[\s\S]*Toàn bộ hình món ăn[\s\S]*Kho 475 món[\s\S]*Đọc hoá đơn\/giá bằng camera[\s\S]*Nhận giọng nói trên máy · Chính xác hơn/ : /Downloads for offline use[\s\S]*Download on Wi-Fi only[\s\S]*All dish pictures[\s\S]*475-recipe library[\s\S]*Read receipts & prices with the camera[\s\S]*On-device speech · More accurate/);
       assert.doesNotMatch(info.text!, /Netlify|Blobs/i);assert.doesNotMatch(info.text!, /Nhẹ|· Light|Not available on this server|Chưa có trên máy chủ này/);
       // v1.7.1 evidence: the Account & settings sheet (account part on top, Other settings under it) and the voice row.
       fs.mkdirSync(v171, { recursive: true });

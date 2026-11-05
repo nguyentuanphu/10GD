@@ -38,7 +38,7 @@ export function createUsageHandler({getStoreFn=getStore,env=process.env,nowFn=()
     const actor=ctx.account.username,ps=await platformSettings(getStoreFn,{env,now}),role=roleFor(actor,env,ps.values);
     if(!role)return json({error:'Không có quyền Studio.',errorEn:'No Studio access.'},403);
     if(op==='studio-usage-overview'){const days=parseInt(url.searchParams.get('days')||'30',10)||30;return json({...await overview(getStoreFn,{days,fresh:url.searchParams.get('fresh')==='1',now}),collecting:ps.values.flags?.usageAnalytics!==false})}
-    if(role!=='owner')return json({error:'Chỉ chủ Studio xem được chi tiết từng gia đình.',errorEn:'Only the Studio owner can view individual families.'},403);
+    if(!(role==='owner'||role==='admin'))return json({error:'Chỉ chủ Studio xem được chi tiết từng gia đình.',errorEn:'Only the Studio owner can view individual families.'},403);
     if(op==='studio-usage-inactive'){const threshold=url.searchParams.get('threshold')==='30'?30:14;const list=await inactiveFamilies(getStoreFn,{threshold,now});
      await writeAudit(getStoreFn,{actor,role,action:'usage_inactive_list',target:{type:'usage',id:'inactive-'+threshold},details:{threshold,count:list.length}},now);return json({threshold,families:list})}
     if(op==='studio-usage-detail'){const family=url.searchParams.get('family'),account=url.searchParams.get('account');

@@ -1,4 +1,31 @@
-# FamTray · Bếp Gia Đình · v1.7.3
+# FamTray · Bếp Gia Đình · v1.7.5
+
+## What's new in v1.7.5 (owner feedback, 4 Nov 2026)
+- **Photo buttons work again:** “Chụp ảnh” / “Chọn ảnh” and “Dán danh sách nguyên liệu” did nothing when tapped — the recipe form itself matched a click handler that cancelled every tap inside it. Fixed; 44 px buttons.
+- **Phân loại bữa ăn:** Bữa sáng, Bữa trưa, Bữa tối, Bữa phụ, Weekends feast. Nothing is ticked automatically and every tick can be removed; an empty choice means “use the dish type”. Older “Main/Side dish” recipes are read as lunch + dinner and “Friday night” as dinner, without rewriting stored data.
+- **Phân loại món ăn:** Món chính, Món phụ, Món canh / soup, Món sợi, Món tráng miệng, Món ăn vặt, Món school lunch box. Protein shown in words. Labels “Công thức nấu cho bao nhiêu suất ăn” and “Thời gian nấu”.
+- **Bữa phụ every day** in the weekly menu (filled from snack/dessert dishes); **school lunch boxes** Mon–Fri when “Lên hộp cơm đi học” is switched on in the menu preview.
+- **Ingredients:** each row has a **“Cộng vào đi chợ”** tick (ticked for new rows); kitchen units (tép, muỗng, **đòn**, khoanh, vỉ…) are counted as written, never converted to grams; unticked rows are kept as notes. Saved note lines with an amount open unticked, so existing shopping lists do not change. Amounts accept 2, 0,5, 1/2, ½, 1 1/2 and show as ½ / 1½ (they were rounded up to 1).
+- **Cách nấu** is shown exactly as written — no automatic numbering, no filler step.
+- **Meal editor:** 5 suggestions from the reference library and 5 saved family dishes, each with “Xem thêm”; portion choices in plain words (“Tự tính theo số người”, “½ lượng”, “Gấp đôi”) with a one-line explanation.
+- **Larger text** everywhere by default (body ≥15 px, nothing below 12 px) with **Cỡ chữ** (Vừa / Lớn / Rất lớn) in Tài khoản & cài đặt → Giao diện, per device.
+- **App icon badge** for urgent messages, “không ăn / báo cơm” and absence notices (iPhone/iPad 16.4+ Home Screen app with notifications on, Android, desktop); cleared when the app opens.
+- **Language:** English mode no longer shows half-translated sentences; missing English for Shopping, Pantry, Spending and notices added; hardcoded English labels in Vietnamese mode fixed. A language audit runs in CI. Reference-recipe cooking steps in English follow in a separate release.
+- **Studio roles in Studio:** Owner (hosting setting `STUDIO_ADMINS`, cannot be changed from Studio) assigns **Admin**, **Kiểm duyệt** (moderator) and **Hỗ trợ** (read-only) in Studio → Cài đặt & phát hành → Quyền Studio; enforced on the server, audited. A **Studio** button appears in the app's top bar for these accounts.
+- **Studio → Góp ý → “Sao chép cho dev”:** open bug reports as Markdown (text, technical context, page errors; never the reporter).
+- **National online prices (Pinch + WhichGrocer):** Studio → So Giá → Giá online. Switched **off** until the owner turns them on. Pinch prices Woolworths/Coles/ALDI for the catalogue (Wed/Sat); WhichGrocer cross-checks a few items within its credit budget; sources more than 15% apart are held. **Only products the owner confirms (✓) in Studio are shown to families**, dated and credited (“Price data by Pinch” / “Product data by WhichGrocer”). Keys stay in the hosting environment.
+- **Packed-lunch schedule, compact “Tuần này ai bận”, “Chưa báo” counted** (see the review record).
+- **Data edition 6:** older app versions show “Có bản cập nhật — tải lại” instead of reading the new meal and units. Set Studio minimum edition to 6 at deploy.
+
+Evidence: `docs/reviews/v1.7.5/review.md`.
+
+## What's new in v1.7.4
+- **On-device “More accurate” voice uses less memory on iPhone (same model, same accuracy):** each weight file is read once into one buffer and freed as soon as the speech engine has copied it, the larger decoder is prepared first, and iPhone/iPad use the smaller engine build (one thread, no WebGPU). Measured in a desktop browser simulation (not an iPhone): the memory peak is about 16–20 % lower (≈1.40 → 1.16 GB) — the real check is the self-check page on the phone.
+- **Kiểm tra giọng chính xác trên máy này / Check accurate voice on this device** (Account & settings → Giọng nói trên máy, or the voice sheet's settings): runs the pack once and shows the device, pass/fail, load and recognition time, model memory and the phase reached; if the phone closes the page, the next start shows the phase it stopped in. “Sao chép kết quả” copies the result; nothing is sent.
+- **After a memory crash nothing reloads the pack by itself.** “Thử lại” is one guarded try (it may reload the page once); a second crash switches accurate voice off on that device until an update. The notice is short: “Giọng chính xác tạm tắt vì máy thiếu bộ nhớ — đang dùng giọng nói thường của máy.”
+- **iPhone tip in every voice sheet** while accurate voice is not in use: “Trên iPhone: chạm vào ô chữ rồi bấm 🎤 trên bàn phím để đọc chính tả (tiếng Việt rất tốt).” with **Mở bàn phím để nói**. **Gỡ gói** says how much space it freed.
+- Fixed: a load without a progress callback was reported finished at the first progress message (the crash marker said “loaded” while the model was still being built).
+- App and Price Check extension version 1.7.4 (no extension changes).
 
 ## What's new in v1.7.3
 - **So Giá finds the store by itself on the real sites (extension 1.7.3):** the store shown in the site's header is read again after the page finishes rendering and whenever it changes — Woolworths “Direct to boot / Pick up / Click & Collect: Wolli Creek”, ALDI “Current store: 2205, Wolli Creek”, Coles' store button next to “When”. Patterns live in the price-reading settings sent from the app, so they can be corrected without an extension update; “Send this page's structure” now includes where the store name is shown. A delivery address (“Delivery to …”, “Deliver to …”) is never read.
@@ -44,7 +71,7 @@ Evidence: `docs/reviews/v1.7/*/review.md`.
 - **Voice:** Auto language by default (no VI/EN choice needed), Vietlish understanding ("1kg salmon", "sa mơn"), spoken lists split into items, did-you-mean confirmation, commands (bought / remove / change meal / not eating tonight / pantry / urgent message / questions), read-back and spoken confirmation, regional words and per-family learned corrections, mic level meter and push-to-talk. Optional on-device recognition (download, off by default) and opt-in text-only voice statistics in Studio.
 - **Price Scout:** say a price ("rau muống hai đô rưỡi một bó, chợ Cabramatta"), recipe dictation for family recipes, and Studio's Price Scout switch/states now really control the app (off hides everything; states greyed out in Studio).
 - **FamTray Scout (Auto Scout):** desktop extension (semi-auto by default, Auto behind Studio + device switches), multi-computer network managed in Studio, "Ghép máy tính này" pairing in My kitchen, results flow into community prices.
-- **Bandwidth & offline:** lite first install (~0.4 MB precache instead of ~17.7 MB), lazy 740-recipe catalogue, thumbnails, "Tải về để dùng offline" with sizes (Wi-Fi only by default), offline readiness card, self-hosted receipt OCR.
+- **Bandwidth & offline:** lite first install (~0.4 MB precache instead of ~17.7 MB), lazy recipe catalogue (475 since v1.7.5), thumbnails, "Tải về để dùng offline" with sizes (Wi-Fi only by default), offline readiness card, self-hosted receipt OCR.
 - **Force update:** idle devices update automatically; busy devices see a notice; Studio can require a minimum build (blocking screen after data is saved).
 - **Fixes:** Today invite button no longer flashes; startup setup prompt is an inline notice instead of a popup.
 - **Release process:** full suite on GitHub CI in parallel (AGENTS.md 14–17); no hosting builds before DEPLOY (rule 18).
@@ -146,7 +173,7 @@ Scheduled Functions check due reminders every 15 minutes. Roles and selected rec
 
 ## Artwork
 
-The built-in catalog has 106 ingredient illustrations and 740 recipe-specific illustrations, explicitly mapped to the matching ingredient IDs and recipe signatures. The existing gouache artwork is extended with companion sheets; all built-in recipes have painted artwork. Family-authored or edited recipes retain an ingredient-led fallback. See [ARTWORK.md](ARTWORK.md) and [the audit and review](docs/reviews/artwork/review.md). Illustrations are not exact recipe photographs, and family data is preserved.
+The built-in catalog has 106 ingredient illustrations and recipe-specific illustrations for every reference recipe (475 offered since v1.7.5; retired ones keep theirs), explicitly mapped to the matching ingredient IDs and recipe signatures. The existing gouache artwork is extended with companion sheets; all built-in recipes have painted artwork. Family-authored or edited recipes retain an ingredient-led fallback. See [ARTWORK.md](ARTWORK.md) and [the audit and review](docs/reviews/artwork/review.md). Illustrations are not exact recipe photographs, and family data is preserved.
 
 ## Family-authored menu
 

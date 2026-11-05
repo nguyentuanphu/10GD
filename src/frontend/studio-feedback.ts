@@ -59,7 +59,7 @@ function detailHTML(r:any){const c=r.ctx||{},yes=T('có','yes'),no=T('không','n
  <details class="fb-history"><summary>${T('Lịch sử thay đổi','Change history')} (${(r.history||[]).length})</summary><ol>${(r.history||[]).map((h:any)=>`<li><small>${esc(when(h.at))}</small> · ${esc(h.by)} · ${esc(h.action)}${h.to?` ${esc(h.from)} → ${esc(h.to)}`:''}</li>`).join('')}</ol></details></section>`}
 function render(){
  if(!host)return;const d=data;
- const head=`<header class="page-head"><div><h1 tabindex="-1">${T('Góp ý','Feedback')}</h1><p class="muted">${T('Góp ý gửi từ con bọ rùa trong app: lời người gửi viết, ảnh họ chọn gửi và bối cảnh kỹ thuật. Mỗi lần mở và mỗi thay đổi đều được ghi nhật ký kiểm tra.','Feedback sent with the ladybug in the app: what the reporter wrote, the picture they chose to send and technical context. Every view and change is written to the audit log.')}</p></div><div class="row"><button class="btn" id="fb-refresh" type="button">↻ ${T('Làm mới','Refresh')}</button></div></header>`;
+ const head=`<header class="page-head"><div><h1 tabindex="-1">${T('Góp ý','Feedback')}</h1><p class="muted">${T('Góp ý gửi từ con bọ rùa trong app: lời người gửi viết, ảnh họ chọn gửi và bối cảnh kỹ thuật. Mỗi lần mở và mỗi thay đổi đều được ghi nhật ký kiểm tra.','Feedback sent with the ladybug in the app: what the reporter wrote, the picture they chose to send and technical context. Every view and change is written to the audit log.')}</p></div><div class="row"><button class="btn" id="fb-refresh" type="button">↻ ${T('Làm mới','Refresh')}</button><button class="btn primary" id="fb-export" type="button">📋 ${T('Sao chép cho dev','Copy for developer')}</button></div></header>`;
  if(error){host.innerHTML=head+`<div class="card notice"><p>${esc(error)}</p></div>`;wire();return}
  if(!d){host.innerHTML=head+`<p class="muted">${T('Đang tải…','Loading…')}</p>`;return}
  const pages=Math.max(1,Math.ceil(d.total/d.size));
@@ -69,7 +69,12 @@ function render(){
  ${pages>1?`<div class="pager"><button class="btn" type="button" data-fb-page="${d.page-1}" ${d.page<=1?'disabled':''}>← ${T('Trước','Previous')}</button><span>${d.page}/${pages}</span><button class="btn" type="button" data-fb-page="${d.page+1}" ${d.page>=pages?'disabled':''}>${T('Sau','Next')} →</button></div>`:''}</section>
  ${sel?detailHTML(sel):''}`;
  wire()}
-function wire(){
+async function devCopy(){try{const d=await get('op=studio-export'),items=d.items||[];
+ const md=[`# FamTray bug reports (${items.length} open) · ${new Date().toISOString().slice(0,16).replace('T',' ')} UTC`,'',...items.map((r:any,i:number)=>[`## ${i+1}. ${r.type} · ${r.status} · ${String(r.at).slice(0,16).replace('T',' ')} · ${r.id}`,'',r.note?'> '+r.note.replace(/\n/g,'\n> '):'> (no text)','',`- Context: ${Object.entries(r.ctx||{}).map(([k,v])=>k+'='+v).join(', ')||'—'}`,...(r.errors?.length?['- Errors:',...r.errors.map((e:string)=>'  - `'+e.replace(/`/g,"'")+'`')]:[]),r.hasShot?'- Picture attached (open it in Studio)':'',''].filter(x=>x!=='').join('\n'))].join('\n\n');
+ try{await navigator.clipboard.writeText(md);toast(T(`Đã sao chép ${items.length} góp ý. Dán vào cuộc trò chuyện với dev.`,`Copied ${items.length} reports. Paste them to the developer.`))}
+ catch{const box=document.createElement('textarea');box.className='input';box.rows=14;box.readOnly=true;box.value=md;box.id='fb-export-text';host.querySelector('#fb-export-text')?.remove();host.prepend(box);box.focus();box.select();toast(T('Trình duyệt chặn sao chép tự động: nội dung đã được chọn, bấm Sao chép.','Automatic copying was blocked: the text is selected, copy it.'))}}
+ catch(e:any){toast(e.message,true)}}
+function wire(){$('#fb-export',host)?.addEventListener('click',devCopy);
  $('#fb-refresh',host)?.addEventListener('click',()=>load());
  const f=$('#fb-f',host);f?.addEventListener('change',()=>{filt={status:f.status.value,type:f.type.value,route:f.route.value,reporter:f.reporter.value,page:1};load()});
  host.querySelectorAll('[data-fb-page]').forEach((b:any)=>b.addEventListener('click',()=>{filt.page=+b.dataset.fbPage||1;load()}));

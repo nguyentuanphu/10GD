@@ -134,6 +134,12 @@ export async function inbox(getStoreFn:any,{status='',type='',route='',reporter=
  const rows=all.filter((r:any)=>(!status||(status==='open'?OPEN.includes(r.status):r.status===status))&&(!type||r.type===type)&&(!route||r.route===route)&&(!reporter||(reporter==='~device'?!r.reporter:reporter==='~tester'?r.tester:r.reporter===reporter)));
  const sz=Math.min(100,Math.max(5,+size||25)),pg=Math.max(1,Math.min(Math.ceil(rows.length/sz)||1,+page||1));
  return{total:rows.length,all:all.length,open:all.filter((r:any)=>OPEN.includes(r.status)).length,counts,routes,reporters,page:pg,size:sz,rows:rows.slice((pg-1)*sz,pg*sz)}}
+/** v1.7.5 “Sao chép cho dev”: open reports for the developer — what was written, technical context and page errors.
+ *  Never the reporter (account, key, role), team notes or replies, and no pictures. Newest first, at most 100. */
+export async function devExport(getStoreFn:any){const S=feedbackStore(getStoreFn),keys=await keysOf(S,'r/',FB_LIMITS.inboxMax);
+ const all=(await pool(keys,16,(k:string)=>readJSON(S,k))).filter((r:any)=>r&&OPEN.includes(r.status)).sort((a:any,b:any)=>String(b.at).localeCompare(String(a.at))).slice(0,100);
+ const ctxKeys=['route','view','modal','platform','viewport','lang','theme','online','build','edition','standalone','textSize'];
+ return all.map((r:any)=>({id:r.id,at:r.at,type:r.type,status:r.status,note:String(r.note||'').slice(0,2000),ctx:Object.fromEntries(ctxKeys.filter(k=>r.ctx?.[k]!==undefined&&r.ctx?.[k]!==null).map(k=>[k,r.ctx[k]])),errors:(Array.isArray(r.errors)?r.errors:[]).slice(0,5).map((e:any)=>String(e?.message||e||'').slice(0,300)),hasShot:!!r.hasShot}))}
 export async function detail(getStoreFn:any,id:any){if(!/^[a-f0-9]{18}$/.test(String(id||'')))fail('Mã không hợp lệ.','Invalid id.');const r=await readJSON(feedbackStore(getStoreFn),'r/'+id);if(!r)fail('Không tìm thấy góp ý.','Feedback not found.',404);
  const testers=await testerList(getStoreFn);return{...r,reporter:{account:r.reporter?.account||null,role:r.reporter?.role||'none',tester:!!(r.reporter?.account&&testers[r.reporter.account])}}}
 export async function shotOf(getStoreFn:any,id:any){if(!/^[a-f0-9]{18}$/.test(String(id||'')))return null;return (await readJSON(feedbackStore(getStoreFn),'shot/'+id))?.data||null}

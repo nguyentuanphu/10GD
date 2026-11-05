@@ -270,6 +270,39 @@ function allowedChannel(item,retailer,prefs={}){
  if(retailer==='other')return true;
  return true;
 }
+// v1.7.5 trip plans (owner, 5 Nov 2026): a cheap price far away is not always worth it. The family writes how many
+// minutes it takes to reach each store (one way; unknown = 10 min, flagged as an estimate). Every combination of the
+// in-person stores is costed, and three plans are offered to choose from each time:
+//   near     — fewest minutes that still gets ≥ 80 % of the items that have a price anywhere;
+//   balanced — (owner: time is never turned into money) the cheapest plan with ≥ 80 % of the items whose trip is
+//              no longer than halfway between the nearest and the cheapest plan's minutes;
+//   cheap    — “Đủ món / All items” (owner, 5 Nov): every item with a price, lowest total, then fewest minutes.
+// Each plan is compared with the nearest on the SAME items only (vsNear), plus what it adds or leaves out — totals of
+// different item sets are never set side by side as if they were the same basket.
+// Trip minutes ≈ every store's one-way minutes + the farthest one's way home (one store = there and back).
+const DEFAULT_TRAVEL_MIN=10;
+function tripMinutes(stores,travel){const m=stores.map(r=>{const v=Number(travel?.[r]);return v>=0&&v<=240?v:DEFAULT_TRAVEL_MIN});return m.length?m.reduce((a,b)=>a+b,0)+Math.max(...m):0}
+function tripPlans(lines,prefs={}){
+ const travel=prefs.travel||{};
+ const usable=l=>Object.keys(l.prices).filter(r=>!RETAILERS[r]?.delivery&&allowedChannel(l.item,r,prefs));
+ const priced=lines.filter(l=>usable(l).length);if(!priced.length)return null;
+ const stores=[...new Set(priced.flatMap(usable))].sort((a,b)=>RETAILERS[a].order-RETAILERS[b].order).slice(0,7);
+ const plans=[];
+ for(let mask=1;mask<1<<stores.length;mask++){const set=stores.filter((_,i)=>mask&1<<i),byStore=new Map(set.map(r=>[r,{retailer:r,items:[],total:0}])),missing=[];let total=0;
+  for(const l of priced){const opts=usable(l).filter(r=>set.includes(r));if(!opts.length){missing.push(l.label);continue}const r=opts.sort((a,b)=>l.prices[a].cost-l.prices[b].cost)[0],c=l.prices[r].cost;total+=c;const st=byStore.get(r);st.items.push({key:l.key,label:l.label,itemId:l.item.id,cost:c,approx:l.prices[r].approx,cold:l.cold});st.total+=c}
+  const used=[...byStore.values()].filter(s=>s.items.length);if(used.length!==set.length)continue; // a store with nothing to buy is not a stop
+  const minutes=tripMinutes(used.map(s=>s.retailer),travel);
+  plans.push({stores:used.map(s=>({...s,total:round(s.total),minutes:Number(travel?.[s.retailer])>=0&&Number(travel?.[s.retailer])<=240?Number(travel[s.retailer]):DEFAULT_TRAVEL_MIN,estimated:!(Number(travel?.[s.retailer])>=0&&travel?.[s.retailer]!==''&&travel?.[s.retailer]!=null)})),total:round(total),covered:priced.length-missing.length,missing,minutes,estimated:used.some(s=>!(travel?.[s.retailer]!=null&&travel[s.retailer]!==''))})}
+ if(!plans.length)return null;
+ const all=priced.length,maxCovered=Math.max(...plans.map(p=>p.covered)),enough=Math.ceil(maxCovered*0.8);
+ const near=plans.filter(p=>p.covered>=enough).sort((a,b)=>a.minutes-b.minutes||b.covered-a.covered||a.total-b.total)[0];
+ const cheap=plans.filter(p=>p.covered===maxCovered).sort((a,b)=>a.total-b.total||a.minutes-b.minutes)[0];
+ const mid=(near.minutes+cheap.minutes)/2,balanced=plans.filter(p=>p.covered>=enough&&p.minutes<=mid+0.001).sort((a,b)=>a.total-b.total||a.minutes-b.minutes)[0]||near;
+ const costs=(p:any)=>Object.fromEntries(p.stores.flatMap((s:any)=>s.items.map((x:any)=>[x.key,{cost:x.cost,label:x.label}])));
+ const vs=(p:any,base:any)=>{const a=costs(p),b=costs(base),common=Object.keys(a).filter(k=>b[k]);return{commonCount:common.length,saving:round(common.reduce((n,k)=>n+b[k].cost-a[k].cost,0)),minutes:p.minutes-base.minutes,added:Object.keys(a).filter(k=>!b[k]).map(k=>({label:a[k].label,cost:a[k].cost})),dropped:Object.keys(b).filter(k=>!a[k]).map(k=>({label:b[k].label,cost:b[k].cost}))}};
+ const pack=(id,p)=>({id,vsNear:vs(p,near),stores:p.stores.map(s=>({...s,items:s.items.sort((a,b)=>Number(b.cold)-Number(a.cold))})).sort((a,b)=>a.minutes-b.minutes),total:p.total,covered:p.covered,itemCount:all,missing:p.missing,minutes:p.minutes,estimated:p.estimated});
+ return{defaultMinutes:DEFAULT_TRAVEL_MIN,stores,plans:{near:pack('near',near),balanced:pack('balanced',balanced),cheap:pack('cheap',cheap)}}
+}
 function catalogMap(catalog){const m=new Map();for(const i of catalog||[])m.set(i.id,i);return m}
 function optimizeBasket(items,observations,prefs={}){
  const opts={today:prefs.today||sydneyToday(),state:prefs.state||null,includeStale:!!prefs.includeStale};
@@ -329,7 +362,8 @@ function optimizeBasket(items,observations,prefs={}){
  const benchmark=[];
  for(const l of lines){const v=l.prices['viet-grocer'];if(!v)continue;const sm=['woolworths','coles','aldi'].filter(r=>l.prices[r]).sort((a,b)=>l.prices[a].cost-l.prices[b].cost)[0];if(!sm)continue;const s=l.prices[sm];benchmark.push({key:l.key,label:l.label,itemId:l.item.id,viet:v.cost,supermarket:{retailer:sm,cost:s.cost,promo:s.observation.promo||null},cheaper:v.cost<=s.cost?'viet-grocer':sm,difference:round(Math.abs(s.cost-v.cost)),approx:v.approx||s.approx})}
  const bulk=lines.filter(l=>l.item.bulkCandidate&&(l.item.category==='household'||l.item.category==='personal')).map(l=>({key:l.key,label:l.label,itemId:l.item.id,unitBasis:l.item.unitBasis,prices:Object.fromEntries(Object.entries(l.prices).map(([r,p])=>[r,{cost:p.cost,unitPrice:p.unitPrice}]))}));
- return{currency:'AUD',today:opts.today,state:opts.state,itemCount:(items||[]).length,pricedCount:lines.filter(l=>Object.keys(l.prices).length).length,unknown,stores,oneStop,split,route,benchmark,bulk,sourceMix:splitMix,hints:lines.flatMap(l=>l.hints.map(h=>({...h,key:l.key,lineLabel:l.label})))};
+ const trips=tripPlans(lines,prefs);
+ return{trips,currency:'AUD',today:opts.today,state:opts.state,itemCount:(items||[]).length,pricedCount:lines.filter(l=>Object.keys(l.prices).length).length,unknown,stores,oneStop,split,route,benchmark,bulk,sourceMix:splitMix,hints:lines.flatMap(l=>l.hints.map(h=>({...h,key:l.key,lineLabel:l.label})))};
 }
 function sourceMix(origins){const m={family:0,official:0,community:0,shop:0};for(const o of origins)if(o&&Object.hasOwn(m,o))m[o]++;m.total=m.family+m.official+m.community+m.shop;return m}
 
@@ -439,6 +473,6 @@ function capturedLabel(at,lang='vi',now=Date.now(),timeZone){if(typeof at!=='str
  const dnum=new Intl.DateTimeFormat('en-GB',{timeZone,day:'2-digit',month:'2-digit'}).format(new Date(t)),dow=new Intl.DateTimeFormat('en-US',{timeZone,weekday:'short'}).format(new Date(t)),viDow=VI_DOW[['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(dow)];
  const clock=day?'':' '+parts.hour+':'+parts.minute,abs=en?`${dow} ${parts.day} ${parts.month}${clock}`:`${viDow} ${dnum}${clock}`;
  return{rel,abs,text:rel+' · '+abs,old:days>7,iso:new Date(t).toISOString(),day}}
-const api={setSupportedStates,unsupportedMessage,ALL_STATES,RETAILERS,RETAILER_IDS,CATEGORIES,SAFETY,SOURCES,PROMOS,BASIS,FRESH_DAYS,STALE_DAYS,SUPPORTED_STATES,UNSUPPORTED,norm,sydneyToday,addDays,dayDiff,postcodeState,cycleId,cycleEnd,nextSpecialBuyDays,defaultDealEnd,unitPriceOf,convertUnitPrice,basisMultiplier,detectRetailer,retailerFromHost,matchCatalog,parsePriceText,extractProductPage,bookmarkletSource,captureToDraft,validObservation,freshness,itemUnitPrice,bestPrice,allowedChannel,optimizeBasket,routeOrder,tripsFromReceipts,detectPersona,receiptObservations,VISIBILITY,EVIDENCE,CONFIDENCE,computeConfidence,makeEvidence,withProvenance,validProvenance,priceSanity,sourceMix,canShareToCommunity,communityObservations,shopObservations,COMMUNITY_SHAREABLE,capturedLabel,captureTimeOf};
+const api={tripPlans,tripMinutes,setSupportedStates,unsupportedMessage,ALL_STATES,RETAILERS,RETAILER_IDS,CATEGORIES,SAFETY,SOURCES,PROMOS,BASIS,FRESH_DAYS,STALE_DAYS,SUPPORTED_STATES,UNSUPPORTED,norm,sydneyToday,addDays,dayDiff,postcodeState,cycleId,cycleEnd,nextSpecialBuyDays,defaultDealEnd,unitPriceOf,convertUnitPrice,basisMultiplier,detectRetailer,retailerFromHost,matchCatalog,parsePriceText,extractProductPage,bookmarkletSource,captureToDraft,validObservation,freshness,itemUnitPrice,bestPrice,allowedChannel,optimizeBasket,routeOrder,tripsFromReceipts,detectPersona,receiptObservations,VISIBILITY,EVIDENCE,CONFIDENCE,computeConfidence,makeEvidence,withProvenance,validProvenance,priceSanity,sourceMix,canShareToCommunity,communityObservations,shopObservations,COMMUNITY_SHAREABLE,capturedLabel,captureTimeOf};
 root.PriceScout=api;
 })(globalThis);

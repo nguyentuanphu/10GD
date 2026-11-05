@@ -5,13 +5,19 @@
 // There is deliberately no retailer scraping here.
 import {getStore} from '@netlify/blobs';
 import {importLicensedFeed,sydneyHour,CACHE_STORE} from '../lib/grocery-pricing.mjs';
-import {recordCronRun} from '../lib/studio.mjs';
+import {recordCronRun,platformSettings} from '../lib/studio.mjs';
+import {refreshOnlinePrices} from '../lib/online-prices.mjs';
+import {cycleId,sydneyDate} from '../lib/grocery-pricing.mjs';
+import masterCatalog from '../../data/master-catalog.json' with {type:'json'};
+// v1.7.5: the 136-item master catalogue (bundled with the function) drives the online price refresh.
+const catalogItems=()=>(masterCatalog as any)?.items||[];
 // Owner-console run record (counts only). recordCronRun never throws.
 const logRun=(getStoreFn,at,result)=>recordCronRun(getStoreFn,'price-scout',{imported:result?.imported===true,reason:result?.reason||result?.skipped||null,stores:Object.keys(result?.counts||{}).length,items:Object.values(result?.counts||{}).reduce((n,v)=>n+(Number(v)||0),0)},at.getTime());
 export function createGroceryCron({getStoreFn=getStore,env=process.env,fetchFn=globalThis.fetch,now=()=>new Date(),log=console.log}={}){
  return async()=>{
   const at=now();
   if(sydneyHour(at)!==6){log('grocery-cron: not 06:xx in Australia/Sydney; skipped.');return Response.json({skipped:'outside-window'})}
+  try{const cache=getStoreFn({name:CACHE_STORE,consistency:'strong',region:'ap-southeast-2'}),ps=await platformSettings(getStoreFn,{env,now:at.getTime()}),today=sydneyDate(at);const st=await refreshOnlinePrices({items:catalogItems(),env,settings:ps.values,fetchFn,cacheStore:cache,statusStore:cache,cycle:cycleId(today),today});log('grocery-cron: online prices '+(st.skipped||st.saved+' saved'))}catch(error){log('grocery-cron: online prices failed '+(error?.message||error))}
   if(!env.GROCERY_FEED_URL){log('grocery-cron: GROCERY_FEED_URL not configured; nothing imported.');await logRun(getStoreFn,at,{skipped:'not-configured'});return Response.json({skipped:'not-configured'})}
   try{const result=await importLicensedFeed({env,fetchFn,cacheStore:getStoreFn({name:CACHE_STORE,consistency:'strong',region:'ap-southeast-2'}),now:at,log});await logRun(getStoreFn,at,result);return Response.json(result)}
   catch(error){log('grocery-cron: import failed '+(error?.message||error));await logRun(getStoreFn,at,{imported:false,reason:'error'});return Response.json({imported:false,reason:'error'},{status:500})}

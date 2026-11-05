@@ -29,8 +29,9 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  const D:string=await page.evaluate(seed);await theme(page,'light');await page.waitForTimeout(150);
  const [dm,dd]=[Number(D.slice(5,7)),Number(D.slice(8,10))];
  // Today: "Tuần này ai bận" names Bố for dinner without opening anything.
- const busy=page.locator('#main [data-who-busy]');await busy.waitFor();assert.match(await busy.innerText(),/Tuần này ai bận/);assert.match(await busy.locator('.who-busy-item').first().innerText(),/^T[2-7]|^CN/);assert.match(await busy.innerText(),/tối: Bố bận/);
- await targets(page,'#main .who-busy-item,#main .calendar-shortcut',name+' today');await noOverflow(page,name+' today');
+ const busy=page.locator('#main [data-who-busy]');await busy.waitFor();assert.match(await busy.innerText(),/Tuần này ai bận/);// v1.7.5 owner design (5 Nov 2026): one line per person — name, status, then the meals in date order
+ assert.match(await busy.locator('.who-busy-row').first().innerText(),/^\S.* (vắng|bận) (T[2-7]|CN)/);assert.match(await busy.innerText(),/Bố bận .*tối/);assert.match(await busy.innerText(),/Xem cả tuần/);
+ await targets(page,'#main .who-busy-row,#main .calendar-shortcut',name+' today');await noOverflow(page,name+' today');
  await busy.scrollIntoViewIfNeeded();await shot(page,`${name}-today-who-busy-vi-light`);
  // Open from Today's "Lịch tháng": whole-family view by default; the busy adult shows without choosing him.
  await tap(page.locator('#main .calendar-shortcut'));await page.locator('#availability-form.family-view').waitFor();
@@ -91,9 +92,9 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  }
  // Today in EN/dark: the line lists both and opens the calendar on that day in family view.
  await page.evaluate(()=>(0,eval)('closeModal')());await page.waitForTimeout(100);
- const en=page.locator('#main [data-who-busy]');await en.waitFor();const et=await en.innerText();assert.match(et,/Who’s busy this week/);assert.match(et,/dinner: Bé nhỏ away/);assert.match(et,/dinner: Bố busy/);
+ const en=page.locator('#main [data-who-busy]');await en.waitFor();const et=await en.innerText();assert.match(et,/Who’s busy this week/);assert.match(et,/Bé nhỏ away .*dinner/);assert.match(et,/Bố busy .*dinner/);
  await noOverflow(page,name+' today en dark');await en.scrollIntoViewIfNeeded();await shot(page,`${name}-today-who-busy-en-dark`);
- await tap(en.locator('.who-busy-item.away').first());await page.locator('#availability-form.family-view .calendar-daylist').waitFor();assert.equal(await G(page,'availabilityFocus'),D);assert.equal(await page.locator('#calendar-member').inputValue(),'');
+ await tap(en.locator('.who-busy-row.away').first());await page.locator('#availability-form.family-view .calendar-daylist').waitFor();assert.equal(await G(page,'availabilityFocus'),D);assert.equal(await page.locator('#calendar-member').inputValue(),'');
  await page.evaluate(()=>(0,eval)('closeModal')());
  // Schedule note on Today's attendance for that dinner uses the clearer wording.
  await page.evaluate((d:string)=>{const ev=(0,eval);ev(`selectedDate='${d}';attendanceType='dinner'`);(0,eval)('render')()},D);

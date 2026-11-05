@@ -65,7 +65,7 @@ async function main(){
    const {page,context,errors}=await open({viewport:sizes[size],lang,theme,init:CRASH});
    const notice=page.locator('#vl-crash-notice');await notice.waitFor({timeout:5000});
    const text=await notice.innerText();
-   assert.match(text,lang==='vi'?/Bộ giọng chính xác làm máy hết bộ nhớ và trang bị tải lại — đã chuyển về giọng nói thường của máy\.[\s\S]*Thử lại[\s\S]*Gỡ gói/:/Accurate voice ran this device out of memory and the page reloaded — switched back to the device’s standard voice input\.[\s\S]*Try again[\s\S]*Remove pack/);
+   assert.match(text,lang==='vi'?/Giọng chính xác tạm tắt vì máy thiếu bộ nhớ — đang dùng giọng nói thường của máy\.[\s\S]*Thử lại[\s\S]*Gỡ gói/:/Accurate voice is paused: not enough memory on this device — using the standard voice input\.[\s\S]*Try again[\s\S]*Remove pack/);
    assert.equal(await notice.getAttribute('role'),'status','non-blocking');
    assert.equal(await page.evaluate('VoiceAPI.activeRecognizer()'),'browser');assert.equal(await ls(page,'bep-voice-recognizer'),null);assert.equal(await ls(page,'bep-voice-local-busy'),null);
    assert.equal(JSON.parse(await ls(page,'bep-voice-local-fail')).phase,'transcribing');
@@ -93,7 +93,7 @@ async function main(){
   // 2. Try again: warning first, then the self-test, then switched on. Remove pack: notice gone, pack removed.
   {const {page,context,errors}=await open({lang:'vi',init:CRASH});await page.locator('#vl-crash-notice').waitFor();await fakePack(page);
    await page.locator('#vl-crash-notice [data-vl-retry]').click();await page.locator('#confirm-root').waitFor();
-   assert.match(await page.locator('#confirm-body').innerText(),/hết bộ nhớ[\s\S]*tải lại thêm lần nữa/);
+   assert.match(await page.locator('#confirm-body').innerText(),/thiếu bộ nhớ[\s\S]*tải lại một lần nữa/);
    await page.screenshot({path:`${out}/try-again-warning-vi-light-mobile-375x812.png`});shots++;
    await page.locator('#confirm-root [data-confirm="yes"]').click();
    await page.waitForFunction(()=>localStorage.getItem('bep-voice-recognizer')==='local-small',null,{timeout:8000});
@@ -134,7 +134,7 @@ async function main(){
   // 4. iPhone permission-first tap: the first press only asks for the microphone; the next hold records.
   for(const lang of ['vi','en']){const {page,context,errors}=await open({ios:true,lang,mic:{delay:400}});
    await page.evaluate('closeModal();voiceModal()');await page.waitForSelector('#voice-text');const mic=page.locator('#voice-continue');
-   const press=async(ms:number)=>{const b=await mic.boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.waitForTimeout(ms);await page.mouse.up()};
+   const press=async(ms:number)=>{await mic.scrollIntoViewIfNeeded();/* v1.7.5 larger text: the sheet is taller, the mic may start below the fold */const b=await mic.boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.waitForTimeout(ms);await page.mouse.up()};
    await press(150);
    assert.equal(await page.evaluate(()=>(window as any).__recs.length),0,'first press: no recognition started');
    assert.match(await page.locator('#voice-status').innerText(),lang==='vi'?/Cho phép micro/:/Allow the microphone/);
@@ -148,12 +148,12 @@ async function main(){
    assert.equal(await page.evaluate(()=>(window as any).__gum),1,'asked once');
    assert.deepEqual(errors,[]);await context.close()}
   {const {page,context,errors}=await open({ios:true,lang:'vi',mic:{delay:100,deny:true}});await page.evaluate('closeModal();voiceModal()');await page.waitForSelector('#voice-text');
-   const b=await page.locator('#voice-continue').boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.mouse.up();
+   await page.locator('#voice-continue').scrollIntoViewIfNeeded();const b=await page.locator('#voice-continue').boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.mouse.up();
    await page.waitForFunction(()=>/Micro đang bị chặn/.test(document.getElementById('voice-status')?.textContent||''));assert.equal(await page.evaluate(()=>(window as any).__recs.length),0);
    assert.deepEqual(errors,[]);await context.close()}
   // Desktop (not iOS): unchanged — the first hold records directly.
   {const {page,context,errors}=await open({viewport:sizes.desktop,lang:'vi'});await page.evaluate('closeModal();voiceModal()');await page.waitForSelector('#voice-text');
-   const b=await page.locator('#voice-continue').boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.waitForTimeout(200);
+   await page.locator('#voice-continue').scrollIntoViewIfNeeded();const b=await page.locator('#voice-continue').boundingBox();if(!b)throw Error('no mic');await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down();await page.waitForTimeout(200);
    assert.equal(await page.evaluate(()=>(window as any).__recs.filter((r:any)=>r.started).length),1);await page.mouse.up();assert.deepEqual(errors,[]);await context.close()}
   console.log('PASS iPhone permission-first tap (VI/EN), denied microphone message, desktop unchanged');
  }finally{await browser.close()}

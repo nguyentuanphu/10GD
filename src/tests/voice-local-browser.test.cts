@@ -150,11 +150,11 @@ async function main(){
    // A load that failed earlier (or a reload mid-load) → fallback notice with one-tap actions.
    await page.evaluate(()=>{localStorage.setItem('bep-voice-local-busy',JSON.stringify({pack:'small',stage:'load',at:1}));(0,eval)('voiceLocalCheckCrash()')});
    await page.evaluate('closeModal();voiceModal()');const fail=page.locator('#vl-fail');await fail.waitFor();
-   assert.match(await fail.innerText(),lang==='vi'?/hết bộ nhớ[\s\S]*tải lại[\s\S]*giọng nói thường[\s\S]*Thử lại[\s\S]*Gỡ gói/:/out of memory[\s\S]*reloaded[\s\S]*standard voice[\s\S]*Try again[\s\S]*Remove pack/);
+   assert.match(await fail.innerText(),lang==='vi'?/thiếu bộ nhớ[\s\S]*giọng nói thường[\s\S]*Thử lại[\s\S]*Gỡ gói/:/not enough memory[\s\S]*standard voice[\s\S]*Try again[\s\S]*Remove pack/);
    for(const b of await fail.locator('.btn').all())assert.ok(((await b.boundingBox())?.height||0)>=43.5,'fallback buttons ≥44px');
    await page.screenshot({path:`docs/reviews/v1.7.1/voice-settings/ondevice-fallback-${lang}-light-375x812.jpg`,type:'jpeg',quality:70});shots++;
    // v1.7.2: Try again is explicit and warns first; declining keeps the failure.
-   await fail.locator('[data-vl-retry]').click();await page.locator('#confirm-root').waitFor();assert.match(await page.locator('#confirm-body').innerText(),lang==='vi'?/tải lại thêm lần nữa/:/reload the page once more/);
+   await fail.locator('[data-vl-retry]').click();await page.locator('#confirm-root').waitFor();assert.match(await page.locator('#confirm-body').innerText(),lang==='vi'?/tải lại một lần nữa/:/reload once more/);
    await page.locator('#confirm-root [data-confirm="no"]').click();await page.waitForTimeout(100);assert.notEqual(await page.evaluate(()=>localStorage.getItem('bep-voice-local-fail')),null,'declined: still marked');
    await page.evaluate(()=>{(0,eval)("voiceAutoResume=function(){globalThis.__resumed=1}")});
    await page.locator('#vl-fail [data-vl-retry]').click();await page.locator('#confirm-root [data-confirm="yes"]').click();await page.waitForTimeout(150);

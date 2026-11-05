@@ -84,7 +84,7 @@ async function main(){
    const empty=await page.locator('.scout-empty-community').innerText();
    assert.match(empty,lang==='vi'?/7 giá cộng đồng ở NSW tuần này/:/7 community prices in NSW this week/);assert.doesNotMatch(empty,/Chưa có giá nào/);
    assert.match(await page.locator('.scout-points.guest').innerText(),lang==='vi'?/Đăng nhập để chia sẻ giá và nhận điểm/:/Sign in to share prices and earn points/);
-   const onestop=await page.locator('.scout-cards .scout-card').first().innerText();assert.match(onestop,/Woolworths/);assert.match(onestop,lang==='vi'?/rẻ hơn|bằng giá/:/cheaper|same/,'one-stop comparison works without own prices');
+   const onestop=await page.locator('.scout-cards .scout-card:not(.scout-trips)').first().innerText()/* v1.7.5: the trip-plan card now comes first; this checks the one-stop card */;assert.match(onestop,/Woolworths/);assert.match(onestop,lang==='vi'?/rẻ hơn|bằng giá/:/cheaper|same/,'one-stop comparison works without own prices');
    assert.match((await page.locator('.scout-mix').allInnerTexts()).join(' '),lang==='vi'?/giá cộng đồng đã xác nhận/:/confirmed community price/);
    assert.equal(await page.locator('[data-community="report"]').count(),0,'device-only users cannot report');assert.equal(await page.locator('[data-community="shelf"]').count(),0);
    assert.match(await page.locator('.scout-community').innerText(),lang==='vi'?/Giá online/:/Online price/);

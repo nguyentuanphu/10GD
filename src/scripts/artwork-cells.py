@@ -8,7 +8,9 @@ INGREDIENT_ART in src/frontend/artwork.ts:
 
 Each painted cell is cropped exactly like spriteCellStyle() in artwork.ts does on screen
 (square, 97% of the smaller cell side, centred on the measured cell and clamped to the
-sheet), then resized: dishes to 192 px, ingredients to 128 px (WebP). Full sheets stay
+sheet). v1.7.4: dishes keep the painted cell's own resolution (no downscale, ~300 px — lists show
+them at up to 170 CSS px, i.e. ~510 device px on a 3× phone) and ingredients are 192 px; WebP
+quality 90. v1.6 used 192/128 px at quality 72, which looked blurred and washed out. Full sheets stay
 unchanged and are still used by detail views. dist/artwork/cells/manifest.json records
 the source sheet hashes; `npm run check` fails when a sheet changes without regenerating.
 Requires Pillow with WebP support. Output is committed (CI does not run this script).
@@ -19,8 +21,8 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ART = os.path.join(ROOT, 'dist', 'artwork')
 OUT = os.path.join(ART, 'cells')
-SIZES = {'dish': 192, 'ingredient': 128}
-QUALITY = 72
+SIZES = {'dish': 0, 'ingredient': 192}  # 0 = keep the cell's native size
+QUALITY = 90
 
 src = open(os.path.join(ROOT, 'src', 'frontend', 'artwork.ts'), encoding='utf8').read()
 grid = json.loads(re.search(r'const SPRITE_GRID=(\{.*?\});', src).group(1))
@@ -44,7 +46,9 @@ def crop_cell(im, g, n):
     return im.crop(box)
 
 def save(img, size, name):
-    buf = io.BytesIO(); img.convert('RGB').resize((size, size), Image.LANCZOS).save(buf, 'WEBP', quality=QUALITY, method=6)
+    img = img.convert('RGB')
+    if size and img.width != size: img = img.resize((size, size), Image.LANCZOS)
+    buf = io.BytesIO(); img.save(buf, 'WEBP', quality=QUALITY, method=6)
     data = buf.getvalue(); open(os.path.join(OUT, name), 'wb').write(data); return len(data)
 
 os.makedirs(OUT, exist_ok=True)

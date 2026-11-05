@@ -122,7 +122,7 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
    const ps=await platformSettings(getStoreFn,{env,now}),role=roleFor(actor,env,ps.values);
    if(!role)return json({error:'Tài khoản này không có quyền vào Studio.',errorEn:'This account does not have Studio access.'},403);
    let b:any={};
-   if(!isRead){const token=request.headers.get('x-studio-csrf')||'',want=csrfFor(ctx.sessionKey);if(token.length!==want.length||!timingSafeEqual(Buffer.from(token),Buffer.from(want)))return json({error:'Phiên Studio đã hết hạn. Tải lại trang.',errorEn:'Studio session token mismatch. Reload the page.'},403);if(role!=='owner')return json({error:'Vai trò hỗ trợ chỉ được xem.',errorEn:'Support role is read-only.'},403);b=await body(150000)}
+   if(!isRead){const token=request.headers.get('x-studio-csrf')||'',want=csrfFor(ctx.sessionKey);if(token.length!==want.length||!timingSafeEqual(Buffer.from(token),Buffer.from(want)))return json({error:'Phiên Studio đã hết hạn. Tải lại trang.',errorEn:'Studio session token mismatch. Reload the page.'},403);if(!(role==='owner'||role==='admin'))return json({error:'Vai trò hỗ trợ chỉ được xem.',errorEn:'Support role is read-only.'},403);b=await body(150000)}
    const audit=(action:string,target:any=null,extra:any={})=>writeAudit(getStoreFn,{actor,role,action,target,...extra},now);
    const reasonOf=()=>String(b.reason||'').trim().slice(0,300);
    // v1.7.2 Studio lists (LL renders): page samples sent from devices; “Giá chưa gắn món” with bulk attach/reject.
