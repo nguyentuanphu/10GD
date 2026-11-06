@@ -2015,3 +2015,14 @@ html[data-theme="dark"] .shop-pantry.stale .shop-pantry-btn{color:#f0c27a}
 .week-tools .plan-actions>.btn{padding:8px 10px;font-size:max(calc(14px * var(--fs-mul,1)),var(--fs-floor,0px))}
 @media (min-width:760px){.week-tools .plan-actions{grid-template-columns:repeat(4,minmax(0,1fr))}.week-tools .plan-actions>[data-fm="generate"]{grid-column:1/-1}}
 @media (min-width:1100px){.week-tools .plan-actions{grid-template-columns:1.3fr repeat(4,minmax(0,1fr))}.week-tools .plan-actions>[data-fm="generate"]{grid-column:auto}.week-tools .plan-actions>.btn{white-space:nowrap}}
+/* v1.7.9 (owner 7 Nov: "khi expand ra vẫn là một ô và phải đều nhau"): open = one box; the label is its top line, aligned
+   with the details under it */
+.shop-pantry.open{border:1px solid var(--line);border-radius:12px;background:var(--white);overflow:hidden}
+.shop-pantry.open .shop-pantry-btn{display:flex!important;width:100%;margin:0!important;padding:0 12px!important;border-radius:0!important;border-bottom:1px solid var(--line)!important;justify-content:space-between;background:transparent}
+.shop-pantry.open .shop-pantry-panel{margin:0;border:0;border-radius:0;background:transparent;padding:10px 12px 12px}
+.shop-pantry.open .shop-pantry-btn{justify-content:flex-start}
+.shop-pantry-btn>span[aria-hidden="true"]:last-child{margin-left:auto;padding-left:8px}
+.shop-pantry.open .shop-pantry-actions{display:grid;grid-template-columns:1fr;gap:8px}
+.shop-pantry.open .shop-pantry-actions .btn{width:100%;justify-content:center;margin:0}
+@media (min-width:560px){.shop-pantry.open .shop-pantry-actions{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}}
+@media (min-width:560px){.shop-pantry.open .shop-pantry-actions{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}}

@@ -42,6 +42,8 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
 
 | 25 | Question dialog, 7 Nov: the *Xem chi tiết nguyên liệu đang có sẵn trong tủ* panel at the top of *Đi chợ* repeated what each row's *Tủ lạnh … ▾* shows (Henry chose **Bỏ ô này**). Translating the reference recipes' prep and steps, and online estimates for items counted by the piece (eggs, lemons), go to **v1.7.10** (Henry's choice). | — | The panel is removed. Pantry details are on each row. `v176-fixes:browser` checks it is gone. |
 
+| 26 | Screenshot 7 Nov: “Khi expand ra vẫn là một ô và phải đều nhau, bây giờ nút bị lệch so với hộp thông tin” | The open label and the details were two boxes with different edges, and the buttons had different widths. | Open, the label is the top line of **one box**, with the details under it on the same edges. The label sits on the left and ▴ on the right. The buttons are equal: stacked full width on a phone, one row of equal tiles from 560 px. `v176-fixes:browser` checks the edges and widths at 320 / 375 / 820 / 1280. |
+
 ## Tests
 
 - `push`: one copy per push address. 4 registrations of the same phone plus one other phone give 2 sends.
