@@ -71,8 +71,14 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   const types=await td.locator('.family-meal-card').evaluateAll((a:any[])=>a.map(e=>e.closest('[data-type]')?.dataset.type||e.dataset.type||e.querySelector('[data-type]')?.dataset.type||''));
   const labels=await td.locator('.family-meal-card h3').allInnerTexts();assert.ok(labels.length>=3,`${label}: breakfast, lunch, dinner shown (${labels})`);assert.ok(labels.some(t=>/trưa|lunch/i.test(t)),`${label}: lunch always shown`);
   const other=days.nth(await page.evaluate(`[...document.querySelectorAll('#main details.plan-day')].findIndex(d=>!d.open)`));assert.match(await other.locator('.pd-sum').innerText(),lang==='en'?/Breakfast/:/Bữa sáng/,`${label}: folded day says what each meal has`);
-  if(size==='mobile'){const before=await td.locator('.family-meal-card').count();await td.locator('[data-plan-snack="add"]').click();await page.waitForTimeout(250);const td2=page.locator('#main details.plan-day.is-today');assert.equal(await td2.locator('.family-meal-card').count(),before+1,'snack added');
-   await td2.locator('[data-plan-snack="remove"]').click();await page.waitForTimeout(250);assert.equal(await page.locator('#main details.plan-day.is-today .family-meal-card').count(),before,'snack removed')}
+  if(size==='mobile'){const before=await td.locator('.family-meal-card').count();await td.locator('[data-plan-meal="add"][data-type="snack"]').click();await page.waitForTimeout(250);const td2=page.locator('#main details.plan-day.is-today');assert.equal(await td2.locator('.family-meal-card').count(),before+1,'snack added');
+   await td2.locator('[data-plan-meal="remove"][data-type="snack"]').click();await page.waitForTimeout(250);assert.equal(await page.locator('#main details.plan-day.is-today .family-meal-card').count(),before,'snack removed')
+   // any of the three meals can be removed for the day and added back (owner: “luôn có đủ 3 bữa và thêm bớt được”)
+   await page.locator('#main details.plan-day.is-today [data-plan-meal="remove"][data-type="breakfast"]').click();await page.waitForTimeout(250);
+   assert.equal(await page.locator('#main details.plan-day.is-today .meal-slot[data-slot="breakfast"]').count(),0,'breakfast removed for the day');
+   assert.match(await page.locator('#main details.plan-day.is-today .pd-sum').innerText(),lang==='en'?/Lunch/:/Bữa trưa/);
+   await page.locator('#main details.plan-day.is-today [data-plan-meal="add"][data-type="breakfast"]').click();await page.waitForTimeout(250);
+   assert.equal(await page.locator('#main details.plan-day.is-today .meal-slot[data-slot="breakfast"]').count(),1,'breakfast added back')}
   await shot('planner-days')}
  // 4b. meal editor opens with the meal's ingredients (ladybug report: “không thấy nguyên liệu cho bữa ăn này”)
  if(size==='mobile'||size==='desktop'){const d=await page.evaluate(`Object.keys(currentWeek().days).find(d=>currentWeek().days[d].dinner.recipes.length)`);await page.evaluate(`familyEditMeal(${JSON.stringify(d)},'dinner')`);
@@ -80,6 +86,12 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   assert.ok(await box.locator('.meal-ing-dish').count()>=2,`${label}: one section per dish`);assert.ok(await box.locator('ul.ingredients li').count()>=3,`${label}: ingredients listed for the meal`);
   await textOk('meal-editor');await shot('meal-ingredients');await page.evaluate('closeModal()')}
  // 5. the other screens: nothing cut off, no word broken in the middle
+ // v1.7.7 buy extra on purpose: "+500 g" in the picker and a reason; the row says so; "Dùng lượng tự động" clears it
+ if(size==='mobile'){await page.evaluate(`view='shopping';render();scrollTo(0,0)`);const qb=page.locator('#main button[data-action="purchase-quantity"]').first();const qid=await qb.getAttribute('data-id');await qb.click();
+  await page.locator('[data-buy-plus="500"]').waitFor();await page.locator('[data-buy-plus="500"]').click();await page.locator('#purchase-extra-why').fill('làm chả');await shot('buy-extra');
+  await page.locator('[data-action="save-purchase-quantity"]').click();await page.waitForTimeout(300);
+  const note=page.locator(`#main .shop-row:has(button[data-id="${qid}"]) .buy-extra-note`);assert.match(await note.innerText(),/\+500 g · làm chả/,'row shows the extra and why');
+  await page.locator(`#main button[data-action="purchase-quantity"][data-id="${qid}"]`).click();await page.locator('[data-action="reset-purchase-quantity"]').click();await page.waitForTimeout(300);assert.equal(await note.count(),0,'automatic amount clears the extra')}
  // v1.7.7 round button on the shopping list (tap = one step)
  {await page.evaluate(`view='shopping';render();scrollTo(0,0)`);const rb=page.locator('.qty-round').first();await rb.waitFor();const id=await rb.getAttribute('data-qr-id');const q=()=>page.evaluate(`(()=>{const[s,e]=shopDates();const r=shopping(state,currentWeek(),s,e).find(x=>x.id===${JSON.stringify(id)});return r.qty??r.suggested})()`);
   const v0=await q();await rb.click();await page.waitForTimeout(200);const v1=await q();assert.ok(v1>v0,`${label}: tap rounds up (${v0} → ${v1})`);assert.ok((await rb.boundingBox())!.height>=44,'round button is a 44 px target');

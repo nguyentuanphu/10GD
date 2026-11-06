@@ -27,6 +27,8 @@ function qrOptions(id:string){const{row}=qrRow(id);if(!row)return;const kind=qrK
   `<button class="btn" type="button" data-qr="reset" data-id="${esc(id)}">${tr('Dùng lượng tự động','Use automatic amount')}</button><button class="btn primary" type="button" data-qr="apply" data-id="${esc(id)}">${tr('Làm tròn','Round')}</button>`)}
 function qrReadForm():QRMode{const f=document.getElementById('qr-form') as any,dir=f?.querySelector('input[name=dir]:checked')?.value==='down'?'down':'up',s=f?.querySelector('input[name=step]:checked')?.value;return{dir,step:s&&s!=='auto'?+s:'auto'}}
 function qrDecorate(){if(view!=='shopping')return;for(const b of document.querySelectorAll('#main button[data-action="purchase-quantity"]') as any){const id=b.dataset.id;if(!id||b.nextElementSibling?.classList?.contains('qty-round'))continue;const{row}=qrRow(id);if(!row||!qrMeasured(row))continue;const m=qrMode();
+  const extra=(Number(row.qty)||0)-(Number(row.suggested)||0),[sd,ed]=shopDates(),why=typeof buyNoteGet==='function'?buyNoteGet(currentWeek(),sd,ed,id):'';
+  if(row.custom&&extra>0.0001)(b.closest('.shop-row')?.querySelector('.item-label')||b).insertAdjacentHTML('beforeend',`<small class="buy-extra-note">${esc(tr('mua dư','extra'))} +${esc(fmtQty(extra,INGREDIENTS[id][1]))}${why?` · <span data-user-content>${esc(why)}</span>`:''}</small>`);
   b.insertAdjacentHTML('afterend',`<button type="button" class="qty-round" data-qr-id="${esc(id)}" aria-label="${esc(tr(`Làm tròn ${m.dir==='up'?'lên':'xuống'} (giữ để chọn cách làm tròn)`,`Round ${m.dir} (press and hold for options)`))}" title="${esc(tr('Chạm: làm tròn · Giữ: tuỳ chọn','Tap: round · Hold: options'))}"><span aria-hidden="true">≈</span><span class="qr-dir" aria-hidden="true">${m.dir==='up'?'↑':'↓'}</span></button>`)}}
 // tap vs long press (500 ms); right-click / Shift+Enter open the options too
 let qrTimer:any=0,qrLong=false;
@@ -35,7 +37,7 @@ for(const ev of ['pointerup','pointercancel','pointerleave'])document.addEventLi
 document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('.qty-round');if(b){e.preventDefault();if(qrLong){qrLong=false;return}if((e as any).shiftKey){qrOptions(b.dataset.qrId);return}qrApply(b.dataset.qrId);return}
  const a=(e.target as any)?.closest?.('[data-qr]');if(!a)return;const id=a.dataset.id;
  if(a.dataset.qr==='apply'){const m=qrReadForm();state.preferences.qtyRound={dir:m.dir,step:m.step};closeModal();qrApply(id,m)}
- else if(a.dataset.qr==='reset'){const{start,end}=qrRow(id);resetPurchaseQuantity(currentWeek(),start,end,id);closeModal();save(tr('Đã dùng lại lượng tự động.','Back to the automatic amount.'));render()}});
+ else if(a.dataset.qr==='reset'){const{start,end}=qrRow(id);resetPurchaseQuantity(currentWeek(),start,end,id);if(typeof buyNoteSet==='function')buyNoteSet(currentWeek(),start,end,id,'');closeModal();save(tr('Đã dùng lại lượng tự động.','Back to the automatic amount.'));render()}});
 document.addEventListener('contextmenu',e=>{const b=(e.target as any)?.closest?.('.qty-round');if(!b)return;e.preventDefault();clearTimeout(qrTimer);qrLong=true;qrOptions(b.dataset.qrId)});
 {const qrBaseRender=render;render=function(this:any,...a:any[]){const r=qrBaseRender.apply(this,a);try{qrDecorate()}catch(err){console.warn('qty round',err)}return r}}
 (globalThis as any).qrNext=qrNext;

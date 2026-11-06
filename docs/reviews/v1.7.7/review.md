@@ -69,3 +69,17 @@ Studio → Giá online → **Chạy ngay** showed “Request failed” every tim
   - the round button: a tap rounds up, and the options round down;
   - the round button is a 44 px target.
 - **`authenticated-startup` and `menu-reactions`:** they edit or react on a meal of an open day, since the days now fold. Each check is unchanged.
+
+## Third round (owner, 6 Nov 2026, Sydney time)
+
+| Owner | Change |
+|---|---|
+| “Luôn có đủ 3 bữa và thêm bớt được” | Every day starts with breakfast, lunch and dinner. Each meal has **Bỏ bữa sáng / trưa / tối / phụ** under its card. A meal with dishes asks first; a cooked meal or a Weekends-feast meal cannot be removed. The day's **Thêm bữa** row brings back a removed meal or adds Bữa phụ. A removed meal is stored as `meal.off` (Bữa phụ as `meal.on`). The auto-plan leaves removed meals empty. A meal that still has dishes always shows, so nothing planned is hidden. |
+| “Thịt được định lượng tự động… muốn mua dư thêm để làm chuyện khác thì làm thế nào?” | In the buying picker, **Mua dư thêm: +100 g · +250 g · +500 g · +1 kg** (+1/+2/+5 for counted items) adds on top of the amount. **Mua thêm để làm gì** takes a short reason, e.g. “làm chả”. The shopping row then reads **mua dư +500 g · làm chả** in orange, so the extra is clearly on purpose. The reason is kept for the dates shown (`week.buyNotes`). **Dùng lượng tự động** clears both. For weighed items, the absolute 250 g / 500 g / 1 kg / 2 kg buttons are hidden, because the + buttons replace them and two rows of amounts were confusing. |
+
+Tests:
+- **`v176-fixes`:**
+  - breakfast is removed for the day, then added back;
+  - Bữa phụ is added and removed;
+  - +500 g with a reason shows on the row, and the automatic amount clears it.
+- **`catalog-filters`, `recipe-community`, `authenticated-startup`, `menu-reactions`:** they act on a meal of an open day, since days now fold. Their checks are unchanged.

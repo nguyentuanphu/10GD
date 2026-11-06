@@ -1867,3 +1867,13 @@ html[data-theme="dark"] .plan-day.is-today>.plan-day-head{background:var(--green
 .plan-day-head .pd-meal{display:inline-block;margin-right:14px}
 .plan-day-head .pd-chev{position:absolute;right:16px;top:50%;transform:translateY(-50%)}
 .plan-day[open]>.plan-day-head .pd-chev{transform:translateY(-50%) rotate(180deg)}
+/* v1.7.7 · add / remove a meal per day; "buy extra" in the buying picker */
+.meal-slot{display:flex;flex-direction:column;min-width:0}
+.meal-slot>.family-meal-card{flex:1}
+.meal-remove{align-self:flex-end;min-height:44px;margin:-6px 12px 6px;color:var(--muted);font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px))}
+.plan-day-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.plan-day-tools .btn{min-height:44px}
+.buy-extra{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0 4px}
+.buy-extra>span{font-weight:700;margin-right:4px}
+.buy-extra .btn{min-height:44px}
+.buy-extra-note{display:block;color:var(--orange);font-weight:600}
