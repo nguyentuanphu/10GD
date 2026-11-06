@@ -1946,3 +1946,19 @@ html[data-theme="dark"] .swipe-under{background:#3d1c19;color:#ffb3a8}
 .extra-qty-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(88px,auto);gap:8px}
 .extra-qty-pair input,.extra-qty-pair select{min-height:48px;min-width:0}
 .form-grid .extra-qty-field{grid-column:1/-1}
+/* v1.7.9 (owner, 6 Nov 2026, marked-up screenshot): a tidy shopping row —
+   line 1: [tick 44] [picture 44 + name] ……… [×]
+   line 2:           [amount ≈↓ ≈↑] ……… [price]
+   line 3:           [store]
+   line 4: [online price, full width]
+   The tick box and the picture are the same 44 px square; × sits top right. */
+.simple-screen .shop-row.shop-purchase-row{grid-template-columns:44px minmax(0,1fr) auto!important;column-gap:10px!important;row-gap:8px!important;align-items:center}
+.simple-screen .shop-row.shop-purchase-row>.large-check-target{grid-column:1!important;grid-row:1!important;width:44px!important;height:44px!important;border-radius:10px;align-self:center!important}
+.simple-screen .shop-row.shop-purchase-row>.large-check-target .check{width:24px;height:24px}
+.simple-screen .shop-row.shop-purchase-row .item-label{grid-column:2!important;grid-row:1!important;display:block!important;min-height:44px;align-self:center}
+.simple-screen .shop-row.shop-purchase-row .item-label .ingredient-art,.simple-screen .shop-row.shop-purchase-row .item-label .pp-wrap{float:left!important;width:44px!important;height:44px!important;margin:0 10px 0 0!important;border-radius:10px}.simple-screen .shop-row.shop-purchase-row .item-label .pp-wrap img{width:44px;height:44px;object-fit:contain;border-radius:10px}
+.simple-screen .shop-row.shop-purchase-row>.row-skip{grid-column:3!important;grid-row:1!important;justify-self:end;align-self:start}
+.simple-screen .shop-row.shop-purchase-row>.qty-cell{grid-column:2!important;grid-row:2!important}
+.simple-screen .shop-row.shop-purchase-row>.price{grid-column:3!important;grid-row:2!important;justify-self:end;text-align:right}
+.simple-screen .shop-row.shop-purchase-row>.store-pill{grid-column:2/-1!important;grid-row:3!important;justify-self:start}
+.simple-screen .shop-row.shop-purchase-row>.online-line,.simple-screen .shop-row.shop-purchase-row>.online-find{grid-column:1/-1!important;grid-row:4!important}

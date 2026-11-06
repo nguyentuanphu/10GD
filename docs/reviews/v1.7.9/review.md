@@ -14,6 +14,9 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
 
 | 8 | Screenshot 19:35, *Mua thêm món / nguyên liệu ngoài thực đơn*: “không có số lượng và đơn vị mà phải gộp vào 1 dòng thành ra hệ thống không hiểu… chỗ màu nâu tôi khoanh tròn là gì?” | One text box held both amount and unit (e.g. *500 g*). The brown box was the empty *Trong tủ đang có sẵn…* note: a later `.callout` rule overrode `.hidden`, so the empty note showed. | **Số lượng** is now a number box next to a unit list (g, kg, ml, L, quả, gói, hộp, bó, chai, lon, khay, túi, cái, cuộn), on its own full-width row. Picking an ingredient from the quick list fills both. The stored text stays *2 hộp* as before. `.hidden` always hides now, so the empty note is gone. |
 
+| 9 | “Chỉnh giờ làm luôn” | Only 3 of the reminder times could be changed. | **Giờ nhắc chung của gia đình** (Bếp của nhà mình → Nhắc nhở, and the notifications sheet) now sets every reminder: báo cơm 10:30, sơ chế 17:00, yêu cầu mua 09:00, **đồ sắp hết hạn 08:30**, **lịch vắng ngày mai 19:00**, **nhắc ghi hoá đơn 19:30**, **chốt thực đơn tuần tới 18:00**, plus **the day** for planning next week (default Sunday). The defaults are unchanged, and all times are Sydney time. |
+| 10 | Marked-up screenshot: “cái hộp tick đó phải bằng nhau, sắp xếp cho đẹp và ngăn nắp… chữ x xoá món để phía trên” | The tick box (30 px in a 44×52 tile), the picture (33 px) and the rows below were not aligned, and × sat alone at the bottom. | Every shopping row now has the same layout. Line 1: the tick and the picture as equal 44 px squares, the name, and **×** at the top right. Line 2: amount, ≈↓ ≈↑ and the price on the right. Line 3: the store. Line 4: the online price at full width. |
+
 ## Tests
 
 - `push`: one copy per push address. 4 registrations of the same phone plus one other phone give 2 sends.
@@ -30,6 +33,7 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
   - the tick sits on the name line;
   - the amount stays put after rounding.
 - `scout-scanlist`: the catalogue count is now 166.
+- `push`: every reminder time and the planning day follow the family setting, and the old default times no longer fire when changed.
 - `v176-fixes:browser`: the extra-item form has a separate amount and unit, the empty pantry note is hidden, and it saves as *2 hộp*.
 
 ## Evidence (Chromium viewport simulation, not physical devices)

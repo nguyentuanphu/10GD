@@ -40,3 +40,10 @@ console.log('PASS concurrent automatic sends cannot exceed two daily slots');
  const hits:string[]=[];const r=await sendPushBatch(st,{type:'calendar',title:'t',body:'b',url:'/#planner'},{now:new Date('2026-11-06T08:00:00Z'),send:async(s:any)=>{hits.push(s.endpoint);return{statusCode:201}}});
  assert.equal(hits.length,2,'one copy per push address');assert.equal(new Set(hits).size,2);assert.equal(r.accepted,2);
  console.log('PASS one notification per push address (duplicate registrations of the same phone)')}
+// v1.7.9 (owner: "chỉnh giờ làm luôn"): every reminder's time is the family's choice (and the planning day)
+{const st:any={members:[{id:'dad',name:'Dad'}],weeks:{},pantry:[{ingredient:'egg',qty:1,expiry:'2026-11-07'}],receipts:[],availability:{dad:{'2026-11-08':{dinner:{deduct:true,remind:true}}}},preferences:{expiryReminderTime:'07:15',calendarReminderTime:'20:30',weeklyReminderTime:'09:00',weeklyReminderDay:6}};
+ const at=(t:string)=>automaticMessages(st,new Date(t)).map(j=>j.type);
+ assert.ok(at('2026-11-06T20:15:00Z').includes('expiry'),'expiry at 07:15 Sydney');assert.ok(!at('2026-11-06T21:30:00Z').includes('expiry'),'not at the default 08:30');
+ assert.ok(at('2026-11-07T09:30:00Z').includes('calendar'),'calendar at 20:30 Sydney');assert.ok(!at('2026-11-07T08:00:00Z').includes('calendar'),'not at the default 19:00');
+ assert.ok(at('2026-11-06T22:00:00Z').includes('weekly'),'weekly on Saturday 09:00 Sydney');assert.ok(!at('2026-11-08T07:00:00Z').includes('weekly'),'not on Sunday 18:00 any more');
+ console.log('PASS every reminder time (and the planning day) follows the family setting')}
