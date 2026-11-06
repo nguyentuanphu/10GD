@@ -31,3 +31,24 @@ const targeted=automaticMessages(state,new Date('2026-10-29T23:30:00Z')).find(j=
 console.log('PASS language-specific payloads, role filters, quiet hours, explicit urgent override, two-per-day cap and device-only tests');
 const simultaneous=await Promise.all(Array.from({length:5},()=>sendPushBatch(store,{type:'shopping',title:'Mua đồ',body:'Test'},{automatic:true,now:new Date('2026-11-01T01:00:00Z'),send:capture})));assert.equal(simultaneous.reduce((n,r)=>n+r.accepted,0),2,'conditional daily slots also enforce the cap under concurrency');
 console.log('PASS concurrent automatic sends cannot exceed two daily slots');
+// v1.7.9 (owner, 6 Nov 2026: the same reminder arrived 4 times on one phone): devices registered several times, or for
+// several members, with the same push address get ONE copy
+{const d=new Map([['state',{preferences:{}}],['push/vapid-keys',webPush.generateVAPIDKeys()]]);const st={get:async(k:string)=>d.get(k)||null,setJSON:async(k:string,v:any,o:any={})=>{if(o.onlyIfNew&&d.has(k))return{modified:false};d.set(k,v);return{modified:true}},delete:async(k:string)=>d.delete(k),list:async function*(){yield{blobs:[...d.keys()].filter(k=>k.startsWith('push/subscriptions/')).map(key=>({key}))}}};
+ const same={endpoint:'https://web.push.apple.com/synthetic-same-phone',keys:{auth:'b'.repeat(22),p256dh:'b'.repeat(87)}};
+ for(const [i,m] of [['01','dad'],['02','mum'],['03','tí'],['04','dad']])d.set('push/subscriptions/synthetic-dup-'+i,{deviceId:'synthetic-dup-'+i,memberId:m,subscription:same,types:{},quietStart:'21:00',quietEnd:'21:00'});
+ d.set('push/subscriptions/synthetic-other',{deviceId:'synthetic-other',memberId:'mum',subscription:{...same,endpoint:'https://web.push.apple.com/synthetic-other-phone'},types:{},quietStart:'21:00',quietEnd:'21:00'});
+ const hits:string[]=[];const r=await sendPushBatch(st,{type:'calendar',title:'t',body:'b',url:'/#planner'},{now:new Date('2026-11-06T08:00:00Z'),send:async(s:any)=>{hits.push(s.endpoint);return{statusCode:201}}});
+ assert.equal(hits.length,2,'one copy per push address');assert.equal(new Set(hits).size,2);assert.equal(r.accepted,2);
+ console.log('PASS one notification per push address (duplicate registrations of the same phone)')}
+// v1.7.9 (owner: "chỉnh giờ làm luôn"): every reminder's time is the family's choice (and the planning day)
+{const st:any={members:[{id:'dad',name:'Dad'}],weeks:{},pantry:[{ingredient:'egg',qty:1,expiry:'2026-11-07'}],receipts:[],availability:{dad:{'2026-11-08':{dinner:{deduct:true,remind:true}}}},preferences:{expiryReminderTime:'07:15',calendarReminderTime:'20:30',weeklyReminderTime:'09:00',weeklyReminderDay:6}};
+ const at=(t:string)=>automaticMessages(st,new Date(t)).map(j=>j.type);
+ assert.ok(at('2026-11-06T20:15:00Z').includes('expiry'),'expiry at 07:15 Sydney');assert.ok(!at('2026-11-06T21:30:00Z').includes('expiry'),'not at the default 08:30');
+ assert.ok(at('2026-11-07T09:30:00Z').includes('calendar'),'calendar at 20:30 Sydney');
+ // v1.7.9 system check: "next week" starts on the family's first day of the menu week, not tomorrow
+ {const st3=JSON.parse(JSON.stringify(st));st3.preferences.weeklyReminderDay=3;st3.preferences.weeklyReminderTime='18:00';st3.preferences.weekStartDay=6;const job=automaticMessages(st3,new Date('2026-11-04T07:00:00Z')).find((j:any)=>j.type==='weekly');assert.ok(job,'weekly on Wednesday 18:00 Sydney');assert.match(job.title,/từ T7 7\/11/);assert.equal(job.url,'/#planner?d=2026-11-07');
+  delete st3.preferences.weekStartDay;const job2=automaticMessages(st3,new Date('2026-11-04T07:00:00Z')).find((j:any)=>j.type==='weekly');assert.match(job2.title,/từ T2 9\/11/,'default: Monday')}
+ // v1.7.9: the reported time is in the calendar reminder
+ {const st2=JSON.parse(JSON.stringify(st));st2.availability.dad['2026-11-08'].dinner.from='17:00';st2.availability.dad['2026-11-08'].dinner.to='19:30';const job=automaticMessages(st2,new Date('2026-11-07T09:30:00Z')).find((j:any)=>j.type==='calendar');assert.match(job.body,/Dad 17:00–19:30/);assert.match(job.enBody,/Dad 17:00–19:30/)}assert.ok(!at('2026-11-07T08:00:00Z').includes('calendar'),'not at the default 19:00');
+ assert.ok(at('2026-11-06T22:00:00Z').includes('weekly'),'weekly on Saturday 09:00 Sydney');assert.ok(!at('2026-11-08T07:00:00Z').includes('weekly'),'not on Sunday 18:00 any more');
+ console.log('PASS every reminder time (and the planning day) follows the family setting')}

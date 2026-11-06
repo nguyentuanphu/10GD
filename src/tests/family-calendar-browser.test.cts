@@ -30,7 +30,8 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  const [dm,dd]=[Number(D.slice(5,7)),Number(D.slice(8,10))];
  // Today: "Tuần này ai bận" names Bố for dinner without opening anything.
  const busy=page.locator('#main [data-who-busy]');await busy.waitFor();assert.match(await busy.innerText(),/Tuần này ai bận/);// v1.7.5 owner design (5 Nov 2026): one line per person — name, status, then the meals in date order
- assert.match(await busy.locator('.who-busy-row').first().innerText(),/^\S.* (vắng|bận) (T[2-7]|CN)/);assert.match(await busy.innerText(),/Bố bận .*tối/);assert.match(await busy.innerText(),/Xem cả tuần/);
+ // v1.7.9: name and status, then one line per pattern of meals: "tối: T6, T7"
+ assert.match(await busy.locator('.who-busy-row').first().innerText(),/^\S.* (vắng|bận)\s+(sáng|phụ sáng|trưa|phụ|tối)( \+ [^:]+)?( [^:]*)?: (T[2-7]|CN)/);assert.match(await busy.innerText(),/Bố bận\s+tối/);assert.match(await busy.innerText(),/Xem cả tuần/);
  await targets(page,'#main .who-busy-row,#main .calendar-shortcut',name+' today');await noOverflow(page,name+' today');
  await busy.scrollIntoViewIfNeeded();await shot(page,`${name}-today-who-busy-vi-light`);
  // Open from Today's "Lịch tháng": whole-family view by default; the busy adult shows without choosing him.
@@ -59,21 +60,24 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  assert.match(await page.locator('#calendar-reporting').innerText(),/Đang báo cho: Bé nhỏ.*\(báo hộ · người báo: Mẹ\)/s);
  const sel=page.locator(`.calendar-day[data-date="${D}"]`);assert.match(await sel.getAttribute('class'),/selected/);assert.equal(await sel.locator('.cal-check').count(),1,'selected = ✓');
  await page.locator('#calendar-status').selectOption('away');assert.equal(await page.locator('#calendar-deduct').isChecked(),true,'away → no portion by default');assert.equal((await page.locator('#calendar-preview').innerText()).trim(),'Vắng · không nấu phần');
- await page.locator('#calendar-note').fill('Ngủ nhà bà');await noOverflow(page,name+' edit vi light');
+ await page.locator('#calendar-note').fill('Ngủ nhà bà');
+ // v1.7.9 (owner, 6 Nov 2026: "không báo được thời gian"): optional from / to times, 44 px tall
+ await page.locator('#calendar-from').fill('18:00');await page.locator('#calendar-to').fill('21:00');for(const id of ['#calendar-from','#calendar-to'])assert.ok((await page.locator(id).boundingBox())!.height>=44,id+' 44 px');
+ await noOverflow(page,name+' edit vi light');
  await targets(page,'#modal-root .calendar-day,#modal-root .modal-footer .btn',name+' edit');
  await page.locator('#availability-form [name="types"][value="dinner"]').scrollIntoViewIfNeeded();await shot(page,`${name}-edit-on-behalf-vi-light`);
  await tap(page.locator('#modal-root .modal-footer [data-action="submit-form"]'));
  await page.waitForFunction((d:string)=>(0,eval)('state').availability?.little?.[d]?.dinner?.by==='mum',D);
- assert.deepEqual(JSON.parse(JSON.stringify(await G(page,`state.availability.little['${D}'].dinner`))),{status:'away',deduct:true,remind:true,note:'Ngủ nhà bà',by:'mum'});
+ assert.deepEqual(JSON.parse(JSON.stringify(await G(page,`state.availability.little['${D}'].dinner`))),{status:'away',deduct:true,remind:true,note:'Ngủ nhà bà',from:'18:00',to:'21:00',by:'mum'});
  assert.deepEqual(JSON.parse(JSON.stringify(await G(page,`state.availability.dad['${D}'].dinner`))),{status:'busy',deduct:false,remind:true,note:'Họp muộn, ăn sau 8 giờ',by:'dad'},'other family data untouched');
  // Selected vs saved look different: saved = grey "Away" label; selected = ring on the normal background, not solid green.
  const look=await page.evaluate((d:string)=>{const sel=document.querySelector(`.calendar-day[data-date="${d}"]`) as HTMLElement,other=[...document.querySelectorAll('.calendar-day:not(.selected)')][0] as HTMLElement,cs=getComputedStyle(sel);return{bg:cs.backgroundColor,otherBg:getComputedStyle(other).backgroundColor,shadow:cs.boxShadow,mark:sel.querySelector('.cal-mark.away')?.textContent}},D);
  assert.equal(look.bg,look.otherBg,'selected keeps the normal background');assert.match(look.shadow,/inset/);assert.equal(look.mark,'T');
- assert.match(await page.locator('.calendar-current').innerText(),/Bé nhỏ · Vắng · không nấu phần · Ngủ nhà bà · Mẹ báo hộ/);
+ assert.match(await page.locator('.calendar-current').innerText(),/Bé nhỏ · Vắng 18:00–21:00 · không nấu phần · Ngủ nhà bà · Mẹ báo hộ/);
  // Back to the whole family: both people on that day, in the accessible name too.
  await tap(page.locator('[data-house="calendar-family"]'));await page.locator('#availability-form.family-view').waitFor();
  assert.equal(await page.locator(`.calendar-day[data-date="${D}"]`).getAttribute('aria-label'),`${dd} tháng ${dm}: Bố bận bữa tối; Bé nhỏ vắng bữa tối`);
- const lt2=await page.locator('.calendar-daylist').innerText();assert.match(lt2,/Bé nhỏ/);assert.match(lt2,/Vắng · không nấu phần/);assert.match(lt2,/Mẹ báo hộ/);
+ const lt2=await page.locator('.calendar-daylist').innerText();assert.match(lt2,/Bé nhỏ/);assert.match(lt2,/Vắng 18:00–21:00 · không nấu phần/);assert.match(lt2,/Mẹ báo hộ/);
  // Theme / language matrix: no overflow in VI+EN × light+dark (family view and edit view).
  for(const [lang,mode] of [['vi','dark'],['en','light'],['en','dark']]){
   await page.evaluate(()=>(0,eval)('closeModal')());await page.evaluate((l:string)=>(0,eval)('changeAppLanguage')(l),lang);await theme(page,mode);await page.waitForTimeout(120);
@@ -82,7 +86,8 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
    assert.equal(await page.locator('[data-house="calendar-prev"]').getAttribute('aria-label'),'Previous month');assert.equal(await page.locator('[data-house="calendar-next"]').getAttribute('aria-label'),'Next month');
    assert.equal((await page.locator('#modal-title').innerText()).trim(),'Family monthly calendar');assert.equal((await page.locator('#calendar-member option').first().innerText()).trim(),'Whole family');
    assert.match(await page.locator(`.calendar-day[data-date="${D}"]`).getAttribute('aria-label'),/: Bố busy for dinner; Bé nhỏ away for dinner$/);
-   const en=await page.locator('.calendar-daylist').innerText();assert.match(en,/Busy · still cooking their portion/);assert.match(en,/Away · no portion/);assert.match(en,/reported by Mẹ on behalf/);assert.doesNotMatch(en,/Bận|Vắng|báo hộ/)}
+   const en=await page.locator('.calendar-daylist').innerText();assert.match(en,/Busy · still cooking their portion/);assert.match(en,/Away 18:00–21:00 · no portion/);assert.match(en,/reported by Mẹ on behalf/);assert.doesNotMatch(en,/Bận|Vắng|báo hộ/)}
+  assert.match(await page.locator('.calendar-daylist').innerText(),lang==='en'?/Away 18:00–21:00 · no portion/:/Vắng 18:00–21:00 · không nấu phần/,'v1.7.9: the time shows on the day');
   await noOverflow(page,`${name} family ${lang} ${mode}`);
   if(mode==='dark')await shot(page,`${name}-family-${lang}-${mode}`);
   await tap(page.locator('.calendar-daylist [data-house="calendar-edit"][data-member="dad"]'));await page.locator('#availability-form.editing').waitFor();
@@ -92,13 +97,13 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  }
  // Today in EN/dark: the line lists both and opens the calendar on that day in family view.
  await page.evaluate(()=>(0,eval)('closeModal')());await page.waitForTimeout(100);
- const en=page.locator('#main [data-who-busy]');await en.waitFor();const et=await en.innerText();assert.match(et,/Who’s busy this week/);assert.match(et,/Bé nhỏ away .*dinner/);assert.match(et,/Bố busy .*dinner/);
+ const en=page.locator('#main [data-who-busy]');await en.waitFor();const et=await en.innerText();assert.match(et,/Who’s busy this week/);assert.match(et,/Bé nhỏ away\s+dinner/);assert.match(et,/Bố busy\s+dinner/);
  await noOverflow(page,name+' today en dark');await en.scrollIntoViewIfNeeded();await shot(page,`${name}-today-who-busy-en-dark`);
  await tap(en.locator('.who-busy-row.away').first());await page.locator('#availability-form.family-view .calendar-daylist').waitFor();assert.equal(await G(page,'availabilityFocus'),D);assert.equal(await page.locator('#calendar-member').inputValue(),'');
  await page.evaluate(()=>(0,eval)('closeModal')());
  // Schedule note on Today's attendance for that dinner uses the clearer wording.
  await page.evaluate((d:string)=>{const ev=(0,eval);ev(`selectedDate='${d}';attendanceType='dinner'`);(0,eval)('render')()},D);
- const note=page.locator('#main .attendance .schedule-note').first();await note.waitFor();const nt=await note.innerText();assert.match(nt,/Bố: Busy · still cooking their portion/);assert.match(nt,/Bé nhỏ: Away · no portion/);
+ const note=page.locator('#main .attendance .schedule-note').first();await note.waitFor();const nt=await note.innerText();assert.match(nt,/Bố: Busy · still cooking their portion/);assert.match(nt,/Bé nhỏ: Away 18:00–21:00 · no portion/);
  // Offline (account-free device): saving still works and nothing errors.
  await context.setOffline(true);await page.evaluate(()=>{const ev=(0,eval);ev(`availabilityMember='ti';availabilitySelected=new Set([selectedDate]);availabilityMonth=selectedDate.slice(0,7)`);(0,eval)('availabilityModal')()});
  await page.locator('#availability-form.editing').waitFor();await page.locator('#calendar-status').selectOption('busy');await tap(page.locator('#modal-root .modal-footer [data-action="submit-form"]'));

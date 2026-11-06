@@ -30,9 +30,15 @@ function compactLayout(){const main=clMain();if(!main)return;const v=typeof view
  const note=main.querySelector('.callout[data-device-mode]');if(note&&!note.classList.contains('cl-slim')){note.classList.add('cl-slim');const span=note.querySelector('span');if(span)span.textContent=clText('Đang dùng riêng trên máy này','Using this device only');const b=note.querySelector('button');if(b)b.textContent=clText('Kết nối gia đình','Connect family')}
  // the Simple/Full switch joins the title row (one row less on every screen but Today)
  if(v!=='today'&&innerWidth>=420){const sw=main.querySelector('.screen-switch'),acts=main.querySelector('.page-heading .heading-actions');if(sw&&acts&&!acts.contains(sw)){sw.classList.add('cl-in-heading');acts.prepend(sw)}}
- if(v==='shopping')clCompactShopping(main)}
+ if(v==='shopping')clCompactShopping(main);if(v==='planner')clPlannerActions(main)}
+// v1.7.9 (owner, 7 Nov 2026: "nút lên thực đơn nên được chuyển xuống cùng dòng mấy cái này, nhớ sắp xếp các nút cho đẹp"):
+// "Lên thực đơn cả tuần" leaves the title row and leads one tidy grid with the week's other actions (repeat last week,
+// copy, write recipes, family tastes) — the main action first and full width on a phone, equal tiles after it.
+function clPlannerActions(main:any){const tools=main.querySelector('.week-tools');if(!tools)return;let box=tools.querySelector('.plan-actions');if(!box){box=document.createElement('div');box.className='plan-actions';tools.append(box)}
+ const gen=main.querySelector('.page-heading [data-fm="generate"]');if(gen&&gen.parentElement!==box)box.prepend(gen);
+ for(const el of [...tools.querySelectorAll(':scope > [data-action="duplicate-week"], :scope > [data-action="copy-week"], :scope > a[href="#recipes"], :scope > [data-mr="open-tastes"]')])box.append(el)}
 (function installCompactLayout(){const g:any=globalThis;if(g.__bepCompact||typeof g.render!=='function')return;g.__bepCompact=true;const base=g.render;
  g.render=function(this:any,...args:any[]){const r=base.apply(this,args);try{compactLayout()}catch(err){console.warn('compact layout',err)}
   // some modules add their buttons a moment after render; fold those in too
-  setTimeout(()=>{try{const m=clMain();if(m&&view==='shopping')clFlattenTools(m)}catch{}},0);return r};
+  setTimeout(()=>{try{const m=clMain();if(m&&view==='shopping')clFlattenTools(m);if(m&&view==='planner')clPlannerActions(m)}catch{}},0);return r};
  g.compactLayout=compactLayout;try{compactLayout()}catch{}})();

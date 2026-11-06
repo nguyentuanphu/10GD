@@ -16,10 +16,9 @@ function applySimpleView(){
   main.classList.remove('simple-screen','full-screen');main.removeAttribute('data-screen');
   main.querySelectorAll('.screen-switch').forEach(el=>el.remove());
   if(!supported)return;
-  const simple=screenPreferences[view]!=='full';main.dataset.screen=view;
-  const bar=document.createElement('div');bar.className='screen-switch';bar.innerHTML=`<span>${simple?(typeof tr==='function'?tr('Chế độ Đơn giản · Chữ to, ẩn bớt mục phụ để thao tác nhanh','Simple view · Larger text, secondary panels collapsed'):'Chế độ Đơn giản · Chữ to, thao tác nhanh'):(typeof tr==='function'?tr('Chế độ Đầy đủ · Mở toàn bộ bảng điều phối, ngân sách & thống kê','Full view · All coordination, budget & planning panels expanded'):'Hiển thị mọi tùy chọn')}</span><div role="group" aria-label="Chế độ hiển thị"><button class="btn ${simple?'primary':''}" data-screen-mode="simple" aria-pressed="${simple}">Đơn giản</button><button class="btn ${!simple?'primary':''}" data-screen-mode="full" aria-pressed="${!simple}">Đầy đủ</button></div>`;
-  (main.querySelector('.kitchen-action-dock')||main.querySelector('.page-heading'))?.after(bar);
-  if(!simple){main.classList.add('full-screen');return}
+  // v1.7.9 (owner, 7 Nov 2026: "Phiên bản đầy đủ và đơn giản sao tôi thấy không khác nhau gì hết"; Henry chose one view):
+  // the Đơn giản / Đầy đủ switch is gone. Every screen uses the tidy layout with secondary panels behind a tap.
+  main.dataset.screen=view;
   main.classList.add('simple-screen');
   if(view==='today'){
     main.querySelector('.hero')?.remove();main.querySelector('.mini-stats')?.remove();main.querySelector('.pantry-peek')?.remove();

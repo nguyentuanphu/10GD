@@ -34,7 +34,7 @@ function scoutObservations(){
 }
 function scoutBasket(){
  const cat=scoutCatalog(),byIngredient=new Map();for(const i of cat)if(i.ingredientId&&!byIngredient.has(i.ingredientId))byIngredient.set(i.ingredientId,i);
- const match=label=>PS.matchCatalog(label,cat,1)[0];
+ const match=label=>PS.matchCatalog(String(label||'').replace(/(^|\s)mỳ(?=\s|$)/gi,'$1mì').replace(/(^|\s)Mỳ(?=\s|$)/g,'$1Mì'),cat,1)[0];/* v1.7.9: “Mỳ” and “Mì” are the same word */
  const w=currentWeek(),[start,end]=shopDates(),items=[];
  for(const r of shopping(state,w,start,end)){if(r.skip||r.bought||!shoppingHasAmount(r))continue;const name=INGREDIENTS[r.id][0],item=byIngredient.get(r.id)||(match(name)?.score>=0.6?match(name).item:null);const unit=INGREDIENTS[r.id][1]==='quả'?'each':INGREDIENTS[r.id][1];
   items.push({key:'ing:'+r.id,ingredient:r.id,label:name,itemId:item?.id||null,...(r.qty>0?{qty:r.qty,unit}:(typeof unitScoutQuantity==='function'&&r.purchase?(({qty,unit})=>({qty,unit}))(unitScoutQuantity(r.purchase.amount+' '+r.purchase.unit)):{qty:r.purchase?.amount||1,unit:'pack'}))})}
@@ -199,13 +199,19 @@ function scoutFindSheet(b){const key=b.dataset.key,label=b.dataset.label,cur=sta
 async function scoutFindSave(){const f=document.getElementById('online-find-form'),q=document.getElementById('online-find-q')?.value||'',key=f?.dataset.key;if(!key)return;
  try{const r=await scoutApi('online-want',{method:'POST',headers:{'X-Requested-With':'fetch'},body:JSON.stringify({query:q})});state.preferences.onlineNames={...(state.preferences.onlineNames||{}),[key]:{itemId:r.itemId,query:r.query}};closeModal();save(scoutT(`Đã gửi “${r.query}”. Giá hiện sau lần cập nhật tới.`,`Sent “${r.query}”. Prices show after the next update.`));render()}
  catch(e){toast(e.message,true)}}
+// v1.7.9 (owner, 6 Nov 2026: "nhiều dòng chưa có giá"): a row whose own price is unknown but has an online price shows an
+// estimate from it — unit price × amount (per kg / 100 g / L / 100 mL / each), else packs × shelf price.
+function scoutOnlineEstimate(it,o){if(!o||!(it.qty>0))return null;const q=it.qty,u=String(it.unit||'').toLowerCase(),b=o.unitBasis,up=o.unitPrice;
+ if(up!=null){if(u==='g'&&b==='per_kg')return q/1000*up;if(u==='g'&&b==='per_100g')return q/100*up;if(u==='ml'&&b==='per_L')return q/1000*up;if(u==='ml'&&b==='per_100mL')return q/100*up;if(u==='each'&&b==='per_each')return q*up}
+ const pu=String(o.packUnit||'').toLowerCase().replace('ml','ml');if(o.packQty>0&&(pu===u||pu==='ml'&&u==='ml'))return Math.ceil(q/o.packQty-1e-9)*o.price;return null}
+function scoutRowEstimate(row,it,id){const price=row.querySelector('.price');if(!price||!/Chưa rõ giá|Unknown price|price unknown/i.test(price.textContent||''))return;const o=scoutOnlineBest(scoutOnlineFor(id)),v=scoutOnlineEstimate(it,o);if(v==null)return;price.classList.add('price-est');price.innerHTML=`≈ ${scoutMoney(v)}<small>${esc(scoutT('theo giá online','from online price'))}</small>`}
 function scoutDecorateList(){
  // v1.7.8: online prices are national — the list shows them even before the family gives a postcode (no trip plan yet)
  const items=scoutData.state&&scoutLast?scoutLast.items:(()=>{try{return scoutBasket()}catch{return[]}})();
  // v1.7.5: online price under each row that has a catalogue item
  for(const it of items){const sel=it.key.startsWith('ing:')?`#main input[data-change="bought"][data-id="${CSS.escape(it.key.slice(4))}"]`:`#main input[data-change="extra-done"][data-id="${CSS.escape(it.key.slice(6))}"]`;const row=document.querySelector(sel)?.closest('.shop-row');if(!row||row.querySelector('.online-line'))continue;row.querySelector('.online-find')?.remove();/* a waiting row turns into its price when prices arrive */
   const want=it.itemId?null:scoutWantFor(it),id=it.itemId||want?.itemId;const html=id?scoutOnlineLine(id):'';
-  if(html){row.classList.add('has-online');row.insertAdjacentHTML('beforeend',html);continue}
+  if(html){row.classList.add('has-online');row.insertAdjacentHTML('beforeend',html);scoutRowEstimate(row,it,id);continue}
   if(!it.itemId&&scoutFindAllowed())row.insertAdjacentHTML('beforeend',scoutFindMarkup(it,want))}
 if(!scoutLast)return;for(const b of scoutLast.result.benchmark){if(b.cheaper!=='viet-grocer'||!b.key.startsWith('ing:'))continue;const input=document.querySelector(`#main input[data-change="bought"][data-id="${CSS.escape(b.key.slice(4))}"]`),row=input?.closest('.shop-row');if(!row||row.querySelector('.scout-viet-badge'))continue;const badge=document.createElement('span');badge.className='pill scout-viet-badge';badge.textContent='🏮 '+scoutT('Chợ Việt rẻ hơn ','Viet grocer saves ')+scoutMoney(b.difference);(row.querySelector('.item-label')||row).appendChild(badge)}}
 // Studio's "Price Scout" feature switch (flags.priceScout, applied by platform-banner and cached for offline use).

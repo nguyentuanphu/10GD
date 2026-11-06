@@ -21,8 +21,9 @@ for(const WIDTH of [375,1280])for(const lang of ['vi','en']){
  await page.addInitScript(l=>{try{localStorage.setItem('guest/bep-language',l)}catch{}},lang);
  await page.addInitScript(()=>{try{Object.defineProperty(navigator,'clipboard',{value:{writeText:()=>Promise.reject(new Error('blocked in audit'))},configurable:true})}catch{}});
  await page.goto('https://kitchen.test/#today');await page.locator('#main .page-heading').waitFor({timeout:15000});await page.waitForTimeout(1500);
- // realistic data: a generated week from the library, pantry lots and a receipt
- await page.evaluate(()=>{try{const g=globalThis.eval;g("familyGenerate(state,weekStart,{sourceMode:'library'});save();render()")}catch(e){}});await page.waitForTimeout(800);
+ // realistic data: a generated week from the library, pantry lots (v1.7.9: two lots on the shopping list, one row's pantry
+ // details open) and a receipt
+ await page.evaluate(()=>{try{const g=globalThis.eval;g("familyGenerate(state,weekStart,{sourceMode:'library'});save();render()");g("(()=>{const rows=shopping(state,currentWeek(),...shopDates()).filter(r=>r.needed>0).slice(0,2);rows.forEach((r,i)=>state.pantry.push({id:'qa-lang-'+i,ingredient:r.id,qty:1,place:i?'freezer':'fridge',expiry:i?'':addDays(sydneyDate(),3),...(i?{checkedAt:sydneyDate()}:{})}));if(rows[0])pantryPeekOpen.add(rows[0].id);save();render()})()")}catch(e){}});await page.waitForTimeout(800);
  const hits=new Map();const add=(t,where)=>{if(!hits.has(t))hits.set(t,new Set());hits.get(t).add(where)};
  const collect=async(where,scope)=>{const found=await page.evaluate(({lang,VIs,ENs,LOANs,scope})=>{const VI=new RegExp(VIs,'i'),EN=new RegExp(ENs,'i'),LOAN=new RegExp(LOANs,'gi');const st=globalThis.eval('typeof state!=="undefined"?state:null');
    const names=[...(st?.members||[]).map(m=>m.name),...(st?.recipes||[]).filter(r=>r.custom).map(r=>r.name),...(st?.stores||[]).map(s=>s.name),...(st?.recipes||[]).map(r=>r.name),...(st?.recipes||[]).map(r=>r.prep),...(st?.recipes||[]).filter(r=>!r.custom).flatMap(r=>r.steps||[]),...Object.values(st?.ingredientCatalog||{}).map(x=>x.name)].filter(Boolean).sort((a,b)=>b.length-a.length);
@@ -54,6 +55,12 @@ for(const WIDTH of [375,1280])for(const lang of ['vi','en']){
  // account menu + settings
  try{await go('today');await page.locator('.top-avatar.account-avatar').filter({visible:true}).first().click();await page.waitForTimeout(300);await collect('account menu');await page.locator('#account-menu [data-personal="account-security"]').first().click();await page.waitForTimeout(600);await collect('settings');
   const cards=await page.locator('#modal-root details, #modal-root [data-settings-card], #modal-root .settings-card summary').count();for(let i=0;i<cards;i++){try{await page.locator('#modal-root .settings-card summary, #modal-root details > summary').nth(i).click({timeout:1000});await page.waitForTimeout(150)}catch{}}await collect('settings (all cards open)')}catch(e){}
+ // v1.7.9 system check: short messages (toast / save) are not on screen long enough for the walk above. Every plain
+ // Vietnamese message in the app's code must come out in English in English mode.
+ if(lang==='en'&&WIDTH===375){const VIc=/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/;const msgs=new Set<string>();
+  for(const f of fs.readdirSync(path.join(root,'src/frontend')).filter((f:string)=>f.endsWith('.ts')&&f!=='language.ts'))for(const m of fs.readFileSync(path.join(root,'src/frontend',f),'utf8').matchAll(/(?:save|toast)\('((?:[^'\\]|\\.)*)'[,)]/g))if(VIc.test(m[1]))msgs.add(m[1].replace(/\\'/g,"'"));
+  const left=await page.evaluate((l:string[])=>{const g=(0,eval),re=/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/;return l.filter(m=>re.test(g('englishUI')(m)))},[...msgs]);
+  for(const m of left)failures.push(`en message without English: ${m}`);assert.ok(msgs.size>50,'messages found in the code ('+msgs.size+')')}
  actions+=clicked.size;for(const [t,w] of hits)failures.push(`${lang} ${WIDTH}px · ${[...w][0]}: ${t.split('\n')[0].slice(0,150)}`);assert.deepEqual([...errors],[],`no page errors ${lang} ${WIDTH}`);await ctx.close()}
 await browser.close();
 assert.deepEqual(failures,[],'wrong-language text:\n'+failures.join('\n'));

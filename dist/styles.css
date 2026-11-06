@@ -1924,3 +1924,116 @@ html[data-theme="dark"] .swipe-under{background:#3d1c19;color:#ffb3a8}
 /* v1.7.8: "Trừ đồ đang có trong Tủ" switch above the shopping list */
 .pantry-deduct{display:flex;align-items:flex-start;gap:10px;min-height:44px;margin:0 0 12px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white)}
 .pantry-deduct small{display:block;color:var(--muted)}
+/* v1.7.9: the meal list and pantry switch are labels holding a tick box — never the 17 px tick-box class (owner: "chữ chạy khắp nơi") */
+.pm-row{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.pm-row input{width:22px;height:22px;flex:none;accent-color:var(--green)}
+.pm-row span{flex:1;min-width:0}
+.pantry-deduct input{width:22px;height:22px;flex:none;margin-top:2px;accent-color:var(--green)}
+.pantry-deduct span{flex:1;min-width:0}
+/* v1.7.9 (owner: "nút tick mua hàng nên di chuyển lên sát cái tên món"): the bought tick sits on the name's line, so the
+   rows below (amount, round, store, online price) get the full width */
+.simple-screen .shop-row>input.check,.shop-row.shop-purchase-row>input.check{grid-row:1!important;align-self:center!important;margin-top:0!important}
+.simple-screen .shop-row .qty-cell,.simple-screen .shop-row .online-line,.simple-screen .shop-row .online-find{grid-column:1/-2!important}
+.simple-screen .shop-row .online-line,.simple-screen .shop-row .online-find{grid-column:1/-1!important}
+.price.price-est{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2}.price.price-est small{font-size:max(calc(11px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--muted);font-weight:400}
+/* v1.7.9: × asks first (dishes named) and offers "Hoàn tác" */
+.skip-dishes{margin:6px 0 10px;padding-left:20px}.skip-dishes li{margin:4px 0}.skip-dishes small{color:var(--muted)}
+#undo-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:12px;max-width:min(92vw,520px);padding:8px 8px 8px 16px;border-radius:14px;background:#1f3a2e;color:#fff;box-shadow:0 6px 24px #0004}
+#undo-bar .btn{min-height:44px;background:#fff;color:#1f3a2e;border-color:#fff;font-weight:700;white-space:nowrap}
+.simple-screen .shop-row>.large-check-target,.shop-row.shop-purchase-row>.large-check-target{grid-row:1!important;align-self:center!important}
+/* v1.7.9 (owner: "chỗ màu nâu là gì?"): an empty pantry note stays hidden — .hidden always hides */
+.hidden{display:none!important}
+.extra-qty-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(88px,auto);gap:8px}
+.extra-qty-pair input,.extra-qty-pair select{min-height:48px;min-width:0}
+.form-grid .extra-qty-field{grid-column:1/-1}
+/* v1.7.9 (owner, 6 Nov 2026, marked-up screenshot): a tidy shopping row —
+   line 1: [tick 44] [picture 44 + name] ……… [×]
+   line 2:           [amount ≈↓ ≈↑] ……… [price]
+   line 3:           [store]
+   line 4: [online price, full width]
+   The tick box and the picture are the same 44 px square; × sits top right. */
+.simple-screen .shop-row.shop-purchase-row{grid-template-columns:44px minmax(0,1fr) auto!important;column-gap:10px!important;row-gap:8px!important;align-items:center}
+.simple-screen .shop-row.shop-purchase-row>.large-check-target{grid-column:1!important;grid-row:1!important;width:44px!important;height:44px!important;border-radius:10px;align-self:center!important}
+.simple-screen .shop-row.shop-purchase-row>.large-check-target .check{width:24px;height:24px}
+.simple-screen .shop-row.shop-purchase-row .item-label{grid-column:2!important;grid-row:1!important;display:block!important;min-height:44px;align-self:center}
+.simple-screen .shop-row.shop-purchase-row .item-label .ingredient-art,.simple-screen .shop-row.shop-purchase-row .item-label .pp-wrap{float:left!important;width:44px!important;height:44px!important;margin:0 10px 0 0!important;border-radius:10px}.simple-screen .shop-row.shop-purchase-row .item-label .pp-wrap img{width:44px;height:44px;object-fit:contain;border-radius:10px}
+.simple-screen .shop-row.shop-purchase-row>.row-skip{grid-column:3!important;grid-row:1!important;justify-self:end;align-self:start}
+.simple-screen .shop-row.shop-purchase-row>.qty-cell{grid-column:2!important;grid-row:2!important}
+.simple-screen .shop-row.shop-purchase-row>.price{grid-column:3!important;grid-row:2!important;justify-self:end;text-align:right}
+.simple-screen .shop-row.shop-purchase-row>.store-pill{grid-column:2/-1!important;grid-row:3!important;justify-self:start}
+.simple-screen .shop-row.shop-purchase-row>.online-line,.simple-screen .shop-row.shop-purchase-row>.online-find{grid-column:1/-1!important;grid-row:4!important}
+/* v1.7.9 (owner, 6 Nov 2026 22:01: "nút tick và tên nằm quá sát nhau"): more room between the tick, the picture and the name */
+.simple-screen .shop-row.shop-purchase-row{column-gap:16px!important}
+.simple-screen .shop-row.shop-purchase-row .item-label .ingredient-art,.simple-screen .shop-row.shop-purchase-row .item-label .pp-wrap{margin:0 14px 0 0!important}
+/* v1.7.9: the "Trừ đồ đang có trong Tủ" switch sits in the Giỏ đồ nhà mình card, next to "Kiểm tra đồ trong tủ" */
+.card .pantry-deduct{margin:12px 0 0;background:transparent}
+/* v1.7.9 (owner: "ấn vào hình… phóng to"): a tap on a shopping picture opens it large */
+.shop-row .item-label .ingredient-art,.shop-row .item-label .pp-wrap{cursor:zoom-in}
+.pic-zoom{margin:0;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.pic-zoom .pic-zoom-art,.pic-zoom .pic-zoom-art.ingredient-art{display:block!important;float:none!important;width:min(72vw,300px)!important;height:min(72vw,300px)!important;margin:0!important;border-radius:18px;line-height:0}
+.pic-zoom .pic-zoom-art .ingredient-art{width:100%!important;height:100%!important;border-radius:18px;margin:0!important;float:none!important}
+.pic-zoom .pic-zoom-art .pp-img{border-radius:18px}
+.pic-zoom figcaption b{display:block;font-size:1.25em}.pic-zoom figcaption small{display:block;color:var(--muted);margin-top:4px}
+/* v1.7.9 (owner, 6 Nov 2026: "Tuần này ai bận… nhìn rối mắt"): name and status on the first line, then one short line per
+   pattern of meals ("sáng + trưa: T6, T2 9/11, T4 11/11") */
+.who-busy-row .who-busy-name,.who-busy-row .who-busy-status{font-weight:700}
+.who-busy-row .who-busy-slots{display:block;margin-top:2px}
+.who-busy-row .who-busy-line{display:block;line-height:1.4}
+.cal-time-field input[type=time]{min-height:44px;width:100%;min-width:0}
+/* v1.7.9 (owner, 7 Nov 2026): "Tủ có … ▾" opens in the row */
+.shop-row .shop-pantry{grid-column:2/-1;min-width:0}
+.simple-screen .shop-row.shop-purchase-row.has-pantry>.shop-pantry{grid-column:2/-1!important;grid-row:2!important}
+.simple-screen .shop-row.shop-purchase-row.has-pantry>.qty-cell{grid-row:3!important}
+.simple-screen .shop-row.shop-purchase-row.has-pantry>.price{grid-row:3!important}
+.simple-screen .shop-row.shop-purchase-row.has-pantry>.store-pill{grid-row:4!important}
+.simple-screen .shop-row.shop-purchase-row.has-pantry>.online-line,.simple-screen .shop-row.shop-purchase-row.has-pantry>.online-find{grid-row:5!important}
+.shop-pantry-btn{min-height:44px;padding:4px 12px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--green2,#2f7054);font:inherit;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));cursor:pointer;text-align:left;max-width:100%}
+.shop-pantry.stale .shop-pantry-btn{border-color:#c98a2c;color:#9a5b06}
+html[data-theme="dark"] .shop-pantry.stale .shop-pantry-btn{color:#f0c27a}
+.shop-pantry-panel{margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white)}
+.shop-pantry-lots{list-style:none;margin:0 0 6px;padding:0}.shop-pantry-lots li{padding:4px 0;border-bottom:1px dashed var(--line)}.shop-pantry-lots li:last-child{border-bottom:0}
+.shop-pantry-lots small{display:block;color:var(--muted)}.shop-pantry-lots li.expired b{text-decoration:line-through;opacity:.7}
+.shop-pantry-sum{margin:6px 0;font-weight:600}.shop-pantry-stale{margin:6px 0;color:#9a5b06}html[data-theme="dark"] .shop-pantry-stale{color:#f0c27a}
+.shop-pantry-actions{display:flex;flex-wrap:wrap;gap:8px}.shop-pantry-actions .btn{min-height:44px}
+/* v1.7.9 system check: on a phone the receipt line's three boxes were squeezed (labels and "Chưa rõ" cut). The match
+   list takes the full width; amount and unit share the next row. */
+@media (max-width:560px){.receipt-line-bottom{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important}.receipt-line-bottom .field:first-child{grid-column:1/-1}.receipt-line-bottom .field label{font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor-small,0px))}.receipt-line-bottom .input{min-height:44px;min-width:0}}
+/* v1.7.9 system check: "Hoàn tác bữa" took the global .done strike-through and looked disabled (owner screenshot 6 Nov) */
+.meal-cook-btn.done{text-decoration:none;opacity:1}
+/* v1.7.9 (owner 7 Nov: "nhãn quá bự"): a small text label, still a 44 px tap */
+.shop-pantry-btn{border:0!important;border-radius:8px;padding:0 6px!important;margin-left:-6px;background:transparent;color:var(--muted)!important;font-size:max(calc(12.5px * var(--fs-mul,1)),var(--fs-floor,0px))!important;display:inline-flex;align-items:center;gap:6px}
+.shop-pantry-btn:hover,.shop-pantry-btn:focus-visible{background:var(--line)}
+.shop-pantry.unused .shop-pantry-btn{opacity:.6;text-decoration:line-through}
+.shop-pantry-dot{width:8px;height:8px;border-radius:50%;background:#d08a1e;flex:none}
+/* v1.7.9 system check: text only for screen readers. Only some areas had this rule, so hidden words showed elsewhere. */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important}
+/* v1.7.9 (owner 7 Nov): the week's actions in one tidy grid, "Lên thực đơn cả tuần" first */
+.week-tools .plan-actions{flex-basis:100%;width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:4px}
+.week-tools .plan-actions>.btn{width:100%;min-height:48px;margin:0;justify-content:center;text-align:center;white-space:normal;line-height:1.25;display:inline-flex;align-items:center;gap:6px}
+.week-tools .plan-actions>[data-fm="generate"]{grid-column:1/-1}
+@media (min-width:760px){.week-tools .plan-actions{grid-template-columns:repeat(5,minmax(0,1fr))}.week-tools .plan-actions>[data-fm="generate"]{grid-column:auto}}
+.week-tools .plan-actions>.btn{padding:8px 10px;font-size:max(calc(14px * var(--fs-mul,1)),var(--fs-floor,0px))}
+@media (min-width:760px){.week-tools .plan-actions{grid-template-columns:repeat(4,minmax(0,1fr))}.week-tools .plan-actions>[data-fm="generate"]{grid-column:1/-1}}
+@media (min-width:1100px){.week-tools .plan-actions{grid-template-columns:1.3fr repeat(4,minmax(0,1fr))}.week-tools .plan-actions>[data-fm="generate"]{grid-column:auto}.week-tools .plan-actions>.btn{white-space:nowrap}}
+/* v1.7.9 (owner 7 Nov: "khi expand ra vẫn là một ô và phải đều nhau"): open = one box; the label is its top line, aligned
+   with the details under it */
+.shop-pantry.open{border:1px solid var(--line);border-radius:12px;background:var(--white);overflow:hidden}
+.shop-pantry.open .shop-pantry-btn{display:flex!important;width:100%;margin:0!important;padding:0 12px!important;border-radius:0!important;border-bottom:1px solid var(--line)!important;justify-content:space-between;background:transparent}
+.shop-pantry.open .shop-pantry-panel{margin:0;border:0;border-radius:0;background:transparent;padding:10px 12px 12px}
+.shop-pantry.open .shop-pantry-btn{justify-content:flex-start}
+.shop-pantry-btn>span[aria-hidden="true"]:last-child{margin-left:auto;padding-left:8px}
+.shop-pantry.open .shop-pantry-actions{display:grid;grid-template-columns:1fr;gap:8px}
+.shop-pantry.open .shop-pantry-actions .btn{width:100%;justify-content:center;margin:0}
+@media (min-width:560px){.shop-pantry.open .shop-pantry-actions{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}}
+@media (min-width:560px){.shop-pantry.open .shop-pantry-actions{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}}
+/* v1.7.9 (owner 7 Nov: "nút to quá"): small chips in one row; each still has a 44 px tap area (invisible, around the chip) */
+.shop-pantry.open .shop-pantry-actions,.shop-pantry-actions{display:flex!important;flex-wrap:wrap;gap:8px 8px;grid-template-columns:none!important;grid-auto-flow:row!important;margin-top:4px}
+.shop-pantry-actions .btn{position:relative;width:auto!important;min-height:32px!important;height:32px;padding:0 12px!important;border-radius:999px;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));line-height:1;font-weight:600}
+.shop-pantry-actions .btn::after{content:'';position:absolute;left:-4px;right:-4px;top:-6px;bottom:-6px}
+.shop-pantry-actions [data-action="pantry-still"]{background:var(--green,#2f7054);border-color:var(--green,#2f7054);color:#fff}
+.shop-pantry-panel .shop-pantry-stale{margin:4px 0 2px;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px))}
+.shop-pantry-actions{gap:6px!important}.shop-pantry-actions .btn{padding:0 10px!important}
+@media (max-width:400px){.shop-pantry-actions .btn{padding:0 8px!important;font-size:max(calc(12.5px * var(--fs-mul,1)),var(--fs-floor,0px))}}
+@media (max-width:560px){.simple-screen .shop-row.shop-purchase-row.has-pantry>.shop-pantry.open{grid-column:1/-1!important}}
+@media (max-width:400px){.shop-pantry-actions .btn{font-size:13.5px}}
+@media (max-width:400px){#main .shop-pantry .shop-pantry-actions .btn{font-size:13.5px!important}}

@@ -32,6 +32,10 @@ let passed=0;const ok=(name:string)=>{passed++;console.log('✓',name)};
  assert.equal(m.body,'Cậu Tí báo bận bữa tối 3/11 — vẫn nấu phần');assert.equal(m.enBody,'Cậu Tí busy for dinner 3/11 — still cooking their portion');assert.equal(m.title,'Lịch gia đình: Cậu Tí');assert.deepEqual(m.reporters,['ti']);
  next.availability={mum:{'2026-11-06':{lunch:away('mum')},'2026-11-07':{lunch:away('mum')}}};
  m=availabilityMessage(availabilityChanges(prev,next,{from:'2026-11-03'}),next);assert.equal(m.body,'Mẹ báo vắng bữa trưa 6/11, 7/11 — không nấu phần');assert.equal(m.enBody,'Mẹ away for lunch 6/11, 7/11 — no portion');
+ // v1.7.9: a reported time is in the message, and changing only the time is a change
+ next.availability={ti:{'2026-11-03':{dinner:busy('ti',{from:'17:00',to:'19:30'})}}};
+ m=availabilityMessage(availabilityChanges(prev,next,{from:'2026-11-03'}),next);assert.equal(m.body,'Cậu Tí báo bận bữa tối 3/11 17:00–19:30 — vẫn nấu phần');assert.equal(m.enBody,'Cậu Tí busy for dinner 3/11 17:00–19:30 — still cooking their portion');
+ {const later=base();later.availability={ti:{'2026-11-03':{dinner:busy('ti',{from:'18:00',to:'19:30'})}}};assert.equal(availabilityChanges(next,later,{from:'2026-11-03'}).length,1,'a time change counts')}
  next.availability={dad:{'2026-11-04':{dinner:busy('dad',{deduct:true})}}};
  m=availabilityMessage(availabilityChanges(prev,next,{from:'2026-11-03'}),next);assert.match(m.body,/bận bữa tối 4\/11 — không nấu phần/,'busy with deduct=true says no portion');
  next.availability={big:{'2026-11-05':{lunch:away('mum'),dinner:away('mum')}}};

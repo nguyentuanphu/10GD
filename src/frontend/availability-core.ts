@@ -7,7 +7,13 @@ const attendanceServings=mealServings;
 mealServings=function(m,s){if(m.servings!==null||m.cooked||!m.scheduleDate)return attendanceServings(m,s);return s.members.reduce((n,p)=>n+(['home','packed','pending'].includes(m.attendance[p.id])&&!deductsBySchedule(s,p.id,m.scheduleDate,m.scheduleType)?p.weight:0),0)};
 // An availability entry: {status:'away'|'busy', deduct, remind, note ≤150, by?: reporter member id (v1.7.3, optional —
 // older entries have none and stay valid)}. Sync stamps (updatedAt/updatedBy) may be present and are ignored here.
-function validAvailabilityEntry(e){return !!e&&typeof e==='object'&&!Array.isArray(e)&&['away','busy'].includes(e.status)&&typeof e.deduct==='boolean'&&typeof e.remind==='boolean'&&typeof e.note==='string'&&e.note.length<=150&&(e.by===undefined||typeof e.by==='string'&&e.by.length>0&&e.by.length<=100)}
+// v1.7.9 (owner, 6 Nov 2026: "chỉ báo được bữa nào bận… chứ không báo được thời gian"): optional from / to times "HH:MM"
+// (Sydney time). Either may be on its own; with both, from is before to. Portions still follow the meal, as before.
+const AVAILABILITY_TIME=/^([01]\d|2[0-3]):[0-5]\d$/;
+function validAvailabilityTimes(e){const f=e.from,t=e.to;if(f!==undefined&&!(typeof f==='string'&&AVAILABILITY_TIME.test(f)))return false;if(t!==undefined&&!(typeof t==='string'&&AVAILABILITY_TIME.test(t)))return false;return !(f&&t&&f>=t)}
+function validAvailabilityEntry(e){return !!e&&typeof e==='object'&&!Array.isArray(e)&&['away','busy'].includes(e.status)&&typeof e.deduct==='boolean'&&typeof e.remind==='boolean'&&typeof e.note==='string'&&e.note.length<=150&&(e.by===undefined||typeof e.by==='string'&&e.by.length>0&&e.by.length<=100)&&validAvailabilityTimes(e)}
+// "11:00–14:00", "từ 17:00" / "from 17:00", "đến 14:00" / "until 14:00", or '' when no time was given.
+function availabilityTimeText(e,lang='vi'){const en=lang==='en',f=e?.from,t=e?.to;if(f&&t)return f+'–'+t;if(f)return (en?'from ':'từ ')+f;if(t)return (en?'until ':'đến ')+t;return ''}
 function setAvailability(s,memberId,dates,types,entry){
  if(!s.members.some(m=>m.id===memberId)||!dates.length||!types.length||dates.length>31||!dates.every(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number.isFinite(Date.parse(d)))||!types.every(t=>MEAL_TYPES.includes(t)))throw Error('Chọn thành viên, ngày và bữa hợp lệ.');
  if(entry&&(!validAvailabilityEntry(entry)||entry.by!==undefined&&!s.members.some(m=>m.id===entry.by)))throw Error('Lịch chưa hợp lệ.');
@@ -23,7 +29,7 @@ function validAvailability(s){if(s.availability===undefined)return true;return s
 // away (or busy with no portion) shows as "Away" even when the meal's own attendance still says "At home".
 function effectiveAttendance(s,m,memberId){const e=m?.scheduleDate?availabilityEntry(s,memberId,m.scheduleDate,m.scheduleType):null;return e&&(e.status==='away'||availabilityNoPortion(e))?'away':m?.attendance?.[memberId]}
 function availabilityNoPortion(e){return !!e&&e.deduct===true&&['away','busy'].includes(e.status)}
-function availabilityStatusLabel(e,lang='vi'){const en=lang==='en',none=availabilityNoPortion(e);return (e?.status==='away'?(en?'Away':'Vắng'):(en?'Busy':'Bận'))+' · '+(none?(en?'no portion':'không nấu phần'):(en?'still cooking their portion':'vẫn nấu phần'))}
+function availabilityStatusLabel(e,lang='vi'){const en=lang==='en',none=availabilityNoPortion(e),time=availabilityTimeText(e,lang);return (e?.status==='away'?(en?'Away':'Vắng'):(en?'Busy':'Bận'))+(time?' '+time:'')+' · '+(none?(en?'no portion':'không nấu phần'):(en?'still cooking their portion':'vẫn nấu phần'))}
 const AVAILABILITY_MEAL_LETTER={vi:{breakfast:'S',lunch:'Tr',dinner:'T'},en:{breakfast:'B',lunch:'L',dinner:'D'}};
 const AVAILABILITY_MEAL_WORD={vi:{breakfast:'sáng',snackAm:'phụ sáng',lunch:'trưa',snack:'phụ',dinner:'tối'},en:{breakfast:'breakfast',snackAm:'morning snack',lunch:'lunch',snack:'snack',dinner:'dinner'}};
 const AVAILABILITY_WEEKDAY={vi:['CN','T2','T3','T4','T5','T6','T7'],en:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']};
@@ -42,9 +48,15 @@ function familyWeekSummary(s,from,lang='vi',days=7){const en=lang==='en',groups=
 // days, in date order; a day in another week also shows its date (the old list ended with an unexplained “T4 trưa”).
 function availabilityDayMonth(date){return date.slice(8,10)+'/'+date.slice(5,7)}
 function familyPersonSummary(s,from,lang='vi',days=7){const en=lang==='en',rows=[],weekOf=d=>{const x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()-((x.getUTCDay()+6)%7));return x.toISOString().slice(0,10)},thisWeek=weekOf(from);
- for(const r of familyAvailabilityRange(s,from,days)){const key=r.member.id+'|'+r.entry.status;let g=rows.find(x=>x.key===key);if(!g){g={key,member:r.member,status:r.entry.status,first:r.date,slots:[]};rows.push(g)}g.slots.push({date:r.date,type:r.type})}
+ for(const r of familyAvailabilityRange(s,from,days)){const key=r.member.id+'|'+r.entry.status;let g=rows.find(x=>x.key===key);if(!g){g={key,member:r.member,status:r.entry.status,first:r.date,slots:[]};rows.push(g)}g.slots.push({date:r.date,type:r.type,time:availabilityTimeText(r.entry,lang)})}
  rows.sort((a,b)=>a.first<b.first?-1:a.first>b.first?1:0);
- return rows.map(g=>({...g,slotsText:g.slots.map(x=>availabilityWeekday(x.date,lang)+(weekOf(x.date)!==thisWeek?' '+availabilityDayMonth(x.date):'')+' '+AVAILABILITY_MEAL_WORD[en?'en':'vi'][x.type]).join(' · '),statusText:g.status==='away'?(en?'away':'vắng'):(en?'busy':'bận')}))}
+ // v1.7.9 (owner, 6 Nov 2026: "bận nhiều quá thì nhìn rối mắt"): days with the same meals (and times) are written once —
+ // "sáng + trưa: T6, T2 9/11, T4 11/11" — one short line per pattern instead of one item per meal.
+ const day=d=>availabilityWeekday(d,lang)+(weekOf(d)!==thisWeek?' '+(+d.slice(8,10))+'/'+(+d.slice(5,7)):'');
+ return rows.map(g=>{const byDate=new Map();for(const x of g.slots){if(!byDate.has(x.date))byDate.set(x.date,[]);byDate.get(x.date).push(x)}
+  const patterns=[];for(const[d,list]of byDate){const meals=MEAL_TYPES.filter(t=>list.some(x=>x.type===t)),timeOf=t=>list.find(x=>x.type===t)?.time||'',same=meals.every(t=>timeOf(t)===timeOf(meals[0])),word=t=>AVAILABILITY_MEAL_WORD[en?'en':'vi'][t],label=same?meals.map(word).join(' + ')+(timeOf(meals[0])?' '+timeOf(meals[0]):''):meals.map(t=>word(t)+(timeOf(t)?' '+timeOf(t):'')).join(' + '),p=patterns.find(x=>x.label===label);if(p)p.days.push(day(d));else patterns.push({label,days:[day(d)]})}
+  const lines=patterns.map(p=>p.label+': '+p.days.join(', '));
+  return{...g,patterns,lines,slotsText:lines.join(' · '),statusText:g.status==='away'?(en?'away':'vắng'):(en?'busy':'bận')}})}
 
 // v1.7.5 · Lịch mang cơm (packed lunch), per person, repeating by weekday (0 = Sunday … 6 = Saturday). Upcoming lunches of
 // a scheduled person are set to “Mang đi” unless the meal is cooked/locked, the calendar has them away, or the family chose

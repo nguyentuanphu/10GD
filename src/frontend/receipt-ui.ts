@@ -185,7 +185,7 @@ function applyReconcile(s,rec,week,start,end,ticked){
  const undo={at:now,week:start,end,bought:{},boughtAt:{},pantryIds:[]};
  for(const r of plan.rows){if(ticked&&!ticked.includes(r.ingredient))continue;
   if(r.covered>0){week.bought??={};week.boughtAt??={};undo.bought[r.ingredient]=Object.hasOwn(week.bought,r.ingredient)?week.bought[r.ingredient]:null;undo.boughtAt[r.ingredient]=week.boughtAt[r.ingredient]??null;week.bought[r.ingredient]=Math.round(((+week.bought[r.ingredient]||0)+r.covered)*1000)/1000;week.boughtAt[r.ingredient]=now}
-  if(r.extra>0){const p={id:uid(),ingredient:r.ingredient,qty:r.extra,place:placeFor(r.ingredient,rec),expiry:'',boughtOn:rec.date,receiptId:rec.id};s.pantry.push(p);undo.pantryIds.push(p.id)}}
+  if(r.extra>0){const p={id:uid(),ingredient:r.ingredient,qty:r.extra,place:placeFor(r.ingredient,rec),expiry:'',boughtOn:rec.date,receiptId:rec.id};pantryTouch(p);s.pantry.push(p);undo.pantryIds.push(p.id)}}
  rec.reconciled=undo;return undo;
 }
 function undoReconcile(s,rec){

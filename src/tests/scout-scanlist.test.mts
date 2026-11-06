@@ -59,7 +59,7 @@ const tasks=await listTasks(getStoreFn,scoutDay(clock));const ngo=tasks.find((t:
 assert.equal(v.data.emptyReason,null);assert.equal(v.data.totals.all,tasks.length);
 assert.deepEqual(v.data.sources.pinned.map((p:any)=>[p.itemId,p.retailers]),[['rau-muong',['woolworths']]]);
 assert.equal(v.data.sources.specials.woolworths.source,'studio');assert.equal(v.data.sources.links.some((l:any)=>l.itemId==='ngo'&&l.retailer==='woolworths'),true);
-assert.equal(v.data.sources.catalog.length,164/* v1.7.8: 28 more staples (beef ribs, gravy beef … and app ingredients without a catalogue item) */);assert.deepEqual(v.data.sources.catalog.find((c:any)=>c.itemId==='ngo').exclude,['coriander seed']);
+assert.equal(v.data.sources.catalog.length,166/* v1.7.9: + beef balls, fish cake; v1.7.8: 28 more staples (beef ribs, gravy beef … and app ingredients without a catalogue item) */);assert.deepEqual(v.data.sources.catalog.find((c:any)=>c.itemId==='ngo').exclude,['coriander seed']);
 // Idempotent: a second re-plan adds nothing and keeps statuses.
 const n0=tasks.length;assert.equal((await post('studio-replan',{})).data.created??0,0);assert.equal((await listTasks(getStoreFn,scoutDay(clock))).length,n0);
 

@@ -13,6 +13,8 @@ const TEXT_CHECK=`(()=>{const out=[];const scope=document.querySelector('#modal-
   if(e.tagName==='SELECT')continue;const cs=getComputedStyle(e);if(e.scrollWidth>e.clientWidth+2&&cs.overflowX!=='visible'||cs.textOverflow==='ellipsis'&&e.scrollWidth>e.clientWidth+1)out.push('cut: '+t.slice(0,40));
   if(e.tagName==='BUTTON'||e.tagName==='A'){const r=e.getBoundingClientRect();for(const c of e.querySelectorAll('span,b')){const q=c.getBoundingClientRect();if(q.width&&(q.left<r.left-2||q.right>r.right+2)){out.push('sticks out: '+t.slice(0,40));break}}}}
  const tw=document.createTreeWalker(scope,NodeFilter.SHOW_TEXT);let n;while((n=tw.nextNode())){const p=n.parentElement;if(!p||!vis(p)||p.closest('script,style,.sr-only,textarea,select,option'))continue;const re=/[\\p{L}\\p{N}]{3,}/gu;let m;while((m=re.exec(n.nodeValue))){const rg=document.createRange();rg.setStart(n,m.index);rg.setEnd(n,m.index+m[0].length);const rs=[...rg.getClientRects()].filter(x=>x.width>0.5);if(rs.length>1&&new Set(rs.map(x=>Math.round(x.top))).size>1)out.push('word broken: '+m[0])}}
+ // v1.7.9 (owner, 6 Nov 2026: "chữ chạy khắp nơi"): text squeezed into a column so narrow that each word sits on its own line
+ {const seen=new Set();const tw2=document.createTreeWalker(scope,NodeFilter.SHOW_TEXT);let n2;while((n2=tw2.nextNode())){const p=n2.parentElement;if(!p||seen.has(p)||!vis(p)||p.closest('script,style,.sr-only,textarea,select,option,svg'))continue;const words=[...n2.nodeValue.matchAll(/\S+/g)];if(words.length<3)continue;const tops=new Set();for(const w of words){const rg=document.createRange();rg.setStart(n2,w.index);rg.setEnd(n2,w.index+w[0].length);const r=rg.getClientRects()[0];if(r&&r.width>0)tops.add(Math.round(r.top))}if(tops.size>=words.length&&tops.size>=3){seen.add(p);out.push('one word per line: '+n2.nodeValue.trim().slice(0,40))}}}
  return out})()`;
 (async()=>{const browser=await chromium.launch();const root=process.cwd();
 for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
@@ -39,6 +41,17 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   assert.equal(await page.locator('select[data-change="attendance"][data-id="m-phu"]').inputValue(),'home');
   assert.equal(await page.evaluate(`!!state.availability?.['m-phu']?.[sydneyDate()]?.lunch`),false,'calendar away lifted for that meal');
   assert.ok(!/Ba Phú/.test(await page.locator('[data-who-busy]').innerText().catch(()=>'')),'Who’s busy no longer lists Ba Phú')}
+ // v1.7.9 (owner, 6 Nov 2026 22:14: "Tuần này ai bận… bận nhiều quá thì nhìn rối mắt… không báo được thời gian"): a busy
+ // week like the family's (Chi and Tiên away breakfast + lunch on 4 days) reads as one short line per pattern, times included
+ {const days:string[]=await page.evaluate(`(()=>{const t=sydneyDate(),out=[];for(let i=0;i<7;i++)out.push(addDays(t,i));return out})()`),pick=[days[0],days[3],days[5],days[6]];
+  const saved=await page.evaluate('JSON.stringify(state.availability||{})');
+  await page.evaluate(`(()=>{const e={status:'away',deduct:true,remind:false,note:'Đi học'};for(const id of ['m-chi','m-tien'])setAvailability(state,id,${JSON.stringify(pick)},['breakfast','lunch'],e);setAvailability(state,'m-ti',[${JSON.stringify(days[1])}],['dinner'],{status:'busy',deduct:false,remind:false,note:'',from:'17:00',to:'19:30'});save();view='today';render()})()`);
+  const wb=page.locator('[data-who-busy]');await wb.scrollIntoViewIfNeeded();const chi=wb.locator('.who-busy-row',{hasText:'Chi'}).first();
+  const lines=await chi.locator('.who-busy-line').allInnerTexts();assert.equal(lines.length,1,`${label}: Chi's 8 meals are one line (${lines})`);assert.match(lines[0],lang==='en'?/^breakfast \+ lunch: /:/^sáng \+ trưa: /,`${label}: meals once, then the days`);
+  if(await wb.locator('.who-busy-row',{hasText:'Cậu Tí'}).count())assert.match(await wb.locator('.who-busy-row',{hasText:'Cậu Tí'}).innerText(),/17:00–19:30/,`${label}: the time shows`);
+  for(const b of await wb.locator('.who-busy-row').all())assert.ok((await b.boundingBox())!.height>=44,`${label}: rows ≥ 44 px`);
+  await textOk('who-busy');await shot('who-busy');
+  await page.evaluate(`state.availability=JSON.parse(${JSON.stringify(saved)});save();render()`)}
  // 2. More tools: every row in the chosen language, on one line (owner: “Chi tiêu” in English mode)
  if(size==='narrow'||size==='mobile'){await page.locator('[data-ui-more]').first().click();const more=page.locator('.more-tools');await more.waitFor();
   const rows=await more.locator('.more-label').allInnerTexts();
@@ -53,6 +66,16 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  await page.evaluate(`view='planner';render();scrollTo(0,0)`);await page.locator('#main .plan-day[open] .family-meal-card').first().waitFor();
  const widths=await page.locator('#main .family-meal-card').evaluateAll((a:any[])=>a.filter(e=>e.offsetParent).slice(0,8).map(e=>Math.round(e.getBoundingClientRect().width)));
  assert.ok(widths.length&&Math.min(...widths)>=200,`${label}: weekly menu meal cards ≥ 200 px wide, got ${widths}`);
+ // ladybug #28 (6 Nov 2026: "đã đăng ảnh của món ăn lên rồi mà sao ở ngoài menu vẫn không hiển thị"): a dish already on the menu
+ // shows the family recipe's photo added later
+ if(size==='mobile'){const pd=await page.evaluate(`(()=>{const d=Object.keys(currentWeek().days).find(d=>currentWeek().days[d].dinner.recipes.length);const dish=currentWeek().days[d].dinner.recipes[0];const r=state.recipes.find(x=>x.id===dish.id);r.photo={key:'qa-photo-28',updatedAt:new Date().toISOString()};delete dish.photo;render();return dish.id})()`);
+  assert.ok(await page.locator('#main img.rc-recipe-photo[data-rc-photo="qa-photo-28"]').count()>0,`${label}: menu card carries the recipe photo (ladybug #28)`);
+  await page.evaluate(`(()=>{const r=state.recipes.find(x=>x.id===${JSON.stringify(pd)});delete r.photo;render()})()`)}
+ // v1.7.9 (owner, 7 Nov 2026: "nút lên thực đơn nên được chuyển xuống cùng dòng mấy cái này"): one grid of week actions, the
+ // plan button first; no Đơn giản / Đầy đủ switch any more; every tile ≥ 44 px and equal height per row
+ {const acts=page.locator('#main .week-tools .plan-actions');await acts.waitFor();assert.equal(await acts.locator('> *').first().getAttribute('data-fm'),'generate',`${label}: plan button first`);
+  assert.equal(await page.locator('#main .page-heading [data-fm="generate"]').count(),0,`${label}: not in the title row`);assert.equal(await page.locator('#main [data-screen-mode]').count(),0,`${label}: no Đơn giản / Đầy đủ switch`);
+  assert.ok(await acts.locator('> *').count()>=4,`${label}: the week's actions are together`);for(const b of await acts.locator('> *').all())assert.ok((await b.boundingBox())!.height>=44,`${label}: tiles ≥ 44 px`)}
  await textOk('planner');await shot('planner');
  // 4a. the family chooses the first day of its menu week (ladybug report: shopping on Saturday → menu Saturday to Friday)
  if(size==='mobile'||size==='desktop'){const pick=page.locator('#week-start-day');await pick.waitFor();assert.equal(await pick.inputValue(),'1','Monday by default');
@@ -78,7 +101,7 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   const mb=other.locator('.pd-meals');assert.ok((await mb.boundingBox())!.height>=44,`${label}: "Bữa ±" is a 44 px target`);
   const hb=await other.locator('.plan-day-head').boundingBox();assert.ok(hb!.height<=(size==='narrow'?110:80),`${label}: day line stays short (${hb!.height}px)`);
   if(size==='mobile'){const td2=()=>page.locator('#main details.plan-day.is-today'),slots=()=>td2().locator('.meal-slot'),slot=(t:string)=>td2().locator(`.meal-slot[data-slot="${t}"]`);
-   const toggle=async(t:string,on:boolean)=>{await td2().locator('.pd-meals').click();const c=page.locator(`#modal-root [data-plan-meal-toggle="${t}"]`);await c.waitFor();assert.equal(await page.locator('#modal-root [data-plan-meal-toggle]').count(),5,'all five meals listed');
+   const toggle=async(t:string,on:boolean)=>{await td2().locator('.pd-meals').click();const c=page.locator(`#modal-root [data-plan-meal-toggle="${t}"]`);await c.waitFor();await textOk('meals-sheet');assert.equal(await page.locator('#modal-root [data-plan-meal-toggle]').count(),5,'all five meals listed');
     if(on)await c.check();else await c.uncheck();await page.waitForTimeout(250);await page.evaluate('closeModal()')};
    // the "Bữa ±" button does not fold the day
    const before=await slots().count();await toggle('snack',true);assert.equal(await td2().evaluate((d:any)=>d.open),true,'day stays open');assert.equal(await slots().count(),before+1,'afternoon snack added');
@@ -119,6 +142,18 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
    await page.locator('[data-action="submit-form"][data-id="family-meal-form"]').click();await page.waitForTimeout(300);
    assert.ok((await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.name)`)).includes('Gỏi gà bắp cải nhà làm'),'quick-added dish kept after Save');}
   await page.evaluate('closeModal()')}
+ // v1.7.9, every size (owner, 6 Nov 2026 21:55: "lúc add thì nó phải mở một trang mới để tôi viết món"): a new dish opens the recipe page at once, then the written recipe is the dish in the meal
+  {const d=await page.evaluate(`Object.keys(currentWeek().days).find(d=>currentWeek().days[d].dinner.recipes.length)`);const name=`Cá thu sốt cà ${lang} ${size}`;await page.evaluate(`familyEditMeal(${JSON.stringify(d)},'dinner')`);await page.locator('#quick-dish-name').fill(name);assert.equal(await page.locator('#quick-dish-save').isChecked(),true,`${label}: save to Family Recipes is on by default`);
+   await page.locator('[data-fm="quick-add-dish"]').click();await page.locator('#family-recipe-form').waitFor({timeout:5000});assert.equal(await page.locator('#family-meal-form').count(),0,`${label}: the meal sheet gave way to the recipe page`);
+   assert.equal(await page.locator('#family-recipe-form input[name="name"]').inputValue(),name,`${label}: the recipe page has the dish name`);
+   await page.waitForFunction(()=>!!document.activeElement?.closest('#family-recipe-form .rc-ings, #family-recipe-form textarea[name="ingredients"]'),null,{timeout:3000});
+   assert.ok((await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.name)`)).includes(name),`${label}: already in the meal`);
+   await textOk('quick-add-recipe-page');await shot('quick-add-recipe-page');
+   const row=page.locator('#rc-ing-list .rc-ing-row').first();await row.locator('.rc-ing-name-input').fill('Cá thu');await row.locator('.rc-ing-qty').fill('500');await row.locator('.rc-ing-unit').selectOption('g');
+   await page.locator('[data-action="submit-form"][data-id="family-recipe-form"]').click();await page.waitForFunction(()=>!document.querySelector('#family-recipe-form'),null,{timeout:5000});
+   const dish:any=await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.find(r=>r.name===${JSON.stringify(name)})`);assert.equal(dish?.ingredients?.length,1,`${label}: the dish in the meal carries the written ingredient`);
+   assert.equal(await page.evaluate(`state.recipes.filter(r=>r.name===${JSON.stringify(name)}).length`),1,`${label}: one family recipe, no duplicate`)}
+  await page.evaluate('closeModal()')
  // v1.7.8 (ladybug #25): “Lịch tháng” right under the row of week days on Today
  {await page.evaluate(`view='today';render();scrollTo(0,0)`);const cal=page.locator('#main .calendar-shortcut');await cal.waitFor();assert.equal(await cal.evaluate((e:any)=>e.previousElementSibling?.classList.contains('day-strip')),true,`${label}: calendar button under the day strip`);assert.ok((await cal.boundingBox())!.height>=44)}
  // 5. the other screens: nothing cut off, no word broken in the middle
@@ -145,15 +180,68 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  // v1.7.8 owner decisions on what the app did on its own: (1) the pantry deduction is said on the row and can be switched
  // off; (2) two dishes of the same kind are no longer halved; (3) each meal says “N người → X suất”
  {await page.evaluate(`view='shopping';(()=>{const id=shopping(state,currentWeek(),...shopDates()).find(r=>r.needed>1)?.id;state.pantry.push({id:'qa-pantry',ingredient:id,qty:1,place:'fridge',expiry:''});window.__qaPantry=id})();save();render();scrollTo(0,0)`);const pid=await page.evaluate('window.__qaPantry');
-  const rowTxt=()=>page.locator(`#main .shop-row:has(button[data-action="purchase-quantity"][data-id="${pid}"]) .item-label`).innerText();assert.match(await rowTxt(),lang==='en'?/pantry has/:/tủ có .* → mua/,`${label}: the row says the pantry was taken off`);
-  const sw=page.locator('#main [data-pantry-deduct]');assert.equal(await sw.isChecked(),true);await sw.uncheck();await page.waitForTimeout(250);assert.doesNotMatch(await rowTxt(),/tủ có|pantry has/,`${label}: off → full amounts`);
+  // v1.7.9 (owner, 7 Nov 2026): "Tủ có … ▾" on the row opens the pantry details in the row; not checked for 7 days → "kiểm tra lại?"
+  const peek=()=>page.locator(`#main [data-action="pantry-peek"][data-id="${pid}"]`),rowTxt=()=>page.locator(`#main .shop-row:has(button[data-action="purchase-quantity"][data-id="${pid}"]) .shop-pantry`).innerText();
+  const calc=()=>page.evaluate(`(()=>{const r=shopping(state,currentWeek(),...shopDates()).find(r=>r.id===${JSON.stringify(pid)});return{needed:r.needed,missing:r.missing,have:r.have}})()`);
+  assert.match(await peek().evaluate((b:any)=>{const c=b.cloneNode(true);c.querySelectorAll('.sr-only').forEach((x:any)=>x.remove());return c.textContent.replace(/\s+/g,' ').trim()}),lang==='en'?/^Fridge 1 g ▾$/:/^Tủ lạnh 1 g ▾$/,`${label}: label is only the place and amount (owner: “chỉ nên để tủ lạnh xxx g”)`);assert.equal(await peek().locator('.shop-pantry-dot').count(),1,`${label}: never checked → small dot`);assert.match(await peek().textContent(),/cần kiểm tra lại|needs a check/,`${label}: said to screen readers`);assert.ok((await peek().boundingBox())!.height>=44,`${label}: 44 px`);
+  assert.equal(await page.locator(`#pp-${pid}`).isVisible(),false,`${label}: folded at first`);await peek().click();await page.locator(`#pp-${pid}`).waitFor();assert.equal(await peek().getAttribute('aria-expanded'),'true');
+  assert.match(await rowTxt(),lang==='en'?/Fridge · .*\n?.*not checked yet[\s\S]*pantry has .* → buy/:/Tủ lạnh · .*\n?.*chưa rõ ngày kiểm tra[\s\S]*tủ có .* → mua/,`${label}: lots, then need → buy`);{const g:any=await page.evaluate((id:string)=>{const box=document.querySelector(`#pp-${id}`)!.closest('.shop-pantry')!,b=box.querySelector('.shop-pantry-btn')!.getBoundingClientRect(),p=box.querySelector('.shop-pantry-panel')!.getBoundingClientRect(),o=box.getBoundingClientRect(),bs=[...box.querySelectorAll('.shop-pantry-actions .btn')],h=bs.map(x=>Math.round(x.getBoundingClientRect().height)),hit=bs.map(x=>{const a=getComputedStyle(x,'::after');return Math.round(x.getBoundingClientRect().height-parseFloat(a.top)-parseFloat(a.bottom))});return{open:box.classList.contains('open'),bl:Math.round(b.left-o.left),pl:Math.round(p.left-o.left),bw:Math.round(b.width-p.width),h,hit}},pid);
+   assert.ok(g.open&&Math.abs(g.bl)<=2&&Math.abs(g.pl)<=2&&Math.abs(g.bw)<=2,`${label}: open = one box, label and details aligned (${JSON.stringify(g)})`);assert.ok(g.h.every((h:number)=>h===g.h[0]&&h<=34),`${label}: small chips of one height (${g.h})`);assert.ok(g.hit.every((h:number)=>h>=44),`${label}: each still a 44 px tap (${g.hit})`)}
+  assert.equal(await page.locator(`#pp-${pid} [data-action="edit-stock"]`).count(),0,`${label}: no edit button in the row (Henry, 7 Nov)`);await textOk('pantry-peek');await shot('pantry-peek');
+  await page.locator(`#main [data-action="pantry-still"][data-id="${pid}"]`).click();await page.waitForTimeout(200);assert.equal(await page.evaluate(`state.pantry.find(p=>p.id==='qa-pantry').checkedAt`),await page.evaluate('sydneyDate()'),`${label}: “Vẫn còn” records today`);assert.equal(await peek().locator('.shop-pantry-dot').count(),0,`${label}: no longer asks`);
+  const before=await calc();assert.ok(before.have>0&&before.missing<before.needed);await page.locator(`#main [data-action="pantry-fullbuy"][data-id="${pid}"]`).click();await page.waitForTimeout(200);
+  const full=await calc();assert.equal(full.have,0);assert.ok(Math.abs(full.missing-full.needed)<1e-9,`${label}: “Mua đủ” buys the full amount for this item only`);assert.match(await peek().textContent(),/mua đủ|buying full/);assert.equal(await page.locator(`#main .shop-row:has([data-action="pantry-peek"][data-id="${pid}"]) .shop-pantry.unused`).count(),1);
+  await page.locator(`#main [data-action="pantry-fullbuy"][data-id="${pid}"]`).click();await page.waitForTimeout(200);assert.deepEqual(await calc(),before,`${label}: back to using the pantry`);
+  assert.equal(await page.evaluate('state.pantry.some(p=>p.id===\'qa-pantry\'&&p.qty===1)'),true,`${label}: the pantry itself is untouched`);
+  assert.match(await page.locator('#main [data-pantry-effect]').innerText(),lang==='en'?/Taking off \d+ items? the pantry has/:/Đang trừ \d+ món có trong tủ/,`${label}: the switch says what it does`);
+  assert.equal(await page.locator('#main .pantry-cart-banner').count(),0,`${label}: no second pantry panel at the top (Henry, 7 Nov: removed, rows show it)`);
+  const sw=page.locator('#main [data-pantry-deduct]');assert.equal(await sw.isChecked(),true);
+  // v1.7.9 (owner 22:01): the switch sits in the Giỏ đồ nhà mình card, and the card no longer also says "Đã trừ tồn" (wrong when off)
+  assert.equal(await sw.evaluate((e:any)=>!!e.closest('.card')?.querySelector('.stock-note')),true,`${label}: pantry switch inside the cart card`);assert.doesNotMatch(await page.locator('#main .stock-note').first().innerText(),/Đã trừ tồn|stock deducted/,`${label}: no second, always-on pantry line`);await sw.uncheck();await page.waitForTimeout(250);assert.match(await peek().textContent(),/không trừ|not taken off/,`${label}: off → full amounts`);assert.equal((await calc()).have,0);
   await page.locator('#main [data-pantry-deduct]').check();await page.evaluate(`state.pantry=state.pantry.filter(p=>p.id!=='qa-pantry');save();render()`);
   const halves=await page.evaluate(`(()=>{const m={recipes:[{category:'main'},{category:'main'}],attendance:{},servings:4};return m.recipes.map(r=>dishFactor(m,r))})()`);assert.deepEqual(halves,[1,1],'two mains: each in full');
   await page.evaluate(`view='planner';render();scrollTo(0,0)`);assert.match(await page.locator('#main .plan-day[open] .meal-facts').first().innerText(),lang==='en'?/\d+ people → ≈?[\d.,]+ portions|portions \(set by hand\)/:/\d+ người → ≈?[\d.,]+ suất|suất \(đặt tay\)/,`${label}: people → portions on the meal`)}
  // v1.7.8 (owner: “chỗ giỏ đồ đi chợ, phải cho option để xoá nguyên liệu”): × on an ingredient row takes it off the list
  {await page.evaluate(`view='shopping';render();scrollTo(0,0)`);const x=page.locator('#main .shop-purchase-row .row-skip').first();await x.waitFor();const sid=await x.getAttribute('data-id');const bx=(await x.boundingBox())!;assert.ok(bx.height>=44&&bx.width>=44,`${label}: × is 44 px`);
-  await x.click();await page.waitForTimeout(250);assert.equal(await page.locator(`#main .shop-purchase-row button[data-action="purchase-quantity"][data-id="${sid}"]`).count(),0,`${label}: row removed`);assert.equal(await page.evaluate(`!!currentWeek().skip[${JSON.stringify(sid)}]`),true);
-  await page.evaluate(`delete currentWeek().skip[${JSON.stringify(sid)}];save();render()`)}
+  // v1.7.9: × asks first and names the dishes; Keep does nothing; after removing, “Hoàn tác” brings it back
+  await x.click();await page.locator('#modal-root [data-action="skip-row-confirm"]').waitFor();assert.match(await page.locator('#modal-root').innerText(),lang==='en'?/used in|No dish/:/dùng cho|Không có món/,`${label}: says which dishes use it`);await textOk('skip-confirm');
+  // CI 6 Nov 2026 (language audit): in English the sheet used the Vietnamese name ("Take Tôm off the list?")
+  {const en=await page.evaluate(`INGREDIENT_EN[${JSON.stringify(sid)}]||''`),vi=await page.evaluate(`INGREDIENTS[${JSON.stringify(sid)}][0]`),head=await page.locator('#modal-title').innerText();
+   if(lang==='en'&&en)assert.ok(head.includes(en),`${label}: the sheet names ${en} in English (${head})`);if(lang==='vi')assert.ok(head.includes(vi),`${label}: the sheet names ${vi}`)}if(size==='mobile')await shot('skip-confirm');
+  await page.locator('#modal-root [data-action="close-modal"]').first().click();await page.waitForTimeout(200);assert.equal(await page.evaluate(`!!currentWeek().skip[${JSON.stringify(sid)}]`),false,'Keep leaves it');
+  await page.locator(`#main .row-skip[data-id="${sid}"]`).click();await page.locator('#modal-root [data-action="skip-row-confirm"]').click();await page.waitForTimeout(250);assert.equal(await page.locator(`#main .shop-purchase-row button[data-action="purchase-quantity"][data-id="${sid}"]`).count(),0,`${label}: row removed`);assert.equal(await page.evaluate(`!!currentWeek().skip[${JSON.stringify(sid)}]`),true);
+  const undo=page.locator('#undo-bar button');await undo.waitFor();{const en=await page.evaluate(`INGREDIENT_EN[${JSON.stringify(sid)}]||''`),bar=await page.locator('#undo-bar').innerText();if(lang==='en'&&en)assert.ok(bar.includes(en),`${label}: the undo bar names ${en} in English (${bar})`)}assert.ok((await undo.boundingBox())!.height>=44);if(size==='mobile')await shot('undo-bar');await undo.click();await page.waitForTimeout(250);assert.equal(await page.evaluate(`!!currentWeek().skip[${JSON.stringify(sid)}]`),false,'Hoàn tác brings it back');assert.equal(await page.locator(`#main .shop-purchase-row button[data-action="purchase-quantity"][data-id="${sid}"]`).count(),1)}
+ // v1.7.9 (owner: "khi ấn vào noti thì nó đưa đến chỗ cần để xem"): a notification link #planner?d=… opens that day
+ // the fallback path (service worker message) takes the same links, including the day; anything else is refused
+ assert.deepEqual(await page.evaluate(`['/#planner?d=2026-11-07','/#today','/#pantry','/#planner?d=bad','https://x.test/#today','/#studio','/#today?d=2026-11-07&x=1'].map(pushOpenHash)`),['planner?d=2026-11-07','today','pantry',null,null,null,null]);
+ {const d=await page.evaluate(`addDays(sydneyDate(),1)`);await page.evaluate(`location.hash='planner?d=${d}'`);await page.waitForTimeout(400);
+  assert.equal(await page.evaluate('view'),'planner');assert.equal(await page.evaluate('selectedDate'),d);assert.equal(await page.locator(`#main details.plan-day[data-plan-day="${d}"]`).evaluate((e:any)=>e.open),true,`${label}: the linked day is open`);
+  await page.evaluate(`location.hash='shopping'`);await page.waitForTimeout(200)}
+ // v1.7.9 (owner: "không có số lượng và đơn vị… chỗ màu nâu là gì?"): extra items ask amount and unit separately; the empty
+ // pantry note stays hidden
+ {await page.evaluate(`view='shopping';render();scrollTo(0,0)`);await page.evaluate(`document.querySelector('[data-action="add-extra"]').click()`);await page.locator('#extra-amount').waitFor();
+  assert.equal(await page.locator('#extra-pantry-hint').isVisible(),false,`${label}: empty pantry note hidden`);assert.equal(await page.locator('#extra-unit option').count()>=10,true);await textOk('extra-form');if(size==='mobile')await shot('extra-form');
+  await page.fill('#extra-name','Sữa chua QA');await page.fill('#extra-amount','2');await page.selectOption('#extra-unit','hộp');await page.locator('#modal-root [data-action="submit-form"][data-id="extra-form"]').click();await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(`currentWeek().extras.find(e=>e.name==='Sữa chua QA')?.qty`),'2 hộp',`${label}: stored as “2 hộp”`);await page.evaluate(`currentWeek().extras=currentWeek().extras.filter(e=>e.name!=='Sữa chua QA');save();render()`)}
+ // v1.7.9: the bought tick sits on the name's line; rounding keeps the row where it was on screen
+ {await page.evaluate(`view='shopping';render()`);const row=page.locator('#main .shop-purchase-row').nth(2);await row.scrollIntoViewIfNeeded();const tick=await row.locator('input.check').boundingBox(),name=await row.locator('.item-label').boundingBox();assert.ok(Math.abs((tick!.y+tick!.height/2)-(name!.y+Math.min(name!.height,48)/2))<30,`${label}: tick on the name line`);
+  // v1.7.9 (owner 22:01: "nút tick và tên nằm quá sát nhau"): ≥ 14 px between the tick square and the picture, ≥ 12 px to the name
+  {const g:any=await row.evaluate((r:any)=>{const b=(e:any)=>e?.getBoundingClientRect();const t=b(r.querySelector('.large-check-target')),p=b(r.querySelector('.item-label .ingredient-art, .item-label .pp-wrap')),lab=r.querySelector('.item-label'),tn=lab&&[...lab.childNodes].find((c:any)=>c.nodeType===3&&c.nodeValue.trim());let nr:any=null;if(tn){const rg=document.createRange();rg.selectNodeContents(tn);nr=rg.getClientRects()[0]||null}return{tp:p&&t?p.left-t.right:null,pn:p&&nr?nr.left-p.right:null}});
+   assert.ok(g.tp!==null&&g.pn!==null,`${label}: tick, picture and name measured`);assert.ok(g.tp>=14,`${label}: tick ↔ picture gap ${g.tp}`);assert.ok(g.pn>=12,`${label}: picture ↔ name gap ${g.pn}`)}
+  const up=row.locator('.qty-round[data-qr-dir="up"]');if(await up.count()){const qid=await up.getAttribute('data-qr-id'),btn=()=>page.locator(`#main button[data-action="purchase-quantity"][data-id="${qid}"]`)/* the amount; the round buttons may move up next to a shorter amount */;const y0=(await btn().boundingBox())!.y;await up.click();await page.waitForTimeout(250);const y1=(await btn().boundingBox())!.y;assert.ok(Math.abs(y1-y0)<6,`${label}: the row's amount stays put after rounding (${y0} → ${y1})`)}}
+ // v1.7.9 (owner, 6 Nov 2026: "ấn vào hình của ingredients thì hình phóng to lên"): a tap on a shopping picture opens it large
+ {await page.evaluate(`view='shopping';render()`);const pic=page.locator('#main .shop-purchase-row .item-label .ingredient-art').first();await pic.scrollIntoViewIfNeeded();
+  const nm=(await pic.evaluate((e:any)=>[...e.closest('.item-label').childNodes].find((n:any)=>n.nodeType===3&&n.nodeValue.trim())?.nodeValue||'')).trim();await pic.click();
+  const z=page.locator('#modal-root .pic-zoom');await z.waitFor({timeout:3000});const zb=(await z.locator('.pic-zoom-art').boundingBox())!;assert.ok(zb.width>=200&&zb.height>=200,`${label}: the picture is large (${zb.width})`);
+  assert.equal((await page.locator('#modal-root .modal h2, #modal-root .modal-title, #modal-root h2').first().innerText()).trim(),nm,`${label}: the sheet is named after the ingredient`);
+  assert.equal(await page.locator('#modal-root [data-action="purchase-quantity"]').count(),0,`${label}: the picture tap did not open the amounts`);
+  const det=page.locator('#modal-root [data-action="ingredient-detail"]');assert.ok((await det.boundingBox())!.height>=44,`${label}: 44 px button to the amounts`);await textOk('picture-zoom');await shot('picture-zoom');
+  await det.click();await page.locator('#modal-root [data-action="purchase-quantity"]').first().waitFor({timeout:3000});await page.evaluate('closeModal()');
+  if(size==='mobile'){await page.route('https://photos.test/**',(r:any)=>r.fulfill({body:fs.readFileSync(path.join(root,'dist/artwork/cells/i48.webp')),contentType:'image/webp'}));
+   const ok=await page.evaluate(`(()=>{const id=document.querySelector('#main .shop-purchase-row .item-label').dataset.id,it=ppItemFor(id);if(!it)return false;ppData={at:Date.now(),items:{[it.id]:{photo:'https://photos.test/p.webp',retailer:'coles'}}};render();return true})()`);
+   if(ok){const pw=page.locator('#main .shop-purchase-row .item-label .pp-wrap').first();await pw.scrollIntoViewIfNeeded();await pw.click();await page.locator('#modal-root .pic-zoom img.pp-img').waitFor({timeout:3000});
+    assert.match(await page.locator('#modal-root .pic-zoom figcaption').innerText(),lang==='en'?/Product photo from Coles/:/Ảnh sản phẩm của Coles/,`${label}: the photo's supermarket is named`);await shot('picture-zoom-photo');await page.evaluate('closeModal()')}
+   await page.evaluate(`ppData={at:Date.now(),items:{}};render()`)}}
  for(const v of ['shopping','recipes','pantry','expenses','insights','products']){await page.evaluate(`view=${JSON.stringify(v)};render();scrollTo(0,0)`);await textOk(v);if(v==='shopping')await shot('shopping')}
  // 7. voice sheet (owner: “nút hold to talk nằm quá sâu phía dưới”): the talk button sits under the status, above the words box
  await page.evaluate('closeModal();voiceModal()');await page.locator('#voice-text').waitFor();
