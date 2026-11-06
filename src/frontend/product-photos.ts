@@ -19,3 +19,18 @@ async function ppRefresh(force=false){if(!navigator.onLine||(globalThis as any).
  // an item with no ingredient drawing gets its own drawing (ui-art 'item:<id>') instead of the generic bag
  g.ingredientArtwork=function(id:string){let drawn=base.apply(this,arguments as any);const item=ppItemFor(id),own=item&&typeof g.uiArt==='function'?g.uiArt('item:'+item.id,'item-art'):'';if(own&&/ingredient-vector/.test(drawn))drawn=`<span class="ingredient-art ingredient-own" aria-hidden="true">${own}</span>`;const p=productPhotoFor(id);return p?ppWrap(drawn,p):drawn};
  setTimeout(()=>ppRefresh(),1500);addEventListener('online',()=>ppRefresh())})();
+// v1.7.9 (owner, 6 Nov 2026: "ấn vào hình của ingredients thì hình phóng to lên để con biết món nào là món nào và nhìn ra sao"):
+// on Đi chợ, a tap on an ingredient's picture opens it large with the name and, for a supermarket photo, its source.
+// The name itself still opens the amounts (ingredient-detail). Pictures stay decorative; the sheet's words carry the meaning.
+const PP_STORE_NAMES:any={coles:'Coles',aldi:'ALDI',woolworths:'Woolworths','harris-farm':'Harris Farm',harrisfarm:'Harris Farm'};
+function ppZoom(pic:Element,id:string,name:string){const g:any=globalThis,t=(vi:string,en:string)=>typeof tr==='function'?tr(vi,en):typeof g.tr==='function'?g.tr(vi,en):vi;
+ const big=pic.cloneNode(true) as HTMLElement;big.removeAttribute('style');big.classList.add('pic-zoom-art');const drawn=big.matches('.ingredient-art')?big:big.querySelector('.ingredient-art');if(drawn&&(pic.matches('.ingredient-art')?pic:pic.querySelector('.ingredient-art'))){const src=(pic.matches('.ingredient-art')?pic:pic.querySelector('.ingredient-art')) as HTMLElement;(drawn as HTMLElement).setAttribute('style',src.getAttribute('style')||'')}
+ const img=big.querySelector('img.pp-img') as HTMLImageElement|null;if(img){img.removeAttribute('loading');img.setAttribute('onerror','this.remove()')}
+ const store=img?PP_STORE_NAMES[String(big.getAttribute('data-photo-store')||'')]||'':'',esc=(s:string)=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'} as any)[c]);
+ const cap=img?(store?t(`Ảnh sản phẩm của ${store}`,`Product photo from ${store}`):t('Ảnh sản phẩm của siêu thị','Supermarket product photo')):'',ING=typeof INGREDIENTS!=='undefined'?INGREDIENTS:g.INGREDIENTS;
+ const detail=id&&ING?.[id]?`<button class="btn" data-action="ingredient-detail" data-id="${esc(id)}">${t('Xem lượng cần mua','See the amounts')}</button>`:'';
+ g.modal(name,`<figure class="pic-zoom">${big.outerHTML}${cap?`<figcaption><small>${cap}</small></figcaption>`:''}</figure>`,detail)}
+document.addEventListener('click',e=>{const el=e.target as Element|null,pic=el?.closest?.('.shop-row .pp-wrap, .shop-row .ingredient-art');if(!pic)return;const row=pic.closest('.shop-row');if(!row||!(globalThis as any).modal)return;
+ const outer=(pic.closest('.pp-wrap')||pic) as Element,label=outer.closest('.item-label')||row.querySelector('.item-label'),id=(label as HTMLElement|null)?.dataset?.id||(row.querySelector('[data-id]') as HTMLElement|null)?.dataset?.id||'';
+ const txt=label?[...label.childNodes].find(n=>n.nodeType===3&&n.nodeValue!.trim()):null,name=(txt?.nodeValue||(typeof INGREDIENTS!=='undefined'?INGREDIENTS:(globalThis as any).INGREDIENTS)?.[id]?.[0]||'').trim();if(!name)return;
+ e.preventDefault();e.stopImmediatePropagation();ppZoom(outer,id,name)},true);

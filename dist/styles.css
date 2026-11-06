@@ -1967,3 +1967,10 @@ html[data-theme="dark"] .swipe-under{background:#3d1c19;color:#ffb3a8}
 .simple-screen .shop-row.shop-purchase-row .item-label .ingredient-art,.simple-screen .shop-row.shop-purchase-row .item-label .pp-wrap{margin:0 14px 0 0!important}
 /* v1.7.9: the "Trừ đồ đang có trong Tủ" switch sits in the Giỏ đồ nhà mình card, next to "Kiểm tra đồ trong tủ" */
 .card .pantry-deduct{margin:12px 0 0;background:transparent}
+/* v1.7.9 (owner: "ấn vào hình… phóng to"): a tap on a shopping picture opens it large */
+.shop-row .item-label .ingredient-art,.shop-row .item-label .pp-wrap{cursor:zoom-in}
+.pic-zoom{margin:0;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.pic-zoom .pic-zoom-art,.pic-zoom .pic-zoom-art.ingredient-art{display:block!important;float:none!important;width:min(72vw,300px)!important;height:min(72vw,300px)!important;margin:0!important;border-radius:18px;line-height:0}
+.pic-zoom .pic-zoom-art .ingredient-art{width:100%!important;height:100%!important;border-radius:18px;margin:0!important;float:none!important}
+.pic-zoom .pic-zoom-art .pp-img{border-radius:18px}
+.pic-zoom figcaption b{display:block;font-size:1.25em}.pic-zoom figcaption small{display:block;color:var(--muted);margin-top:4px}

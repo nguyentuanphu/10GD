@@ -23,6 +23,8 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
 
 | 13 | Screenshot 22:01, *Đi chợ* (v1.7.8 on the iPhone): “Nút tick và tên nằm quá sát nhau, chỉnh lại cho hợp lý. Với nút trừ đồ có trong tủ lạnh vậy hợp lý chưa?” | In v1.7.8 the picture sat on top of the name. The v1.7.9 row (row 10) already puts them side by side, but with only 10 px between the tick, the picture and the name. The *Trừ đồ đang có trong Tủ* switch sat on its own between So Giá and the filters, and the cart card also said *Đã trừ tồn còn hạn dùng* even when the switch was off. | 16 px between the tick square and the picture, 14 px between the picture and the name. The switch moved into the **Giỏ đồ nhà mình** card, just above **Kiểm tra đồ trong tủ**, so both pantry controls sit together. The always-on *Đã trừ tồn…* text is gone, because the switch says it (and is right when off). |
 
+| 14 | “Ở đi chợ, ấn vào hình của ingredients thì hình phóng to lên để con biết món nào là món nào và nhìn ra sao” | Tapping the picture did the same as tapping the name: it opened the amounts. | On *Đi chợ*, **a tap on an ingredient's picture opens it large** (up to 300 px) under the ingredient's name. A supermarket photo names its source (*Ảnh sản phẩm của Coles*, rule 19), and a drawing shows as drawn. **Xem lượng cần mua** (44 px) opens the amounts as before, and the name still opens them directly. If the photo cannot load, the drawing shows; no emoji. |
+
 ## Tests
 
 - `push`: one copy per push address. 4 registrations of the same phone plus one other phone give 2 sends.
@@ -42,8 +44,9 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
 - `push`: every reminder time and the planning day follow the family setting, and the old default times no longer fire when changed.
 - `v176-fixes:browser` (320 / 375 / 820 / 1280, VI and EN): **+ Thêm ngay vào bữa** with a new dish opens the recipe page with its name, the cursor on the ingredients, no text cut off; one ingredient written and saved shows in the meal's dish; no duplicate recipe. `authenticated-startup` follows the new flow.
 - `v176-fixes:browser`: tick ↔ picture ≥ 14 px and picture ↔ name ≥ 12 px on every size; the pantry switch is inside the cart card and the card has no second pantry line.
+- `v176-fixes:browser` (320 / 375 / 820 / 1280, VI and EN): a tap on a shopping picture opens it ≥ 200 px, titled with the ingredient, without opening the amounts; **Xem lượng cần mua** ≥ 44 px opens them; a Coles photo names Coles (375 px).
 - `v176-fixes:browser`: the extra-item form has a separate amount and unit, the empty pantry note is hidden, and it saves as *2 hộp*.
 
 ## Evidence (Chromium viewport simulation, not physical devices)
 
-`docs/reviews/v1.7.9/vi-dark-{mobile,tablet,desktop}-shopping-row.png` (375×812, 820×1100, 1280×800, dark): the tidy row and the pantry switch in the cart card. `docs/reviews/v1.7.8/{vi,en}-{narrow,mobile,tablet,desktop}-quick-add-recipe-page.png`, `docs/reviews/v1.7.8/{vi,en}-*-round-buttons.png`, `…-skip-confirm.png`, `…-undo-bar.png` and `…-planner-days.png` (written by `test:v176-fixes:browser`).
+`docs/reviews/v1.7.8/{vi,en}-{narrow,mobile,tablet,desktop}-picture-zoom.png`, `…-mobile-picture-zoom-photo.png` (the photo there is a test stand-in served locally). `docs/reviews/v1.7.9/vi-dark-{mobile,tablet,desktop}-shopping-row.png` (375×812, 820×1100, 1280×800, dark): the tidy row and the pantry switch in the cart card. `docs/reviews/v1.7.8/{vi,en}-{narrow,mobile,tablet,desktop}-quick-add-recipe-page.png`, `docs/reviews/v1.7.8/{vi,en}-*-round-buttons.png`, `…-skip-confirm.png`, `…-undo-bar.png` and `…-planner-days.png` (written by `test:v176-fixes:browser`).
