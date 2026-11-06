@@ -41,9 +41,19 @@ const t=defaults();ensureWeek(t,'2026-11-02');ensureWeek(t,'2026-11-09');
 setAvailability(t,'dad',['2026-11-05','2026-11-06','2026-11-11'],['lunch'],{status:'away',deduct:true,remind:false,note:''});
 setAvailability(t,'little',['2026-11-06','2026-11-07'],['dinner'],{status:'away',deduct:true,remind:false,note:''});
 const rows=familyPersonSummary(t,'2026-11-05','vi');
-assert.deepEqual(rows.map(r=>[r.member.id,r.statusText,r.slotsText]),[['dad','vắng','T5 trưa · T6 trưa · T4 11/11 trưa'],['little','vắng','T6 tối · T7 tối']]);
-assert.equal(familyPersonSummary(t,'2026-11-05','en')[0].slotsText,'Thu lunch · Fri lunch · Wed 11/11 lunch');
+assert.deepEqual(rows.map(r=>[r.member.id,r.statusText,r.slotsText]),[['dad','vắng','trưa: T5, T6, T4 11/11'],['little','vắng','tối: T6, T7']]);
+assert.equal(familyPersonSummary(t,'2026-11-05','en')[0].slotsText,'lunch: Thu, Fri, Wed 11/11');
+// v1.7.9 (owner, 6 Nov 2026: "bận nhiều quá thì nhìn rối mắt… không báo được thời gian"): days with the same meals are
+// written once; a reported time is part of the pattern; another week's day shows d/m without a leading zero
+setAvailability(t,'big',['2026-11-06','2026-11-09','2026-11-11','2026-11-12'],['breakfast','lunch'],{status:'away',deduct:true,remind:false,note:''});
+setAvailability(t,'big',['2026-11-12'],['lunch'],{status:'away',deduct:true,remind:false,note:'',from:'11:00',to:'14:00'});
+assert.deepEqual(familyPersonSummary(t,'2026-11-05','vi',8).find(r=>r.member.id==='big').lines,['sáng + trưa: T6, T2 9/11, T4 11/11','sáng + trưa 11:00–14:00: T5 12/11']);
+assert.equal(availabilityStatusLabel({status:'busy',deduct:false,from:'17:00',to:'19:30'},'vi'),'Bận 17:00–19:30 · vẫn nấu phần');
+assert.equal(availabilityStatusLabel({status:'away',deduct:true,from:'17:00'},'en'),'Away from 17:00 · no portion');
+assert.equal(validAvailabilityEntry({status:'busy',deduct:false,remind:false,note:'',from:'19:00',to:'17:00'}),false,'end after start');
+assert.equal(validAvailabilityEntry({status:'busy',deduct:false,remind:false,note:'',from:'7pm'}),false,'HH:MM only');
+assert.equal(validAvailabilityEntry({status:'busy',deduct:false,remind:false,note:'',to:'14:00'}),true,'until on its own');
 setAvailability(t,'mum',['2026-11-05'],['snack'],{status:'busy',deduct:false,remind:false,note:''});
-assert.equal(familyPersonSummary(t,'2026-11-05','vi').find(r=>r.member.id==='mum').slotsText,'T5 phụ','snack has a word');
+assert.equal(familyPersonSummary(t,'2026-11-05','vi').find(r=>r.member.id==='mum').slotsText,'phụ: T5','snack has a word');
 console.log('PASS packed-lunch schedule (calendar and family choices win, removal reverts only its own), Chưa báo counted, lunch boxes for packers only, planner, one-line-per-person week summary');
 `,c);

@@ -41,6 +41,17 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   assert.equal(await page.locator('select[data-change="attendance"][data-id="m-phu"]').inputValue(),'home');
   assert.equal(await page.evaluate(`!!state.availability?.['m-phu']?.[sydneyDate()]?.lunch`),false,'calendar away lifted for that meal');
   assert.ok(!/Ba Phú/.test(await page.locator('[data-who-busy]').innerText().catch(()=>'')),'Who’s busy no longer lists Ba Phú')}
+ // v1.7.9 (owner, 6 Nov 2026 22:14: "Tuần này ai bận… bận nhiều quá thì nhìn rối mắt… không báo được thời gian"): a busy
+ // week like the family's (Chi and Tiên away breakfast + lunch on 4 days) reads as one short line per pattern, times included
+ {const days:string[]=await page.evaluate(`(()=>{const t=sydneyDate(),out=[];for(let i=0;i<7;i++)out.push(addDays(t,i));return out})()`),pick=[days[0],days[3],days[5],days[6]];
+  const saved=await page.evaluate('JSON.stringify(state.availability||{})');
+  await page.evaluate(`(()=>{const e={status:'away',deduct:true,remind:false,note:'Đi học'};for(const id of ['m-chi','m-tien'])setAvailability(state,id,${JSON.stringify(pick)},['breakfast','lunch'],e);setAvailability(state,'m-ti',[${JSON.stringify(days[1])}],['dinner'],{status:'busy',deduct:false,remind:false,note:'',from:'17:00',to:'19:30'});save();view='today';render()})()`);
+  const wb=page.locator('[data-who-busy]');await wb.scrollIntoViewIfNeeded();const chi=wb.locator('.who-busy-row',{hasText:'Chi'}).first();
+  const lines=await chi.locator('.who-busy-line').allInnerTexts();assert.equal(lines.length,1,`${label}: Chi's 8 meals are one line (${lines})`);assert.match(lines[0],lang==='en'?/^breakfast \+ lunch: /:/^sáng \+ trưa: /,`${label}: meals once, then the days`);
+  if(await wb.locator('.who-busy-row',{hasText:'Cậu Tí'}).count())assert.match(await wb.locator('.who-busy-row',{hasText:'Cậu Tí'}).innerText(),/17:00–19:30/,`${label}: the time shows`);
+  for(const b of await wb.locator('.who-busy-row').all())assert.ok((await b.boundingBox())!.height>=44,`${label}: rows ≥ 44 px`);
+  await textOk('who-busy');await shot('who-busy');
+  await page.evaluate(`state.availability=JSON.parse(${JSON.stringify(saved)});save();render()`)}
  // 2. More tools: every row in the chosen language, on one line (owner: “Chi tiêu” in English mode)
  if(size==='narrow'||size==='mobile'){await page.locator('[data-ui-more]').first().click();const more=page.locator('.more-tools');await more.waitFor();
   const rows=await more.locator('.more-label').allInnerTexts();

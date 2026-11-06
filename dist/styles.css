@@ -1974,3 +1974,9 @@ html[data-theme="dark"] .swipe-under{background:#3d1c19;color:#ffb3a8}
 .pic-zoom .pic-zoom-art .ingredient-art{width:100%!important;height:100%!important;border-radius:18px;margin:0!important;float:none!important}
 .pic-zoom .pic-zoom-art .pp-img{border-radius:18px}
 .pic-zoom figcaption b{display:block;font-size:1.25em}.pic-zoom figcaption small{display:block;color:var(--muted);margin-top:4px}
+/* v1.7.9 (owner, 6 Nov 2026: "Tuần này ai bận… nhìn rối mắt"): name and status on the first line, then one short line per
+   pattern of meals ("sáng + trưa: T6, T2 9/11, T4 11/11") */
+.who-busy-row .who-busy-name,.who-busy-row .who-busy-status{font-weight:700}
+.who-busy-row .who-busy-slots{display:block;margin-top:2px}
+.who-busy-row .who-busy-line{display:block;line-height:1.4}
+.cal-time-field input[type=time]{min-height:44px;width:100%;min-width:0}
