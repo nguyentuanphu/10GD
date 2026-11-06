@@ -66,6 +66,11 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  await page.evaluate(`view='planner';render();scrollTo(0,0)`);await page.locator('#main .plan-day[open] .family-meal-card').first().waitFor();
  const widths=await page.locator('#main .family-meal-card').evaluateAll((a:any[])=>a.filter(e=>e.offsetParent).slice(0,8).map(e=>Math.round(e.getBoundingClientRect().width)));
  assert.ok(widths.length&&Math.min(...widths)>=200,`${label}: weekly menu meal cards ≥ 200 px wide, got ${widths}`);
+ // v1.7.9 (owner, 7 Nov 2026: "nút lên thực đơn nên được chuyển xuống cùng dòng mấy cái này"): one grid of week actions, the
+ // plan button first; no Đơn giản / Đầy đủ switch any more; every tile ≥ 44 px and equal height per row
+ {const acts=page.locator('#main .week-tools .plan-actions');await acts.waitFor();assert.equal(await acts.locator('> *').first().getAttribute('data-fm'),'generate',`${label}: plan button first`);
+  assert.equal(await page.locator('#main .page-heading [data-fm="generate"]').count(),0,`${label}: not in the title row`);assert.equal(await page.locator('#main [data-screen-mode]').count(),0,`${label}: no Đơn giản / Đầy đủ switch`);
+  assert.ok(await acts.locator('> *').count()>=4,`${label}: the week's actions are together`);for(const b of await acts.locator('> *').all())assert.ok((await b.boundingBox())!.height>=44,`${label}: tiles ≥ 44 px`)}
  await textOk('planner');await shot('planner');
  // 4a. the family chooses the first day of its menu week (ladybug report: shopping on Saturday → menu Saturday to Friday)
  if(size==='mobile'||size==='desktop'){const pick=page.locator('#week-start-day');await pick.waitFor();assert.equal(await pick.inputValue(),'1','Monday by default');
