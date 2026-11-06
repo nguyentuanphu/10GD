@@ -2034,3 +2034,6 @@ html[data-theme="dark"] .shop-pantry.stale .shop-pantry-btn{color:#f0c27a}
 .shop-pantry-panel .shop-pantry-stale{margin:4px 0 2px;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px))}
 .shop-pantry-actions{gap:6px!important}.shop-pantry-actions .btn{padding:0 10px!important}
 @media (max-width:400px){.shop-pantry-actions .btn{padding:0 8px!important;font-size:max(calc(12.5px * var(--fs-mul,1)),var(--fs-floor,0px))}}
+@media (max-width:560px){.simple-screen .shop-row.shop-purchase-row.has-pantry>.shop-pantry.open{grid-column:1/-1!important}}
+@media (max-width:400px){.shop-pantry-actions .btn{font-size:13.5px}}
+@media (max-width:400px){#main .shop-pantry .shop-pantry-actions .btn{font-size:13.5px!important}}
