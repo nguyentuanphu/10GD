@@ -35,6 +35,19 @@ Branch `release/v1.7.8` from `main` at `f938dcc` (Release v1.7.7). **Not deploy-
 | 12 | “Chỗ giỏ đồ đi chợ, phải cho option để xoá nguyên liệu nếu cần.” | Every ingredient row on the shopping list has a **×** (44 px) that takes it off the list for the dates shown, with the message *Đã bỏ … khỏi giỏ. Lấy lại ở “Kiểm tra đồ đã có / bỏ qua”*. It uses the existing skip list, so it comes back from that sheet. |
 | 13 | “Gạo nó từ đâu ra mà nó lại nằm trên giỏ đi chợ?” Henry chose **Bỏ hẳn tính năng** in the pop-up question. | The app used to add about 300 g of rice per 4 portions to every meal whose main dish had no noodle or rice in it (“cơm ăn kèm”), invisibly. That is removed. Rice is on the list only when a dish lists it, or a meal was explicitly set to rice in the older meal editor. The auto-plan's menu balance is unchanged. |
 
+## Fifth round — what the app did on its own (owner answers, 6 Nov 2026, ~17:35 Sydney time)
+
+Henry asked which other automatic behaviours he did not know about. Four were put to him one by one with the pop-up question tool:
+
+| # | Behaviour | Owner's choice | Change |
+|---|-----------|----------------|--------|
+| 14 | The list takes off what the pantry has, and cooking takes the dish's ingredients out of the pantry | Keep, say it on the row | Rows with pantry stock read *Cần 800 g · tủ có 500 g → mua 300 g* (EN: *Need … · pantry has … → buy …*). A **Trừ đồ đang có trong Tủ** switch above the list (on by default) turns it off, and the list then shows the full amounts. Stored in `preferences.pantryDeduct`. |
+| 15 | Two dishes of the same kind in one meal were halved automatically | Turn off; each dish in full | `dishFactor` is 1 unless the family picks ½ / double for a dish. The meal editor's note says so. `core.test` now asserts the new rule (each main cooks in full, and an explicit ½ still halves). |
+| 16 | Children count as 0.65 / 0.5 portions; away or busy on the calendar counts nothing | Keep, show it | Each meal reads *N người → X suất* (or *X suất (đặt tay)* when typed). A tooltip points to **Bếp của nhà mình → Thành viên → Suất / bữa**, where each person's portion is set. |
+| 17 | Online prices load by themselves; Pinch products show without review | Keep as is | No change. |
+
+The shopping sources also name the snacks correctly now (*phụ sáng / phụ chiều*; before they said *tối*).
+
 ## Also fixed
 
 - `test:studio-online:browser` (added in v1.7.7) was **not in `test:all`**, so GitHub CI never ran it. It is now in `test:all` (rule 14).
