@@ -136,14 +136,14 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   // A4 meal editor search: top 5 + "Xem thêm" (5 more each tap, keyboard accessible), empty state unchanged
   await page.evaluate(()=>{location.hash='planner'});await page.locator('.plan-day[open] [data-fm="edit-meal"]').first().waitFor();
   await page.evaluate(()=>{const d=Object.keys(currentWeek().days)[0];currentWeek().days[d].breakfast.recipes=[];currentWeek().days[d].breakfast.cooked=false;save();render();familyEditMeal(d,'breakfast')});await page.locator('#meal-dish-search').waitFor();
-  const libRows=()=>page.locator('#meal-lib-list .family-select-row').count();// v1.7.5 owner feedback #11/#12: at most 5 suggestions with “Xem thêm”, also before typing
-  assert.equal(await libRows(),5,'5 suggestions before typing');assert.match(await page.locator('#meal-lib-list [data-meal-more="lib"]').innerText(),/Xem thêm 5 món/,'Xem thêm before typing');
+  const libRows=()=>page.locator('#meal-lib-list .family-select-row').count();// v1.7.5 owner feedback #11/#12, v1.7.8 ladybug #26: at most 3 suggestions with “Xem thêm”, also before typing
+  assert.equal(await libRows(),3,'3 suggestions before typing');assert.match(await page.locator('#meal-lib-list [data-meal-more="lib"]').innerText(),/Xem thêm 3 món/,'Xem thêm before typing');
   await tap(page.locator('#meal-dish-search'));await page.keyboard.type('gà');await page.waitForTimeout(400);
-  assert.equal(await libRows(),5,'top 5 results');const more=page.locator('#meal-lib-list [data-meal-more="lib"]');assert.match(await more.innerText(),/Xem thêm 5 món/);
-  assert.match(await page.locator('#meal-lib-list .meal-more-bar').innerText(),/Đang hiện 5\/\d+ món/);assert.match(await page.locator('#meal-search-status').innerText(),/đang hiện/);
+  assert.equal(await libRows(),3,'top 3 results');const more=page.locator('#meal-lib-list [data-meal-more="lib"]');assert.match(await more.innerText(),/Xem thêm 3 món/);
+  assert.match(await page.locator('#meal-lib-list .meal-more-bar').innerText(),/Đang hiện 3\/\d+ món/);assert.match(await page.locator('#meal-search-status').innerText(),/đang hiện/);
   if(label==='iphone'){await more.scrollIntoViewIfNeeded();await shot(page,'mobile-meal-search-vi')}
-  await tap(more);assert.equal(await libRows(),10,'5 more');
-  await page.locator('#meal-lib-list [data-meal-more="lib"]').focus();await page.keyboard.press('Enter');assert.equal(await libRows(),15,'keyboard Enter shows 5 more');
+  await tap(more);assert.equal(await libRows(),6,'3 more');
+  await page.locator('#meal-lib-list [data-meal-more="lib"]').focus();await page.keyboard.press('Enter');assert.equal(await libRows(),9,'keyboard Enter shows 3 more');
   assert.ok(await page.evaluate(()=>!!document.activeElement?.closest('#meal-lib-list')),'focus stays in the list');
   await page.locator('#meal-dish-search').fill('xyzkhongco');await page.waitForTimeout(400);assert.match(await page.locator('#meal-search-status').innerText(),/Không tìm thấy món ăn khớp.*\(0 món\)/);assert.equal(await page.locator('[data-meal-more]').count(),0,'no Show more on an empty result');
   await page.locator('#meal-dish-search').fill('');await page.waitForTimeout(400);assert.equal(await libRows(),5,'clearing the search returns to 5 suggestions');

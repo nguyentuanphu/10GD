@@ -63,9 +63,9 @@ for(const [size,opts] of SIZES){
  // v1.7.8: Bữa phụ is added per day from the day's “Bữa ±” list
  await tap(page.locator('#main .pd-meals:visible').first());await page.locator('#modal-root .pm-list').waitFor();assert.match(await page.locator('#modal-root .pm-list').innerText(),/bữa phụ/i,'daily Bữa phụ in the menu');await page.evaluate(()=>(globalThis as any).eval('closeModal()'));
  await tap(page.locator('[data-fm="edit-meal"]:visible').first());await page.locator('#meal-lib-list').waitFor();
- assert.equal(await page.locator('#meal-lib-list .family-select-row').count(),5,'5 reference suggestions');
- const more=page.locator('#meal-lib-list [data-meal-more="lib"]');await tap(more);assert.equal(await page.locator('#meal-lib-list .family-select-row').count(),10,'Xem thêm shows 5 more');
- assert.ok(await page.locator('#meal-own-list .family-select-row').count()<=5,'at most 5 family dishes before Xem thêm');
+ assert.equal(await page.locator('#meal-lib-list .family-select-row').count(),3,'3 reference suggestions (v1.7.8 ladybug #26; was 5)');
+ const more=page.locator('#meal-lib-list [data-meal-more="lib"]');await tap(more);assert.equal(await page.locator('#meal-lib-list .family-select-row').count(),6,'Xem thêm shows 3 more');
+ assert.ok(await page.locator('#meal-own-list .family-select-row').count()<=3,'at most 3 family dishes before Xem thêm');
  const portion=page.locator('#modal-root select[name^="size-"]').first();if(await portion.count()){const opts2=await portion.locator('option').allInnerTexts();assert.equal(opts2[0],'Tự tính theo số người');assert.ok(opts2.includes('½ lượng (50%)')&&opts2.includes('Gấp đôi (200%)'))}
  assert.match(await page.locator('#modal-root').innerText(),/Tự tính theo số người.*nấu đủ cho những người ăn bữa này/s,'portion choice explained');
  await noOverflow('meal editor');await shot('meal-editor');await page.evaluate(()=>(globalThis as any).eval('closeModal()'));
