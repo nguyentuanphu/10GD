@@ -177,10 +177,12 @@ function scoutHistorySheet(itemId){const item=scoutItem(itemId),list=scoutOnline
 function scoutDealsCard(items){const seen=new Set(),real=[],fake=[];for(const it of items){if(!it.itemId||seen.has(it.itemId))continue;seen.add(it.itemId);for(const o of scoutOnlineFor(it.itemId)){const g=o.insight?.signal;if(g==='real'||g==='lowest')real.push({it,o});else if(g==='fake')fake.push({it,o})}}
  if(!real.length&&!fake.length)return'';const row=({it,o})=>`<li><button type="button" class="deal-row" data-scout="price-history" data-id="${esc(o.itemId)}"><span class="dr-name"><b data-user-content>${esc(it.label)}</b><small>${scoutArt('store:'+o.retailer,'ol-dot')}${esc(scoutRetailer(o.retailer))} ${scoutMoney(o.price)}</small></span>${scoutDealChip(o)}${scoutArt('chevron','ol-chev')}</button></li>`;
  return`<article class="scout-card scout-deals"><h3>${scoutArt('flame','h-art')}${scoutT('Khuyến mãi tuần này','Deals this week')}</h3>${real.length?`<ul class="deal-list">${real.slice(0,8).map(row).join('')}</ul>`:''}${fake.length?`<p class="deal-warn">${scoutArt('warn','h-art')}${scoutT('Ghi là KM nhưng không rẻ hơn thường lệ','Marked special but not cheaper than usual')}</p><ul class="deal-list">${fake.slice(0,8).map(row).join('')}</ul>`:''}</article>`}
-function scoutDecorateList(){if(!scoutLast)return;
+function scoutDecorateList(){
+ // v1.7.8: online prices are national — the list shows them even before the family gives a postcode (no trip plan yet)
+ const items=scoutData.state&&scoutLast?scoutLast.items:(()=>{try{return scoutBasket()}catch{return[]}})();
  // v1.7.5: online price under each row that has a catalogue item
- for(const it of scoutLast.items){if(!it.itemId)continue;const sel=it.key.startsWith('ing:')?`#main input[data-change="bought"][data-id="${CSS.escape(it.key.slice(4))}"]`:`#main input[data-change="extra-done"][data-id="${CSS.escape(it.key.slice(6))}"]`;const row=document.querySelector(sel)?.closest('.shop-row');if(!row||row.querySelector('.online-line'))continue;const html=scoutOnlineLine(it.itemId);if(!html)continue;row.classList.add('has-online');row.insertAdjacentHTML('beforeend',html)}
-for(const b of scoutLast.result.benchmark){if(b.cheaper!=='viet-grocer'||!b.key.startsWith('ing:'))continue;const input=document.querySelector(`#main input[data-change="bought"][data-id="${CSS.escape(b.key.slice(4))}"]`),row=input?.closest('.shop-row');if(!row||row.querySelector('.scout-viet-badge'))continue;const badge=document.createElement('span');badge.className='pill scout-viet-badge';badge.textContent='🏮 '+scoutT('Chợ Việt rẻ hơn ','Viet grocer saves ')+scoutMoney(b.difference);(row.querySelector('.item-label')||row).appendChild(badge)}}
+ for(const it of items){if(!it.itemId)continue;const sel=it.key.startsWith('ing:')?`#main input[data-change="bought"][data-id="${CSS.escape(it.key.slice(4))}"]`:`#main input[data-change="extra-done"][data-id="${CSS.escape(it.key.slice(6))}"]`;const row=document.querySelector(sel)?.closest('.shop-row');if(!row||row.querySelector('.online-line'))continue;const html=scoutOnlineLine(it.itemId);if(!html)continue;row.classList.add('has-online');row.insertAdjacentHTML('beforeend',html)}
+if(!scoutLast)return;for(const b of scoutLast.result.benchmark){if(b.cheaper!=='viet-grocer'||!b.key.startsWith('ing:'))continue;const input=document.querySelector(`#main input[data-change="bought"][data-id="${CSS.escape(b.key.slice(4))}"]`),row=input?.closest('.shop-row');if(!row||row.querySelector('.scout-viet-badge'))continue;const badge=document.createElement('span');badge.className='pill scout-viet-badge';badge.textContent='🏮 '+scoutT('Chợ Việt rẻ hơn ','Viet grocer saves ')+scoutMoney(b.difference);(row.querySelector('.item-label')||row).appendChild(badge)}}
 // Studio's "Price Scout" feature switch (flags.priceScout, applied by platform-banner and cached for offline use).
 function scoutEnabled(){if(document.body?.classList.contains('flag-off-priceScout'))return false;try{return JSON.parse(localStorage.getItem('bep-platform-flags')||'{}')?.priceScout!==false}catch{return true}}
 function scoutMount(){
@@ -188,7 +190,7 @@ function scoutMount(){
  if(view!=='shopping')return;const main=document.getElementById('main');if(!main||main.querySelector('.price-scout'))return;
  const holder=document.createElement('div');holder.innerHTML=scoutPanel();const panel=holder.firstElementChild;
  const anchor=main.querySelector('.week-tools');if(anchor)anchor.after(panel);else main.prepend(panel);
- scoutDecorateList();scoutCommunityAutoload();
+ scoutDecorateList();scoutCommunityAutoload();scoutAutoRefresh();
 }
 function scoutRerender(){const old=document.querySelector('#main .price-scout');if(!old){scoutMount();return}const focus=document.activeElement?.dataset?.scout||document.activeElement?.id;const holder=document.createElement('div');holder.innerHTML=scoutPanel();old.replaceWith(holder.firstElementChild);scoutDecorateList();if(focus){const el=document.querySelector(`.price-scout [data-scout="${focus}"]`)||document.getElementById(focus);el?.focus?.()}}
 const scoutBaseRender=render;
@@ -257,14 +259,19 @@ async function scoutFlush(){
  scoutData.pool={...(scoutData.pool||{}),observations:[...batch.map(o=>({...o,observedBy:globalThis.BEP_SESSION.account?.name||o.observedBy})),...(scoutData.pool?.observations||[]).filter(o=>!ids.has(o.id))]};scoutSave();
  if(scoutData.pending.length)await scoutFlush();
 }
-async function scoutRefresh(){
+// v1.7.8 (owner, 6 Nov 2026: "Giá online cũng chưa hiện"): prices were only fetched when "Làm mới giá" was pressed, so a
+// family never saw the online prices of a new run. Opening the shopping list now fetches them quietly when the copy on
+// this device is older than 3 hours (at most once per 10 minutes; online and signed in only).
+var scoutAutoAt=0;
+function scoutAutoRefresh(){if(!scoutAccount()||!scoutOnline()||scoutRefreshing)return;if(Date.now()-(scoutData.pool?.at||0)<3*3600e3||Date.now()-scoutAutoAt<10*60e3)return;scoutAutoAt=Date.now();scoutRefresh({quiet:true})}
+async function scoutRefresh({quiet=false}={}){
  if(scoutRefreshing)return;
  if(!scoutAccount()){if(scoutOnline()){scoutRefreshing=true;scoutRerender();try{await scoutCommunityRefresh()}catch{}scoutRefreshing=false}toast(scoutT('Đã làm mới từ dữ liệu trên thiết bị.','Refreshed from this device.'));scoutRerender();return}
  if(!scoutOnline()){toast(scoutT('Đang offline: dùng bản giá đã lưu trên máy.','Offline: using the prices saved on this device.'));scoutRerender();return}
- scoutRefreshing=true;scoutRerender();
- try{await scoutFlush().catch(()=>{});const data=await scoutApi('prices'+(scoutData.state?'&state='+encodeURIComponent(scoutData.state):''));if(data.householdId!==globalThis.BEP_SESSION.household.id)throw Error('Family changed');scoutData.pool={at:Date.now(),cycleId:data.cycleId,observations:data.observations||[],official:data.official||null};scoutSave();await scoutCommunityRefresh().catch(()=>{});toast(scoutT('Đã cập nhật giá của gia đình.','Family prices updated.'))}
- catch(error){toast(scoutT('Chưa tải được giá mới, đang dùng bản lưu trên máy.','Could not load new prices; using the copy on this device.'),true)}
- finally{scoutRefreshing=false;scoutRerender()}
+ scoutRefreshing=true;if(!quiet)scoutRerender();
+ try{await scoutFlush().catch(()=>{});const data=await scoutApi('prices'+(scoutData.state?'&state='+encodeURIComponent(scoutData.state):''));if(data.householdId!==globalThis.BEP_SESSION.household.id)throw Error('Family changed');scoutData.pool={at:Date.now(),cycleId:data.cycleId,observations:data.observations||[],official:data.official||null};scoutSave();await scoutCommunityRefresh().catch(()=>{});if(!quiet)toast(scoutT('Đã cập nhật giá của gia đình.','Family prices updated.'))}
+ catch(error){if(!quiet)toast(scoutT('Chưa tải được giá mới, đang dùng bản lưu trên máy.','Could not load new prices; using the copy on this device.'),true)}
+ finally{scoutRefreshing=false;if(view==='shopping')scoutRerender()}
 }
 async function scoutDelete(id){
  if(scoutViewer())return;if(!confirm(scoutT('Xóa giá này?','Delete this price?')))return;
@@ -312,7 +319,7 @@ document.addEventListener('click',event=>{
  const b=event.target.closest('[data-scout]');if(!b)return;const action=b.dataset.scout;
  switch(action){
   case'toggle':scoutData.open=scoutData.open!==true;scoutSave();scoutRerender();break;
-  case'refresh':scoutRefresh();break;
+  case'refresh':scoutRefresh({});break;
   case'postcode':event.preventDefault();scoutData.state=null;scoutSave();scoutRerender();document.getElementById('scout-postcode')?.focus();break;
   case'shot':scoutWant=b.dataset.want||null;document.getElementById('scout-shot-input')?.click();break;
   case'paste':scoutPasteSheet();break;

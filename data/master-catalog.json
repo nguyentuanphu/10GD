@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updated": "2026-11-01",
+ "updated": "2026-11-06",
  "note": "Staples only. No prices, SKUs or retailer product IDs. Prices come from family observations.",
  "items": [
   {
@@ -2961,7 +2961,7 @@
     }
    ],
    "retailerRef": null,
-   "ingredientId": null
+   "ingredientId": "seaweed"
   },
   {
    "id": "yen-mach",
@@ -3380,7 +3380,7 @@
     }
    ],
    "retailerRef": null,
-   "ingredientId": null
+   "ingredientId": "wholeBread"
   },
   {
    "id": "hoanh-thanh",
@@ -4315,6 +4315,772 @@
    ],
    "retailerRef": null,
    "ingredientId": null
+  },
+  {
+   "id": "suon-bo",
+   "nameVi": "Sườn bò",
+   "nameEn": "Beef short ribs",
+   "aliases": [
+    "beef ribs",
+    "short ribs",
+    "beef short rib",
+    "suon bo"
+   ],
+   "category": "meat",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi",
+    "viet-grocer"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 1000,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null
+  },
+  {
+   "id": "bo-ham",
+   "nameVi": "Thịt bò hầm (gravy beef)",
+   "nameEn": "Gravy beef",
+   "aliases": [
+    "gravy beef",
+    "beef shin",
+    "bap bo",
+    "thit bo gravy",
+    "bo gravy",
+    "chuck steak"
+   ],
+   "category": "meat",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi",
+    "viet-grocer"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 500,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null
+  },
+  {
+   "id": "nam-bo",
+   "nameVi": "Nạm bò",
+   "nameEn": "Beef brisket",
+   "aliases": [
+    "brisket",
+    "beef brisket",
+    "nam bo"
+   ],
+   "category": "meat",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi",
+    "viet-grocer"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 1000,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null
+  },
+  {
+   "id": "bo-bit-tet",
+   "nameVi": "Bò bít tết",
+   "nameEn": "Beef steak",
+   "aliases": [
+    "scotch fillet",
+    "sirloin",
+    "porterhouse",
+    "rump steak",
+    "beef steak"
+   ],
+   "category": "meat",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 500,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null
+  },
+  {
+   "id": "thit-heo-than",
+   "nameVi": "Thịt heo thăn",
+   "nameEn": "Pork loin / fillet",
+   "aliases": [
+    "pork fillet",
+    "pork loin",
+    "pork steak",
+    "pork medallions"
+   ],
+   "category": "meat",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi",
+    "viet-grocer"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 500,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null
+  },
+  {
+   "id": "suon-cot-let",
+   "nameVi": "Sườn cốt lết",
+   "nameEn": "Pork chops",
+   "aliases": [
+    "pork chops",
+    "pork cutlets",
+    "loin chops",
+    "cot let"
+   ],
+   "category": "meat",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi",
+    "viet-grocer"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 500,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null
+  },
+  {
+   "id": "gio-heo",
+   "nameVi": "Giò heo",
+   "nameEn": "Pork hock",
+   "aliases": [
+    "pork hock",
+    "pork trotters",
+    "pork knuckle"
+   ],
+   "category": "meat",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "viet-grocer"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 1000,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null
+  },
+  {
+   "id": "thit-cuu",
+   "nameVi": "Thịt cừu",
+   "nameEn": "Lamb",
+   "aliases": [
+    "lamb chops",
+    "lamb cutlets",
+    "lamb leg",
+    "lamb shoulder"
+   ],
+   "category": "meat",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 1000,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null
+  },
+  {
+   "id": "ga-xay",
+   "nameVi": "Thịt gà xay",
+   "nameEn": "Chicken mince",
+   "aliases": [
+    "chicken mince",
+    "minced chicken"
+   ],
+   "category": "meat",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 500,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null
+  },
+  {
+   "id": "dui-toi-ga",
+   "nameVi": "Đùi tỏi gà",
+   "nameEn": "Chicken drumsticks",
+   "aliases": [
+    "chicken drumsticks",
+    "drumsticks"
+   ],
+   "category": "meat",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi",
+    "viet-grocer"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 1000,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null
+  },
+  {
+   "id": "mi-udon",
+   "nameVi": "Mì udon",
+   "nameEn": "Udon noodles",
+   "aliases": [
+    "udon"
+   ],
+   "category": "pantry",
+   "foodSafety": "ambient",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi",
+    "viet-grocer"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 400,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "udon"
+  },
+  {
+   "id": "nui",
+   "nameVi": "Nui / pasta",
+   "nameEn": "Pasta",
+   "aliases": [
+    "penne",
+    "macaroni",
+    "fusilli",
+    "pasta"
+   ],
+   "category": "pantry",
+   "foodSafety": "ambient",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 500,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "pasta"
+  },
+  {
+   "id": "kem-nau",
+   "nameVi": "Kem tươi nấu ăn",
+   "nameEn": "Cooking cream",
+   "aliases": [
+    "cooking cream",
+    "thickened cream",
+    "cream"
+   ],
+   "category": "dairy",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_L",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 300,
+     "packUnit": "mL",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "cream"
+  },
+  {
+   "id": "parmesan",
+   "nameVi": "Phô mai Parmesan",
+   "nameEn": "Parmesan cheese",
+   "aliases": [
+    "parmesan",
+    "grated parmesan"
+   ],
+   "category": "dairy",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 250,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "parmesan"
+  },
+  {
+   "id": "mozzarella",
+   "nameVi": "Phô mai mozzarella",
+   "nameEn": "Mozzarella cheese",
+   "aliases": [
+    "mozzarella",
+    "pizza cheese"
+   ],
+   "category": "dairy",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 250,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "mozzarella"
+  },
+  {
+   "id": "feta",
+   "nameVi": "Phô mai feta",
+   "nameEn": "Feta cheese",
+   "aliases": [
+    "feta"
+   ],
+   "category": "dairy",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 200,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "feta"
+  },
+  {
+   "id": "mang-tay",
+   "nameVi": "Măng tây",
+   "nameEn": "Asparagus",
+   "aliases": [
+    "asparagus"
+   ],
+   "category": "fresh",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_each",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 1,
+     "packUnit": "each",
+     "units": 1
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "asparagus"
+  },
+  {
+   "id": "hanh-nhan",
+   "nameVi": "Hạnh nhân",
+   "nameEn": "Almonds",
+   "aliases": [
+    "almonds",
+    "raw almonds"
+   ],
+   "category": "pantry",
+   "foodSafety": "ambient",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 500,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "almond"
+  },
+  {
+   "id": "oc-cho",
+   "nameVi": "Óc chó",
+   "nameEn": "Walnuts",
+   "aliases": [
+    "walnuts"
+   ],
+   "category": "pantry",
+   "foodSafety": "ambient",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 250,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "walnut"
+  },
+  {
+   "id": "dau-ga",
+   "nameVi": "Đậu gà hộp",
+   "nameEn": "Chickpeas",
+   "aliases": [
+    "chickpeas",
+    "chick peas"
+   ],
+   "category": "pantry",
+   "foodSafety": "ambient",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_100g",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 400,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "chickpea"
+  },
+  {
+   "id": "dau-lang",
+   "nameVi": "Đậu lăng",
+   "nameEn": "Lentils",
+   "aliases": [
+    "lentils",
+    "red lentils"
+   ],
+   "category": "pantry",
+   "foodSafety": "ambient",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 500,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "lentil"
+  },
+  {
+   "id": "dau-do",
+   "nameVi": "Đậu đỏ hộp",
+   "nameEn": "Red kidney beans",
+   "aliases": [
+    "kidney beans",
+    "red kidney beans"
+   ],
+   "category": "pantry",
+   "foodSafety": "ambient",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_100g",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 400,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "kidneyBean"
+  },
+  {
+   "id": "quinoa",
+   "nameVi": "Hạt quinoa",
+   "nameEn": "Quinoa",
+   "aliases": [
+    "quinoa"
+   ],
+   "category": "pantry",
+   "foodSafety": "ambient",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 500,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "quinoa"
+  },
+  {
+   "id": "couscous",
+   "nameVi": "Couscous",
+   "nameEn": "Couscous",
+   "aliases": [
+    "couscous"
+   ],
+   "category": "pantry",
+   "foodSafety": "ambient",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 500,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "couscous"
+  },
+  {
+   "id": "tuong-miso",
+   "nameVi": "Tương miso",
+   "nameEn": "Miso paste",
+   "aliases": [
+    "miso",
+    "miso paste"
+   ],
+   "category": "pantry",
+   "foodSafety": "chilled",
+   "channels": [
+    "woolworths",
+    "coles"
+   ],
+   "unitBasis": "per_100g",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 400,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "miso"
+  },
+  {
+   "id": "hat-chia",
+   "nameVi": "Hạt chia",
+   "nameEn": "Chia seeds",
+   "aliases": [
+    "chia",
+    "chia seeds"
+   ],
+   "category": "pantry",
+   "foodSafety": "ambient",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_100g",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 300,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "chia"
+  },
+  {
+   "id": "nho-kho",
+   "nameVi": "Nho khô",
+   "nameEn": "Sultanas / raisins",
+   "aliases": [
+    "raisins",
+    "sultanas"
+   ],
+   "category": "pantry",
+   "foodSafety": "ambient",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_kg",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 500,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "raisin"
+  },
+  {
+   "id": "mu-tat",
+   "nameVi": "Mù tạt Dijon",
+   "nameEn": "Dijon mustard",
+   "aliases": [
+    "dijon",
+    "dijon mustard"
+   ],
+   "category": "pantry",
+   "foodSafety": "ambient",
+   "channels": [
+    "woolworths",
+    "coles",
+    "aldi"
+   ],
+   "unitBasis": "per_100g",
+   "bulkCandidate": false,
+   "commonPacks": [
+    {
+     "packQty": 200,
+     "packUnit": "g",
+     "units": null
+    }
+   ],
+   "retailerRef": null,
+   "ingredientId": "mustard"
   }
  ]
 }

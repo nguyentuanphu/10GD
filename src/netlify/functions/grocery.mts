@@ -26,7 +26,7 @@ export function createGroceryHandler({getStoreFn=getStore,now=()=>new Date()}={}
     const state=url.searchParams.get('state');if(state&&!supportedState(state))return json({error:'Unsupported state.',supported:['NSW','QLD']},400);
     const cycle=cycleId(today),{rows}=await readObservations(store);
     const observations=state?rows.filter(o=>!o.state||o.state===state):rows;
-    const official=state?await officialPrices(cacheStore(),state,cycle):null;
+    const official=await officialPrices(cacheStore(),state||null,cycle);
     return json({householdId:context.household.id,state:state||null,cycleId:cycle,today,observations,official,fetchedAt:now().toISOString()});
    }
    if(op==='observe'&&method==='POST'){

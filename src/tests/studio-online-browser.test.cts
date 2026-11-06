@@ -2,11 +2,14 @@
 // "Request failed" because a full refresh takes over a minute. Against the REAL Studio handler (in-memory stores,
 // synthetic proposals only): the switches sit on one line, "Run now" starts the background run and the page says
 // "Đang chạy từ … (giờ Sydney)", and "Đúng hết" confirms the remaining proposals in one go. 375×812, 820×1100 and
-// 1280×800 (VI light, EN dark); screenshots in docs/reviews/v1.7.7 (browser viewport simulation, not physical devices).
+// 1280×800 (VI light, EN dark); screenshots in docs/reviews/v1.7.8 (browser viewport simulation, not physical devices).
+// v1.7.8 owner report (6 Nov 2026, 14:13 Sydney time): "nhìn không rõ cái nào là cái nào, và tại sao lại xác nhận thêm lần
+// nữa?" — products are grouped one card per item with one line per supermarket; with auto-confirm on (the default) there is
+// no ✓ / "Đúng hết", only "Sai món"; ✓ and "Đúng hết" come back when the owner turns auto-confirm off.
 import assert from 'node:assert/strict';
 import {mkdirSync} from 'node:fs';
 import {chromium} from 'playwright';
-const out='docs/reviews/v1.7.7';mkdirSync(out,{recursive:true});
+const out='docs/reviews/v1.7.8';mkdirSync(out,{recursive:true});
 (async()=>{
  const {studioWorld,openStudio}=await import('./helpers/studio-nav-harness.mjs');
  const {createStudioHandler}=await import('../netlify/functions/studio.mjs');
@@ -29,10 +32,21 @@ const out='docs/reviews/v1.7.7';mkdirSync(out,{recursive:true});
   assert.match(await line.innerText(),lang==='vi'?/Đang chạy từ .*giờ Sydney/:/Running since .*Sydney time/);assert.equal(started.length,1,'background run started once');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,`${size}: no horizontal overflow`);
   await page.screenshot({path:`${out}/online-running-${lang}-${theme}-${size}.png`,fullPage:true});
-  // proposals: ✗ one, then "All correct" for the rest
+  // auto-confirm on (default): one card per item, one line per store, only "Sai món"
+  assert.equal(await page.locator('.or-item').count(),3,`${size}: one card per item`);assert.equal(await page.locator('[data-online-ok], #online-ok-all').count(),0,`${size}: nothing to confirm again`);
+  assert.match(await page.locator('.or-item').first().innerText(),/Woolworths|Coles|ALDI/i,`${size}: store named in full`);
+  for(const r of await page.locator('.or-line').evaluateAll((a:any[])=>a.map(e=>{const b=e.getBoundingClientRect(),n=e.querySelector('.or-no').getBoundingClientRect();return{w:b.width,right:b.right,nr:n.right,nh:n.height}})))assert.ok(r.nr<=r.right+1&&r.nh>=44,`${size}: "Sai món" inside its line and 44 px`);
+  await page.locator('.online-review-card').scrollIntoViewIfNeeded();await page.screenshot({path:`${out}/online-products-${lang}-${theme}-${size}.png`,fullPage:true});
+  await page.locator('[data-online-no="0"]').click();await page.waitForTimeout(300);assert.equal(await page.locator('.or-item').count(),2,`${size}: the wrong product's card is gone`);
+  let mp=await cache.get(ONLINE_MAPPING_KEY,{type:'json'});assert.ok(mp['rau-muong']?.woolworths?.rejected?.includes('qa-rau-muong'),'Sai món rejects the product');
+  // auto-confirm off: ✓ / ✗ and "Đúng hết" for the rest
+  await studioStore.setJSON('settings/platform',{...(await studioStore.get('settings/platform',{type:'json'})),flags:{...((await studioStore.get('settings/platform',{type:'json'}))?.flags||{}),onlineAutoConfirm:false}});
+  await seed();await page.evaluate(()=>location.reload());await page.locator('#online-ok-all').waitFor({timeout:20000});
   await page.locator('[data-online-no="0"]').click();await page.waitForTimeout(300);
-  await page.locator('#online-ok-all').click();// the harness accepts confirm() dialogsawait page.waitForTimeout(800);
-  const mp=await cache.get(ONLINE_MAPPING_KEY,{type:'json'});assert.equal(mp['rau-thom']?.coles?.ok,true);assert.equal(mp['ngo']?.aldi?.ok,true);assert.notEqual(mp['rau-muong']?.woolworths?.ok,true,'the ✗ row stays rejected');
+  await page.locator('#online-ok-all').click();// the harness accepts confirm() dialogs
+  await page.waitForTimeout(800);
+  mp=await cache.get(ONLINE_MAPPING_KEY,{type:'json'});assert.equal(mp['rau-thom']?.coles?.ok,true);assert.equal(mp['ngo']?.aldi?.ok,true);assert.notEqual(mp['rau-muong']?.woolworths?.ok,true,'the ✗ row stays rejected');
+  await studioStore.setJSON('settings/platform',{...(await studioStore.get('settings/platform',{type:'json'})),flags:{...((await studioStore.get('settings/platform',{type:'json'}))?.flags||{}),onlineAutoConfirm:true}});
   assert.deepEqual(errors,[],size+': no page errors');await context.close()}
- await browser.close();console.log('PASS Studio online prices: switches on one line, Run now starts the background run (“running since … Sydney time”), ✗ then “All correct” confirms the rest — 375/820/1280, VI/EN');
+ await browser.close();console.log('PASS Studio online prices: switches on one line, Run now starts the background run (“running since … Sydney time”), one card per item with only “Wrong” when auto-confirm is on; ✗ then “All correct” when it is off — 375/820/1280, VI/EN');
 })().catch((e:any)=>{console.error(e);process.exit(1)});

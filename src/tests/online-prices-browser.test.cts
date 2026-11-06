@@ -21,13 +21,15 @@ const OFFICIAL={cycleId:today,importedAt:today+'T06:05:00.000Z',source:'online',
  on('gao-jasmine','Coles Jasmine Rice 5kg','coles',14.5,{unitPrice:2.9,unitBasis:'per_kg',insight:{signal:'usual',usual:14.5,low:14,high:15,pct:0,weeks:8,points:pts([14.5,15,14.5,14,14.5,14.5])}}),
  on('tom','Coles Australian Green Prawns 1kg','coles',24,{unitPrice:24,unitBasis:'per_kg',insight:{signal:'lowest',usual:28,low:26,high:30,pct:14,weeks:12,points:pts([28,30,28,27,26,28,28,24])}}),
  on('finish-tablets','Finish Quantum Dishwasher Tablets 60 pack','chemist',24.99,{wasPrice:39.99,promo:'special',insight:{signal:'unverified',weeks:0,points:[[today,24.99,1]]}}),
+ on('suon-bo','Coles Beef Short Ribs','coles',22,{unitPrice:22,unitBasis:'per_kg',insight:{signal:'usual',usual:22,low:21,high:23,pct:0,weeks:4,points:pts([22,21,23,22])}}),
  on('giay-ve-sinh','Quilton Toilet Tissue 24 pack','woolworths',16.5,{insight:{signal:'higher',usual:14,low:13,high:14.5,pct:-18,weeks:10,points:pts([14,14,13,14,14.5,14,16.5])}})
 ]};
+const priceCalls:any[]=[];
 const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500 g'],['Viên rửa chén Finish','1 hộp'],['Giấy vệ sinh','1 gói'],['Bánh tráng','2 gói']];
 (async()=>{
  mkdirSync(out,{recursive:true});const browser=await chromium.launch();
  const version=JSON.parse(readFileSync('package.json','utf8')).version;assert.equal(JSON.parse(readFileSync('dist/build.json','utf8')).version,version,'build.json carries the release number (Studio reads it)');
- async function open(size:string,lang='vi',theme='light',scoutSeed?:any){
+ async function open(size:string,lang='vi',theme='light',scoutSeed?:any,{auto=false}:any={}){
   const context=await browser.newContext({viewport:sizes[size],serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any,timezoneId:'Australia/Sydney'});
   const scope='account/qa-household/',scout=scoutSeed||{version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:[],pending:[],pool:null};
   await context.addInitScript(({scope,lang,theme,scout}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem(scope+'bep-language',lang);localStorage.setItem('bep-account-present','yes');localStorage.setItem(scope+'bep-price-scout-v1',JSON.stringify(scout))},{scope,lang,theme,scout});
@@ -35,7 +37,7 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
   await page.route(origin+'/**',async(route:any)=>{const url=new URL(route.request().url()),path=url.pathname,op=url.searchParams.get('op');
    if(path.startsWith('/.netlify/')){
     if(path.endsWith('/grocery')&&op==='photos'){await route.fulfill({json:{updatedAt:today,items:{'sua-tuoi':{photo:'https://productimages.coles.com.au/productimages/1/qa-milk.png',retailer:'coles',label:'Coles Full Cream Milk 2L'},'gao-jasmine':{photo:'https://productimages.coles.com.au/productimages/1/qa-missing.png',retailer:'coles',label:'x'}}}});return}
-    if(path.endsWith('/grocery')){await route.fulfill({json:op==='prices'?{householdId:'qa-household',state:'NSW',cycleId:today,today,observations:[],official:OFFICIAL}:{}});return}
+    if(path.endsWith('/grocery')){if(op==='prices')priceCalls.push(url.searchParams.get('state'));await route.fulfill({json:op==='prices'?{householdId:'qa-household',state:'NSW',cycleId:today,today,observations:[],official:OFFICIAL}:{}});return}
     if(path.includes('/accounts')&&op==='families'){await route.fulfill({json:{families:[{id:'qa-household',name:'QA',role:'owner'}],account:{username:'qa',name:'Mẹ'}}});return}
     const status={configured:true,connected:true,mode:'account',account:{username:'qa',name:'Mẹ'},household:{id:'qa-household',name:'QA kitchen',role:'owner',memberId:null}};
     await route.fulfill({json:op==='status'?status:op==='state'?{state:null,etag:null}:{announcements:[],devices:[],alerts:[]}});return}
@@ -48,7 +50,7 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
   // the live account check can reload once at start; retry the setup until it settles
   for(let i=0;i<6;i++){try{await page.waitForTimeout(700);await page.waitForFunction(()=>typeof (globalThis as any).scoutMount==='function'&&document.querySelector('#main h1'),null,{timeout:15000});
    await page.evaluate(`(()=>{const extras=${JSON.stringify(EXTRAS)};const w=currentWeek();const day=w.days[selectedDate]||Object.values(w.days)[0];const r=state.recipes.find(x=>x.id==='r1')||state.recipes[0];day.dinner.recipes=[clone(r)];day.dinner.cooked=false;w.extras=extras.map(([name,qty],i)=>({id:'qa-extra-'+i,name,qty,cost:0,currency:'AUD',done:false}));state.preferences.onboardingComplete=true;save();closeModal();view='shopping';render()})()`);break}catch(e){if(i===5)throw e}}
-  await page.locator('[data-scout="refresh"]').click();await page.waitForSelector('.online-line',{timeout:10000});await page.waitForTimeout(200);
+  if(!auto)await page.locator('[data-scout="refresh"]').click();await page.waitForSelector('.online-line',{timeout:10000});await page.waitForTimeout(200);
   return{context,page,errors};
  }
  const noOverflow=async(page:any,label:string)=>{const w=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert.ok(w<=1,label+': horizontal overflow '+w);const clipped=await page.evaluate(()=>[...document.querySelectorAll('.online-line,.deal-row,.trip-tab')].flatMap((b:any)=>{const r=b.getBoundingClientRect();return[...b.querySelectorAll('.deal-chip,.ol-price,.ol-store,.ol-chev,b,.tt-min')].filter((c:any)=>{const q=c.getBoundingClientRect();return q.width&&(q.right>r.right+0.5||q.left<r.left-0.5)}).map((c:any)=>c.textContent.trim())}));assert.deepEqual(clipped,[],label+': nothing cut off inside the price line')};
@@ -125,6 +127,16 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
    await noOverflow(page,'folded '+size);await shot(page,'v176-folded-above-list',size);
    await page.locator('[data-scout="toggle"]').click();await page.waitForSelector('#scout-body');
    assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('account/qa-household/bep-price-scout-v1')||'{}').open),true,size+': opening is remembered');
+   assert.deepEqual(errors,[]);await context.close()}
+  // v1.7.8 (owner, 6 Nov 2026: "Giá online cũng chưa hiện"): no postcode and a copy fetched hours ago — opening the list
+  // fetches the prices by itself (no "Làm mới giá"), and a family's own "Sườn bò" gets the online price of the new catalogue item
+  {priceCalls.length=0;const {page,context,errors}=await open('mobile','vi','light',{version:1,open:false,fold176:true,prefs:{},local:[],pending:[],pool:{at:Date.now()-5*3600e3,observations:[],official:null}},{auto:true});
+   assert.ok(priceCalls.length>=1,'prices fetched on opening the list');assert.equal(priceCalls[0],null,'no postcode: asked without a state');
+   await page.evaluate(`(()=>{const w=currentWeek();w.extras.push({id:'qa-extra-rib',name:'Sườn bò',qty:'1 kg',cost:0,currency:'AUD',done:false});save();render()})()`);await rowOf(page,'Sườn bò').waitFor();
+   const rib=await rowOf(page,'Sườn bò').locator('.online-line').innerText();assert.match(rib,/Coles\s*\$22\.00/,'family "Sườn bò" shows its online price');
+   const n=priceCalls.length;await page.evaluate(`view='shopping';render()`);await page.waitForTimeout(400);assert.equal(priceCalls.length,n,'a fresh copy is not fetched again');
+   assert.equal(await page.locator('#toast.show, #toast:not(:empty)').evaluateAll((a:any[])=>a.filter(t=>/Đã cập nhật giá/.test(t.textContent||'')).length),0,'the automatic fetch is quiet');
+   await rowOf(page,'Sườn bò').scrollIntoViewIfNeeded();await page.screenshot({path:'docs/reviews/v1.7.8/online-auto-suon-bo-375x812.png'});
    assert.deepEqual(errors,[]);await context.close()}
   console.log('PASS product photos over drawings (missing photo → drawing), trip plans (nearest / balanced / cheapest, minutes saved, estimate flag, stops grouped by store) and online prices on the shopping list: cheapest online price per row, real / not real / unverified / lowest / higher deal chips, Deals this week card, price history sheet with chart (≥44 px, no overflow at 320/375/820/1280, VI/EN, light/dark), release number in Account & settings');
  }finally{await browser.close()}
