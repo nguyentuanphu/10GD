@@ -44,3 +44,28 @@ Studio → Giá online → **Chạy ngay** showed “Request failed” every tim
 1. Studio → Giá online → **Chạy ngay**. Wait 1–3 minutes; the page updates by itself.
 2. Under **Duyệt sản phẩm**, press ✗ on wrong products, then **✓ Đúng hết**.
 3. Open Đi chợ in the app and press **Làm mới giá**. Online prices show for the confirmed products.
+
+## Second round (owner, 6 Nov 2026, 12:35–12:36 Sydney time)
+
+| Owner | Change |
+|---|---|
+| “Thêm nút round up hay down ở đây, ấn lâu sẽ có option để round up hay down theo từng bước hoặc tự động” | Each shopping amount sold by weight, volume or count gets a **≈↑** button (44 px). A tap rounds one step in the chosen direction: 1.42 kg → 1.5 kg, and the next tap goes to the next step. Holding it (or right-click / Shift+click) opens the options. **Hướng:** lên / xuống. **Bước:** tự động by size (50 g under 250 g, 100 g under 1 kg, 250 g under 3 kg, then 500 g), or a fixed 50 g, 100 g, 250 g, 500 g or 1 kg (ml/L likewise; 1, 2, 5 or 10 for counted items). The choice is remembered for the family. It changes only the amount to buy for the dates shown. **Dùng lượng tự động** (in the options or the picker) undoes it. Items bought by pack are left alone. |
+| “Khi tôi ấn vào trọng lượng thì lại có thêm 1 đống cân đo đong đếm… chỉ nên hiện tại bước tạo món ăn” | In the shopping amount picker the unit chips are folded under **Đơn vị mua: kg · Đổi**. The amount wheel comes first. The chips open when the family taps **Đổi**, or when the item is already bought by pack. Recipe writing is unchanged. |
+| “Trong các thứ ở thực đơn nên để collapsable và mỗi thứ phải thể hiện rõ” | Each day of the weekly menu folds under one clear line: day, date, a **Hôm nay** tag, and what each meal has (“Bữa sáng: 2 món · Bữa trưa: — · Bữa tối: 3 món ✓”). Today and the selected day open by themselves. Days the family folds stay folded for the visit. |
+| “Tại sao tôi không thấy bữa trưa? … Nên luôn có bữa sáng, trưa, và tối, bữa phụ optional và add/removable” | Breakfast, lunch and dinner always show; weekday lunch used to be hidden when empty. **Bữa phụ** is per day: **+ Thêm bữa phụ** / **Bỏ bữa phụ**, and removing a snack that has dishes asks first. A cooked snack cannot be removed. The auto-plan fills Bữa phụ only on days that have it. Stored meals are unchanged (`day.snack.on`). |
+| “Ở phần duyệt sản phẩm vì nó là giá thật online của các cửa hàng thì nên để default On” | New Studio switch **Tự hiện sản phẩm đề xuất cho gia đình**, on by default. Proposed products show to families straight away and stay listed under **Kiểm tra sản phẩm đang hiện**. ✗ hides that price at once (it is taken out of the current week's prices) and the next run proposes another. Turning the switch off brings back review-first mode. |
+
+### Tests (second round)
+- **`online-prices` (unit):**
+  - auto mode shows unrejected proposals and still lists them;
+  - review-first mode shows nothing before ✓;
+  - the earlier review-first assertions now set `onlineAutoConfirm:false` explicitly, so they still test that mode.
+- **`v175-recipes`:** Bữa phụ is filled only on the three days that have it, and stays empty elsewhere. This replaces the v1.7.5 “every day”, which the owner reversed.
+- **`v176-fixes` browser, now also covering v1.7.7:**
+  - 7 day sections, with only today open at first;
+  - breakfast, lunch and dinner are shown;
+  - a folded day's line names the meals;
+  - Bữa phụ can be added and removed;
+  - the round button: a tap rounds up, and the options round down;
+  - the round button is a 44 px target.
+- **`authenticated-startup` and `menu-reactions`:** they edit or react on a meal of an open day, since the days now fold. Each check is unchanged.
