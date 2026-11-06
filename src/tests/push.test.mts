@@ -45,6 +45,9 @@ console.log('PASS concurrent automatic sends cannot exceed two daily slots');
  const at=(t:string)=>automaticMessages(st,new Date(t)).map(j=>j.type);
  assert.ok(at('2026-11-06T20:15:00Z').includes('expiry'),'expiry at 07:15 Sydney');assert.ok(!at('2026-11-06T21:30:00Z').includes('expiry'),'not at the default 08:30');
  assert.ok(at('2026-11-07T09:30:00Z').includes('calendar'),'calendar at 20:30 Sydney');
+ // v1.7.9 system check: "next week" starts on the family's first day of the menu week, not tomorrow
+ {const st3=JSON.parse(JSON.stringify(st));st3.preferences.weeklyReminderDay=3;st3.preferences.weeklyReminderTime='18:00';st3.preferences.weekStartDay=6;const job=automaticMessages(st3,new Date('2026-11-04T07:00:00Z')).find((j:any)=>j.type==='weekly');assert.ok(job,'weekly on Wednesday 18:00 Sydney');assert.match(job.title,/từ T7 7\/11/);assert.equal(job.url,'/#planner?d=2026-11-07');
+  delete st3.preferences.weekStartDay;const job2=automaticMessages(st3,new Date('2026-11-04T07:00:00Z')).find((j:any)=>j.type==='weekly');assert.match(job2.title,/từ T2 9\/11/,'default: Monday')}
  // v1.7.9: the reported time is in the calendar reminder
  {const st2=JSON.parse(JSON.stringify(st));st2.availability.dad['2026-11-08'].dinner.from='17:00';st2.availability.dad['2026-11-08'].dinner.to='19:30';const job=automaticMessages(st2,new Date('2026-11-07T09:30:00Z')).find((j:any)=>j.type==='calendar');assert.match(job.body,/Dad 17:00–19:30/);assert.match(job.enBody,/Dad 17:00–19:30/)}assert.ok(!at('2026-11-07T08:00:00Z').includes('calendar'),'not at the default 19:00');
  assert.ok(at('2026-11-06T22:00:00Z').includes('weekly'),'weekly on Saturday 09:00 Sydney');assert.ok(!at('2026-11-08T07:00:00Z').includes('weekly'),'not on Sunday 18:00 any more');
