@@ -31,3 +31,12 @@ const targeted=automaticMessages(state,new Date('2026-10-29T23:30:00Z')).find(j=
 console.log('PASS language-specific payloads, role filters, quiet hours, explicit urgent override, two-per-day cap and device-only tests');
 const simultaneous=await Promise.all(Array.from({length:5},()=>sendPushBatch(store,{type:'shopping',title:'Mua đồ',body:'Test'},{automatic:true,now:new Date('2026-11-01T01:00:00Z'),send:capture})));assert.equal(simultaneous.reduce((n,r)=>n+r.accepted,0),2,'conditional daily slots also enforce the cap under concurrency');
 console.log('PASS concurrent automatic sends cannot exceed two daily slots');
+// v1.7.9 (owner, 6 Nov 2026: the same reminder arrived 4 times on one phone): devices registered several times, or for
+// several members, with the same push address get ONE copy
+{const d=new Map([['state',{preferences:{}}],['push/vapid-keys',webPush.generateVAPIDKeys()]]);const st={get:async(k:string)=>d.get(k)||null,setJSON:async(k:string,v:any,o:any={})=>{if(o.onlyIfNew&&d.has(k))return{modified:false};d.set(k,v);return{modified:true}},delete:async(k:string)=>d.delete(k),list:async function*(){yield{blobs:[...d.keys()].filter(k=>k.startsWith('push/subscriptions/')).map(key=>({key}))}}};
+ const same={endpoint:'https://web.push.apple.com/synthetic-same-phone',keys:{auth:'b'.repeat(22),p256dh:'b'.repeat(87)}};
+ for(const [i,m] of [['01','dad'],['02','mum'],['03','tí'],['04','dad']])d.set('push/subscriptions/synthetic-dup-'+i,{deviceId:'synthetic-dup-'+i,memberId:m,subscription:same,types:{},quietStart:'21:00',quietEnd:'21:00'});
+ d.set('push/subscriptions/synthetic-other',{deviceId:'synthetic-other',memberId:'mum',subscription:{...same,endpoint:'https://web.push.apple.com/synthetic-other-phone'},types:{},quietStart:'21:00',quietEnd:'21:00'});
+ const hits:string[]=[];const r=await sendPushBatch(st,{type:'calendar',title:'t',body:'b',url:'/#planner'},{now:new Date('2026-11-06T08:00:00Z'),send:async(s:any)=>{hits.push(s.endpoint);return{statusCode:201}}});
+ assert.equal(hits.length,2,'one copy per push address');assert.equal(new Set(hits).size,2);assert.equal(r.accepted,2);
+ console.log('PASS one notification per push address (duplicate registrations of the same phone)')}
