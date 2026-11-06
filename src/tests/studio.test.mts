@@ -144,13 +144,27 @@ assert.ok(audit.items.every((a:any)=>a.actor&&a.at),'who/when recorded');
 const fam2=await (await S('audit&family='+fam.id,{cookie:henry})).json();assert.ok(fam2.items.length>0&&fam2.items.every((a:any)=>a.family===fam.id));
 assert.equal(maskEndpoint('https://fcm.googleapis.com/fcm/send/abcdefghijk123456'),'fcm.googleapis.com …123456');
 assert.equal((await S('rollout',{cookie:henry})).status,200);
-// v1.7.6: "Run now" for online prices. A skipped run (switches off) must not start the 10-minute wait, and the
-// switches shown and used are read fresh (the owner pressed Run now right after switching on and got "Ran recently").
-{const r1=await P('online-prices-run',{});assert.equal(r1.status,200);assert.equal((await r1.json()).status.skipped,'disabled');
- const r2=await P('online-prices-run',{});assert.equal(r2.status,200,'a skipped run does not block the next one');
+// v1.7.6/v1.7.7: "Run now" for online prices. The switches are read fresh (the owner pressed Run now right after switching on),
+// and since v1.7.7 the refresh runs in the background function: Studio only starts it and shows "running" (a full refresh
+// takes over a minute and was cut off — "Request failed").
+{const off=await P('online-prices-run',{});assert.equal(off.status,400,'switches off → a clear message, nothing started');assert.match((await off.json()).errorEn,/Switch on Pinch or WhichGrocer/);
  await (await S('settings',{cookie:henry})).json();// warm the 60 s settings cache with the switches off
- const flip=createStudioHandler({getStoreFn,env:{...env,PINCH_API_KEY:'synthetic'},limits:{all:1000,mutate:1000}});
  await getStoreFn({name:'bep-studio'}).setJSON('settings/platform',{...(await getStoreFn({name:'bep-studio'}).get('settings/platform',{type:'json'})||{}),flags:{...((await getStoreFn({name:'bep-studio'}).get('settings/platform',{type:'json'}))?.flags||{}),onlinePinch:true}});
+ const started:any[]=[];const runFetch=async(u:string,init:any)=>{started.push({u,token:init.headers['x-online-run']});return new Response(null,{status:202})};
+ const flip=createStudioHandler({getStoreFn,env:{...env,PINCH_API_KEY:'synthetic',URL:'https://famtray.example'},limits:{all:1000,mutate:1000},refreshFetch:runFetch});
  const st=await (await flip(req('studio','op=online-prices',{cookie:henry}))).json();assert.equal(st.flags.onlinePinch,true,'switches are read fresh, not from the cache');
+ const csrfF=(await (await flip(req('studio','op=me',{cookie:henry}))).json()).csrf,PF=(op:string)=>flip(req('studio','op='+op,{method:'POST',cookie:henry,csrf:csrfF,body:{}}));
+ const run=await PF('online-prices-run');assert.equal(run.status,200);const rj=await run.json();assert.equal(rj.run.running,true,'Studio shows the run as running');
+ assert.equal(started.length,1);assert.equal(started[0].u,'https://famtray.example/.netlify/functions/online-prices-background');assert.match(started[0].token,/^[a-f0-9]{48}$/);
+ const again=await PF('online-prices-run');assert.equal((await again.json()).run.running,true);assert.equal(started.length,1,'a second press while running starts nothing new');
+ // the background function: refused without the one-time token; with it, runs once and records the end
+ const {createOnlinePricesBackground}=await import('../netlify/functions/online-prices-background.mjs');
+ const calls:any[]=[];const pinchFetch=async(u:string)=>{calls.push(u);return new Response(JSON.stringify({results:[]}),{status:200,headers:{'Content-Type':'application/json'}})};
+ const bg=createOnlinePricesBackground({getStoreFn,env:{...env,PINCH_API_KEY:'synthetic'},fetchFn:pinchFetch});
+ const bad=await bg(new Request('https://famtray.example/.netlify/functions/online-prices-background',{method:'POST',headers:{'x-online-run':'0'.repeat(48)}}));assert.equal(bad.status,403,'wrong token refused');
+ const ok=await bg(new Request('https://famtray.example/.netlify/functions/online-prices-background',{method:'POST',headers:{'x-online-run':started[0].token}}));assert.equal(ok.status,202);
+ assert.ok(calls.some(u=>/pinch-app\.com/.test(u)),'the background run calls Pinch');
+ const reuse=await bg(new Request('https://famtray.example/.netlify/functions/online-prices-background',{method:'POST',headers:{'x-online-run':started[0].token}}));assert.equal(reuse.status,403,'the token works once');
+ const after=await (await flip(req('studio','op=online-prices',{cookie:henry}))).json();assert.equal(after.run.running,false,'run recorded as finished');assert.ok(after.run.finishedAt);assert.ok(after.status&&!after.status.skipped,'status saved by the run');
  await P('settings-save',{patch:{flags:{onlinePinch:false}}});resetSettingsCache()}
 console.log('Studio tests passed.');

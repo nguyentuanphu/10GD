@@ -35,9 +35,12 @@ const fam=(id,name,category,purposes)=>({id,name,category,protein:'mixed',time:2
 const s=defaults();s.preferences.maxTime=120;
 s.recipes.push(fam('f-cake','Chè đậu xanh','dessert',[]),fam('f-snack','Bánh flan','snack',['snack']),fam('f-box','Cơm cuộn hộp','lunchbox',[]),
  fam('f-main','Thịt kho','main',['main','friday']),fam('f-soup','Canh chua','soup',['side']),fam('f-veg','Rau muống xào','veg',['side']),fam('f-noodle','Bún bò','noodle',['breakfast','friday','feast']));
-const start=monday('2026-11-09');let res=familyGenerate(s,start,{random:()=>.4,sourceMode:'own'});
+const start=monday('2026-11-09');
+// v1.7.7 owner decision: Bữa phụ is optional per day — the auto-plan fills it only on days the family added it
+{const pre=ensureWeek(s,start);for(const d of ['2026-11-09','2026-11-11','2026-11-14'])pre.days[d].snack.on=true}
+let res=familyGenerate(s,start,{random:()=>.4,sourceMode:'own'});
 let w=s.weeks[start];
-for(const day of Object.values(w.days)){assert.ok(day.snack,'every day has a Bữa phụ meal');assert.equal(day.snack.recipes.length,1,'Bữa phụ is filled from family snack/dessert recipes');assert.ok(['dessert','snack'].includes(day.snack.recipes[0].category));assert.equal(day.snack.staple,'none','no rice with a snack')}
+for(const[d,day]of Object.entries(w.days)){assert.ok(day.snack,'every day has a Bữa phụ meal slot');if(!day.snack.on){assert.equal(day.snack.recipes.length,0,'no Bữa phụ unless the family added it: '+d);continue}assert.equal(day.snack.recipes.length,1,'Bữa phụ is filled from family snack/dessert recipes');assert.ok(['dessert','snack'].includes(day.snack.recipes[0].category));assert.equal(day.snack.staple,'none','no rice with a snack')}
 const mon=w.days[start];assert.ok(!mon.lunch.recipes.length,'no lunch box unless switched on');
 assert.ok(mon.dinner.recipes.some(r=>r.id==='f-main'),'legacy Main dish recipes still plan into dinner');
 assert.ok(!res.missing.some(x=>['snack','lunchbox'].includes(x.purpose)),'optional extras are not reported as missing');
@@ -47,7 +50,7 @@ for(let i=0;i<5;i++){const d=w.days[addDays(start,i)];assert.equal(d.lunch.recip
 assert.ok(!w.days[addDays(start,5)].lunch.recipes.some(r=>r.category==='lunchbox'),'no lunch box at the weekend');
 
 // ---- data shape: edition 6 accepts the new meal, dish types and counted units; catalogue tombstones keep edition 5
-assert.equal(APP_EDITION,6);assert.equal(CATALOG_EDITION,6/* v1.7.5: Vietnamese references halved */);
+assert.equal(APP_EDITION,7/* v1.7.7: Bữa phụ sáng (snackAm) — older apps must update before writing */);assert.equal(CATALOG_EDITION,6/* v1.7.5: Vietnamese references halved */);
 assert.equal(validFamilyState(s2),true,'snack meals and new dish types are valid');
 const old=defaults();for(const w of Object.values(old.weeks||{}))for(const d of Object.values(w.days))delete d.snack;assert.equal(validFamilyState(old),true,'weeks saved before v1.7.5 (no snack) stay valid');
 for(const unit of ['tép','đòn','muỗng canh','g'])assert.equal(hydrateFamilyIngredients({ingredientCatalog:{'family-ing-a':{name:'Tỏi',unit,group:'veg'}}}),true,unit);

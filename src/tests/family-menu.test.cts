@@ -43,3 +43,20 @@ const split=shopping(s,s.weeks['2026-11-02'],'2026-11-07','2026-11-08').find(x=>
 if(Math.abs(split-chicken.needed)>.001)throw Error('window total = both stored weeks: '+split+' vs '+chicken.needed);
 if(!validImport(s))throw Error('backup still valid');
 }`,c);console.log('PASS menu week from the family’s shopping day: Saturday window over Monday-keyed weeks, weekday schedule, feast inside the window, shopping across both weeks');
+// v1.7.7: two optional snacks (Bữa phụ sáng = snackAm, Bữa phụ chiều = snack), each added per day; removed meals stay empty.
+vm.runInContext(`{
+const s=defaults();s.weeks={};s.pantry=[];s.recipes=[];
+for(const[purpose,category,id]of [['breakfast','main','bf'],['main','main','main'],['side','soup','soup'],['side','veg','veg'],['friday','noodle','fri'],['feast','noodle','feast'],['snack','snack','sn']])s.recipes.push({...recipe(id,id,category,'chicken',20,{chicken:400},'prep',['cook']),custom:true,purposes:[purpose],yield:4});
+const start='2026-11-09',w=ensureWeek(s,start);
+if(!Object.values(w.days).every(d=>d.snackAm&&d.snack&&d.breakfast&&d.lunch&&d.dinner))throw Error('every day has both snack slots');
+w.days['2026-11-10'].snackAm.on=true;w.days['2026-11-10'].snack.on=true;w.days['2026-11-11'].breakfast.off=true;
+familyGenerate(s,start,{random:()=>.5});
+if(w.days['2026-11-10'].snackAm.recipes[0]?.id!=='sn'||w.days['2026-11-10'].snack.recipes[0]?.id!=='sn')throw Error('both snacks filled where added');
+if(w.days['2026-11-12'].snackAm.recipes.length||w.days['2026-11-12'].snack.recipes.length)throw Error('no snack where not added');
+if(w.days['2026-11-11'].breakfast.recipes.length)throw Error('a removed breakfast stays empty');
+const one=shopping(s,w,'2026-11-10','2026-11-10').find(r=>r.id==='chicken').needed,base=shopping(s,w,'2026-11-12','2026-11-12').find(r=>r.id==='chicken').needed;
+if(!(one>base))throw Error('the morning snack is shopped for: '+one+' vs '+base);
+if(!validImport(s))throw Error('backup with snackAm is valid');
+const old=JSON.parse(JSON.stringify(s));for(const d of Object.values(old.weeks[start].days))delete d.snackAm;if(!validImport(old))throw Error('older data without snackAm stays valid');
+if(mealName('snackAm')!=='Bữa phụ sáng'||mealName('snack')!=='Bữa phụ chiều')throw Error('names');
+}`,c);console.log('PASS two optional snacks per day (morning + afternoon), removed meals stay empty, snacks shopped for, older data valid');

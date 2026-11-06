@@ -78,7 +78,7 @@ const VI_LETTER=/[ăâđêôơưàáạảãằắặẳẵầấậẩẫèé�
 // Ingredient / unit names inside fixed patterns ("Đã mua Tôm", "Tôm (g)", "Cần 3 quả · Có 0 quả"). Unknown names are kept
 // as written (family-typed ingredients are protected by the caller), so a pattern never mixes languages by itself.
 const enIng=n=>EN_UI[n]||n,enUnit=u=>({'quả':'pcs','cái':'piece','bó':'bunch','gói':'pack','miếng':'piece','tép':'clove','muỗng canh':'tbsp','muỗng cà phê':'tsp','lon':'can','chai':'bottle','hộp':'box','túi':'bag','khay':'tray','đòn':'roll'})[u]||u;
-const EN_MEAL_SHORT={'sáng':'breakfast','trưa':'lunch','phụ':'snack','tối':'dinner'};
+const EN_MEAL_SHORT={'sáng':'breakfast','phụ sáng':'morning snack','trưa':'lunch','phụ':'snack','tối':'dinner'};
 // Whole sentences with numbers/amounts: matched before any phrase substitution so they never come out half-translated.
 const EN_SENTENCE_RULES=[
  [/^Đã mua (.+)$/,(_,n)=>'Bought: '+enIng(n)],[/^Chọn lượng mua (.+)$/,(_,n)=>'Choose quantity: '+enIng(n)],

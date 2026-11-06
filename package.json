@@ -1,6 +1,6 @@
 {
   "name": "bep-gia-dinh",
-  "version": "1.7.6",
+  "version": "1.7.7",
   "private": true,
   "description": "Family meal planning, receipts, shopping and shared family data",
   "engines": {
@@ -61,6 +61,7 @@
     "test:language:browser": "node tests/language-audit-browser.test.cjs",
     "test:v175-feedback:browser": "node tests/v175-feedback-browser.test.cjs",
     "test:v176-fixes:browser": "node tests/v176-fixes-browser.test.cjs",
+    "test:studio-online:browser": "node tests/studio-online-browser.test.cjs",
     "test:online-prices:browser": "node tests/online-prices-browser.test.cjs",
     "test:emoji-art:browser": "node tests/emoji-art-browser.test.cjs"
   },

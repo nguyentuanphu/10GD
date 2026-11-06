@@ -58,17 +58,18 @@ const off=await refreshOnlinePrices({items:[porkBelly],env:{PINCH_API_KEY:'k'},s
 assert.equal(off.skipped,'disabled');assert.equal(fetched,0);assert.ok(!cache.m.has(ONLINE_KEY('2026-11-04')));
 // on → saved for the cycle with attribution; the owner-facing status never contains a key
 const env={PINCH_API_KEY:'pk_live_SECRET',WHICHGROCER_API_KEY:'wg_live_SECRET'};
-const on=await refreshOnlinePrices({items:[porkBelly,waterSpinach],env,settings:{flags:{onlinePinch:true,onlineWhichGrocer:true}},fetchFn:anyFetch,cacheStore:cache,statusStore:cache,cycle:'2026-11-04',today:'2026-11-05',wait:async()=>{}});
+// review-first mode (Studio switch onlineAutoConfirm off): unreviewed products are never shown
+const on=await refreshOnlinePrices({items:[porkBelly,waterSpinach],env,settings:{flags:{onlinePinch:true,onlineWhichGrocer:true,onlineAutoConfirm:false}},fetchFn:anyFetch,cacheStore:cache,statusStore:cache,cycle:'2026-11-04',today:'2026-11-05',wait:async()=>{}});
 // nothing is confirmed yet → no prices for families, proposals for Studio review
 assert.ok(!cache.m.has(ONLINE_KEY('2026-11-04')),'unreviewed products are never shown');const props=cache.m.get(ONLINE_PROPOSALS_KEY).items;assert.ok(props.some((x:any)=>x.itemId==='thit-ba-chi'&&x.retailer==='woolworths'&&x.productId==='764465'));assert.equal(on.confirmed,0);
 // the owner confirms the Woolworths product → the next run saves its price
 cache.m.set(ONLINE_MAPPING_KEY,{'thit-ba-chi':{woolworths:{productId:'764465',ok:true,label:'Woolworths Pork Belly Roast',by:'henry',at:'2026-11-05',rejected:[]}}});
-const on2=await refreshOnlinePrices({items:[porkBelly,waterSpinach],env,settings:{flags:{onlinePinch:true,onlineWhichGrocer:true}},fetchFn:anyFetch,cacheStore:cache,statusStore:cache,cycle:'2026-11-04',today:'2026-11-05',wait:async()=>{}});
+const on2=await refreshOnlinePrices({items:[porkBelly,waterSpinach],env,settings:{flags:{onlinePinch:true,onlineWhichGrocer:true,onlineAutoConfirm:false}},fetchFn:anyFetch,cacheStore:cache,statusStore:cache,cycle:'2026-11-04',today:'2026-11-05',wait:async()=>{}});
 assert.equal(on2.confirmed,1);const file=cache.m.get(ONLINE_KEY('2026-11-04'));assert.deepEqual(file.observations.map((o:any)=>o.retailer+':'+o.productId),['woolworths:764465'],'only the confirmed product');assert.deepEqual(file.attribution,['Price data by Pinch','Product data by WhichGrocer']);
 assert.equal(on2.held.length,1);assert.ok(!JSON.stringify(cache.m.get(ONLINE_STATUS_KEY)).includes('SECRET'),'keys never stored');
 // provider down → previous prices kept, nothing invented
 const down=async()=>new Response('{}',{status:503});
-const keep=await refreshOnlinePrices({items:[porkBelly],env,settings:{flags:{onlinePinch:true}},fetchFn:down,cacheStore:cache,statusStore:cache,cycle:'2026-11-04',today:'2026-11-06'});
+const keep=await refreshOnlinePrices({items:[porkBelly],env,settings:{flags:{onlinePinch:true,onlineAutoConfirm:false}},fetchFn:down,cacheStore:cache,statusStore:cache,cycle:'2026-11-04',today:'2026-11-06'});
 assert.equal(keep.kept,'previous');assert.deepEqual(cache.m.get(ONLINE_KEY('2026-11-04')),file,'last saved prices untouched');
 
 // ---- So Giá's official path: online prices for NSW and QLD, falling back to the previous cycle with their dates
@@ -91,7 +92,7 @@ assert.equal(await officialPrices(memStore(),'NSW','2026-11-04'),null,'nothing �
  // the refresh stores the history and each saved price carries its check; So Giá receives it
  const hc=memStore();hc.m.set(ONLINE_MAPPING_KEY,{'thit-ba-chi':{woolworths:{productId:'764465',ok:true,label:'x',by:'h',at:'2026-11-05',rejected:[]}}});
  hc.m.set(ONLINE_HISTORY_KEY,{version:1,items:{'thit-ba-chi|woolworths':{productId:'764465',points:[['2026-10-15',30,20,null,0],['2026-10-22',30,20,null,0],['2026-10-29',29,19.33,null,0]]}}});
- const run=await refreshOnlinePrices({items:[porkBelly],env:{PINCH_API_KEY:'k'},settings:{flags:{onlinePinch:true}},fetchFn:pinchFetch,cacheStore:hc,statusStore:hc,cycle:'2026-11-04',today:'2026-11-05'});
+ const run=await refreshOnlinePrices({items:[porkBelly],env:{PINCH_API_KEY:'k'},settings:{flags:{onlinePinch:true,onlineAutoConfirm:false}},fetchFn:pinchFetch,cacheStore:hc,statusStore:hc,cycle:'2026-11-04',today:'2026-11-05'});
  assert.deepEqual(run.deals,{real:1,fake:0},'Woolworths $27 (was $30) vs usual $30 → real −10 %');assert.equal(hc.m.get(ONLINE_HISTORY_KEY).items['thit-ba-chi|woolworths'].points.length,4);
  const shown=await officialPrices(hc,'NSW','2026-11-04');const ww2=shown.observations.find((o:any)=>o.retailer==='woolworths');assert.equal(ww2.insight.signal,'real');assert.equal(ww2.insight.usual,30);assert.equal(ww2.insight.points.length,4);}
 // ---- product photos (owner, 5 Nov): supermarket image hosts only; stored for owner-confirmed products only
@@ -99,10 +100,15 @@ assert.equal(cleanPhoto('https://productimages.coles.com.au/productimages/2/2839
 for(const bad of ['http://productimages.coles.com.au/a.jpg','https://evil.example/a.jpg','javascript:alert(1)','',null,'https://productimages.coles.com.au.evil.io/a.jpg'])assert.equal(cleanPhoto(bad),null,String(bad));
 {const pc=memStore();pc.m.set(ONLINE_MAPPING_KEY,{'thit-ba-chi':{woolworths:{productId:'764465',ok:true,label:'x',by:'h',at:'2026-11-05',rejected:[]}}});
  const photoFetch=async(u:string,i:any)=>{const r=await pinchFetch(u,i);const b=await r.json();for(const it of b.data.items)for(const c of it.candidates||[])c.image_url=c.retailer==='Woolworths'?'https://images.whichgrocer.com/product_images/woolworths_764465.jpg':'https://productimages.coles.com.au/productimages/2/1.jpg';return new Response(JSON.stringify(b),{status:200})};
- const run=await refreshOnlinePrices({items:[porkBelly],env:{PINCH_API_KEY:'k'},settings:{flags:{onlinePinch:true}},fetchFn:photoFetch,cacheStore:pc,statusStore:pc,cycle:'2026-11-04',today:'2026-11-05'});
+ const run=await refreshOnlinePrices({items:[porkBelly],env:{PINCH_API_KEY:'k'},settings:{flags:{onlinePinch:true,onlineAutoConfirm:false}},fetchFn:photoFetch,cacheStore:pc,statusStore:pc,cycle:'2026-11-04',today:'2026-11-05'});
  assert.equal(run.photos,1);assert.deepEqual(Object.keys(pc.m.get(ONLINE_PHOTOS_KEY).items),['thit-ba-chi']);assert.equal(pc.m.get(ONLINE_PHOTOS_KEY).items['thit-ba-chi'].retailer,'woolworths','only the confirmed product (Coles was not confirmed)');
  assert.match(pc.m.get(ONLINE_PROPOSALS_KEY).items.find((x:any)=>x.retailer==='coles').photo,/coles/,'proposals carry the photo for the owner review');
  const shown=await officialPrices(pc,'NSW','2026-11-04');assert.match(shown.observations[0].photo,/whichgrocer/);}
 console.log('PASS product photos: supermarket hosts only, confirmed products only, carried to review and So Giá');
 console.log('PASS price history (one point per day, new product restarts, 26 weeks) + deal check (real / fake / inflated was-price / unverified / lowest / higher) carried to So Giá');
+// v1.7.7 owner decision: by default (onlineAutoConfirm unset/true) proposed products are shown at once and still listed
+// for the owner to check; a rejected product stays hidden.
+{const {applyMapping}=await import('../netlify/lib/online-prices.mjs');const obs=[{itemId:'thit-ba-chi',retailer:'woolworths',productId:'1',label:'Pork belly',price:10,observedBy:'Pinch'},{itemId:'thit-ba-chi',retailer:'coles',productId:'2',label:'Lime tuna',price:3,observedBy:'Pinch'}];
+ const a=applyMapping(obs,{'thit-ba-chi':{coles:{productId:'2',ok:false,rejected:['2']}}},{auto:true});assert.deepEqual(a.confirmed.map((o:any)=>o.productId),['1'],'auto: shown unless rejected');assert.equal(a.proposals.length,1);assert.equal(a.proposals[0].auto,true,'still listed for checking');
+ const b=applyMapping(obs,{},{auto:false});assert.equal(b.confirmed.length,0,'review-first: nothing shown before ✓')}
 console.log('PASS online prices: parsing, matching guard, Pinch basket ≤5/request, WhichGrocer budget + pacing, cross-check hold, switches, failure keeps old prices, keys never stored, only owner-confirmed products shown, merge into official prices');

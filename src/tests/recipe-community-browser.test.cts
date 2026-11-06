@@ -134,7 +134,7 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   assert.equal(await page.evaluate((id:string)=>state.recipes.find((x:any)=>x.id===id).photo,fid),undefined,'photo removed');
   const after=JSON.parse(await page.evaluate((id:string)=>JSON.stringify(state.recipes.find((x:any)=>x.id===id)),fid));assert.deepEqual(after,JSON.parse(before),'only the photo the user changed was touched');
   // A4 meal editor search: top 5 + "Xem thêm" (5 more each tap, keyboard accessible), empty state unchanged
-  await page.evaluate(()=>{location.hash='planner'});await page.locator('[data-fm="edit-meal"]').first().waitFor();
+  await page.evaluate(()=>{location.hash='planner'});await page.locator('.plan-day[open] [data-fm="edit-meal"]').first().waitFor();
   await page.evaluate(()=>{const d=Object.keys(currentWeek().days)[0];currentWeek().days[d].breakfast.recipes=[];currentWeek().days[d].breakfast.cooked=false;save();render();familyEditMeal(d,'breakfast')});await page.locator('#meal-dish-search').waitFor();
   const libRows=()=>page.locator('#meal-lib-list .family-select-row').count();// v1.7.5 owner feedback #11/#12: at most 5 suggestions with “Xem thêm”, also before typing
   assert.equal(await libRows(),5,'5 suggestions before typing');assert.match(await page.locator('#meal-lib-list [data-meal-more="lib"]').innerText(),/Xem thêm 5 món/,'Xem thêm before typing');
@@ -215,7 +215,7 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   await page.locator('#rc-ing-list').scrollIntoViewIfNeeded();await noOverflow(page,`${name} ${lang} form`);await shot(page,`${name}-form-${lang}-${theme}`);
   const sug=await page.locator('.rc-sug-opt').first().boundingBox();assert.ok(sug!.height>=44,'suggestion ≥44px');
   await page.evaluate(()=>closeModal());await page.evaluate(()=>{rcList.at=0});await tap(page.locator('[data-rc="tab"]'));await page.locator('.rc-card').first().waitFor();await noOverflow(page,`${name} community`);await shot(page,`${name}-community-${lang}-${theme}`);
-  await page.evaluate(()=>{location.hash='planner'});await page.locator('[data-fm="edit-meal"]').first().waitFor();await page.evaluate(()=>{const d=Object.keys(currentWeek().days)[0];familyEditMeal(d,'dinner')});await page.locator('#meal-dish-search').fill(lang==='en'?'chicken':'gà');await page.waitForTimeout(400);
+  await page.evaluate(()=>{location.hash='planner'});await page.locator('.plan-day[open] [data-fm="edit-meal"]').first().waitFor();await page.evaluate(()=>{const d=Object.keys(currentWeek().days)[0];familyEditMeal(d,'dinner')});await page.locator('#meal-dish-search').fill(lang==='en'?'chicken':'gà');await page.waitForTimeout(400);
   await page.locator('#meal-lib-list').scrollIntoViewIfNeeded();await noOverflow(page,`${name} meal`);await shot(page,`${name}-meal-search-${lang}-${theme}`);
   assert.deepEqual(errors,[]);await context.close()}
  // Studio page (owner), three sizes

@@ -25,7 +25,7 @@ function effectiveAttendance(s,m,memberId){const e=m?.scheduleDate?availabilityE
 function availabilityNoPortion(e){return !!e&&e.deduct===true&&['away','busy'].includes(e.status)}
 function availabilityStatusLabel(e,lang='vi'){const en=lang==='en',none=availabilityNoPortion(e);return (e?.status==='away'?(en?'Away':'Vắng'):(en?'Busy':'Bận'))+' · '+(none?(en?'no portion':'không nấu phần'):(en?'still cooking their portion':'vẫn nấu phần'))}
 const AVAILABILITY_MEAL_LETTER={vi:{breakfast:'S',lunch:'Tr',dinner:'T'},en:{breakfast:'B',lunch:'L',dinner:'D'}};
-const AVAILABILITY_MEAL_WORD={vi:{breakfast:'sáng',lunch:'trưa',snack:'phụ',dinner:'tối'},en:{breakfast:'breakfast',lunch:'lunch',snack:'snack',dinner:'dinner'}};
+const AVAILABILITY_MEAL_WORD={vi:{breakfast:'sáng',snackAm:'phụ sáng',lunch:'trưa',snack:'phụ',dinner:'tối'},en:{breakfast:'breakfast',snackAm:'morning snack',lunch:'lunch',snack:'snack',dinner:'dinner'}};
 const AVAILABILITY_WEEKDAY={vi:['CN','T2','T3','T4','T5','T6','T7'],en:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']};
 function availabilityWeekday(date,lang='vi'){return AVAILABILITY_WEEKDAY[lang==='en'?'en':'vi'][new Date(date+'T12:00:00Z').getUTCDay()]}
 // Short, unique marker names for small calendar cells: word initials ("Bé lớn" → "BL", "Cậu Tí" → "CT", "Bố" → "B");
