@@ -203,7 +203,7 @@ function scoutDecorateList(){
  // v1.7.8: online prices are national — the list shows them even before the family gives a postcode (no trip plan yet)
  const items=scoutData.state&&scoutLast?scoutLast.items:(()=>{try{return scoutBasket()}catch{return[]}})();
  // v1.7.5: online price under each row that has a catalogue item
- for(const it of items){const sel=it.key.startsWith('ing:')?`#main input[data-change="bought"][data-id="${CSS.escape(it.key.slice(4))}"]`:`#main input[data-change="extra-done"][data-id="${CSS.escape(it.key.slice(6))}"]`;const row=document.querySelector(sel)?.closest('.shop-row');if(!row||row.querySelector('.online-line,.online-find'))continue;
+ for(const it of items){const sel=it.key.startsWith('ing:')?`#main input[data-change="bought"][data-id="${CSS.escape(it.key.slice(4))}"]`:`#main input[data-change="extra-done"][data-id="${CSS.escape(it.key.slice(6))}"]`;const row=document.querySelector(sel)?.closest('.shop-row');if(!row||row.querySelector('.online-line'))continue;row.querySelector('.online-find')?.remove();/* a waiting row turns into its price when prices arrive */
   const want=it.itemId?null:scoutWantFor(it),id=it.itemId||want?.itemId;const html=id?scoutOnlineLine(id):'';
   if(html){row.classList.add('has-online');row.insertAdjacentHTML('beforeend',html);continue}
   if(!it.itemId&&scoutFindAllowed())row.insertAdjacentHTML('beforeend',scoutFindMarkup(it,want))}
