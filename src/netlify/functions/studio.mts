@@ -1,4 +1,5 @@
-import {refreshOnlinePrices,ONLINE_STATUS_KEY,ONLINE_MAPPING_KEY,ONLINE_PROPOSALS_KEY,cleanMapping} from '../lib/online-prices.mjs';
+import {startOnlineRun,runState as onlineRunState} from '../lib/online-run.mjs';
+import {ONLINE_STATUS_KEY,ONLINE_MAPPING_KEY,ONLINE_PROPOSALS_KEY,cleanMapping} from '../lib/online-prices.mjs';
 import {CACHE_STORE as PRICE_CACHE_STORE,cycleId as priceCycleId,sydneyDate as priceSydneyDate} from '../lib/grocery-pricing.mjs';
 import onlineCatalog from '../../data/master-catalog.json' with {type:'json'};
 import {getStore} from '@netlify/blobs';
@@ -20,7 +21,7 @@ const validId=(x:any)=>typeof x==='string'&&/^[a-f0-9-]{36}$/.test(x);
 const HOW_TO={vi:'Studio đang tắt. Để bật: thêm biến môi trường STUDIO_ADMINS=henrynguyen trong cài đặt môi trường của dịch vụ lưu trữ, triển khai lại, rồi mở /studio.html khi đã đăng nhập tài khoản.',en:'Studio is disabled. To enable it, add the environment variable STUDIO_ADMINS=henrynguyen in the hosting environment settings, redeploy, then open /studio.html while signed in.'};
 const reasonOf=(b:any,min=3)=>{const r=typeof b?.reason==='string'?b.reason.trim().slice(0,300):'';if(r.length<min)fail('Nhập lý do (bắt buộc cho thao tác này).','Enter a reason (required for this action).');return r};
 
-export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=()=>Date.now(),mailer=createAuthMailer(),sendFn,limits={all:180,mutate:30}}:any={}){
+export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=()=>Date.now(),mailer=createAuthMailer(),sendFn,limits={all:180,mutate:30},refreshFetch=globalThis.fetch}:any={}){
  const accounts=()=>accountStore(getStoreFn),studio=()=>studioStore(getStoreFn),data=()=>familyDataStore(getStoreFn);
  async function rate(user:string,kind:string,max:number){const key=`rate/${sha256(user+':'+kind)}:${Math.floor(nowFn()/60000)}`;await editRecord(studio(),key,(n:any)=>{if((n?.count||0)>=max)fail('Quá nhiều yêu cầu. Chờ một phút.','Too many requests. Wait a minute.',429);return{count:(n?.count||0)+1,expires:nowFn()+120000}})}
  async function family(id:any){if(!validId(id))fail('Mã gia đình không hợp lệ.','Invalid family id.');const f=await accounts().get('families/'+id,{type:'json'});if(!f)fail('Không tìm thấy gia đình.','Family not found.',404);return f}
@@ -64,7 +65,7 @@ export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=(
    // v1.7.5 national online prices (Pinch / WhichGrocer): status, switches live in settings flags, run now
    if(op==='online-prices'&&isRead){ownerOnly();const cache=getStoreFn({name:PRICE_CACHE_STORE,consistency:'strong',region:'ap-southeast-2'});let st:any=null;try{st=await cache.get(ONLINE_STATUS_KEY,{type:'json'})}catch{}
     const sv=(await platformSettings(getStoreFn,{env,fresh:true,now})).values;
-    return json({status:st,flags:{onlinePinch:sv.flags?.onlinePinch===true,onlineWhichGrocer:sv.flags?.onlineWhichGrocer===true},keys:{pinch:!!env.PINCH_API_KEY,whichgrocer:!!env.WHICHGROCER_API_KEY},items:((onlineCatalog as any)?.items||[]).length})}
+    return json({status:st,run:await onlineRunState(cache,now),flags:{onlinePinch:sv.flags?.onlinePinch===true,onlineWhichGrocer:sv.flags?.onlineWhichGrocer===true},keys:{pinch:!!env.PINCH_API_KEY,whichgrocer:!!env.WHICHGROCER_API_KEY},items:((onlineCatalog as any)?.items||[]).length})}
    if(op==='online-proposals'&&isRead){ownerOnly();const cache=getStoreFn({name:PRICE_CACHE_STORE,consistency:'strong',region:'ap-southeast-2'});let pr:any=null,mp:any=null;try{pr=await cache.get(ONLINE_PROPOSALS_KEY,{type:'json'})}catch{}try{mp=await cache.get(ONLINE_MAPPING_KEY,{type:'json'})}catch{}
     const names=Object.fromEntries(((onlineCatalog as any)?.items||[]).map((x:any)=>[x.id,{vi:x.nameVi,en:x.nameEn}]));return json({at:pr?.at||null,proposals:(pr?.items||[]).map((x:any)=>({...x,name:names[x.itemId]||null})),mapping:cleanMapping(mp)})}
    if(op==='online-mapping-save'&&method==='POST'){ownerOnly();const itemId=String(body.itemId||''),retailer=String(body.retailer||''),productId=String(body.productId||'').slice(0,80),ok=body.ok===true;
@@ -74,13 +75,21 @@ export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=(
     (mp[itemId]??={})[retailer]=ok?{productId,ok:true,label:String(body.label||'').slice(0,160),by:actor,at:new Date(now).toISOString(),rejected:[...rejected]}:{productId:cur?.ok?cur.productId:productId,ok:cur?.ok&&cur.productId!==productId?true:false,label:cur?.label||'',by:actor,at:new Date(now).toISOString(),rejected:[...rejected]};
     await cache.setJSON(ONLINE_MAPPING_KEY,cleanMapping(mp));try{const pr:any=await cache.get(ONLINE_PROPOSALS_KEY,{type:'json'});if(pr?.items){pr.items=pr.items.filter((x:any)=>!(x.itemId===itemId&&x.retailer===retailer&&x.productId===productId));await cache.setJSON(ONLINE_PROPOSALS_KEY,pr)}}catch{}
     await audit(ok?'online_product_confirmed':'online_product_rejected',{type:'prices',id:itemId+'/'+retailer},{productId});return json({ok:true})}
+   // v1.7.7: confirm many proposed products at once (the owner reviews a page of proposals, then "Đúng hết")
+   if(op==='online-mapping-save-many'&&method==='POST'){ownerOnly();const list=(Array.isArray(body.items)?body.items:[]).slice(0,200),known=new Set(((onlineCatalog as any)?.items||[]).map((x:any)=>x.id));
+    const ok=list.filter((x:any)=>/^[a-z0-9-]{1,60}$/.test(String(x?.itemId||''))&&known.has(x.itemId)&&['woolworths','coles','aldi','chemist'].includes(x?.retailer)&&String(x?.productId||'').length>0);
+    if(!ok.length)fail('Không có sản phẩm hợp lệ.','No valid products.');const cache=getStoreFn({name:PRICE_CACHE_STORE,consistency:'strong',region:'ap-southeast-2'});let mp:any={};try{mp=cleanMapping(await cache.get(ONLINE_MAPPING_KEY,{type:'json'}))}catch{}
+    const at=new Date(now).toISOString();for(const x of ok){const cur=mp[x.itemId]?.[x.retailer],rejected=new Set(cur?.rejected||[]);rejected.delete(String(x.productId).slice(0,80));(mp[x.itemId]??={})[x.retailer]={productId:String(x.productId).slice(0,80),ok:true,label:String(x.label||'').slice(0,160),by:actor,at,rejected:[...rejected]}}
+    await cache.setJSON(ONLINE_MAPPING_KEY,cleanMapping(mp));try{const pr:any=await cache.get(ONLINE_PROPOSALS_KEY,{type:'json'});if(pr?.items){const done=new Set(ok.map((x:any)=>x.itemId+'|'+x.retailer+'|'+x.productId));pr.items=pr.items.filter((x:any)=>!done.has(x.itemId+'|'+x.retailer+'|'+x.productId));await cache.setJSON(ONLINE_PROPOSALS_KEY,pr)}}catch{}
+    await audit('online_products_confirmed',{type:'prices',id:'many'},{details:{count:ok.length}});return json({ok:true,confirmed:ok.length})}
    if(op==='online-prices-run'&&method==='POST'){ownerOnly();const cache=getStoreFn({name:PRICE_CACHE_STORE,consistency:'strong',region:'ap-southeast-2'});let st:any=null;try{st=await cache.get(ONLINE_STATUS_KEY,{type:'json'})}catch{}
-    // v1.7.6: a skipped run (switches were off) does not start the 10-minute wait, and the switches are read fresh,
-    // so "Run now" right after switching on uses the new switches instead of a cached copy.
+    // a skipped run (switches were off) does not start the 10-minute wait; the switches are read fresh by the run itself
     if(st?.at&&!st.skipped&&now-Date.parse(st.at)<10*60000){const left=Math.max(1,Math.ceil((10*60000-(now-Date.parse(st.at)))/60000));fail(`Vừa chạy xong. Thử lại sau ${left} phút.`,`Ran recently. Try again in ${left} min.`,429)}
-    const fresh=await platformSettings(getStoreFn,{env,fresh:true,now});
-    const today=priceSydneyDate(new Date(now)),result=await refreshOnlinePrices({items:(onlineCatalog as any)?.items||[],env,settings:fresh.values,cacheStore:cache,statusStore:cache,cycle:priceCycleId(today),today});
-    await audit('online_prices_run',{type:'prices',id:'online'},{saved:result.saved||0,held:(result.held||[]).length,skipped:result.skipped||null});return json({status:result})}
+    const fresh=await platformSettings(getStoreFn,{env,fresh:true,now});if(fresh.values.flags?.onlinePinch!==true&&fresh.values.flags?.onlineWhichGrocer!==true)fail('Hãy bật Pinch hoặc WhichGrocer trước.','Switch on Pinch or WhichGrocer first.');
+    // v1.7.7: a full refresh takes over a minute, so it runs in the background; Studio shows "running" and refreshes itself
+    const r:any=await startOnlineRun({cache,origin:env.URL||url.origin,by:actor,fetchFn:refreshFetch,now});
+    if(r.error)fail('Không khởi động được lần chạy. Thử lại sau ít phút.','Could not start the run. Try again in a few minutes.',503);
+    await audit('online_prices_run',{type:'prices',id:'online'},{details:{started:!!r.started,alreadyRunning:!!r.running}});return json({run:await onlineRunState(cache,now)})}
    if(op==='roles'&&isRead){ownerOnly();const env0=studioRoles(env),assigned=sanitizeStudioRoles(settings.values.studioRoles);return json({owners:[...env0.admins],assigned:Object.entries(assigned).map(([username,level])=>({username,level})),legacySupport:settings.values.flags?.supportRole===true?[...env0.support]:[],levels:STUDIO_LEVELS})}
    if(op==='roles-save'&&method==='POST'){rootOnly();const username=String(body.username||'').trim().toLowerCase(),level=body.level==null||body.level===''?null:String(body.level);if(!/^[a-z0-9._@-]{1,80}$/.test(username))fail('Tên đăng nhập không hợp lệ.','Invalid username.');if(level!==null&&!(STUDIO_LEVELS as readonly string[]).includes(level))fail('Mức quyền không hợp lệ.','Invalid level.');if(studioRoles(env).admins.has(username))fail('Owner được đặt trong cài đặt hosting, không đổi ở đây.','Owners are set in the hosting settings, not here.');if(level!==null){const u=await user(username);if(u?.disabled===true)fail('Tài khoản đang bị khoá.','The account is disabled.')}
     const next={...sanitizeStudioRoles(settings.values.studioRoles)};const before=next[username]||null;if(level===null)delete next[username];else next[username]=level;await saveSettings(getStoreFn,{studioRoles:next});await audit('studio_role_set',{type:'account',id:username},{before,after:level});return json({ok:true,username,level,before})}
