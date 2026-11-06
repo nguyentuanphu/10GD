@@ -1995,3 +1995,8 @@ html[data-theme="dark"] .shop-pantry.stale .shop-pantry-btn{color:#f0c27a}
 .shop-pantry-lots small{display:block;color:var(--muted)}.shop-pantry-lots li.expired b{text-decoration:line-through;opacity:.7}
 .shop-pantry-sum{margin:6px 0;font-weight:600}.shop-pantry-stale{margin:6px 0;color:#9a5b06}html[data-theme="dark"] .shop-pantry-stale{color:#f0c27a}
 .shop-pantry-actions{display:flex;flex-wrap:wrap;gap:8px}.shop-pantry-actions .btn{min-height:44px}
+/* v1.7.9 system check: on a phone the receipt line's three boxes were squeezed (labels and "Chưa rõ" cut). The match
+   list takes the full width; amount and unit share the next row. */
+@media (max-width:560px){.receipt-line-bottom{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important}.receipt-line-bottom .field:first-child{grid-column:1/-1}.receipt-line-bottom .field label{font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor-small,0px))}.receipt-line-bottom .input{min-height:44px;min-width:0}}
+/* v1.7.9 system check: "Hoàn tác bữa" took the global .done strike-through and looked disabled (owner screenshot 6 Nov) */
+.meal-cook-btn.done{text-decoration:none;opacity:1}
