@@ -28,6 +28,13 @@ Branch `release/v1.7.8` from `main` at `f938dcc` (Release v1.7.7). **Not deploy-
 | 10 | #26 “Vì sao ấn ‘Thêm/bớt món ăn’ lại hiển thị món đã có trong menu?… chỉ cần ‘Thêm món ăn’ … bớt thì có nút X … khi ấn ‘+ Thêm món ăn’ là hiển thị các phần bắt đầu từ ô ‘1. Tự thêm nhanh món ăn’… gợi ý chỉ hiện 3 món thôi” | The card button is now **+ Thêm món ăn**, and the sheet is titled *Thêm món ăn · Bữa … · date*. It opens at **1. Tự thêm nhanh món ăn**. Dishes already in the meal are not listed again, since removing a dish is the × on the card. The family list and the reference list each show **3** suggestions, with **Xem thêm 3 món** for more. The meal's ingredients (ladybug #15, v1.7.6) are still there, folded at the end of the sheet. |
 | 11 | #27 “Sau khi đã nhập món mới… ấn ‘Thêm ngay vào bữa’ và lưu lại xong lại không hiện trên menu.” | Two causes. (a) The menu behind the sheet was not redrawn after **Thêm ngay vào bữa**. (b) **Lưu bữa này** rebuilt the meal from the ticked rows only, so a quick-added dish without a ticked row (e.g. *Lưu luôn vào Kho* unticked) was dropped. Now the menu redraws at once, and **Lưu** only adds the ticked dishes; nothing already in the meal is removed. |
 
+## Fourth round — owner requests (6 Nov 2026, 17:00–17:20 Sydney time)
+
+| # | Request | Change |
+|---|---------|--------|
+| 12 | “Chỗ giỏ đồ đi chợ, phải cho option để xoá nguyên liệu nếu cần.” | Every ingredient row on the shopping list has a **×** (44 px) that takes it off the list for the dates shown, with the message *Đã bỏ … khỏi giỏ. Lấy lại ở “Kiểm tra đồ đã có / bỏ qua”*. It uses the existing skip list, so it comes back from that sheet. |
+| 13 | “Gạo nó từ đâu ra mà nó lại nằm trên giỏ đi chợ?” Henry chose **Bỏ hẳn tính năng** in the pop-up question. | The app used to add about 300 g of rice per 4 portions to every meal whose main dish had no noodle or rice in it (“cơm ăn kèm”), invisibly. That is removed. Rice is on the list only when a dish lists it, or a meal was explicitly set to rice in the older meal editor. The auto-plan's menu balance is unchanged. |
+
 ## Also fixed
 
 - `test:studio-online:browser` (added in v1.7.7) was **not in `test:all`**, so GitHub CI never ran it. It is now in `test:all` (rule 14).
