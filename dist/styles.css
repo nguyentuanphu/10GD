@@ -1962,3 +1962,8 @@ html[data-theme="dark"] .swipe-under{background:#3d1c19;color:#ffb3a8}
 .simple-screen .shop-row.shop-purchase-row>.price{grid-column:3!important;grid-row:2!important;justify-self:end;text-align:right}
 .simple-screen .shop-row.shop-purchase-row>.store-pill{grid-column:2/-1!important;grid-row:3!important;justify-self:start}
 .simple-screen .shop-row.shop-purchase-row>.online-line,.simple-screen .shop-row.shop-purchase-row>.online-find{grid-column:1/-1!important;grid-row:4!important}
+/* v1.7.9 (owner, 6 Nov 2026 22:01: "nút tick và tên nằm quá sát nhau"): more room between the tick, the picture and the name */
+.simple-screen .shop-row.shop-purchase-row{column-gap:16px!important}
+.simple-screen .shop-row.shop-purchase-row .item-label .ingredient-art,.simple-screen .shop-row.shop-purchase-row .item-label .pp-wrap{margin:0 14px 0 0!important}
+/* v1.7.9: the "Trừ đồ đang có trong Tủ" switch sits in the Giỏ đồ nhà mình card, next to "Kiểm tra đồ trong tủ" */
+.card .pantry-deduct{margin:12px 0 0;background:transparent}
