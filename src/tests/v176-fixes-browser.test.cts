@@ -187,6 +187,7 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   await page.locator(`#main [data-action="pantry-fullbuy"][data-id="${pid}"]`).click();await page.waitForTimeout(200);assert.deepEqual(await calc(),before,`${label}: back to using the pantry`);
   assert.equal(await page.evaluate('state.pantry.some(p=>p.id===\'qa-pantry\'&&p.qty===1)'),true,`${label}: the pantry itself is untouched`);
   assert.match(await page.locator('#main [data-pantry-effect]').innerText(),lang==='en'?/Taking off \d+ items? the pantry has/:/Đang trừ \d+ món có trong tủ/,`${label}: the switch says what it does`);
+  assert.equal(await page.locator('#main .pantry-cart-banner').count(),0,`${label}: no second pantry panel at the top (Henry, 7 Nov: removed, rows show it)`);
   const sw=page.locator('#main [data-pantry-deduct]');assert.equal(await sw.isChecked(),true);
   // v1.7.9 (owner 22:01): the switch sits in the Giỏ đồ nhà mình card, and the card no longer also says "Đã trừ tồn" (wrong when off)
   assert.equal(await sw.evaluate((e:any)=>!!e.closest('.card')?.querySelector('.stock-note')),true,`${label}: pantry switch inside the cart card`);assert.doesNotMatch(await page.locator('#main .stock-note').first().innerText(),/Đã trừ tồn|stock deducted/,`${label}: no second, always-on pantry line`);await sw.uncheck();await page.waitForTimeout(250);assert.match(await peek().textContent(),/không trừ|not taken off/,`${label}: off → full amounts`);assert.equal((await calc()).have,0);

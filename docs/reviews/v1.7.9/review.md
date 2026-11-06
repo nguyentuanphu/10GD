@@ -40,6 +40,8 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
 
 | 24 | Screenshot 08:07, *Thực đơn tuần*: “Nếu đơn giản và đầy đủ đã bỏ nên nút lên thực đơn nên được chuyển xuống cùng dòng mấy cái này, nhớ sắp xếp các nút cho đẹp” | **Lên thực đơn cả tuần** sat alone in the title row. The other week actions wrapped unevenly, with a gap and a cut *Sao chép tuần*. | One grid of week actions, with **Lên thực đơn cả tuần** first: *Lặp lại tuần trước*, *Sao chép tuần*, *Viết / phân loại món ăn*, *Khẩu vị gia đình*. Phone: the plan button full width, then 2 × 2 equal tiles. Tablet: the plan button full width, then 4 tiles. Desktop: all five in one row. Every tile ≥ 44 px. Evidence: `docs/reviews/v1.7.9/vi-{mobile,tablet,desktop}-planner-actions.png`; `v176-fixes:browser` checks it at 320 / 375 / 820 / 1280. |
 
+| 25 | Question dialog, 7 Nov: the *Xem chi tiết nguyên liệu đang có sẵn trong tủ* panel at the top of *Đi chợ* repeated what each row's *Tủ lạnh … ▾* shows (Henry chose **Bỏ ô này**). Translating the reference recipes' prep and steps, and online estimates for items counted by the piece (eggs, lemons), go to **v1.7.10** (Henry's choice). | — | The panel is removed. Pantry details are on each row. `v176-fixes:browser` checks it is gone. |
+
 ## Tests
 
 - `push`: one copy per push address. 4 registrations of the same phone plus one other phone give 2 sends.
