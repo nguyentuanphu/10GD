@@ -123,7 +123,9 @@ const mime:any={'.js':'application/javascript','.css':'text/css','.html':'text/h
   await until(async()=>(await lib.getDevice(getStoreFn,deviceId)).stores.coles==='Marrickville',10000,'popup store saved');
   await pop.locator('[data-pop-note]').getByText('Đã lưu cửa hàng Coles: Marrickville.').waitFor();
   // Online retailers + warning scoping.
-  await opt.bringToFront();await opt.reload();if(await opt.locator('#step-stores.collapsed').count())await opt.click('#step-stores [data-edit="stores"]');await opt.click('#site-amazon');await opt.click('#site-chemist');
+  // wait for the settings page to draw before asking whether the Stores step is folded (CI 7 Nov 2026: the check ran on the
+  // still-empty page, the step then drew folded and #site-amazon stayed hidden)
+  await opt.bringToFront();await opt.reload();await opt.locator('#step-stores').waitFor({state:'attached'});if(await opt.locator('#step-stores.collapsed').count())await opt.click('#step-stores [data-edit="stores"]');await opt.locator('#site-amazon').waitFor({state:'visible'});await opt.click('#site-amazon');await opt.click('#site-chemist');
   await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());
   await until(async()=>((await lib.getDevice(getStoreFn,deviceId)).client?.online||[]).includes('amazon'),10000,'heartbeat reports online retailers');
   const dv=await lib.getDevice(getStoreFn,deviceId);assert.deepEqual(lib.effectiveStores(dv).amazon,'Online');

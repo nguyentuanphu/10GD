@@ -52,6 +52,7 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
 - `family-calendar:browser` (375 / 820 / 1280): times typed, saved as `from` / `to`, shown on the day, in the current list and on the meal note (VI / EN). Its *Tuần này ai bận* checks follow the new two-line layout.
 - `v176-fixes:browser` (320 / 375 / 820 / 1280, VI and EN): a week like the family's puts Chi's 8 meals on one line, Cậu Tí's time shows, rows are ≥ 44 px and no text is cut off.
 - `v175-feedback:browser`: the packed-lunch check made the next weeks first. On a weekend the current week has no weekday lunch left, so it failed on Saturday 7 Nov on the old code too. It now also checks that a newly made week gets the schedule.
+- `scout-store:browser`: before checking whether the Stores step is folded, the check now waits for the settings page to draw. CI on `d74d5b4` (and earlier on `2933768`) timed out on `#site-amazon`: the check ran on the still-empty page, the step then drew folded, and the switch stayed hidden. No check removed.
 - `v176-fixes:browser`: the extra-item form has a separate amount and unit, the empty pantry note is hidden, and it saves as *2 hộp*.
 
 ## Evidence (Chromium viewport simulation, not physical devices)
