@@ -146,7 +146,7 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   await page.locator('#meal-lib-list [data-meal-more="lib"]').focus();await page.keyboard.press('Enter');assert.equal(await libRows(),9,'keyboard Enter shows 3 more');
   assert.ok(await page.evaluate(()=>!!document.activeElement?.closest('#meal-lib-list')),'focus stays in the list');
   await page.locator('#meal-dish-search').fill('xyzkhongco');await page.waitForTimeout(400);assert.match(await page.locator('#meal-search-status').innerText(),/Không tìm thấy món ăn khớp.*\(0 món\)/);assert.equal(await page.locator('[data-meal-more]').count(),0,'no Show more on an empty result');
-  await page.locator('#meal-dish-search').fill('');await page.waitForTimeout(400);assert.equal(await libRows(),5,'clearing the search returns to 5 suggestions');
+  await page.locator('#meal-dish-search').fill('');await page.waitForTimeout(400);assert.equal(await libRows(),3,'clearing the search returns to 3 suggestions');
   await noOverflow(page,label+' meal');assert.deepEqual(errors,[]);await context.close();
  }
 
