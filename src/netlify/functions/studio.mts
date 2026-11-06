@@ -1,5 +1,5 @@
 import {startOnlineRun,runState as onlineRunState} from '../lib/online-run.mjs';
-import {ONLINE_STATUS_KEY,ONLINE_MAPPING_KEY,ONLINE_PROPOSALS_KEY,cleanMapping} from '../lib/online-prices.mjs';
+import {ONLINE_KEY,ONLINE_STATUS_KEY,ONLINE_MAPPING_KEY,ONLINE_PROPOSALS_KEY,cleanMapping} from '../lib/online-prices.mjs';
 import {CACHE_STORE as PRICE_CACHE_STORE,cycleId as priceCycleId,sydneyDate as priceSydneyDate} from '../lib/grocery-pricing.mjs';
 import onlineCatalog from '../../data/master-catalog.json' with {type:'json'};
 import {getStore} from '@netlify/blobs';
@@ -65,7 +65,7 @@ export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=(
    // v1.7.5 national online prices (Pinch / WhichGrocer): status, switches live in settings flags, run now
    if(op==='online-prices'&&isRead){ownerOnly();const cache=getStoreFn({name:PRICE_CACHE_STORE,consistency:'strong',region:'ap-southeast-2'});let st:any=null;try{st=await cache.get(ONLINE_STATUS_KEY,{type:'json'})}catch{}
     const sv=(await platformSettings(getStoreFn,{env,fresh:true,now})).values;
-    return json({status:st,run:await onlineRunState(cache,now),flags:{onlinePinch:sv.flags?.onlinePinch===true,onlineWhichGrocer:sv.flags?.onlineWhichGrocer===true},keys:{pinch:!!env.PINCH_API_KEY,whichgrocer:!!env.WHICHGROCER_API_KEY},items:((onlineCatalog as any)?.items||[]).length})}
+    return json({status:st,run:await onlineRunState(cache,now),flags:{onlinePinch:sv.flags?.onlinePinch===true,onlineWhichGrocer:sv.flags?.onlineWhichGrocer===true,onlineAutoConfirm:sv.flags?.onlineAutoConfirm!==false},keys:{pinch:!!env.PINCH_API_KEY,whichgrocer:!!env.WHICHGROCER_API_KEY},items:((onlineCatalog as any)?.items||[]).length})}
    if(op==='online-proposals'&&isRead){ownerOnly();const cache=getStoreFn({name:PRICE_CACHE_STORE,consistency:'strong',region:'ap-southeast-2'});let pr:any=null,mp:any=null;try{pr=await cache.get(ONLINE_PROPOSALS_KEY,{type:'json'})}catch{}try{mp=await cache.get(ONLINE_MAPPING_KEY,{type:'json'})}catch{}
     const names=Object.fromEntries(((onlineCatalog as any)?.items||[]).map((x:any)=>[x.id,{vi:x.nameVi,en:x.nameEn}]));return json({at:pr?.at||null,proposals:(pr?.items||[]).map((x:any)=>({...x,name:names[x.itemId]||null})),mapping:cleanMapping(mp)})}
    if(op==='online-mapping-save'&&method==='POST'){ownerOnly();const itemId=String(body.itemId||''),retailer=String(body.retailer||''),productId=String(body.productId||'').slice(0,80),ok=body.ok===true;
@@ -74,6 +74,8 @@ export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=(
     const cur=mp[itemId]?.[retailer],rejected=new Set(cur?.rejected||[]);if(ok)rejected.delete(productId);else rejected.add(productId);
     (mp[itemId]??={})[retailer]=ok?{productId,ok:true,label:String(body.label||'').slice(0,160),by:actor,at:new Date(now).toISOString(),rejected:[...rejected]}:{productId:cur?.ok?cur.productId:productId,ok:cur?.ok&&cur.productId!==productId?true:false,label:cur?.label||'',by:actor,at:new Date(now).toISOString(),rejected:[...rejected]};
     await cache.setJSON(ONLINE_MAPPING_KEY,cleanMapping(mp));try{const pr:any=await cache.get(ONLINE_PROPOSALS_KEY,{type:'json'});if(pr?.items){pr.items=pr.items.filter((x:any)=>!(x.itemId===itemId&&x.retailer===retailer&&x.productId===productId));await cache.setJSON(ONLINE_PROPOSALS_KEY,pr)}}catch{}
+    // v1.7.7: a ✗ takes the product off the families' prices at once (products are shown by default)
+    if(!ok){try{const key=ONLINE_KEY(priceCycleId(priceSydneyDate(new Date(now)))),cur:any=await cache.get(key,{type:'json'});if(cur?.observations){cur.observations=cur.observations.filter((o:any)=>!(o.itemId===itemId&&o.retailer===retailer&&String(o.productId)===productId));await cache.setJSON(key,cur)}}catch{}}
     await audit(ok?'online_product_confirmed':'online_product_rejected',{type:'prices',id:itemId+'/'+retailer},{productId});return json({ok:true})}
    // v1.7.7: confirm many proposed products at once (the owner reviews a page of proposals, then "Đúng hết")
    if(op==='online-mapping-save-many'&&method==='POST'){ownerOnly();const list=(Array.isArray(body.items)?body.items:[]).slice(0,200),known=new Set(((onlineCatalog as any)?.items||[]).map((x:any)=>x.id));

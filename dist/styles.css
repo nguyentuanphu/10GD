@@ -1829,3 +1829,18 @@ input[type="date"]::-webkit-date-and-time-value,input[type="time"]::-webkit-date
 .week-start-pick{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
 .week-start-pick span{font-size:max(calc(14px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--muted);white-space:nowrap}
 .week-start-pick select{width:auto;min-width:120px;min-height:44px}
+/* v1.7.7 · round button next to each shopping quantity; folded unit choice in the buying picker */
+.qty-round{display:inline-flex;align-items:center;justify-content:center;gap:2px;min-width:44px;min-height:44px;margin-left:6px;padding:0 8px;border:1px solid var(--line);border-radius:10px;background:var(--white);color:var(--green);font:inherit;font-weight:700;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;vertical-align:middle}
+.qty-round .qr-dir{font-size:.85em}
+.qty-round:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+html[data-theme="dark"] .qty-round{background:#1f2d26;color:var(--text)}
+.qr-group{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:10px 0;display:flex;flex-wrap:wrap;gap:6px}
+.qr-group legend{font-weight:700;padding:0 4px}
+.qr-opt{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer}
+.qr-opt input{width:18px;height:18px}
+.unit-change{border:1px solid var(--line);border-radius:12px;margin:12px 0 0;padding:0 12px}
+.unit-change>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;cursor:pointer;list-style:none}
+.unit-change>summary::-webkit-details-marker{display:none}
+.unit-change-go{color:var(--green2);font-weight:700}
+.unit-change[open]>summary .unit-change-go{opacity:.6}
+.unit-change[open]{padding-bottom:12px}
