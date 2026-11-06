@@ -44,6 +44,8 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
 
 | 26 | Screenshot 7 Nov: “Khi expand ra vẫn là một ô và phải đều nhau, bây giờ nút bị lệch so với hộp thông tin” | The open label and the details were two boxes with different edges, and the buttons had different widths. | Open, the label is the top line of **one box**, with the details under it on the same edges. The label sits on the left and ▴ on the right. The buttons are equal: stacked full width on a phone, one row of equal tiles from 560 px. `v176-fixes:browser` checks the edges and widths at 320 / 375 / 820 / 1280. |
 
+| 27 | Ladybug **#28** (6 Nov, 19:26): “Đã đăng ảnh của món ăn lên rồi mà sao ở ngoài menu vẫn không hiển thị” | The photo is attached to the family recipe just after the recipe is saved, but the save had already refreshed the menu's copies of the dish. So dishes already on the menu never got the photo. | Adding or removing a photo refreshes the menu's copies again. A copy made earlier also shows the family recipe's photo, so existing menus are fixed without changing any data. `v176-fixes:browser` checks a menu card shows a photo added later. |
+
 ## Tests
 
 - `push`: one copy per push address. 4 registrations of the same phone plus one other phone give 2 sends.
