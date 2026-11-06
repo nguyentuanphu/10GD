@@ -48,6 +48,8 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
 
 | 28 | Screenshot 7 Nov: “Chỗ này sửa lại cho nhỏ và nhìn hợp lý hơn, nút to quá” | The three buttons in the opened pantry details were large 48 px tiles with long labels. | Small chips in one row: **Vẫn còn** (green, the usual answer), **Mua đủ**, **Còn bao nhiêu?** (renamed from *Sửa tủ*, then *Sửa lượng*; Henry chose this name in the question dialog. On a phone the opened box uses the full row width, so the three chips fit one row at 375 px: it opens the pantry item to change the amount left, place and use-by). The longer meaning is in the tooltip and in the line above. The visible chip is 32 px, and each keeps a 44 px tap area. The note reads *Lâu rồi chưa ai kiểm tra món này trong tủ.* `v176-fixes:browser` checks one chip height ≤ 34 px and a 44 px tap area. |
 
+| 29 | 7 Nov: “Bỏ luôn nút còn bao nhiêu đi” | — | The third chip (*Sửa tủ* → *Sửa lượng* → *Còn bao nhiêu?*) is removed. The opened pantry details keep **Vẫn còn** (when a check is due) and **Mua đủ** / **Dùng đồ tủ**. Pantry items are still edited in *Tủ thực phẩm*. |
+
 ## Tests
 
 - `push`: one copy per push address. 4 registrations of the same phone plus one other phone give 2 sends.
