@@ -1918,3 +1918,6 @@ html[data-theme="dark"] .swipe-under{background:#3d1c19;color:#ffb3a8}
 .online-find.waiting .text-btn{min-height:44px;padding:0 8px}
 /* v1.7.8 (ladybug #25): "Lịch tháng" right under the week-day strip on Today */
 .calendar-shortcut.under-strip{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin:0 0 14px}
+/* v1.7.8: × takes an ingredient off the shopping list (back from "Kiểm tra đồ đã có / bỏ qua") */
+.shop-row .row-skip{min-width:44px;min-height:44px;color:var(--muted);justify-self:start}
+.simple-screen .shop-row .row-skip{grid-column:1}

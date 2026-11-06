@@ -115,7 +115,7 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
    const after:string[]=await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.id)`);assert.deepEqual(after,[...inMeal,pickId],'added, nothing removed');
    // quick-add then save: the new dish stays (it used to vanish when its row was not ticked)
    await page.evaluate(`familyEditMeal(${JSON.stringify(d)},'dinner')`);await page.locator('#quick-dish-name').fill('Gỏi gà bắp cải nhà làm');await page.locator('#quick-dish-save').uncheck();await page.locator('[data-fm="quick-add-dish"]').click();await page.waitForTimeout(300);
-   assert.match(await page.locator('#main').innerText(),/Gỏi gà bắp cải nhà làm/,'quick-added dish on the menu behind the sheet');
+   assert.match(await page.evaluate(`document.querySelector('#main [data-plan-day="${d}"]').textContent`),/Gỏi gà bắp cải nhà làm/,'quick-added dish on the menu behind the sheet');
    await page.locator('[data-action="submit-form"][data-id="family-meal-form"]').click();await page.waitForTimeout(300);
    assert.ok((await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.name)`)).includes('Gỏi gà bắp cải nhà làm'),'quick-added dish kept after Save');}
   await page.evaluate('closeModal()')}
@@ -142,6 +142,10 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   assert.deepEqual(await page.evaluate(`[qrNext(3.8,'g',{dir:'up'}),qrNext(3.8,'g',{dir:'down'}),qrNext(47,'g',{dir:'up'}),qrNext(1880,'g',{dir:'up'}),qrNext(1880,'g',{dir:'down'}),qrNext(625,'g',{dir:'up'})]`),[4,3,50,1900,1800,650]);
   await down.dispatchEvent('contextmenu');await page.waitForTimeout(200);assert.equal(await page.locator('#qr-form').count(),0,'no options sheet');
   await page.evaluate(`(()=>{const[s,e]=shopDates();resetPurchaseQuantity(currentWeek(),s,e,${JSON.stringify(id)});save();render()})()`)}
+ // v1.7.8 (owner: “chỗ giỏ đồ đi chợ, phải cho option để xoá nguyên liệu”): × on an ingredient row takes it off the list
+ {await page.evaluate(`view='shopping';render();scrollTo(0,0)`);const x=page.locator('#main .shop-purchase-row .row-skip').first();await x.waitFor();const sid=await x.getAttribute('data-id');const bx=(await x.boundingBox())!;assert.ok(bx.height>=44&&bx.width>=44,`${label}: × is 44 px`);
+  await x.click();await page.waitForTimeout(250);assert.equal(await page.locator(`#main .shop-purchase-row button[data-action="purchase-quantity"][data-id="${sid}"]`).count(),0,`${label}: row removed`);assert.equal(await page.evaluate(`!!currentWeek().skip[${JSON.stringify(sid)}]`),true);
+  await page.evaluate(`delete currentWeek().skip[${JSON.stringify(sid)}];save();render()`)}
  for(const v of ['shopping','recipes','pantry','expenses','insights','products']){await page.evaluate(`view=${JSON.stringify(v)};render();scrollTo(0,0)`);await textOk(v);if(v==='shopping')await shot('shopping')}
  // 7. voice sheet (owner: “nút hold to talk nằm quá sâu phía dưới”): the talk button sits under the status, above the words box
  await page.evaluate('closeModal();voiceModal()');await page.locator('#voice-text').waitFor();
