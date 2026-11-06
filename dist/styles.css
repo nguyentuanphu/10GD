@@ -2000,3 +2000,10 @@ html[data-theme="dark"] .shop-pantry.stale .shop-pantry-btn{color:#f0c27a}
 @media (max-width:560px){.receipt-line-bottom{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important}.receipt-line-bottom .field:first-child{grid-column:1/-1}.receipt-line-bottom .field label{font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor-small,0px))}.receipt-line-bottom .input{min-height:44px;min-width:0}}
 /* v1.7.9 system check: "Hoàn tác bữa" took the global .done strike-through and looked disabled (owner screenshot 6 Nov) */
 .meal-cook-btn.done{text-decoration:none;opacity:1}
+/* v1.7.9 (owner 7 Nov: "nhãn quá bự"): a small text label, still a 44 px tap */
+.shop-pantry-btn{border:0!important;border-radius:8px;padding:0 6px!important;margin-left:-6px;background:transparent;color:var(--muted)!important;font-size:max(calc(12.5px * var(--fs-mul,1)),var(--fs-floor,0px))!important;display:inline-flex;align-items:center;gap:6px}
+.shop-pantry-btn:hover,.shop-pantry-btn:focus-visible{background:var(--line)}
+.shop-pantry.unused .shop-pantry-btn{opacity:.6;text-decoration:line-through}
+.shop-pantry-dot{width:8px;height:8px;border-radius:50%;background:#d08a1e;flex:none}
+/* v1.7.9 system check: text only for screen readers. Only some areas had this rule, so hidden words showed elsewhere. */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important}
