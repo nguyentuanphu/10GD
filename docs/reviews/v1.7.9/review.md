@@ -45,6 +45,7 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
 - `v176-fixes:browser` (320 / 375 / 820 / 1280, VI and EN): **+ Thêm ngay vào bữa** with a new dish opens the recipe page with its name, the cursor on the ingredients, no text cut off; one ingredient written and saved shows in the meal's dish; no duplicate recipe. `authenticated-startup` follows the new flow.
 - `v176-fixes:browser`: tick ↔ picture ≥ 14 px and picture ↔ name ≥ 12 px on every size; the pantry switch is inside the cart card and the card has no second pantry line.
 - `v176-fixes:browser` (320 / 375 / 820 / 1280, VI and EN): a tap on a shopping picture opens it ≥ 200 px, titled with the ingredient, without opening the amounts; **Xem lượng cần mua** ≥ 44 px opens them; a Coles photo names Coles (375 px).
+- `v176-fixes:browser` and `language:browser`: in English the × sheet names the ingredient in English. GitHub CI on `fb93991` caught *Take Tôm off the list?*; the sheet now uses the English name.
 - `v176-fixes:browser`: the extra-item form has a separate amount and unit, the empty pantry note is hidden, and it saves as *2 hộp*.
 
 ## Evidence (Chromium viewport simulation, not physical devices)
