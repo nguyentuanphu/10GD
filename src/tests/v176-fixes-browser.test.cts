@@ -73,6 +73,9 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   const other=days.nth(await page.evaluate(`[...document.querySelectorAll('#main details.plan-day')].findIndex(d=>!d.open)`));assert.match(await other.locator('.pd-sum').innerText(),lang==='en'?/Breakfast/:/Bữa sáng/,`${label}: folded day says what each meal has`);
   if(size==='mobile'){const before=await td.locator('.family-meal-card').count();await td.locator('[data-plan-meal="add"][data-type="snack"]').click();await page.waitForTimeout(250);const td2=page.locator('#main details.plan-day.is-today');assert.equal(await td2.locator('.family-meal-card').count(),before+1,'snack added');
    await td2.locator('[data-plan-meal="remove"][data-type="snack"]').click();await page.waitForTimeout(250);assert.equal(await page.locator('#main details.plan-day.is-today .family-meal-card').count(),before,'snack removed')
+   // a morning snack too (owner chose several snacks a day)
+   await page.locator('#main details.plan-day.is-today [data-plan-meal="add"][data-type="snackAm"]').click();await page.waitForTimeout(250);assert.equal(await page.locator('#main details.plan-day.is-today .meal-slot[data-slot="snackAm"]').count(),1,'morning snack added');
+   await page.locator('#main details.plan-day.is-today [data-plan-meal="remove"][data-type="snackAm"]').click();await page.waitForTimeout(250);assert.equal(await page.locator('#main details.plan-day.is-today .meal-slot[data-slot="snackAm"]').count(),0,'morning snack removed');
    // any of the three meals can be removed for the day and added back (owner: “luôn có đủ 3 bữa và thêm bớt được”)
    await page.locator('#main details.plan-day.is-today [data-plan-meal="remove"][data-type="breakfast"]').click();await page.waitForTimeout(250);
    assert.equal(await page.locator('#main details.plan-day.is-today .meal-slot[data-slot="breakfast"]').count(),0,'breakfast removed for the day');

@@ -83,3 +83,15 @@ Tests:
   - Bữa phụ is added and removed;
   - +500 g with a reason shows on the row, and the automatic amount clears it.
 - **`catalog-filters`, `recipe-community`, `authenticated-startup`, `menu-reactions`:** they act on a meal of an open day, since days now fold. Their checks are unchanged.
+
+## Fourth round (owner, 6 Nov 2026, Sydney time)
+- **“Mỗi thứ sẽ collapsable và có thể phân biệt được với các thứ khác”:** a folded day now lists, line by line, each meal and its dish names, e.g. “Bữa tối: Sườn rim mặn ngọt, Canh bí xanh”. Up to two names are shown, then “+N”. Nothing planned is hidden behind a count.
+- **Several snacks a day.** The owner chose this with the question pop-up.
+  - New optional **Bữa phụ sáng** (`snackAm`), placed between breakfast and lunch. The existing Bữa phụ is now **Bữa phụ chiều**.
+  - Each snack is added or removed per day, like the other meals, and the auto-plan fills each one only where it was added.
+  - Snacks are in the shopping list, in **Ai ăn bữa này?**, in calendar words (“phụ sáng” / “morning snack”) and in server notices.
+  - `APP_EDITION` is now 7, so older apps show “update available” and do not write over the new meal. Older data without `snackAm` stays valid.
+- **Tests:**
+  - `family-menu`: two snacks filled only where added; a removed breakfast stays empty; the morning snack is shopped for; backup valid with and without `snackAm`; names.
+  - `v176`: morning snack added and removed.
+  - `v175-recipes`: edition 7.

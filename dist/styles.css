@@ -1877,3 +1877,5 @@ html[data-theme="dark"] .plan-day.is-today>.plan-day-head{background:var(--green
 .buy-extra>span{font-weight:700;margin-right:4px}
 .buy-extra .btn{min-height:44px}
 .buy-extra-note{display:block;color:var(--orange);font-weight:600}
+.plan-day-head .pd-meal{display:block;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.plan-day-head .pd-meal b{font-weight:600}

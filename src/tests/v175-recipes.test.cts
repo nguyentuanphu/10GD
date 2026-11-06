@@ -50,7 +50,7 @@ for(let i=0;i<5;i++){const d=w.days[addDays(start,i)];assert.equal(d.lunch.recip
 assert.ok(!w.days[addDays(start,5)].lunch.recipes.some(r=>r.category==='lunchbox'),'no lunch box at the weekend');
 
 // ---- data shape: edition 6 accepts the new meal, dish types and counted units; catalogue tombstones keep edition 5
-assert.equal(APP_EDITION,6);assert.equal(CATALOG_EDITION,6/* v1.7.5: Vietnamese references halved */);
+assert.equal(APP_EDITION,7/* v1.7.7: Bữa phụ sáng (snackAm) — older apps must update before writing */);assert.equal(CATALOG_EDITION,6/* v1.7.5: Vietnamese references halved */);
 assert.equal(validFamilyState(s2),true,'snack meals and new dish types are valid');
 const old=defaults();for(const w of Object.values(old.weeks||{}))for(const d of Object.values(w.days))delete d.snack;assert.equal(validFamilyState(old),true,'weeks saved before v1.7.5 (no snack) stay valid');
 for(const unit of ['tép','đòn','muỗng canh','g'])assert.equal(hydrateFamilyIngredients({ingredientCatalog:{'family-ing-a':{name:'Tỏi',unit,group:'veg'}}}),true,unit);
