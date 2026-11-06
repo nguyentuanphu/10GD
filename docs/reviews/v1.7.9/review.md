@@ -19,6 +19,8 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
 
 | 11 | “Noti đừng quá dài nên đầy đủ thông tin, khi ấn vào thì nó đưa đến chỗ cần để xem” | — | Notifications are short: a title with the day and date, plus one line. E.g. *Ngày mai T7 7/11: Cậu Tí vắng tối* / *Bữa tối còn 3/4 người ăn*. A tap opens the right place. Calendar → the weekly menu with that day open (`#planner?d=YYYY-MM-DD`). Prep → tonight on the menu. Attendance → Today. Expiry → Pantry. Receipt and budget → Spending. Weekly plan → next week. The app reads `?d=` (`hashView()` / `hashDate()` in core.ts) and opens and scrolls to that day. The payload only allows these screens, with an optional `?d=` date. |
 
+| 12 | Screenshots 21:55–21:56, *Thêm món ăn · Bữa trưa*: “khi tôi thêm 1 món mới và add thêm ngay đáng lẽ tại lúc add thì nó phải mở một trang mới để tôi viết món… nhưng đây tôi phải đóng màn hình và ra lại bữa rồi mới vào để viết món” | **+ Thêm ngay vào bữa** added an empty dish (no ingredients) and reopened the same sheet. Writing the dish meant closing the sheet and tapping ✎ on the menu. | When the dish is new (or a family dish with no ingredients yet) and *Lưu luôn vào Kho món ăn gia đình* is ticked, the dish joins the meal and **the recipe page opens at once** with the name filled in and the cursor on the first ingredient. **Lưu** saves the recipe and the dish in the meal gets the same ingredients (shopping list included). Closing the page keeps the dish in the meal, to write later. A dish that already has a recipe, or with the tick off, works as before. A hint under the button says so. The ingredient rows' hidden labels now also carry `sr-only` (they were already visually hidden). |
+
 ## Tests
 
 - `push`: one copy per push address. 4 registrations of the same phone plus one other phone give 2 sends.
@@ -36,8 +38,9 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
   - the amount stays put after rounding.
 - `scout-scanlist`: the catalogue count is now 166.
 - `push`: every reminder time and the planning day follow the family setting, and the old default times no longer fire when changed.
+- `v176-fixes:browser` (320 / 375 / 820 / 1280, VI and EN): **+ Thêm ngay vào bữa** with a new dish opens the recipe page with its name, the cursor on the ingredients, no text cut off; one ingredient written and saved shows in the meal's dish; no duplicate recipe. `authenticated-startup` follows the new flow.
 - `v176-fixes:browser`: the extra-item form has a separate amount and unit, the empty pantry note is hidden, and it saves as *2 hộp*.
 
 ## Evidence (Chromium viewport simulation, not physical devices)
 
-`docs/reviews/v1.7.8/{vi,en}-*-round-buttons.png`, `…-skip-confirm.png`, `…-undo-bar.png` and `…-planner-days.png` (written by `test:v176-fixes:browser`).
+`docs/reviews/v1.7.8/{vi,en}-{narrow,mobile,tablet,desktop}-quick-add-recipe-page.png`, `docs/reviews/v1.7.8/{vi,en}-*-round-buttons.png`, `…-skip-confirm.png`, `…-undo-bar.png` and `…-planner-days.png` (written by `test:v176-fixes:browser`).

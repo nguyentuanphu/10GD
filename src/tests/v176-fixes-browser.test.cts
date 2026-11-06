@@ -121,6 +121,18 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
    await page.locator('[data-action="submit-form"][data-id="family-meal-form"]').click();await page.waitForTimeout(300);
    assert.ok((await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.name)`)).includes('Gỏi gà bắp cải nhà làm'),'quick-added dish kept after Save');}
   await page.evaluate('closeModal()')}
+ // v1.7.9, every size (owner, 6 Nov 2026 21:55: "lúc add thì nó phải mở một trang mới để tôi viết món"): a new dish opens the recipe page at once, then the written recipe is the dish in the meal
+  {const d=await page.evaluate(`Object.keys(currentWeek().days).find(d=>currentWeek().days[d].dinner.recipes.length)`);const name=`Cá thu sốt cà ${lang} ${size}`;await page.evaluate(`familyEditMeal(${JSON.stringify(d)},'dinner')`);await page.locator('#quick-dish-name').fill(name);assert.equal(await page.locator('#quick-dish-save').isChecked(),true,`${label}: save to Family Recipes is on by default`);
+   await page.locator('[data-fm="quick-add-dish"]').click();await page.locator('#family-recipe-form').waitFor({timeout:5000});assert.equal(await page.locator('#family-meal-form').count(),0,`${label}: the meal sheet gave way to the recipe page`);
+   assert.equal(await page.locator('#family-recipe-form input[name="name"]').inputValue(),name,`${label}: the recipe page has the dish name`);
+   await page.waitForFunction(()=>!!document.activeElement?.closest('#family-recipe-form .rc-ings, #family-recipe-form textarea[name="ingredients"]'),null,{timeout:3000});
+   assert.ok((await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.name)`)).includes(name),`${label}: already in the meal`);
+   await textOk('quick-add-recipe-page');await shot('quick-add-recipe-page');
+   const row=page.locator('#rc-ing-list .rc-ing-row').first();await row.locator('.rc-ing-name-input').fill('Cá thu');await row.locator('.rc-ing-qty').fill('500');await row.locator('.rc-ing-unit').selectOption('g');
+   await page.locator('[data-action="submit-form"][data-id="family-recipe-form"]').click();await page.waitForFunction(()=>!document.querySelector('#family-recipe-form'),null,{timeout:5000});
+   const dish:any=await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.find(r=>r.name===${JSON.stringify(name)})`);assert.equal(dish?.ingredients?.length,1,`${label}: the dish in the meal carries the written ingredient`);
+   assert.equal(await page.evaluate(`state.recipes.filter(r=>r.name===${JSON.stringify(name)}).length`),1,`${label}: one family recipe, no duplicate`)}
+  await page.evaluate('closeModal()')
  // v1.7.8 (ladybug #25): “Lịch tháng” right under the row of week days on Today
  {await page.evaluate(`view='today';render();scrollTo(0,0)`);const cal=page.locator('#main .calendar-shortcut');await cal.waitFor();assert.equal(await cal.evaluate((e:any)=>e.previousElementSibling?.classList.contains('day-strip')),true,`${label}: calendar button under the day strip`);assert.ok((await cal.boundingBox())!.height>=44)}
  // 5. the other screens: nothing cut off, no word broken in the middle
