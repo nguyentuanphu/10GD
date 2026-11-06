@@ -1916,3 +1916,5 @@ html[data-theme="dark"] .swipe-under{background:#3d1c19;color:#ffb3a8}
 .online-find .ol-cart{width:20px;height:20px;flex:none}
 .online-find.waiting{border:1px dashed var(--line);border-radius:12px;padding:4px 6px 4px 10px}
 .online-find.waiting .text-btn{min-height:44px;padding:0 8px}
+/* v1.7.8 (ladybug #25): "Lịch tháng" right under the week-day strip on Today */
+.calendar-shortcut.under-strip{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin:0 0 14px}

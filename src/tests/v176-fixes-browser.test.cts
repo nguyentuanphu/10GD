@@ -99,9 +99,28 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   await shot('planner-days')}
  // 4b. meal editor opens with the meal's ingredients (ladybug report: “không thấy nguyên liệu cho bữa ăn này”)
  if(size==='mobile'||size==='desktop'){const d=await page.evaluate(`Object.keys(currentWeek().days).find(d=>currentWeek().days[d].dinner.recipes.length)`);await page.evaluate(`familyEditMeal(${JSON.stringify(d)},'dinner')`);
-  const box=page.locator('#modal-root .meal-ingredients');await box.waitFor();assert.equal(await box.evaluate((e:any)=>e.open),true);
-  assert.ok(await box.locator('.meal-ing-dish').count()>=2,`${label}: one section per dish`);assert.ok(await box.locator('ul.ingredients li').count()>=3,`${label}: ingredients listed for the meal`);
-  await textOk('meal-editor');await shot('meal-ingredients');await page.evaluate('closeModal()')}
+  // v1.7.8 (ladybug #26): “+ Thêm món ăn” starts at “1. Tự thêm nhanh món ăn”; dishes already in the meal are not offered
+  // again; 3 suggestions per section; the meal's ingredients are still there, folded at the end
+  const first=await page.evaluate(`(()=>{const m=document.querySelector('#modal-root .modal-content, #modal-root .modal');const f=m.querySelector('#family-meal-form');return f&&f.querySelector('.soft-box b')?.textContent})()`);assert.match(first,/1\. (Tự thêm nhanh món ăn|Quick-add a dish)/);
+  const box=page.locator('#modal-root .meal-ingredients');await box.waitFor();assert.equal(await box.evaluate((e:any)=>e.open),false,'ingredients folded');
+  assert.equal(await box.evaluate((e:any)=>!!(document.getElementById('family-meal-form')!.compareDocumentPosition(e)&Node.DOCUMENT_POSITION_FOLLOWING)),true,'ingredients after the form');
+  await box.locator('summary').click();assert.ok(await box.locator('.meal-ing-dish').count()>=2,`${label}: one section per dish`);assert.ok(await box.locator('ul.ingredients li').count()>=3,`${label}: ingredients listed for the meal`);
+  const inMeal:string[]=await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.id)`);const offered:string[]=await page.locator('#family-meal-form input[name="recipe"]').evaluateAll((a:any[])=>a.map(i=>i.value));
+  assert.equal(offered.filter(id=>inMeal.includes(id)).length,0,`${label}: dishes already in the meal are not offered`);
+  assert.ok(await page.locator('#meal-lib-list .family-select-row').count()<=3,`${label}: 3 suggestions`);
+  await textOk('meal-editor');await shot('meal-editor');
+  // ladybug #27: tick one more dish and save — it joins the meal and shows on the menu at once, nothing else is lost
+  if(size==='mobile'){const pickId=await page.locator('#meal-lib-list input[name="recipe"]').first().getAttribute('value');await page.locator(`#meal-lib-list input[name="recipe"][value="${pickId}"]`).check();
+   await page.locator('[data-action="submit-form"][data-id="family-meal-form"]').click();await page.waitForTimeout(300);
+   const after:string[]=await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.id)`);assert.deepEqual(after,[...inMeal,pickId],'added, nothing removed');
+   // quick-add then save: the new dish stays (it used to vanish when its row was not ticked)
+   await page.evaluate(`familyEditMeal(${JSON.stringify(d)},'dinner')`);await page.locator('#quick-dish-name').fill('Gỏi gà bắp cải nhà làm');await page.locator('#quick-dish-save').uncheck();await page.locator('[data-fm="quick-add-dish"]').click();await page.waitForTimeout(300);
+   assert.match(await page.locator('#main').innerText(),/Gỏi gà bắp cải nhà làm/,'quick-added dish on the menu behind the sheet');
+   await page.locator('[data-action="submit-form"][data-id="family-meal-form"]').click();await page.waitForTimeout(300);
+   assert.ok((await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.name)`)).includes('Gỏi gà bắp cải nhà làm'),'quick-added dish kept after Save');}
+  await page.evaluate('closeModal()')}
+ // v1.7.8 (ladybug #25): “Lịch tháng” right under the row of week days on Today
+ {await page.evaluate(`view='today';render();scrollTo(0,0)`);const cal=page.locator('#main .calendar-shortcut');await cal.waitFor();assert.equal(await cal.evaluate((e:any)=>e.previousElementSibling?.classList.contains('day-strip')),true,`${label}: calendar button under the day strip`);assert.ok((await cal.boundingBox())!.height>=44)}
  // 5. the other screens: nothing cut off, no word broken in the middle
  // v1.7.7 buy extra on purpose: "+500 g" in the picker and a reason; the row says so; "Dùng lượng tự động" clears it
  if(size==='mobile'){await page.evaluate(`view='shopping';render();scrollTo(0,0)`);const qb=page.locator('#main button[data-action="purchase-quantity"]').first();const qid=await qb.getAttribute('data-id');await qb.click();
