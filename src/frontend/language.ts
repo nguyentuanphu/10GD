@@ -30,7 +30,7 @@ Object.assign(EN_UI,{
 '+ Mua thêm món / nguyên liệu ngoài thực đơn':'+ Buy items not on the menu',
 'Nhà mình đã đủ nguyên liệu':'You already have everything you need',
 'Thử chọn ngày khác hoặc thêm đồ cần mua.':'Try other days or add items to buy.',
-'💰 Ngân sách dự kiến, chia sẻ & cất đồ vào tủ':'💰 Estimated budget, sharing & storing items',
+'💰 Ngân sách dự kiến, chia sẻ & cất đồ vào tủ':'💰 Estimated budget, sharing & storing items','🌱 Xem chi tiết nguyên liệu đang có sẵn trong tủ':'🌱 See what the pantry already has','🌱 Giải phóng tủ lạnh & gợi ý món ăn từ tủ':'🌱 Clear the fridge & dishes from what you have',
 'Ước tính AUD theo giá mẫu, không phải giá trực tiếp từ siêu thị.':'Estimated in AUD from sample prices, not live supermarket prices.',
 'Làm tròn theo gói mẫu':'Round up to sample pack sizes',
 'Khi bật, lượng mua có thể nhiều hơn lượng nấu. Bấm tên nguyên liệu để xem chi tiết.':'When on, you may buy more than the recipes use. Tap an ingredient for details.',

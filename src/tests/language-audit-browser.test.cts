@@ -21,8 +21,9 @@ for(const WIDTH of [375,1280])for(const lang of ['vi','en']){
  await page.addInitScript(l=>{try{localStorage.setItem('guest/bep-language',l)}catch{}},lang);
  await page.addInitScript(()=>{try{Object.defineProperty(navigator,'clipboard',{value:{writeText:()=>Promise.reject(new Error('blocked in audit'))},configurable:true})}catch{}});
  await page.goto('https://kitchen.test/#today');await page.locator('#main .page-heading').waitFor({timeout:15000});await page.waitForTimeout(1500);
- // realistic data: a generated week from the library, pantry lots and a receipt
- await page.evaluate(()=>{try{const g=globalThis.eval;g("familyGenerate(state,weekStart,{sourceMode:'library'});save();render()")}catch(e){}});await page.waitForTimeout(800);
+ // realistic data: a generated week from the library, pantry lots (v1.7.9: two lots on the shopping list, one row's pantry
+ // details open) and a receipt
+ await page.evaluate(()=>{try{const g=globalThis.eval;g("familyGenerate(state,weekStart,{sourceMode:'library'});save();render()");g("(()=>{const rows=shopping(state,currentWeek(),...shopDates()).filter(r=>r.needed>0).slice(0,2);rows.forEach((r,i)=>state.pantry.push({id:'qa-lang-'+i,ingredient:r.id,qty:1,place:i?'freezer':'fridge',expiry:i?'':addDays(sydneyDate(),3),...(i?{checkedAt:sydneyDate()}:{})}));if(rows[0])pantryPeekOpen.add(rows[0].id);save();render()})()")}catch(e){}});await page.waitForTimeout(800);
  const hits=new Map();const add=(t,where)=>{if(!hits.has(t))hits.set(t,new Set());hits.get(t).add(where)};
  const collect=async(where,scope)=>{const found=await page.evaluate(({lang,VIs,ENs,LOANs,scope})=>{const VI=new RegExp(VIs,'i'),EN=new RegExp(ENs,'i'),LOAN=new RegExp(LOANs,'gi');const st=globalThis.eval('typeof state!=="undefined"?state:null');
    const names=[...(st?.members||[]).map(m=>m.name),...(st?.recipes||[]).filter(r=>r.custom).map(r=>r.name),...(st?.stores||[]).map(s=>s.name),...(st?.recipes||[]).map(r=>r.name),...(st?.recipes||[]).map(r=>r.prep),...(st?.recipes||[]).filter(r=>!r.custom).flatMap(r=>r.steps||[]),...Object.values(st?.ingredientCatalog||{}).map(x=>x.name)].filter(Boolean).sort((a,b)=>b.length-a.length);

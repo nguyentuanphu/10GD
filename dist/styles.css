@@ -1980,3 +1980,18 @@ html[data-theme="dark"] .swipe-under{background:#3d1c19;color:#ffb3a8}
 .who-busy-row .who-busy-slots{display:block;margin-top:2px}
 .who-busy-row .who-busy-line{display:block;line-height:1.4}
 .cal-time-field input[type=time]{min-height:44px;width:100%;min-width:0}
+/* v1.7.9 (owner, 7 Nov 2026): "Tủ có … ▾" opens in the row */
+.shop-row .shop-pantry{grid-column:2/-1;min-width:0}
+.simple-screen .shop-row.shop-purchase-row.has-pantry>.shop-pantry{grid-column:2/-1!important;grid-row:2!important}
+.simple-screen .shop-row.shop-purchase-row.has-pantry>.qty-cell{grid-row:3!important}
+.simple-screen .shop-row.shop-purchase-row.has-pantry>.price{grid-row:3!important}
+.simple-screen .shop-row.shop-purchase-row.has-pantry>.store-pill{grid-row:4!important}
+.simple-screen .shop-row.shop-purchase-row.has-pantry>.online-line,.simple-screen .shop-row.shop-purchase-row.has-pantry>.online-find{grid-row:5!important}
+.shop-pantry-btn{min-height:44px;padding:4px 12px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--green2,#2f7054);font:inherit;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));cursor:pointer;text-align:left;max-width:100%}
+.shop-pantry.stale .shop-pantry-btn{border-color:#c98a2c;color:#9a5b06}
+html[data-theme="dark"] .shop-pantry.stale .shop-pantry-btn{color:#f0c27a}
+.shop-pantry-panel{margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white)}
+.shop-pantry-lots{list-style:none;margin:0 0 6px;padding:0}.shop-pantry-lots li{padding:4px 0;border-bottom:1px dashed var(--line)}.shop-pantry-lots li:last-child{border-bottom:0}
+.shop-pantry-lots small{display:block;color:var(--muted)}.shop-pantry-lots li.expired b{text-decoration:line-through;opacity:.7}
+.shop-pantry-sum{margin:6px 0;font-weight:600}.shop-pantry-stale{margin:6px 0;color:#9a5b06}html[data-theme="dark"] .shop-pantry-stale{color:#f0c27a}
+.shop-pantry-actions{display:flex;flex-wrap:wrap;gap:8px}.shop-pantry-actions .btn{min-height:44px}
