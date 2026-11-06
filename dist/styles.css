@@ -1941,3 +1941,8 @@ html[data-theme="dark"] .swipe-under{background:#3d1c19;color:#ffb3a8}
 #undo-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:12px;max-width:min(92vw,520px);padding:8px 8px 8px 16px;border-radius:14px;background:#1f3a2e;color:#fff;box-shadow:0 6px 24px #0004}
 #undo-bar .btn{min-height:44px;background:#fff;color:#1f3a2e;border-color:#fff;font-weight:700;white-space:nowrap}
 .simple-screen .shop-row>.large-check-target,.shop-row.shop-purchase-row>.large-check-target{grid-row:1!important;align-self:center!important}
+/* v1.7.9 (owner: "chỗ màu nâu là gì?"): an empty pantry note stays hidden — .hidden always hides */
+.hidden{display:none!important}
+.extra-qty-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(88px,auto);gap:8px}
+.extra-qty-pair input,.extra-qty-pair select{min-height:48px;min-width:0}
+.form-grid .extra-qty-field{grid-column:1/-1}

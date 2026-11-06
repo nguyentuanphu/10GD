@@ -12,6 +12,8 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
 | 6 | Four identical *Lịch vắng ngày mai* notifications at 19:03 | The phone was registered several times (or for several members) with the same push address, and each registration got a copy. | One send per push address. |
 | 7 | “Notification cần có thông tin rõ hơn, ngày nào khi nào” | — | Every reminder names the day and date. The calendar one reads e.g. *Ngày mai (T7 7/11): Cậu Tí vắng bữa tối* — *Vắng (bỏ phần ăn): Cậu Tí – bữa tối. Bữa tối còn 3/4 người ăn. Chạm để xem thực đơn ngày mai.* — and opens the weekly menu. *Tối nay (T6 6/11): bạn ăn cơm ở nhà chứ?*, *Bữa tối nay (T6 6/11): chuẩn bị nấu*, *Chốt thực đơn tuần tới (từ T2 9/11)* and the expiry reminder also carry the date. |
 
+| 8 | Screenshot 19:35, *Mua thêm món / nguyên liệu ngoài thực đơn*: “không có số lượng và đơn vị mà phải gộp vào 1 dòng thành ra hệ thống không hiểu… chỗ màu nâu tôi khoanh tròn là gì?” | One text box held both amount and unit (e.g. *500 g*). The brown box was the empty *Trong tủ đang có sẵn…* note: a later `.callout` rule overrode `.hidden`, so the empty note showed. | **Số lượng** is now a number box next to a unit list (g, kg, ml, L, quả, gói, hộp, bó, chai, lon, khay, túi, cái, cuộn), on its own full-width row. Picking an ingredient from the quick list fills both. The stored text stays *2 hộp* as before. `.hidden` always hides now, so the empty note is gone. |
+
 ## Tests
 
 - `push`: one copy per push address. 4 registrations of the same phone plus one other phone give 2 sends.
@@ -28,6 +30,7 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
   - the tick sits on the name line;
   - the amount stays put after rounding.
 - `scout-scanlist`: the catalogue count is now 166.
+- `v176-fixes:browser`: the extra-item form has a separate amount and unit, the empty pantry note is hidden, and it saves as *2 hộp*.
 
 ## Evidence (Chromium viewport simulation, not physical devices)
 
