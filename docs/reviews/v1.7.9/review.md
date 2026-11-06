@@ -46,6 +46,8 @@ Branch `release/v1.7.9` from `main` at `aec3270` (Release v1.7.8). **Not deploy-
 
 | 27 | Ladybug **#28** (6 Nov, 19:26): “Đã đăng ảnh của món ăn lên rồi mà sao ở ngoài menu vẫn không hiển thị” | The photo is attached to the family recipe just after the recipe is saved, but the save had already refreshed the menu's copies of the dish. So dishes already on the menu never got the photo. | Adding or removing a photo refreshes the menu's copies again. A copy made earlier also shows the family recipe's photo, so existing menus are fixed without changing any data. `v176-fixes:browser` checks a menu card shows a photo added later. |
 
+| 28 | Screenshot 7 Nov: “Chỗ này sửa lại cho nhỏ và nhìn hợp lý hơn, nút to quá” | The three buttons in the opened pantry details were large 48 px tiles with long labels. | Small chips in one row: **Vẫn còn** (green, the usual answer), **Mua đủ**, **Sửa tủ**. The longer meaning is in the tooltip and in the line above. The visible chip is 32 px, and each keeps a 44 px tap area. The note reads *Lâu rồi chưa ai kiểm tra món này trong tủ.* `v176-fixes:browser` checks one chip height ≤ 34 px and a 44 px tap area. |
+
 ## Tests
 
 - `push`: one copy per push address. 4 registrations of the same phone plus one other phone give 2 sends.
