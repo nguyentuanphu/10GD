@@ -1,4 +1,8 @@
 'use strict';
+// v1.7.9 (owner, 6 Nov 2026: "khi ấn vào thì nó đưa đến chỗ cần để xem"): a notification opens #planner?d=2026-11-07 —
+// the screen, plus the day to show. hashView() is the screen without the day.
+function hashView(){return location.hash.slice(1).split('?')[0]}
+function hashDate(){const m=location.hash.match(/[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/);return m?m[1]:null}
 const clone=x=>JSON.parse(JSON.stringify(x));
 const isoDate=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const sydneyDate=()=>new Intl.DateTimeFormat('en-CA',{timeZone:globalThis.BEP_TIMEZONE||'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());

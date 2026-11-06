@@ -159,6 +159,10 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   await page.locator('#modal-root [data-action="close-modal"]').first().click();await page.waitForTimeout(200);assert.equal(await page.evaluate(`!!currentWeek().skip[${JSON.stringify(sid)}]`),false,'Keep leaves it');
   await page.locator(`#main .row-skip[data-id="${sid}"]`).click();await page.locator('#modal-root [data-action="skip-row-confirm"]').click();await page.waitForTimeout(250);assert.equal(await page.locator(`#main .shop-purchase-row button[data-action="purchase-quantity"][data-id="${sid}"]`).count(),0,`${label}: row removed`);assert.equal(await page.evaluate(`!!currentWeek().skip[${JSON.stringify(sid)}]`),true);
   const undo=page.locator('#undo-bar button');await undo.waitFor();assert.ok((await undo.boundingBox())!.height>=44);if(size==='mobile')await shot('undo-bar');await undo.click();await page.waitForTimeout(250);assert.equal(await page.evaluate(`!!currentWeek().skip[${JSON.stringify(sid)}]`),false,'Hoàn tác brings it back');assert.equal(await page.locator(`#main .shop-purchase-row button[data-action="purchase-quantity"][data-id="${sid}"]`).count(),1)}
+ // v1.7.9 (owner: "khi ấn vào noti thì nó đưa đến chỗ cần để xem"): a notification link #planner?d=… opens that day
+ {const d=await page.evaluate(`addDays(sydneyDate(),1)`);await page.evaluate(`location.hash='planner?d=${d}'`);await page.waitForTimeout(400);
+  assert.equal(await page.evaluate('view'),'planner');assert.equal(await page.evaluate('selectedDate'),d);assert.equal(await page.locator(`#main details.plan-day[data-plan-day="${d}"]`).evaluate((e:any)=>e.open),true,`${label}: the linked day is open`);
+  await page.evaluate(`location.hash='shopping'`);await page.waitForTimeout(200)}
  // v1.7.9 (owner: "không có số lượng và đơn vị… chỗ màu nâu là gì?"): extra items ask amount and unit separately; the empty
  // pantry note stays hidden
  {await page.evaluate(`view='shopping';render();scrollTo(0,0)`);await page.evaluate(`document.querySelector('[data-action="add-extra"]').click()`);await page.locator('#extra-amount').waitFor();
