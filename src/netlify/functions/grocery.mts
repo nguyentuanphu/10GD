@@ -5,6 +5,7 @@ import {getStore} from '@netlify/blobs';
 import {resolveAccount,scopedStore} from '../lib/accounts.mjs';
 import {postcodeToState,supportedState} from '../lib/geo-resolver.mjs';
 import {ONLINE_PHOTOS_KEY,cleanPhoto} from '../lib/online-prices.mjs';
+import {addWanted} from '../lib/online-wanted.mjs';
 import {cleanObservation,readObservations,mutateObservations,rateLimit,officialPrices,cycleId,sydneyDate,CACHE_STORE} from '../lib/grocery-pricing.mjs';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 export function createGroceryHandler({getStoreFn=getStore,now=()=>new Date()}={}){
@@ -29,6 +30,13 @@ export function createGroceryHandler({getStoreFn=getStore,now=()=>new Date()}={}
     const official=await officialPrices(cacheStore(),state||null,cycle);
     return json({householdId:context.household.id,state:state||null,cycleId:cycle,today,observations,official,fetchedAt:now().toISOString()});
    }
+   // v1.7.8 owner decision: "Tìm giá online" — only the supermarket search word is kept (no family, account or item name)
+   if(op==='online-want'&&method==='POST'){let body:any;try{body=JSON.parse((await request.text()).slice(0,2000))}catch{return json({error:'Invalid JSON.'},400)}
+    if(!await rateLimit(store,context.account.username,now().getTime(),1))return json({error:'Quá nhiều lần lưu, thử lại sau ít phút. / Too many saves, try again shortly.'},429);
+    const cache=cacheStore();if(!cache)return json({error:'Unavailable.'},503);const r:any=await addWanted(cache,body?.query,now());
+    if(r.error==='invalid')return json({error:'Hãy gõ tên tiếng Anh như trên web siêu thị (3–50 chữ cái, vd “gravy beef”). / Type the English supermarket name (3–50 letters, e.g. “gravy beef”).'},400);
+    if(r.error==='full')return json({error:'Danh sách tìm giá đang đầy, hãy báo cho chủ app. / The search list is full; tell the app owner.'},409);
+    return json({itemId:r.itemId,query:r.query})}
    if(op==='observe'&&method==='POST'){
     const raw=await request.text();if(raw.length>40000)return json({error:'Too large.'},413);
     let body;try{body=JSON.parse(raw)}catch{return json({error:'Invalid JSON.'},400)}

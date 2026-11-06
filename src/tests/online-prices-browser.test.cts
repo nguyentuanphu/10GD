@@ -24,7 +24,7 @@ const OFFICIAL={cycleId:today,importedAt:today+'T06:05:00.000Z',source:'online',
  on('suon-bo','Coles Beef Short Ribs','coles',22,{unitPrice:22,unitBasis:'per_kg',insight:{signal:'usual',usual:22,low:21,high:23,pct:0,weeks:4,points:pts([22,21,23,22])}}),
  on('giay-ve-sinh','Quilton Toilet Tissue 24 pack','woolworths',16.5,{insight:{signal:'higher',usual:14,low:13,high:14.5,pct:-18,weeks:10,points:pts([14,14,13,14,14.5,14,16.5])}})
 ]};
-const priceCalls:any[]=[];
+const priceCalls:any[]=[],wantCalls:any[]=[];
 const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500 g'],['Viên rửa chén Finish','1 hộp'],['Giấy vệ sinh','1 gói'],['Bánh tráng','2 gói']];
 (async()=>{
  mkdirSync(out,{recursive:true});const browser=await chromium.launch();
@@ -37,6 +37,7 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
   await page.route(origin+'/**',async(route:any)=>{const url=new URL(route.request().url()),path=url.pathname,op=url.searchParams.get('op');
    if(path.startsWith('/.netlify/')){
     if(path.endsWith('/grocery')&&op==='photos'){await route.fulfill({json:{updatedAt:today,items:{'sua-tuoi':{photo:'https://productimages.coles.com.au/productimages/1/qa-milk.png',retailer:'coles',label:'Coles Full Cream Milk 2L'},'gao-jasmine':{photo:'https://productimages.coles.com.au/productimages/1/qa-missing.png',retailer:'coles',label:'x'}}}});return}
+    if(path.endsWith('/grocery')&&op==='online-want'){const q=String(JSON.parse(route.request().postData()||'{}').query||'').trim().toLowerCase();wantCalls.push(route.request().postData());await route.fulfill({json:{itemId:'w-'+q.replace(/[^a-z0-9]+/g,'-'),query:q}});return}
     if(path.endsWith('/grocery')){if(op==='prices')priceCalls.push(url.searchParams.get('state'));await route.fulfill({json:op==='prices'?{householdId:'qa-household',state:'NSW',cycleId:today,today,observations:[],official:OFFICIAL}:{}});return}
     if(path.includes('/accounts')&&op==='families'){await route.fulfill({json:{families:[{id:'qa-household',name:'QA',role:'owner'}],account:{username:'qa',name:'Mẹ'}}});return}
     const status={configured:true,connected:true,mode:'account',account:{username:'qa',name:'Mẹ'},household:{id:'qa-household',name:'QA kitchen',role:'owner',memberId:null}};
@@ -136,7 +137,16 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
    const rib=await rowOf(page,'Sườn bò').locator('.online-line').innerText();assert.match(rib,/Coles\s*\$22\.00/,'family "Sườn bò" shows its online price');
    const n=priceCalls.length;await page.evaluate(`view='shopping';render()`);await page.waitForTimeout(400);assert.equal(priceCalls.length,n,'a fresh copy is not fetched again');
    assert.equal(await page.locator('#toast.show, #toast:not(:empty)').evaluateAll((a:any[])=>a.filter(t=>/Đã cập nhật giá/.test(t.textContent||'')).length),0,'the automatic fetch is quiet');
-   await rowOf(page,'Sườn bò').scrollIntoViewIfNeeded();await page.screenshot({path:'docs/reviews/v1.7.8/online-auto-suon-bo-375x812.png'});
+   await rowOf(page,'Sườn bò').evaluate((e:any)=>e.scrollIntoView({block:'center'}));await page.waitForTimeout(200);await page.screenshot({path:'docs/reviews/v1.7.8/online-auto-suon-bo-375x812.png'});
+   // v1.7.8 owner decision: a family item with no catalogue match (Bánh tráng) offers "Tìm giá online"; the suggested
+   // English name is filled in, only the word is sent, the row waits, and the next update's price shows on the row
+   {const row=()=>page.locator('.shop-row',{hasText:'Bánh tráng'}).first();const fb=row().locator('[data-scout="online-find"]');await fb.waitFor();assert.ok((await fb.boundingBox())!.height>=44,'44 px');
+    await fb.click();const q=page.locator('#online-find-q');await q.waitFor();assert.equal(await q.inputValue(),'rice paper','suggested English name');await page.evaluate(()=>{const t=document.getElementById('toast');if(t)t.style.visibility='hidden'});await page.screenshot({path:'docs/reviews/v1.7.8/online-find-sheet-375x812.png'});
+    await page.locator('[data-scout="online-find-save"]').click();await row().locator('.online-find.waiting').waitFor();assert.match(await row().innerText(),/rice paper/);
+    assert.deepEqual(JSON.parse(wantCalls.at(-1)),{query:'rice paper'},'only the search word is sent');
+    OFFICIAL.observations.push(on('w-rice-paper','Coles Rice Paper 400g','coles',3.5));await page.evaluate('scoutRefresh({})');
+    await row().locator('.online-line').waitFor({timeout:10000});assert.match(await row().locator('.online-line').innerText(),/Coles\s*\$3\.50/,'the search word\'s price shows on the row');
+    await row().evaluate((e:any)=>e.scrollIntoView({block:'center'}));await page.waitForTimeout(200);await page.screenshot({path:'docs/reviews/v1.7.8/online-find-price-375x812.png'});OFFICIAL.observations.pop()}
    assert.deepEqual(errors,[]);await context.close()}
   console.log('PASS product photos over drawings (missing photo → drawing), trip plans (nearest / balanced / cheapest, minutes saved, estimate flag, stops grouped by store) and online prices on the shopping list: cheapest online price per row, real / not real / unverified / lowest / higher deal chips, Deals this week card, price history sheet with chart (≥44 px, no overflow at 320/375/820/1280, VI/EN, light/dark), release number in Account & settings');
  }finally{await browser.close()}

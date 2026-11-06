@@ -105,7 +105,9 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  // 5. the other screens: nothing cut off, no word broken in the middle
  // v1.7.7 buy extra on purpose: "+500 g" in the picker and a reason; the row says so; "Dùng lượng tự động" clears it
  if(size==='mobile'){await page.evaluate(`view='shopping';render();scrollTo(0,0)`);const qb=page.locator('#main button[data-action="purchase-quantity"]').first();const qid=await qb.getAttribute('data-id');await qb.click();
-  await page.locator('[data-buy-plus="500"]').waitFor();await page.locator('[data-buy-plus="500"]').click();await page.locator('#purchase-extra-why').fill('làm chả');await shot('buy-extra');
+  // v1.7.8 (ladybug #21/#22): no "Bước cuộn" and no amount suggestion chips in the picker; the extra is typed or scrolled
+  await page.locator('#purchase-extra-why').waitFor();assert.equal(await page.locator('#weight-step, [data-buy-plus], .weight-quick-picks button').count(),0,'no step choice or suggestion chips');assert.doesNotMatch(await page.locator('#modal-root').innerText(),/Bước cuộn/);
+  await page.evaluate('setPickerQuantity(purchasePicker.qty+500)');await page.locator('#purchase-extra-why').fill('làm chả');await shot('buy-extra');
   await page.locator('[data-action="save-purchase-quantity"]').click();await page.waitForTimeout(300);
   const note=page.locator(`#main .shop-row:has(button[data-id="${qid}"]) .buy-extra-note`);assert.match(await note.innerText(),/\+500 g · làm chả/,'row shows the extra and why');
   await page.locator(`#main button[data-action="purchase-quantity"][data-id="${qid}"]`).click();await page.locator('[data-action="reset-purchase-quantity"]').click();await page.waitForTimeout(300);assert.equal(await note.count(),0,'automatic amount clears the extra')}
@@ -117,8 +119,10 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   assert.equal(await down.evaluate((e:any)=>{const r=e.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('.qty-round')===e}),true,`${label}: ≈↓ not covered`);
   const v0=await q();await page.locator('.qty-round[data-qr-dir="up"]').first().click();await page.waitForTimeout(200);const v1=await q();assert.ok(v1>v0,`${label}: ≈↑ rounds up (${v0} → ${v1})`);assert.ok(ub.height>=44&&db.width>=44,'round buttons are 44 px targets');
   await page.locator(`.qty-round[data-qr-dir="down"][data-qr-id="${id}"]`).click();await page.waitForTimeout(200);const v2=await q();assert.ok(v2<v1,`${label}: ≈↓ rounds down (${v1} → ${v2})`);
-  await page.locator('.qty-round').first().dispatchEvent('contextmenu');await page.locator('#qr-form').waitFor();await page.locator('#qr-form input[name=dir][value=down]').check();await page.locator('[data-qr="apply"]').click();await page.waitForTimeout(200);const v3=await q();assert.ok(v3<v2,`${label}: round down from the options (${v2} → ${v3})`);
-  await page.evaluate(`(()=>{const[s,e]=shopDates();resetPurchaseQuantity(currentWeek(),s,e,${JSON.stringify(id)});delete state.preferences.qtyRound;save();render()})()`)}
+  // ladybug #21 (“từ 3.8 lên 50”): the step follows the amount — to the nearest round number; no options sheet any more
+  assert.deepEqual(await page.evaluate(`[qrNext(3.8,'g',{dir:'up'}),qrNext(3.8,'g',{dir:'down'}),qrNext(47,'g',{dir:'up'}),qrNext(1880,'g',{dir:'up'}),qrNext(1880,'g',{dir:'down'}),qrNext(625,'g',{dir:'up'})]`),[4,3,50,1900,1800,650]);
+  await down.dispatchEvent('contextmenu');await page.waitForTimeout(200);assert.equal(await page.locator('#qr-form').count(),0,'no options sheet');
+  await page.evaluate(`(()=>{const[s,e]=shopDates();resetPurchaseQuantity(currentWeek(),s,e,${JSON.stringify(id)});save();render()})()`)}
  for(const v of ['shopping','recipes','pantry','expenses','insights','products']){await page.evaluate(`view=${JSON.stringify(v)};render();scrollTo(0,0)`);await textOk(v);if(v==='shopping')await shot('shopping')}
  // 7. voice sheet (owner: “nút hold to talk nằm quá sâu phía dưới”): the talk button sits under the status, above the words box
  await page.evaluate('closeModal();voiceModal()');await page.locator('#voice-text').waitFor();

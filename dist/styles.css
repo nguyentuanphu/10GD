@@ -1909,3 +1909,10 @@ html[data-theme="dark"] .swipe-under{background:#3d1c19;color:#ffb3a8}
 .simple-screen .shop-row .qty-cell{grid-column:2;grid-row:2;justify-self:start;align-self:center}
 .family-week-grid .plan-day>.plan-day-head,.plan-day>.plan-day-head{display:grid!important;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"title btn" "count btn";align-items:center;gap:0 10px}
 .plan-day-head .pd-title{grid-area:title}.plan-day-head .pd-count{grid-area:count}.plan-day-head .pd-meals{grid-area:btn}
+/* v1.7.8: "Tìm giá online" for family items that are not in the price catalogue */
+.shop-row:has(.online-find){flex-wrap:wrap}
+.online-find{flex-basis:100%;grid-column:2/-1;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--muted)}
+.online-find .btn{min-height:44px;display:inline-flex;align-items:center;gap:6px}
+.online-find .ol-cart{width:20px;height:20px;flex:none}
+.online-find.waiting{border:1px dashed var(--line);border-radius:12px;padding:4px 6px 4px 10px}
+.online-find.waiting .text-btn{min-height:44px;padding:0 8px}

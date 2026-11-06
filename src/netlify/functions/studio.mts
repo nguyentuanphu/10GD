@@ -1,5 +1,6 @@
 import {startOnlineRun,runState as onlineRunState} from '../lib/online-run.mjs';
 import {ONLINE_KEY,ONLINE_STATUS_KEY,ONLINE_MAPPING_KEY,ONLINE_PROPOSALS_KEY,cleanMapping} from '../lib/online-prices.mjs';
+import {readWanted,removeWanted} from '../lib/online-wanted.mjs';
 import {CACHE_STORE as PRICE_CACHE_STORE,cycleId as priceCycleId,sydneyDate as priceSydneyDate} from '../lib/grocery-pricing.mjs';
 import onlineCatalog from '../../data/master-catalog.json' with {type:'json'};
 import {getStore} from '@netlify/blobs';
@@ -67,7 +68,12 @@ export function createStudioHandler({getStoreFn=getStore,env=process.env,nowFn=(
     const sv=(await platformSettings(getStoreFn,{env,fresh:true,now})).values;
     return json({status:st,run:await onlineRunState(cache,now),flags:{onlinePinch:sv.flags?.onlinePinch===true,onlineWhichGrocer:sv.flags?.onlineWhichGrocer===true,onlineAutoConfirm:sv.flags?.onlineAutoConfirm!==false},keys:{pinch:!!env.PINCH_API_KEY,whichgrocer:!!env.WHICHGROCER_API_KEY},items:((onlineCatalog as any)?.items||[]).length})}
    if(op==='online-proposals'&&isRead){ownerOnly();const cache=getStoreFn({name:PRICE_CACHE_STORE,consistency:'strong',region:'ap-southeast-2'});let pr:any=null,mp:any=null;try{pr=await cache.get(ONLINE_PROPOSALS_KEY,{type:'json'})}catch{}try{mp=await cache.get(ONLINE_MAPPING_KEY,{type:'json'})}catch{}
-    const names=Object.fromEntries(((onlineCatalog as any)?.items||[]).map((x:any)=>[x.id,{vi:x.nameVi,en:x.nameEn}]));return json({at:pr?.at||null,proposals:(pr?.items||[]).map((x:any)=>({...x,name:names[x.itemId]||null})),mapping:cleanMapping(mp)})}
+    const wanted=await readWanted(cache),names:any=Object.fromEntries(((onlineCatalog as any)?.items||[]).map((x:any)=>[x.id,{vi:x.nameVi,en:x.nameEn}]));for(const [id,w] of Object.entries(wanted.items) as any)names[id]={vi:`Gia đình tìm: “${w.query}”`,en:`Family search: “${w.query}”`};
+    return json({at:pr?.at||null,proposals:(pr?.items||[]).map((x:any)=>({...x,name:names[x.itemId]||null})),mapping:cleanMapping(mp),wanted:Object.entries(wanted.items).map(([itemId,w]:any)=>({itemId,query:w.query,at:w.at,n:w.n}))})}
+   // v1.7.8: the owner removes a family search word that finds the wrong things
+   if(op==='online-wanted-remove'&&method==='POST'){ownerOnly();const cache=getStoreFn({name:PRICE_CACHE_STORE,consistency:'strong',region:'ap-southeast-2'});const itemId=String(body.itemId||'').slice(0,60),removed=await removeWanted(cache,itemId);
+    if(removed){try{const key=ONLINE_KEY(priceCycleId(priceSydneyDate(new Date(now)))),cur:any=await cache.get(key,{type:'json'});if(cur?.observations){cur.observations=cur.observations.filter((o:any)=>o.itemId!==itemId);await cache.setJSON(key,cur)}}catch{}}
+    return json({removed})}
    if(op==='online-mapping-save'&&method==='POST'){ownerOnly();const itemId=String(body.itemId||''),retailer=String(body.retailer||''),productId=String(body.productId||'').slice(0,80),ok=body.ok===true;
     if(!/^[a-z0-9-]{1,60}$/.test(itemId)||!((onlineCatalog as any)?.items||[]).some((x:any)=>x.id===itemId))fail('Món không có trong danh mục.','Unknown catalogue item.');if(!['woolworths','coles','aldi','chemist'].includes(retailer)||!productId)fail('Thiếu siêu thị hoặc sản phẩm.','Retailer and product are required.');
     const cache=getStoreFn({name:PRICE_CACHE_STORE,consistency:'strong',region:'ap-southeast-2'});let mp:any={};try{mp=cleanMapping(await cache.get(ONLINE_MAPPING_KEY,{type:'json'}))}catch{}

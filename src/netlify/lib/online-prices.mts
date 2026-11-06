@@ -8,13 +8,15 @@
 // Matching is guarded (the product name must contain the item's name or an alias). Pinch and WhichGrocer
 // prices for the same retailer that differ by more than 15 % are held for review, not shown. When a provider
 // fails, the last saved prices (with their dates) stay; a price is never invented.
-import {productIsItem,catalogItems} from './scout-match.mjs';
+import {productIsItem,catalogItems,itemScore} from './scout-match.mjs';
 const PINCH='https://pinch-app.com/api',WG='https://api.whichgrocer.com/v2';
 // Matching uses the reviewed So Giá matcher (every word of one of the item's names, and no variant word such as
 // canned/flavour/chips/crackers/dip/cleaner unless the item is that variant). A live run on 5 Nov 2026 showed the
 // providers' “cheapest” hint is often a processed product (coriander → rice cups, squid → “Squid Brand” fish sauce).
 let MATCH_ITEMS:any=null;const matchItems=()=>MATCH_ITEMS??=catalogItems();
-export function isItem(item:any,name:any){try{return productIsItem(String(name||''),item.id,matchItems())}catch{return false}}
+// v1.7.8: a family search word (lib/online-wanted.mts) matches when every word of it is in the product name and no
+// variant word (sauce, chips, cooked …) is — it does not compete with the catalogue, the family chose the word.
+export function isItem(item:any,name:any){try{if(item?.wanted)return itemScore(String(name||''),{itemId:item.id,names:[String(item.nameEn||'')]})>0;return productIsItem(String(name||''),item.id,matchItems())}catch{return false}}
 /** Unit prices outside these bounds are a data error (e.g. a per-gram value read as per-kg) and are dropped. */
 const UNIT_MAX:Record<string,number>={per_kg:300,per_100g:30,per_L:200,per_100mL:20,per_each:500};
 const RETAILER_OF:Record<string,string>={woolworths:'woolworths',coles:'coles',aldi:'aldi','chemist warehouse':'chemist',chemist_warehouse:'chemist',chemistwarehouse:'chemist'};
@@ -79,7 +81,7 @@ export function unitPriceFor(basis:string,cup:any,measure:any){let price=typeof 
 function saneUnit(basis:string,v:number|null){return v!=null&&v>0&&v<=(UNIT_MAX[basis]??500)?v:null}
 async function getJSON(fetchFn:any,url:string,init:any,timeoutMs=20000){const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),timeoutMs);try{const r=await fetchFn(url,{...init,signal:ctl.signal});const body=await r.json().catch(()=>null);return{ok:r.ok,status:r.status,body}}catch(e:any){return{ok:false,status:0,body:null,error:String(e?.name||e)}}finally{clearTimeout(t)}}
 /** Pinch basket compare (≤ 5 items per request): the cheapest matching product per retailer for each item. */
-export async function pinchPrices(items:any[],{key,fetchFn=fetch,today,maxRequests=40,mapping={}}:any){const out:any[]=[],errors:string[]=[];let requests=0;
+export async function pinchPrices(items:any[],{key,fetchFn=fetch,today,maxRequests=45,mapping={}}:any){const out:any[]=[],errors:string[]=[];let requests=0;
  for(let i=0;i<items.length&&requests<maxRequests;i+=5){const chunk=items.slice(i,i+5);requests++;
   const r=await getJSON(fetchFn,PINCH+'/basket/compare',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({items:chunk.map((x:any)=>({query:x.nameEn}))})});
   if(!r.ok){errors.push('pinch '+(r.status||r.error));if(r.status===401||r.status===403||r.status===429)break;continue}

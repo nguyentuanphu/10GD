@@ -60,7 +60,8 @@ for(const [size,opts] of SIZES){
  await noOverflow('recipe detail');await shot('recipe-detail');await page.evaluate(()=>(globalThis as any).eval('closeModal()'));
  // ---- meal editor: Bữa phụ, 5 suggestions + Xem thêm (#11/#12), plain portion wording (#14)
  await page.evaluate(()=>{location.hash='planner'});await page.waitForTimeout(500);
- assert.match(await page.locator('#main').innerText(),/bữa phụ/i,'daily Bữa phụ in the menu');
+ // v1.7.8: Bữa phụ is added per day from the day's “Bữa ±” list
+ await tap(page.locator('#main .pd-meals:visible').first());await page.locator('#modal-root .pm-list').waitFor();assert.match(await page.locator('#modal-root .pm-list').innerText(),/bữa phụ/i,'daily Bữa phụ in the menu');await page.evaluate(()=>(globalThis as any).eval('closeModal()'));
  await tap(page.locator('[data-fm="edit-meal"]:visible').first());await page.locator('#meal-lib-list').waitFor();
  assert.equal(await page.locator('#meal-lib-list .family-select-row').count(),5,'5 reference suggestions');
  const more=page.locator('#meal-lib-list [data-meal-more="lib"]');await tap(more);assert.equal(await page.locator('#meal-lib-list .family-select-row').count(),10,'Xem thêm shows 5 more');
