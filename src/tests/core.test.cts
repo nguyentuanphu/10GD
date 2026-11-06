@@ -58,10 +58,10 @@ vm.runInContext(`
 const multi=defaults(),multiMeal=createMeal(multi,'r1','r13','r23');multiMeal.servings=4;
 const initialRibs=mealIngredients(multiMeal,multi).ribs;multiMeal.recipes.push(clone(multi.recipes.find(r=>r.id==='r3')));
 check(multiMeal.recipes.filter(r=>r.category==='main').length===2,'one meal supports multiple mains');
-check(mealIngredients(multiMeal,multi).ribs===initialRibs/2,'two mains automatically share standard portion');
-check(mealIngredients(multiMeal,multi).salmon===300,'second main gets half of four-person recipe by default');
-multiMeal.recipes.find(r=>r.id==='r3').portionFactor=1;
-check(mealIngredients(multiMeal,multi).salmon===600,'per-dish portion override controls ingredient demand');
+check(mealIngredients(multiMeal,multi).ribs===initialRibs,'two mains each cook in full (v1.7.8 owner decision; before: halved automatically)');
+check(mealIngredients(multiMeal,multi).salmon===600,'second main cooks the full four-person recipe by default (v1.7.8)');
+multiMeal.recipes.find(r=>r.id==='r3').portionFactor=.5;
+check(mealIngredients(multiMeal,multi).salmon===300,'per-dish portion override (½) controls ingredient demand');
 const savedSoup=multiMeal.recipes.find(r=>r.category==='soup').name;multiMeal.recipes[0]=clone(multi.recipes.find(r=>r.id==='r2'));
 check(multiMeal.recipes.length===4&&multiMeal.recipes.some(r=>r.name===savedSoup),'replacing one dish preserves other dishes');
 multiMeal.staple='none';check(!mealIngredients(multiMeal,multi).rice,'meal can explicitly omit rice');

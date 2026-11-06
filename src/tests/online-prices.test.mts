@@ -112,3 +112,10 @@ console.log('PASS price history (one point per day, new product restarts, 26 wee
  const a=applyMapping(obs,{'thit-ba-chi':{coles:{productId:'2',ok:false,rejected:['2']}}},{auto:true});assert.deepEqual(a.confirmed.map((o:any)=>o.productId),['1'],'auto: shown unless rejected');assert.equal(a.proposals.length,1);assert.equal(a.proposals[0].auto,true,'still listed for checking');
  const b=applyMapping(obs,{},{auto:false});assert.equal(b.confirmed.length,0,'review-first: nothing shown before ✓')}
 console.log('PASS online prices: parsing, matching guard, Pinch basket ≤5/request, WhichGrocer budget + pacing, cross-check hold, switches, failure keeps old prices, keys never stored, only owner-confirmed products shown, merge into official prices');
+// v1.7.8 owner decision: a family search word ("gravy beef") is looked up like a catalogue item; a product matches when every
+// word is in its name and no variant word (stock powder, sauce …) is; the word never competes with the catalogue.
+{const {wantedItems}=await import('../netlify/lib/online-wanted.mjs');const [gravy]=wantedItems({items:{'w-gravy-beef':{query:'gravy beef',n:1}}});
+ assert.equal(isItem(gravy,'Coles Beef Gravy Beef 500g'),true);assert.equal(isItem(gravy,'Gravox Beef Gravy Powder 120g'),false,'variant word');assert.equal(isItem(gravy,'Beef Mince 500g'),false);
+ const fetchFn=async()=>new Response(JSON.stringify({data:{items:[{candidates:[{retailer:'Coles',name:'Coles Beef Gravy Beef 500g',price:8,product_id:'c1'},{retailer:'Woolworths',name:'Gravox Beef Gravy Powder',price:2,product_id:'w1'}]}]}}),{status:200});
+ const p=await pinchPrices([gravy],{key:'pk_test',fetchFn,today:'2026-11-06'});assert.equal(p.observations.length,1);assert.equal(p.observations[0].itemId,'w-gravy-beef');assert.equal(p.observations[0].retailer,'coles');assert.equal(p.observations[0].unitPrice,null,'no unit basis for a search word');
+ console.log('PASS online prices: family search words matched like catalogue items (variant words refused)')}

@@ -1,9 +1,9 @@
 // v1.7.6 owner report (6 Nov 2026, iPhone screenshots): “Chi tiêu” left in Vietnamese in English mode; “hôm nay tôi away
 // nhưng vẫn ghi là at home”; names in the packed-lunch table split over lines; “chữ bị wrap xuống… audit lại tất cả”.
 // Exercised at phone, narrow phone, tablet and desktop sizes in VI and EN; screenshots are the release evidence in
-// docs/reviews/v1.7.6 (Chromium viewport simulation, not physical devices).
+// docs/reviews/v1.7.8 (since v1.7.8; earlier runs in v1.7.6) (Chromium viewport simulation, not physical devices).
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),assert=require('assert');
-const dir='docs/reviews/v1.7.6';fs.mkdirSync(dir,{recursive:true});
+const dir='docs/reviews/v1.7.8';fs.mkdirSync(dir,{recursive:true});
 const SIZES:any[]=[['narrow',{width:320,height:740}],['mobile',{width:375,height:812}],['tablet',{width:820,height:1100}],['desktop',{width:1280,height:800}]];
 // the owner's family: one member is called “Chi”, which used to block the translation of “Chi tiêu”
 const MEMBERS=[['m-phu','Ba Phú'],['m-mi','Mẹ Mi'],['m-chi','Chi'],['m-tien','Tiên'],['m-ti','Cậu Tí']];
@@ -70,36 +70,90 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   const td=page.locator('#main details.plan-day.is-today');assert.equal(await td.evaluate((d:any)=>d.open),true);
   const types=await td.locator('.family-meal-card').evaluateAll((a:any[])=>a.map(e=>e.closest('[data-type]')?.dataset.type||e.dataset.type||e.querySelector('[data-type]')?.dataset.type||''));
   const labels=await td.locator('.family-meal-card h3').allInnerTexts();assert.ok(labels.length>=3,`${label}: breakfast, lunch, dinner shown (${labels})`);assert.ok(labels.some(t=>/trưa|lunch/i.test(t)),`${label}: lunch always shown`);
-  const other=days.nth(await page.evaluate(`[...document.querySelectorAll('#main details.plan-day')].findIndex(d=>!d.open)`));assert.match(await other.locator('.pd-sum').innerText(),lang==='en'?/Breakfast/:/Bữa sáng/,`${label}: folded day says what each meal has`);
-  if(size==='mobile'){const before=await td.locator('.family-meal-card').count();await td.locator('[data-plan-meal="add"][data-type="snack"]').click();await page.waitForTimeout(250);const td2=page.locator('#main details.plan-day.is-today');assert.equal(await td2.locator('.family-meal-card').count(),before+1,'snack added');
-   await td2.locator('[data-plan-meal="remove"][data-type="snack"]').click();await page.waitForTimeout(250);assert.equal(await page.locator('#main details.plan-day.is-today .family-meal-card').count(),before,'snack removed')
-   // a morning snack too (owner chose several snacks a day)
-   await page.locator('#main details.plan-day.is-today [data-plan-meal="add"][data-type="snackAm"]').click();await page.waitForTimeout(250);assert.equal(await page.locator('#main details.plan-day.is-today .meal-slot[data-slot="snackAm"]').count(),1,'morning snack added');
-   await page.locator('#main details.plan-day.is-today [data-plan-meal="remove"][data-type="snackAm"]').click();await page.waitForTimeout(250);assert.equal(await page.locator('#main details.plan-day.is-today .meal-slot[data-slot="snackAm"]').count(),0,'morning snack removed');
-   // any of the three meals can be removed for the day and added back (owner: “luôn có đủ 3 bữa và thêm bớt được”)
-   await page.locator('#main details.plan-day.is-today [data-plan-meal="remove"][data-type="breakfast"]').click();await page.waitForTimeout(250);
-   assert.equal(await page.locator('#main details.plan-day.is-today .meal-slot[data-slot="breakfast"]').count(),0,'breakfast removed for the day');
-   assert.match(await page.locator('#main details.plan-day.is-today .pd-sum').innerText(),lang==='en'?/Lunch/:/Bữa trưa/);
-   await page.locator('#main details.plan-day.is-today [data-plan-meal="add"][data-type="breakfast"]').click();await page.waitForTimeout(250);
-   assert.equal(await page.locator('#main details.plan-day.is-today .meal-slot[data-slot="breakfast"]').count(),1,'breakfast added back')}
+  // v1.7.8 (owner, 6 Nov 2026): the day line no longer lists breakfast / lunch / dinner — day, date, counts and a "Bữa ±"
+  // button that adds or removes any meal; a meal card swiped left or right is removed.
+  assert.equal(await page.locator('#main .plan-day-head .pd-sum, #main .plan-day-head .pd-meal').count(),0,`${label}: no meal lines on the day line`);
+  const other=days.nth(await page.evaluate(`[...document.querySelectorAll('#main details.plan-day')].findIndex(d=>!d.open)`));const head=await other.locator('.plan-day-head').innerText();
+  assert.doesNotMatch(head,lang==='en'?/Breakfast|Lunch|Dinner/:/Bữa sáng|Bữa trưa|Bữa tối/,`${label}: folded day line has no meal names (${head})`);assert.match(head,lang==='en'?/\d+ meals · \d+ dishes/:/\d+ bữa · \d+ món/);
+  const mb=other.locator('.pd-meals');assert.ok((await mb.boundingBox())!.height>=44,`${label}: "Bữa ±" is a 44 px target`);
+  const hb=await other.locator('.plan-day-head').boundingBox();assert.ok(hb!.height<=(size==='narrow'?110:80),`${label}: day line stays short (${hb!.height}px)`);
+  if(size==='mobile'){const td2=()=>page.locator('#main details.plan-day.is-today'),slots=()=>td2().locator('.meal-slot'),slot=(t:string)=>td2().locator(`.meal-slot[data-slot="${t}"]`);
+   const toggle=async(t:string,on:boolean)=>{await td2().locator('.pd-meals').click();const c=page.locator(`#modal-root [data-plan-meal-toggle="${t}"]`);await c.waitFor();assert.equal(await page.locator('#modal-root [data-plan-meal-toggle]').count(),5,'all five meals listed');
+    if(on)await c.check();else await c.uncheck();await page.waitForTimeout(250);await page.evaluate('closeModal()')};
+   // the "Bữa ±" button does not fold the day
+   const before=await slots().count();await toggle('snack',true);assert.equal(await td2().evaluate((d:any)=>d.open),true,'day stays open');assert.equal(await slots().count(),before+1,'afternoon snack added');
+   await toggle('snack',false);assert.equal(await slots().count(),before,'afternoon snack removed');
+   await toggle('snackAm',true);assert.equal(await slot('snackAm').count(),1,'morning snack added');
+   // swipe the (empty) morning snack to the left: removed
+   const swipe=async(t:string,dir:number)=>{const card=slot(t);await card.scrollIntoViewIfNeeded();const bx=(await card.boundingBox())!;const y=bx.y+Math.min(40,bx.height/2),x0=bx.x+bx.width/2;
+    await page.mouse.move(x0,y);await page.mouse.down();await page.mouse.move(x0+dir*bx.width*0.2,y,{steps:4});
+    assert.equal(await card.evaluate((e:any)=>e.classList.contains('swiping')),true,'card follows the finger');await page.mouse.move(x0+dir*bx.width*0.45,y,{steps:4});await shot('swipe-meal');await page.mouse.up();await page.waitForTimeout(300)};
+   await swipe('snackAm',-1);assert.equal(await slot('snackAm').count(),0,'morning snack swiped away');
+   // a short swipe springs back
+   {const card=slot('lunch'),bx=(await card.boundingBox())!;const y=bx.y+30,x0=bx.x+bx.width/2;await page.mouse.move(x0,y);await page.mouse.down();await page.mouse.move(x0+bx.width*0.2,y,{steps:4});await page.mouse.up();await page.waitForTimeout(300);assert.equal(await slot('lunch').count(),1,'short swipe keeps the meal')}
+   // breakfast (with dishes): swipe right asks first, then it is gone for the day; "Bữa ±" brings it back
+   const hasDishes=await page.evaluate(`currentWeek().days[sydneyDate()]?.breakfast?.recipes?.length||0`);if(hasDishes)page.once('dialog',(d:any)=>d.accept());
+   await swipe('breakfast',1);assert.equal(await slot('breakfast').count(),0,'breakfast swiped away');
+   await toggle('breakfast',true);assert.equal(await slot('breakfast').count(),1,'breakfast added back');
+   assert.equal(await td2().locator('[data-plan-meal="remove"], .plan-day-tools').count(),0,'no extra remove buttons or add row under the meals')}
   await shot('planner-days')}
  // 4b. meal editor opens with the meal's ingredients (ladybug report: “không thấy nguyên liệu cho bữa ăn này”)
  if(size==='mobile'||size==='desktop'){const d=await page.evaluate(`Object.keys(currentWeek().days).find(d=>currentWeek().days[d].dinner.recipes.length)`);await page.evaluate(`familyEditMeal(${JSON.stringify(d)},'dinner')`);
-  const box=page.locator('#modal-root .meal-ingredients');await box.waitFor();assert.equal(await box.evaluate((e:any)=>e.open),true);
-  assert.ok(await box.locator('.meal-ing-dish').count()>=2,`${label}: one section per dish`);assert.ok(await box.locator('ul.ingredients li').count()>=3,`${label}: ingredients listed for the meal`);
-  await textOk('meal-editor');await shot('meal-ingredients');await page.evaluate('closeModal()')}
+  // v1.7.8 (ladybug #26): “+ Thêm món ăn” starts at “1. Tự thêm nhanh món ăn”; dishes already in the meal are not offered
+  // again; 3 suggestions per section; the meal's ingredients are still there, folded at the end
+  const first=await page.evaluate(`(()=>{const m=document.querySelector('#modal-root .modal-content, #modal-root .modal');const f=m.querySelector('#family-meal-form');return f&&f.querySelector('.soft-box b')?.textContent})()`);assert.match(first,/1\. (Tự thêm nhanh món ăn|Quick-add a dish)/);
+  const box=page.locator('#modal-root .meal-ingredients');await box.waitFor();assert.equal(await box.evaluate((e:any)=>e.open),false,'ingredients folded');
+  assert.equal(await box.evaluate((e:any)=>!!(document.getElementById('family-meal-form')!.compareDocumentPosition(e)&Node.DOCUMENT_POSITION_FOLLOWING)),true,'ingredients after the form');
+  await box.locator('summary').click();assert.ok(await box.locator('.meal-ing-dish').count()>=2,`${label}: one section per dish`);assert.ok(await box.locator('ul.ingredients li').count()>=3,`${label}: ingredients listed for the meal`);
+  const inMeal:string[]=await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.id)`);const offered:string[]=await page.locator('#family-meal-form input[name="recipe"]').evaluateAll((a:any[])=>a.map(i=>i.value));
+  assert.equal(offered.filter(id=>inMeal.includes(id)).length,0,`${label}: dishes already in the meal are not offered`);
+  assert.ok(await page.locator('#meal-lib-list .family-select-row').count()<=3,`${label}: 3 suggestions`);
+  await textOk('meal-editor');await shot('meal-editor');
+  // ladybug #27: tick one more dish and save — it joins the meal and shows on the menu at once, nothing else is lost
+  if(size==='mobile'){const pickId=await page.locator('#meal-lib-list input[name="recipe"]').first().getAttribute('value');await page.locator(`#meal-lib-list input[name="recipe"][value="${pickId}"]`).check();
+   await page.locator('[data-action="submit-form"][data-id="family-meal-form"]').click();await page.waitForTimeout(300);
+   const after:string[]=await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.id)`);assert.deepEqual(after,[...inMeal,pickId],'added, nothing removed');
+   // quick-add then save: the new dish stays (it used to vanish when its row was not ticked)
+   await page.evaluate(`familyEditMeal(${JSON.stringify(d)},'dinner')`);await page.locator('#quick-dish-name').fill('Gỏi gà bắp cải nhà làm');await page.locator('#quick-dish-save').uncheck();await page.locator('[data-fm="quick-add-dish"]').click();await page.waitForTimeout(300);
+   assert.match(await page.evaluate(`document.querySelector('#main [data-plan-day="${d}"]').textContent`),/Gỏi gà bắp cải nhà làm/,'quick-added dish on the menu behind the sheet');
+   await page.locator('[data-action="submit-form"][data-id="family-meal-form"]').click();await page.waitForTimeout(300);
+   assert.ok((await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.name)`)).includes('Gỏi gà bắp cải nhà làm'),'quick-added dish kept after Save');}
+  await page.evaluate('closeModal()')}
+ // v1.7.8 (ladybug #25): “Lịch tháng” right under the row of week days on Today
+ {await page.evaluate(`view='today';render();scrollTo(0,0)`);const cal=page.locator('#main .calendar-shortcut');await cal.waitFor();assert.equal(await cal.evaluate((e:any)=>e.previousElementSibling?.classList.contains('day-strip')),true,`${label}: calendar button under the day strip`);assert.ok((await cal.boundingBox())!.height>=44)}
  // 5. the other screens: nothing cut off, no word broken in the middle
  // v1.7.7 buy extra on purpose: "+500 g" in the picker and a reason; the row says so; "Dùng lượng tự động" clears it
  if(size==='mobile'){await page.evaluate(`view='shopping';render();scrollTo(0,0)`);const qb=page.locator('#main button[data-action="purchase-quantity"]').first();const qid=await qb.getAttribute('data-id');await qb.click();
-  await page.locator('[data-buy-plus="500"]').waitFor();await page.locator('[data-buy-plus="500"]').click();await page.locator('#purchase-extra-why').fill('làm chả');await shot('buy-extra');
+  // v1.7.8 (ladybug #21/#22): no "Bước cuộn" and no amount suggestion chips in the picker; the extra is typed or scrolled
+  await page.locator('#purchase-extra-why').waitFor();assert.equal(await page.locator('#weight-step, [data-buy-plus], .weight-quick-picks button').count(),0,'no step choice or suggestion chips');assert.doesNotMatch(await page.locator('#modal-root').innerText(),/Bước cuộn/);
+  await page.evaluate('setPickerQuantity(purchasePicker.qty+500)');await page.locator('#purchase-extra-why').fill('làm chả');await shot('buy-extra');
   await page.locator('[data-action="save-purchase-quantity"]').click();await page.waitForTimeout(300);
   const note=page.locator(`#main .shop-row:has(button[data-id="${qid}"]) .buy-extra-note`);assert.match(await note.innerText(),/\+500 g · làm chả/,'row shows the extra and why');
   await page.locator(`#main button[data-action="purchase-quantity"][data-id="${qid}"]`).click();await page.locator('[data-action="reset-purchase-quantity"]').click();await page.waitForTimeout(300);assert.equal(await note.count(),0,'automatic amount clears the extra')}
  // v1.7.7 round button on the shopping list (tap = one step)
- {await page.evaluate(`view='shopping';render();scrollTo(0,0)`);const rb=page.locator('.qty-round').first();await rb.waitFor();const id=await rb.getAttribute('data-qr-id');const q=()=>page.evaluate(`(()=>{const[s,e]=shopDates();const r=shopping(state,currentWeek(),s,e).find(x=>x.id===${JSON.stringify(id)});return r.qty??r.suggested})()`);
-  const v0=await q();await rb.click();await page.waitForTimeout(200);const v1=await q();assert.ok(v1>v0,`${label}: tap rounds up (${v0} → ${v1})`);assert.ok((await rb.boundingBox())!.height>=44,'round button is a 44 px target');
-  await page.locator('.qty-round').first().dispatchEvent('contextmenu');await page.locator('#qr-form').waitFor();await page.locator('#qr-form input[name=dir][value=down]').check();await page.locator('[data-qr="apply"]').click();await page.waitForTimeout(200);const v2=await q();assert.ok(v2<v1,`${label}: round down from the options (${v1} → ${v2})`);
-  await page.evaluate(`(()=>{const[s,e]=shopDates();resetPurchaseQuantity(currentWeek(),s,e,${JSON.stringify(id)});delete state.preferences.qtyRound;save();render()})()`)}
+ // v1.7.8 (owner: "không có nút round down?"): ≈↓ and ≈↑ side by side; tap = one step; hold = step options
+ {await page.evaluate(`view='shopping';render();scrollTo(0,0)`);const up=page.locator('.qty-round[data-qr-dir="up"]').first();await up.waitFor();const id=await up.getAttribute('data-qr-id');const down=page.locator(`.qty-round[data-qr-dir="down"][data-qr-id="${id}"]`);const q=()=>page.evaluate(`(()=>{const[s,e]=shopDates();const r=shopping(state,currentWeek(),s,e).find(x=>x.id===${JSON.stringify(id)});return r.qty??r.suggested})()`);
+  assert.equal(await down.count(),1,`${label}: a round-down button next to round-up`);const ub=(await page.locator('.qty-round[data-qr-dir="up"]').first().boundingBox())!,db=(await down.boundingBox())!;assert.ok(Math.abs(ub.y-db.y)<4&&db.x<ub.x,`${label}: ≈↓ then ≈↑ on one line`);await down.evaluate((e:any)=>e.closest('.shop-row').scrollIntoView({block:'center'}));await shot('round-buttons');
+  // nothing covers the buttons (the store button sat on top of ≈↓ at 320 px before they shared a cell)
+  assert.equal(await down.evaluate((e:any)=>{const r=e.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('.qty-round')===e}),true,`${label}: ≈↓ not covered`);
+  const v0=await q();await page.locator('.qty-round[data-qr-dir="up"]').first().click();await page.waitForTimeout(200);const v1=await q();assert.ok(v1>v0,`${label}: ≈↑ rounds up (${v0} → ${v1})`);assert.ok(ub.height>=44&&db.width>=44,'round buttons are 44 px targets');
+  await page.locator(`.qty-round[data-qr-dir="down"][data-qr-id="${id}"]`).click();await page.waitForTimeout(200);const v2=await q();assert.ok(v2<v1,`${label}: ≈↓ rounds down (${v1} → ${v2})`);
+  // ladybug #21 (“từ 3.8 lên 50”): the step follows the amount — to the nearest round number; no options sheet any more
+  assert.deepEqual(await page.evaluate(`[qrNext(3.8,'g',{dir:'up'}),qrNext(3.8,'g',{dir:'down'}),qrNext(47,'g',{dir:'up'}),qrNext(1880,'g',{dir:'up'}),qrNext(1880,'g',{dir:'down'}),qrNext(625,'g',{dir:'up'})]`),[4,3,50,1900,1800,650]);
+  await down.dispatchEvent('contextmenu');await page.waitForTimeout(200);assert.equal(await page.locator('#qr-form').count(),0,'no options sheet');
+  await page.evaluate(`(()=>{const[s,e]=shopDates();resetPurchaseQuantity(currentWeek(),s,e,${JSON.stringify(id)});save();render()})()`)}
+ // v1.7.8 owner decisions on what the app did on its own: (1) the pantry deduction is said on the row and can be switched
+ // off; (2) two dishes of the same kind are no longer halved; (3) each meal says “N người → X suất”
+ {await page.evaluate(`view='shopping';(()=>{const id=shopping(state,currentWeek(),...shopDates()).find(r=>r.needed>1)?.id;state.pantry.push({id:'qa-pantry',ingredient:id,qty:1,place:'fridge',expiry:''});window.__qaPantry=id})();save();render();scrollTo(0,0)`);const pid=await page.evaluate('window.__qaPantry');
+  const rowTxt=()=>page.locator(`#main .shop-row:has(button[data-action="purchase-quantity"][data-id="${pid}"]) .item-label`).innerText();assert.match(await rowTxt(),lang==='en'?/pantry has/:/tủ có .* → mua/,`${label}: the row says the pantry was taken off`);
+  const sw=page.locator('#main [data-pantry-deduct]');assert.equal(await sw.isChecked(),true);await sw.uncheck();await page.waitForTimeout(250);assert.doesNotMatch(await rowTxt(),/tủ có|pantry has/,`${label}: off → full amounts`);
+  await page.locator('#main [data-pantry-deduct]').check();await page.evaluate(`state.pantry=state.pantry.filter(p=>p.id!=='qa-pantry');save();render()`);
+  const halves=await page.evaluate(`(()=>{const m={recipes:[{category:'main'},{category:'main'}],attendance:{},servings:4};return m.recipes.map(r=>dishFactor(m,r))})()`);assert.deepEqual(halves,[1,1],'two mains: each in full');
+  await page.evaluate(`view='planner';render();scrollTo(0,0)`);assert.match(await page.locator('#main .plan-day[open] .meal-facts').first().innerText(),lang==='en'?/\d+ people → ≈?[\d.,]+ portions|portions \(set by hand\)/:/\d+ người → ≈?[\d.,]+ suất|suất \(đặt tay\)/,`${label}: people → portions on the meal`)}
+ // v1.7.8 (owner: “chỗ giỏ đồ đi chợ, phải cho option để xoá nguyên liệu”): × on an ingredient row takes it off the list
+ {await page.evaluate(`view='shopping';render();scrollTo(0,0)`);const x=page.locator('#main .shop-purchase-row .row-skip').first();await x.waitFor();const sid=await x.getAttribute('data-id');const bx=(await x.boundingBox())!;assert.ok(bx.height>=44&&bx.width>=44,`${label}: × is 44 px`);
+  await x.click();await page.waitForTimeout(250);assert.equal(await page.locator(`#main .shop-purchase-row button[data-action="purchase-quantity"][data-id="${sid}"]`).count(),0,`${label}: row removed`);assert.equal(await page.evaluate(`!!currentWeek().skip[${JSON.stringify(sid)}]`),true);
+  await page.evaluate(`delete currentWeek().skip[${JSON.stringify(sid)}];save();render()`)}
  for(const v of ['shopping','recipes','pantry','expenses','insights','products']){await page.evaluate(`view=${JSON.stringify(v)};render();scrollTo(0,0)`);await textOk(v);if(v==='shopping')await shot('shopping')}
  // 7. voice sheet (owner: “nút hold to talk nằm quá sâu phía dưới”): the talk button sits under the status, above the words box
  await page.evaluate('closeModal();voiceModal()');await page.locator('#voice-text').waitFor();

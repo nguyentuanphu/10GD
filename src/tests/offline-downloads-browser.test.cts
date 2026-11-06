@@ -77,6 +77,8 @@ async function main() {
       const planned: string[] = await page.evaluate(() => Object.values(currentWeek().days).flatMap((d: any) => d?.dinner?.recipes || []).map((r: any) => r.name));
       assert.ok(planned.length >= 6, 'planned meals kept offline');
       await page.evaluate(() => { location.hash = 'planner'; }); await page.waitForTimeout(800);
+      // v1.7.8: the day line no longer lists dishes; open the days as the family would
+      await page.evaluate(() => document.querySelectorAll('#main details.plan-day').forEach((d: any) => { d.open = true; }));
       const plannerText = await page.locator('#main').innerText();
       assert.ok(planned.some(n => plannerText.includes(n)), 'planned meals visible offline');
       await page.evaluate(() => (window as any).familyGeneratePreview()); await page.locator('.modal').first().waitFor({ timeout: 20000 });

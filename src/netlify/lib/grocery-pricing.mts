@@ -71,14 +71,16 @@ export async function rateLimit(store,who,now=Date.now(),cost=1){
 }
 export const cacheKey=(state,cycle)=>`prices/${state}/${cycle}.json`;
 export async function officialPrices(cacheStore,state,cycle){
- if(!cacheStore||!supportedState(state))return null;
+ // v1.7.8 (owner, 6 Nov 2026: "Giá online cũng chưa hiện"): the online supermarket prices are national, so a family
+ // without a postcode (no state) still gets them; only the licensed state feed needs the state.
+ if(!cacheStore||(state!=null&&!supportedState(state)))return null;
  let feed=null,online=null;
- try{feed=await cacheStore.get(cacheKey(state,cycle),{type:'json'})}catch{}
+ if(state)try{feed=await cacheStore.get(cacheKey(state,cycle),{type:'json'})}catch{}
  // v1.7.5: national online prices (Pinch / WhichGrocer); the previous cycle's file until this cycle's run
  try{online=await cacheStore.get(`online/${cycle}.json`,{type:'json'})||await cacheStore.get(`online/${addDays(cycle,-7)}.json`,{type:'json'})}catch{}
  const rows=[...(Array.isArray(feed?.observations)?feed.observations:[]),...(Array.isArray(online?.observations)?online.observations:[])];
  if(!rows.length)return null;
- return{cycleId:cycle,importedAt:feed?.importedAt||online?.importedAt||null,source:feed?(online?'licensed-feed+online':feed.source||'licensed-feed'):'online',attribution:Array.isArray(online?.attribution)?online.attribution.slice(0,3):[],observations:rows.map(o=>{const c=cleanObservation({...o,state,source:'official'},{official:true});if(c&&o?.insight){const i=cleanInsight(o.insight);if(i)c.insight=i}if(c&&o?.photo){const ph=cleanPhoto(o.photo);if(ph)c.photo=ph}return c}).filter(Boolean).slice(0,20000)}
+ return{cycleId:cycle,importedAt:feed?.importedAt||online?.importedAt||null,source:feed?(online?'licensed-feed+online':feed.source||'licensed-feed'):'online',attribution:Array.isArray(online?.attribution)?online.attribution.slice(0,3):[],observations:rows.map(o=>{const c=cleanObservation({...o,state:state||null,source:'official'},{official:true});if(c&&o?.insight){const i=cleanInsight(o.insight);if(i)c.insight=i}if(c&&o?.photo){const ph=cleanPhoto(o.photo);if(ph)c.photo=ph}return c}).filter(Boolean).slice(0,20000)}
 }
 // Licensed-feed import only (configured by GROCERY_FEED_URL). Expected JSON:
 // {version:1, cycleId?:'YYYY-MM-DD', states:{NSW:[observation…], QLD:[…]}}.

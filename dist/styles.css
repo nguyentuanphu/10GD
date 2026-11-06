@@ -1879,3 +1879,48 @@ html[data-theme="dark"] .plan-day.is-today>.plan-day-head{background:var(--green
 .buy-extra-note{display:block;color:var(--orange);font-weight:600}
 .plan-day-head .pd-meal{display:block;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .plan-day-head .pd-meal b{font-weight:600}
+/* v1.7.8: round down and round up side by side (owner: "không có nút round down?") */
+.qty-round-pair{display:inline-flex;align-items:center;margin-left:6px;vertical-align:middle;white-space:nowrap}
+.qty-round-pair .qty-round{margin-left:0;border-radius:0}
+.qty-round-pair .qty-round:first-child{border-radius:10px 0 0 10px}
+.qty-round-pair .qty-round:last-child{border-radius:0 10px 10px 0;margin-left:-1px}
+/* v1.7.8: day line = day, date, counts and the "Bữa ±" button; meals swipe left/right to remove */
+.family-week-grid .plan-day>.plan-day-head,.plan-day>.plan-day-head{display:flex!important;align-items:center;flex-wrap:wrap;gap:6px 10px;padding:10px 44px 10px 16px!important;min-height:60px}
+.plan-day-head .pd-title{flex:1 1 auto;min-width:0}
+.pd-count{font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--muted);white-space:nowrap}
+.plan-day.is-today>.plan-day-head .pd-count{color:#e8f2ec}
+.pd-meals{min-height:44px;min-width:44px;white-space:nowrap;font-weight:600}
+.plan-day.is-today>.plan-day-head .pd-meals{background:#fff;color:var(--green);border-color:#fff}
+html[data-theme="dark"] .plan-day.is-today>.plan-day-head .pd-meals{background:#18221d;color:var(--text)}
+.pd-empty{padding:12px 16px;margin:0}
+.meal-slot[data-swipe-meal]{position:relative;touch-action:pan-y;overflow:hidden;border-radius:11px}
+.meal-slot>.swipe-face{position:relative;z-index:1;background:var(--paper);transition:transform .2s ease;height:100%;display:flex;flex-direction:column}
+.meal-slot>.swipe-face>.family-meal-card{flex:1}
+.meal-slot.swiping>.swipe-face{transition:none}
+.swipe-under{position:absolute;inset:0 0 16px;display:none;align-items:center;justify-content:space-between;padding:0 18px;background:#f6e3dc;color:#8a2f1f;font-weight:700;border-radius:11px}
+.meal-slot.swiping>.swipe-under{display:flex}
+.meal-slot.swipe-left>.swipe-under span:first-child,.meal-slot:not(.swipe-left)>.swipe-under span:last-child{visibility:hidden}
+.meal-slot.swipe-ready>.swipe-under{background:#c0392b;color:#fff}
+html[data-theme="dark"] .swipe-under{background:#3d1c19;color:#ffb3a8}
+@media (prefers-reduced-motion:reduce){.meal-slot>.swipe-face{transition:none}}
+.pm-list{display:grid;gap:6px}.pm-row{min-height:48px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line)}.pm-row small{color:var(--muted)}
+.qty-cell{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+.qty-cell>.qty-round-pair{margin-left:0}
+.simple-screen .shop-row .qty-cell{grid-column:2;grid-row:2;justify-self:start;align-self:center}
+.family-week-grid .plan-day>.plan-day-head,.plan-day>.plan-day-head{display:grid!important;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"title btn" "count btn";align-items:center;gap:0 10px}
+.plan-day-head .pd-title{grid-area:title}.plan-day-head .pd-count{grid-area:count}.plan-day-head .pd-meals{grid-area:btn}
+/* v1.7.8: "Tìm giá online" for family items that are not in the price catalogue */
+.shop-row:has(.online-find){flex-wrap:wrap}
+.online-find{flex-basis:100%;grid-column:2/-1;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--muted)}
+.online-find .btn{min-height:44px;display:inline-flex;align-items:center;gap:6px}
+.online-find .ol-cart{width:20px;height:20px;flex:none}
+.online-find.waiting{border:1px dashed var(--line);border-radius:12px;padding:4px 6px 4px 10px}
+.online-find.waiting .text-btn{min-height:44px;padding:0 8px}
+/* v1.7.8 (ladybug #25): "Lịch tháng" right under the week-day strip on Today */
+.calendar-shortcut.under-strip{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin:0 0 14px}
+/* v1.7.8: × takes an ingredient off the shopping list (back from "Kiểm tra đồ đã có / bỏ qua") */
+.shop-row .row-skip{min-width:44px;min-height:44px;color:var(--muted);justify-self:start}
+.simple-screen .shop-row .row-skip{grid-column:1}
+/* v1.7.8: "Trừ đồ đang có trong Tủ" switch above the shopping list */
+.pantry-deduct{display:flex;align-items:flex-start;gap:10px;min-height:44px;margin:0 0 12px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white)}
+.pantry-deduct small{display:block;color:var(--muted)}

@@ -50,6 +50,19 @@ assert.equal((await grocery(req('observe&id=obs-two-0002','DELETE'))).status,200
 const cache=getStoreFn({name:'bep-grocery-cache'});await cache.setJSON(cacheKey('NSW','2026-10-28'),{importedAt:'2026-10-28T19:30:00Z',observations:[obs('official-1',{source:'official'})]});
 data=await(await grocery(req('prices&state=NSW'))).json();assert.equal(data.official.observations.length,1);assert.equal(data.official.observations[0].source,'official');
 data=await(await grocery(req('prices&state=QLD'))).json();assert.equal(data.official,null);
+// v1.7.8 (owner, 6 Nov 2026: "Giá online cũng chưa hiện"): online supermarket prices are national — a family with no postcode
+// (no state) still gets them, and a state family gets them alongside its state feed
+await cache.setJSON('online/2026-10-28.json',{version:1,importedAt:'2026-10-28T20:00:00Z',source:'online',attribution:['Price data by Pinch'],observations:[obs('online-pinch-suon-bo-coles',{source:'official',itemId:'suon-bo',retailer:'coles',observedBy:'Pinch',state:null})]});
+data=await(await grocery(req('prices'))).json();assert.equal(data.official?.observations?.length,1,'no state: online prices still returned');assert.equal(data.official.observations[0].observedBy,'Pinch');assert.equal(data.official.observations[0].state,null);
+data=await(await grocery(req('prices&state=NSW'))).json();assert.equal(data.official.observations.length,2,'NSW: state feed + online');
+data=await(await grocery(req('prices&state=QLD'))).json();assert.equal(data.official.observations.length,1,'QLD: online only');
+// v1.7.8 owner decision: "Tìm giá online" keeps ONLY the supermarket search word (no family, account or item name)
+{const {ONLINE_WANTED_KEY,wantedQuery,wantedItems,readWanted}=await import('../netlify/lib/online-wanted.mjs');
+ let r=await grocery(req('online-want','POST',{query:'  Gravy  BEEF '}));assert.equal(r.status,200);let j=await r.json();assert.deepEqual(j,{itemId:'w-gravy-beef',query:'gravy beef'});
+ r=await grocery(req('online-want','POST',{query:'gravy beef'}));assert.equal((await r.json()).itemId,'w-gravy-beef','same word, same item');
+ const raw=JSON.stringify(await cache.get(ONLINE_WANTED_KEY,{type:'json'}));assert.doesNotMatch(raw,/qa|household|family|username|Thịt/i,'only the word is stored: '+raw);assert.equal((await readWanted(cache)).items['w-gravy-beef'].n,2);
+ for(const bad of ['ab','thịt bò','<script>','x'.repeat(51),'1234','a b c d e f g'])assert.equal((await grocery(req('online-want','POST',{query:bad}))).status,400,'rejected: '+bad);
+ assert.equal(wantedQuery('Rice paper & noodles')?.itemId,'w-rice-paper-and-noodles');assert.equal(wantedItems(await readWanted(cache))[0].wanted,true);}
 // Rate limit
 const burst=createGroceryHandler({getStoreFn,now:()=>new Date('2026-11-01T02:00:00Z')});let limited=false;
 for(let i=0;i<Math.ceil(RATE_MAX/25)+2&&!limited;i++){const res=await burst(req('observe','POST',{observations:Array.from({length:25},(_,j)=>obs(`obs-rate-${i}-${j}`))}));if(res.status===429)limited=true}

@@ -177,10 +177,37 @@ function scoutHistorySheet(itemId){const item=scoutItem(itemId),list=scoutOnline
 function scoutDealsCard(items){const seen=new Set(),real=[],fake=[];for(const it of items){if(!it.itemId||seen.has(it.itemId))continue;seen.add(it.itemId);for(const o of scoutOnlineFor(it.itemId)){const g=o.insight?.signal;if(g==='real'||g==='lowest')real.push({it,o});else if(g==='fake')fake.push({it,o})}}
  if(!real.length&&!fake.length)return'';const row=({it,o})=>`<li><button type="button" class="deal-row" data-scout="price-history" data-id="${esc(o.itemId)}"><span class="dr-name"><b data-user-content>${esc(it.label)}</b><small>${scoutArt('store:'+o.retailer,'ol-dot')}${esc(scoutRetailer(o.retailer))} ${scoutMoney(o.price)}</small></span>${scoutDealChip(o)}${scoutArt('chevron','ol-chev')}</button></li>`;
  return`<article class="scout-card scout-deals"><h3>${scoutArt('flame','h-art')}${scoutT('Khuyến mãi tuần này','Deals this week')}</h3>${real.length?`<ul class="deal-list">${real.slice(0,8).map(row).join('')}</ul>`:''}${fake.length?`<p class="deal-warn">${scoutArt('warn','h-art')}${scoutT('Ghi là KM nhưng không rẻ hơn thường lệ','Marked special but not cheaper than usual')}</p><ul class="deal-list">${fake.slice(0,8).map(row).join('')}</ul>`:''}</article>`}
-function scoutDecorateList(){if(!scoutLast)return;
+// v1.7.8 owner decision (6 Nov 2026, pop-up question "Hỏi tên ở siêu thị"): a family item that is not in the price
+// catalogue gets "Tìm giá online". The family types or confirms the English name used on the supermarket website (the app
+// suggests one); only that search word goes to the server, and the next online run looks it up for everyone who asked.
+// The word is remembered for the family (preferences.onlineNames), keyed by the ingredient or the extra item's name.
+const SCOUT_VI_EN:[string,string][]=[['cá hồi','salmon'],['cá ngừ','tuna'],['cá basa','basa'],['bánh tráng','rice paper'],['bánh phở','rice noodles'],['bánh mì','bread'],['nước mắm','fish sauce'],['dầu hào','oyster sauce'],['đậu hũ','tofu'],['đậu phụ','tofu'],['ba chỉ','belly'],['sườn non','spare ribs'],['nạc vai','shoulder'],['giò heo','pork hock'],['rau muống','water spinach'],['cải thìa','bok choy'],['sườn','ribs'],['bò','beef'],['heo','pork'],['lợn','pork'],['gà','chicken'],['vịt','duck'],['cừu','lamb'],['cá','fish'],['tôm','prawns'],['mực','squid'],['cua','crab'],['nghêu','clams'],['nạm','brisket'],['thăn','fillet'],['xay','mince'],['đùi','thigh'],['cánh','wings'],['ức','breast'],['nấm','mushrooms'],['đậu','beans'],['bún','vermicelli'],['miến','glass noodles'],['mì','noodles'],['trứng','eggs'],['sữa','milk'],['gạo','rice'],['hành','onion'],['tỏi','garlic'],['gừng','ginger'],['ớt','chilli'],['chanh','lime'],['dưa leo','cucumber'],['cà chua','tomato'],['khoai tây','potato'],['khoai lang','sweet potato'],['cà rốt','carrot'],['bắp cải','cabbage'],['xà lách','lettuce']];
+function scoutGuessEn(it){const id=it.ingredient;if(id&&typeof INGREDIENT_EN!=='undefined'&&INGREDIENT_EN[id])return String(INGREDIENT_EN[id]).toLowerCase();
+ let t=' '+String(it.label||'').toLowerCase().replace(/\(.*?\)/g,' ').replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim()+' ';t=t.replace(/ thịt /g,' ').replace(/ tươi | khô | đông lạnh /g,' ');
+ const out=[];let guard=0;while(t.trim()&&guard++<12){t=t.replace(/^\s+/,' ');let hit=false;for(const[vi,en]of SCOUT_VI_EN)if(t.startsWith(' '+vi+' ')){out.push(en);t=t.slice(vi.length+1);hit=true;break}
+  if(!hit){const m=t.match(/^ (\S+)/);if(!m)break;if(/^[a-z0-9&'-]+$/.test(m[1]))out.push(m[1]);t=t.slice(m[1].length+1)}}
+ return out.reverse().join(' ').replace(/\s+/g,' ').trim().slice(0,50)}
+function scoutWantKey(it){return it.key.startsWith('ing:')?'i:'+it.key.slice(4):'x:'+String(it.label||'').toLowerCase().normalize('NFC').replace(/\s+/g,' ').trim().slice(0,60)}
+function scoutWantFor(it){const w=state.preferences?.onlineNames?.[scoutWantKey(it)];return w&&/^w-[a-z0-9-]{1,60}$/.test(w.itemId)?w:null}
+function scoutFindAllowed(){return scoutAccount()&&!scoutViewer()&&scoutOnline()}
+function scoutFindMarkup(it,want){const data=`data-scout="online-find" data-key="${esc(scoutWantKey(it))}" data-label="${esc(it.label)}" data-ing="${esc(it.ingredient||'')}"`;
+ return want?`<div class="online-find waiting">${scoutArt('cart','ol-cart')}<span>${scoutT('Đang chờ giá online cho','Waiting for online prices for')} <b>“${esc(want.query)}”</b> · ${scoutT('có sau lần cập nhật tới','after the next update')}</span><button type="button" class="text-btn" ${data}>${scoutT('Sửa','Edit')}</button></div>`
+  :`<div class="online-find"><button type="button" class="btn small" ${data}>${scoutArt('cart','ol-cart')}${scoutT('Tìm giá online','Find online price')}</button></div>`}
+function scoutFindSheet(b){const key=b.dataset.key,label=b.dataset.label,cur=state.preferences?.onlineNames?.[key];const guess=cur?.query||scoutGuessEn({ingredient:b.dataset.ing||null,label});
+ modal(scoutT('Tìm giá online','Find online price'),`<form id="online-find-form" data-key="${esc(key)}"><p><b data-user-content>${esc(label)}</b></p><div class="field"><label for="online-find-q">${scoutT('Tên tiếng Anh như trên web siêu thị','English name as on the supermarket website')}</label><input class="input" id="online-find-q" maxlength="50" autocomplete="off" autocapitalize="none" spellcheck="false" value="${esc(guess)}" placeholder="${esc(scoutT('vd: gravy beef','e.g. gravy beef'))}"></div><p class="hint">${scoutT('Lần cập nhật giá tới (thứ Tư, thứ Bảy, hoặc khi chủ app chạy) sẽ tìm ở Woolworths, Coles và ALDI. Chỉ gửi từ khoá này — không kèm tên món, tên hay tài khoản gia đình.','The next price update (Wednesday, Saturday, or when the app owner runs it) looks it up at Woolworths, Coles and ALDI. Only this word is sent — not the item, your name or account.')}</p></form>`,
+  `${cur?`<button class="btn" type="button" data-scout="online-find-clear" data-key="${esc(key)}">${scoutT('Bỏ tìm','Stop')}</button>`:''}<button class="btn primary" type="button" data-scout="online-find-save">${scoutT('Tìm giá','Look up')}</button>`);setTimeout(()=>document.getElementById('online-find-q')?.focus(),50)}
+async function scoutFindSave(){const f=document.getElementById('online-find-form'),q=document.getElementById('online-find-q')?.value||'',key=f?.dataset.key;if(!key)return;
+ try{const r=await scoutApi('online-want',{method:'POST',headers:{'X-Requested-With':'fetch'},body:JSON.stringify({query:q})});state.preferences.onlineNames={...(state.preferences.onlineNames||{}),[key]:{itemId:r.itemId,query:r.query}};closeModal();save(scoutT(`Đã gửi “${r.query}”. Giá hiện sau lần cập nhật tới.`,`Sent “${r.query}”. Prices show after the next update.`));render()}
+ catch(e){toast(e.message,true)}}
+function scoutDecorateList(){
+ // v1.7.8: online prices are national — the list shows them even before the family gives a postcode (no trip plan yet)
+ const items=scoutData.state&&scoutLast?scoutLast.items:(()=>{try{return scoutBasket()}catch{return[]}})();
  // v1.7.5: online price under each row that has a catalogue item
- for(const it of scoutLast.items){if(!it.itemId)continue;const sel=it.key.startsWith('ing:')?`#main input[data-change="bought"][data-id="${CSS.escape(it.key.slice(4))}"]`:`#main input[data-change="extra-done"][data-id="${CSS.escape(it.key.slice(6))}"]`;const row=document.querySelector(sel)?.closest('.shop-row');if(!row||row.querySelector('.online-line'))continue;const html=scoutOnlineLine(it.itemId);if(!html)continue;row.classList.add('has-online');row.insertAdjacentHTML('beforeend',html)}
-for(const b of scoutLast.result.benchmark){if(b.cheaper!=='viet-grocer'||!b.key.startsWith('ing:'))continue;const input=document.querySelector(`#main input[data-change="bought"][data-id="${CSS.escape(b.key.slice(4))}"]`),row=input?.closest('.shop-row');if(!row||row.querySelector('.scout-viet-badge'))continue;const badge=document.createElement('span');badge.className='pill scout-viet-badge';badge.textContent='🏮 '+scoutT('Chợ Việt rẻ hơn ','Viet grocer saves ')+scoutMoney(b.difference);(row.querySelector('.item-label')||row).appendChild(badge)}}
+ for(const it of items){const sel=it.key.startsWith('ing:')?`#main input[data-change="bought"][data-id="${CSS.escape(it.key.slice(4))}"]`:`#main input[data-change="extra-done"][data-id="${CSS.escape(it.key.slice(6))}"]`;const row=document.querySelector(sel)?.closest('.shop-row');if(!row||row.querySelector('.online-line'))continue;row.querySelector('.online-find')?.remove();/* a waiting row turns into its price when prices arrive */
+  const want=it.itemId?null:scoutWantFor(it),id=it.itemId||want?.itemId;const html=id?scoutOnlineLine(id):'';
+  if(html){row.classList.add('has-online');row.insertAdjacentHTML('beforeend',html);continue}
+  if(!it.itemId&&scoutFindAllowed())row.insertAdjacentHTML('beforeend',scoutFindMarkup(it,want))}
+if(!scoutLast)return;for(const b of scoutLast.result.benchmark){if(b.cheaper!=='viet-grocer'||!b.key.startsWith('ing:'))continue;const input=document.querySelector(`#main input[data-change="bought"][data-id="${CSS.escape(b.key.slice(4))}"]`),row=input?.closest('.shop-row');if(!row||row.querySelector('.scout-viet-badge'))continue;const badge=document.createElement('span');badge.className='pill scout-viet-badge';badge.textContent='🏮 '+scoutT('Chợ Việt rẻ hơn ','Viet grocer saves ')+scoutMoney(b.difference);(row.querySelector('.item-label')||row).appendChild(badge)}}
 // Studio's "Price Scout" feature switch (flags.priceScout, applied by platform-banner and cached for offline use).
 function scoutEnabled(){if(document.body?.classList.contains('flag-off-priceScout'))return false;try{return JSON.parse(localStorage.getItem('bep-platform-flags')||'{}')?.priceScout!==false}catch{return true}}
 function scoutMount(){
@@ -188,7 +215,7 @@ function scoutMount(){
  if(view!=='shopping')return;const main=document.getElementById('main');if(!main||main.querySelector('.price-scout'))return;
  const holder=document.createElement('div');holder.innerHTML=scoutPanel();const panel=holder.firstElementChild;
  const anchor=main.querySelector('.week-tools');if(anchor)anchor.after(panel);else main.prepend(panel);
- scoutDecorateList();scoutCommunityAutoload();
+ scoutDecorateList();scoutCommunityAutoload();scoutAutoRefresh();
 }
 function scoutRerender(){const old=document.querySelector('#main .price-scout');if(!old){scoutMount();return}const focus=document.activeElement?.dataset?.scout||document.activeElement?.id;const holder=document.createElement('div');holder.innerHTML=scoutPanel();old.replaceWith(holder.firstElementChild);scoutDecorateList();if(focus){const el=document.querySelector(`.price-scout [data-scout="${focus}"]`)||document.getElementById(focus);el?.focus?.()}}
 const scoutBaseRender=render;
@@ -257,14 +284,19 @@ async function scoutFlush(){
  scoutData.pool={...(scoutData.pool||{}),observations:[...batch.map(o=>({...o,observedBy:globalThis.BEP_SESSION.account?.name||o.observedBy})),...(scoutData.pool?.observations||[]).filter(o=>!ids.has(o.id))]};scoutSave();
  if(scoutData.pending.length)await scoutFlush();
 }
-async function scoutRefresh(){
+// v1.7.8 (owner, 6 Nov 2026: "Giá online cũng chưa hiện"): prices were only fetched when "Làm mới giá" was pressed, so a
+// family never saw the online prices of a new run. Opening the shopping list now fetches them quietly when the copy on
+// this device is older than 3 hours (at most once per 10 minutes; online and signed in only).
+var scoutAutoAt=0;
+function scoutAutoRefresh(){if(!scoutAccount()||!scoutOnline()||scoutRefreshing)return;if(Date.now()-(scoutData.pool?.at||0)<3*3600e3||Date.now()-scoutAutoAt<10*60e3)return;scoutAutoAt=Date.now();scoutRefresh({quiet:true})}
+async function scoutRefresh({quiet=false}={}){
  if(scoutRefreshing)return;
  if(!scoutAccount()){if(scoutOnline()){scoutRefreshing=true;scoutRerender();try{await scoutCommunityRefresh()}catch{}scoutRefreshing=false}toast(scoutT('Đã làm mới từ dữ liệu trên thiết bị.','Refreshed from this device.'));scoutRerender();return}
  if(!scoutOnline()){toast(scoutT('Đang offline: dùng bản giá đã lưu trên máy.','Offline: using the prices saved on this device.'));scoutRerender();return}
- scoutRefreshing=true;scoutRerender();
- try{await scoutFlush().catch(()=>{});const data=await scoutApi('prices'+(scoutData.state?'&state='+encodeURIComponent(scoutData.state):''));if(data.householdId!==globalThis.BEP_SESSION.household.id)throw Error('Family changed');scoutData.pool={at:Date.now(),cycleId:data.cycleId,observations:data.observations||[],official:data.official||null};scoutSave();await scoutCommunityRefresh().catch(()=>{});toast(scoutT('Đã cập nhật giá của gia đình.','Family prices updated.'))}
- catch(error){toast(scoutT('Chưa tải được giá mới, đang dùng bản lưu trên máy.','Could not load new prices; using the copy on this device.'),true)}
- finally{scoutRefreshing=false;scoutRerender()}
+ scoutRefreshing=true;if(!quiet)scoutRerender();
+ try{await scoutFlush().catch(()=>{});const data=await scoutApi('prices'+(scoutData.state?'&state='+encodeURIComponent(scoutData.state):''));if(data.householdId!==globalThis.BEP_SESSION.household.id)throw Error('Family changed');scoutData.pool={at:Date.now(),cycleId:data.cycleId,observations:data.observations||[],official:data.official||null};scoutSave();await scoutCommunityRefresh().catch(()=>{});if(!quiet)toast(scoutT('Đã cập nhật giá của gia đình.','Family prices updated.'))}
+ catch(error){if(!quiet)toast(scoutT('Chưa tải được giá mới, đang dùng bản lưu trên máy.','Could not load new prices; using the copy on this device.'),true)}
+ finally{scoutRefreshing=false;if(view==='shopping')scoutRerender()}
 }
 async function scoutDelete(id){
  if(scoutViewer())return;if(!confirm(scoutT('Xóa giá này?','Delete this price?')))return;
@@ -312,7 +344,10 @@ document.addEventListener('click',event=>{
  const b=event.target.closest('[data-scout]');if(!b)return;const action=b.dataset.scout;
  switch(action){
   case'toggle':scoutData.open=scoutData.open!==true;scoutSave();scoutRerender();break;
-  case'refresh':scoutRefresh();break;
+  case'refresh':scoutRefresh({});break;
+  case'online-find':scoutFindSheet(b);break;
+  case'online-find-save':scoutFindSave();break;
+  case'online-find-clear':{const k=b.dataset.key;if(state.preferences.onlineNames)delete state.preferences.onlineNames[k];closeModal();save(scoutT('Đã bỏ tìm giá online cho món này.','Stopped looking up this item.'));render();break}
   case'postcode':event.preventDefault();scoutData.state=null;scoutSave();scoutRerender();document.getElementById('scout-postcode')?.focus();break;
   case'shot':scoutWant=b.dataset.want||null;document.getElementById('scout-shot-input')?.click();break;
   case'paste':scoutPasteSheet();break;

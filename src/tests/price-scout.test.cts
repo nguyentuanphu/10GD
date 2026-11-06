@@ -9,7 +9,9 @@ const plain=(v:any)=>JSON.parse(JSON.stringify(v));
 
 // ---- Catalog schema ----
 {const ids=new Set();const ing=fs.readFileSync('src/frontend/seed.ts','utf8');
- assert.ok(catalog.length>=120&&catalog.length<=150,'120–150 staples');
+ // v1.7.8: 164 staples (owner, 6 Nov 2026: family items like Sườn bò / Thịt bò gravy had no online price). The ceiling is the
+ // Pinch budget of one refresh: 40 requests × 5 items = 200 items sold at the online supermarkets.
+ assert.ok(catalog.length>=120&&catalog.length<=200,'120–200 staples');assert.ok(catalog.filter((i:any)=>(i.channels||[]).some((c:string)=>['woolworths','coles','aldi','chemist'].includes(c))).length<=200,'one refresh covers every online item');
  assert.equal(ctx.MASTER_CATALOG.items.length,catalog.length,'shipped catalog matches source');
  for(const i of catalog){
   assert.match(i.id,/^[a-z0-9-]+$/);assert.ok(!ids.has(i.id),'unique '+i.id);ids.add(i.id);
