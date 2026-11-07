@@ -2125,3 +2125,13 @@ html[data-festival="datnung"]:not([data-theme="dark"]){--green2:#9a4524}
 /* v1.7.10 (owner, 7 Nov 2026: “nút chia sẻ danh sách phải đồng đều với nút khác để không bị nhìn lệch mắt”): on phones the share
    button sits under the page title, left-aligned, in the same outlined style as “Chia sẻ hôm nay” and “Chia sẻ tuần” */
 @media (max-width:760px){.page-heading>.heading-actions:has(.share-btn){flex-basis:100%;width:100%;justify-content:flex-start!important;margin-left:0}}
+/* v1.7.10 (owner, 7 Nov 2026: “2 nút này… phải được thiết kế cùng chỗ như những các trang khác”): on every page the kitchen / voice
+   buttons sit right under the title with the same gap */
+#main>.page-heading:has(+.kitchen-action-dock){margin-bottom:10px!important}
+#main>.page-heading+.kitchen-action-dock{margin-top:0!important}
+/* v1.7.10 (owner, 7 Nov 2026: “kéo xuống rất xa mới thấy được thêm vào món… 3 nút đó size như nhau”): on a recipe sheet the
+   actions stay pinned to the bottom of the sheet, visible as soon as it opens, in equal columns; delete is outlined, not filled */
+#modal-root .modal:has(.recipe-detail-hero)>.modal-footer{position:sticky!important;bottom:0!important;z-index:5;display:grid!important;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:var(--paper,#fffefa);box-shadow:0 -6px 14px rgba(40,50,40,.08)}
+#modal-root .modal:has(.recipe-detail-hero)>.modal-footer>.btn{width:100%;min-width:0;min-height:48px;margin:0;padding:6px 8px;white-space:normal!important;line-height:1.2;text-align:center;justify-content:center}
+#modal-root .modal:has(.recipe-detail-hero)>.modal-footer>.btn.danger{background:transparent;color:#ae4e43;border:1px solid #e3b9b2}
+html[data-theme="dark"] #modal-root .modal:has(.recipe-detail-hero)>.modal-footer>.btn.danger{color:#f0a89c;border-color:#7a4038}

@@ -77,6 +77,17 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   assert.equal(at(ids[0]),'freezer',`${label}: put in the freezer`);assert.equal(at(ids[1]),'dry',`${label}: changed to the shelf`);
   assert.equal(await page.evaluate(`suggestStorePlace(state,${JSON.stringify(ids[0])})`),'freezer',`${label}: remembered for next time`);
   await page.evaluate(`(()=>{state.pantry=state.pantry.slice(0,${before});delete state.preferences.storePlaces;save();closeModal();view='today';location.hash='today';render()})()`);await page.locator('#main h1').waitFor()}
+ // v1.7.10 (owner, 7 Nov 2026: “2 nút này… cùng chỗ như những các trang khác”): the kitchen / voice buttons sit right under the
+ // title, with the same gap, on every page
+ for(const v of ['today','planner','shopping','recipes','pantry','expenses','insights','products']){await page.evaluate(`closeModal();location.hash='${v}'`);await page.waitForTimeout(350);
+  const g:any=await page.evaluate(()=>{const d=document.querySelector('#main .kitchen-action-dock');if(!d)return null;const h=d.previousElementSibling;return{prev:h?.className||'',gap:Math.round(d.getBoundingClientRect().top-h!.getBoundingClientRect().bottom)}});
+  if(!g)continue;assert.match(g.prev,/page-heading/,`${label} ${v}: kitchen / voice buttons right under the title`);assert.ok(Math.abs(g.gap-10)<=2,`${label} ${v}: same gap under the title (${g.gap})`)}
+ // v1.7.10 (owner: “kéo xuống rất xa mới thấy được thêm vào món… 3 nút đó size như nhau”): recipe sheet actions visible at once, equal size
+ {await page.evaluate(`closeModal();location.hash='recipes';showRecipe('r1')`);const f=page.locator('#modal-root .modal>.modal-footer');await f.waitFor();
+  const bs=await f.locator('.btn').all();assert.equal(bs.length,3,`${label}: three recipe actions`);const boxes=await Promise.all(bs.map(b=>b.boundingBox()));const vh=page.viewportSize()!.height;
+  for(const x of boxes){assert.ok(x!.y+x!.height<=vh+1,`${label}: recipe action visible without scrolling`);assert.ok(Math.abs(x!.width-boxes[0]!.width)<2&&Math.abs(x!.height-boxes[0]!.height)<2,`${label}: recipe actions the same size`);assert.ok(x!.height>=44)}
+  assert.notEqual(await f.locator('.btn.danger').evaluate((e:any)=>getComputedStyle(e).backgroundColor),'rgb(154, 63, 49)',`${label}: delete is outlined, not filled`);
+  await textOk('recipe sheet actions');await shot('recipe-actions');await page.evaluate(`closeModal();location.hash='today'`);await page.locator('#main h1').waitFor()}
  // v1.7.10 (owner, 7 Nov 2026: “Hoàn tác bữa là gì đọc không hiểu… dịch theo ngữ cảnh”): after “Đã nấu” the button says what it does
  {const cook=page.locator('#main [data-fm="cook-meal"]').first();if(await cook.count()){await cook.scrollIntoViewIfNeeded();await cook.click();await page.waitForTimeout(150);
    const t=(await page.locator('#main [data-fm="cook-meal"]').first().innerText()).trim();assert.equal(t,lang==='vi'?'Bỏ đánh dấu đã nấu':'Mark as not cooked',`${label}: cooked meal button wording`);
