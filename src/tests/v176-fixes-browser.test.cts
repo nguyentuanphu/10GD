@@ -34,6 +34,17 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  // the tabs exactly where they were on screen
  {const tabs=page.locator('#main [data-action="attendance-tab"]');if(await tabs.count()>1){await tabs.first().scrollIntoViewIfNeeded();await page.evaluate(()=>scrollBy(0,-200));
   for(const i of [1,0,1]){const t=tabs.nth(i),y0=(await t.boundingBox())!.y;await t.click();await page.waitForTimeout(120);const y1=(await page.locator(`#main [data-action="attendance-tab"]`).nth(i).boundingBox())!.y;assert.ok(Math.abs(y1-y0)<3,`${label}: meal tab stays put (${y0} → ${y1})`)}}await shot('meal-tab-still')}
+ // v1.7.10 (owner, 7 Nov 2026: “bữa phụ được thêm vào thì có hiện lên không?”): with both snacks on, “Who is eating?” shows all five
+ // meals in order, each tab ≥ 44 px, and tapping a snack tab does not move the page either
+ {await page.evaluate(`(()=>{const d=currentWeek().days[sydneyDate()];for(const t of ['snackAm','snack']){if(!d[t])d[t]={recipes:[],attendance:{}};d[t].on=true}save();view='today';render()})()`);
+  const tabs=page.locator('#main [data-action="attendance-tab"]');await tabs.first().waitFor();
+  assert.deepEqual(await tabs.evaluateAll((b:any[])=>b.map(x=>x.dataset.type)),['breakfast','snackAm','lunch','snack','dinner'],`${label}: snack tabs shown in meal order`);
+  for(const t of await tabs.all())assert.ok((await t.boundingBox())!.height>=44,`${label}: meal tab ≥ 44 px`);
+  /* put the tabs in the middle of the screen, so the click itself never has to scroll to reach a tab */
+  await page.evaluate(()=>document.querySelector('#main .attendance .tabbar')!.scrollIntoView({block:'center'}));
+  for(const i of [3,1,4]){const y0=(await tabs.nth(i).boundingBox())!.y;assert.ok(y0>0&&y0+44<page.viewportSize()!.height,`${label}: tab on screen before the tap`);await tabs.nth(i).click();await page.waitForTimeout(120);const y1=(await tabs.nth(i).boundingBox())!.y;assert.ok(Math.abs(y1-y0)<3,`${label}: snack tab ${i} stays put (${y0} → ${y1})`)}
+  assert.equal(await tabs.nth(4).getAttribute('class'),'active');await textOk('snack tabs');await shot('snack-tabs');
+  await page.evaluate(`(()=>{const d=currentWeek().days[sydneyDate()];for(const t of ['snackAm','snack'])if(d[t])d[t].on=false;save();render()})()`)}
  // 1. Today: the calendar says Ba Phú is away for lunch → “Who is eating?” says Away too (it said At home)
  await page.locator('[data-action="attendance-tab"][data-type="lunch"]').click();
  const phu=page.locator('select[data-change="attendance"][data-id="m-phu"]');

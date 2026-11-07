@@ -78,3 +78,11 @@ Scope, from Henry's choices in the question dialog on 7 Nov 2026:
 - **Evidence:** `docs/reviews/v1.7.10/text-size/{vi,en}-{mobile,tablet,desktop}-xlarge-{today,shopping,recipe-sheet,appearance}.png` (Chromium simulation, not physical devices).
 - **Not covered:** the browser's own zoom / iOS system text size (the app's own *Cỡ chữ* setting is what was tested); screens other than the eight above are covered by their own suites at the default size.
 - **Seen, not changed here:** the side menu still uses a few text symbols as icons (◷ ▤ ▧ ◴ ⌂). Rule 21 replaces them screen by screen in a later release.
+
+### Row 9 — snack meals in “Ai ăn bữa này?”
+
+- **Henry (7 Nov 2026, iPhone screenshot):** “Ở phần bữa ở đây, nên bữa phụ được thêm vào thì có hiện lên không?” — Yes: when *Bữa phụ sáng* or *Bữa phụ chiều* is on for the day, its tab shows in meal order (sáng, phụ sáng, trưa, phụ chiều, tối). This already worked; checked and now tested.
+- **Improved:** with five tabs on a phone they wrapped into ragged rows and were 40 px tall. On phones (≤ 560 px) four or more tabs now sit in a tidy grid of equal buttons, the chosen one outlined; every tab is ≥ 44 px. Three tabs keep the underline style.
+- **No jump, stronger:** the keep-place rule (row 6) now also holds the tapped control for half a second while late parts of the screen redraw. It stops at once if the person scrolls or the app scrolls on purpose.
+- **Tests:** `v176-fixes:browser` turns both snacks on and checks the five tabs in order, ≥ 44 px, and that tapping three of them does not move the page, at 320 / 375 / 820 / 1280 in VI and EN.
+- **Evidence:** `docs/reviews/v1.7.8/{vi,en}-{size}-snack-tabs.png` (Chromium simulation).

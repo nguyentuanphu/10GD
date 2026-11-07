@@ -259,4 +259,11 @@ const KEEP_ATTRS=['data-action','data-fm','data-house','data-change','data-id','
 function keepPlaceSelector(el:Element){const parts=KEEP_ATTRS.filter(a=>el.hasAttribute(a)).map(a=>`[${a}="${CSS.escape(el.getAttribute(a)||'')}"]`);return parts.length?el.tagName.toLowerCase()+parts.join(''):null}
 document.addEventListener('click',e=>{const el=(e.target as any)?.closest?.('button,[role="tab"],a[data-action],[data-fm],[data-house]');if(!el||el.closest('#modal-root,.modal,#undo-bar')||el.hasAttribute('data-keep-scroll-off'))return;
  const sel=keepPlaceSelector(el);if(!sel)return;const v=view,hash=location.hash,top=el.getBoundingClientRect().top,root=document.documentElement,prev=root.style.overflowAnchor;
- setTimeout(()=>{try{if(view!==v||location.hash!==hash||document.querySelector('#modal-root .modal'))return;const now=document.querySelector('#main '+sel)||document.querySelector(sel);if(!now)return;const d=now.getBoundingClientRect().top-top;if(Math.abs(d)>1){root.style.overflowAnchor='none';window.scrollBy(0,d);requestAnimationFrame(()=>{root.style.overflowAnchor=prev})}}catch{}},0)},true);
+ // hold the control in place right after the redraw and for half a second more, because parts of a screen can redraw a moment
+ // later (pictures, counts). Any scroll the person starts themselves (touch, wheel, keys) ends the hold at once.
+ // A redraw moves the control without changing the scroll position; any other scroll (the person's own, or the app jumping to a
+ // section on purpose) changes it, and ends the hold at once.
+ const EV=['touchstart','wheel','keydown'];let stop=false,lastY=-1;const end=()=>{if(stop)return;stop=true;root.style.overflowAnchor=prev;for(const ev of EV)removeEventListener(ev,end,true)};const until=performance.now()+500;
+ const hold=()=>{try{if(stop)return;if(view!==v||location.hash!==hash||document.querySelector('#modal-root .modal')||(lastY>=0&&Math.abs(scrollY-lastY)>1))return end();const now=document.querySelector('#main '+sel)||document.querySelector(sel);if(!now)return end();const d=now.getBoundingClientRect().top-top;if(Math.abs(d)>1)window.scrollTo({top:scrollY+d,behavior:'instant' as ScrollBehavior});lastY=scrollY}catch{return end()}if(performance.now()<until)requestAnimationFrame(hold);else end()};
+ for(const ev of EV)addEventListener(ev,end,true);
+ root.style.overflowAnchor='none';setTimeout(hold,0)},true);
