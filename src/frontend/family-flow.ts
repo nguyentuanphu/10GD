@@ -55,7 +55,7 @@ function flowFoldRow(el:Element,key:string,summary:string){if(el.tagName==='DETA
  const d=document.createElement('details');d.className='simple-disclosure flow-row';d.dataset.flowRow=key;d.open=flowOpenRows.has(key);d.innerHTML=`<summary>${summary}</summary>`;el.before(d);d.append(el);return d}
 function flowCompactToday(){const main=document.getElementById('main');if(view!=='today'||!main||!currentWeek().familyMode)return;const day=currentWeek().days[selectedDate];
  main.classList.add('today-compact');
- const anchor=main.querySelector('.calendar-shortcut')||main.querySelector('.day-strip');if(!anchor)return;
+ const anchor=main.querySelector('.day-actions')||main.querySelector('.calendar-shortcut')||main.querySelector('.day-strip');if(!anchor)return;
  const T=flowNextMealType(day),card=T?main.querySelector(`.dashboard-grid .family-meal-card[data-meal-date="${selectedDate}"][data-meal-type="${T}"]`):null;
  let next=main.querySelector('.next-meal');if(card){if(!next){next=document.createElement('section');next.className='next-meal';anchor.after(next)}next.innerHTML=`<p class="eyebrow next-meal-label">${flowT('Bữa tiếp theo','Next meal')}</p>`;next.append(card)}else next?.remove();
  let after:Element=main.querySelector('.next-meal')||anchor;const urgent=main.querySelector('.family-urgent');if(urgent){after.after(urgent);after=urgent}
@@ -139,6 +139,6 @@ document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('[dat
 function guestShortcut(){const main=document.getElementById('main');if(view!=='today'||!main||!currentWeek().familyMode)return;main.querySelector('.guest-shortcut')?.remove();
  const day=currentWeek().days[selectedDate],withGuests=day?MEAL_TYPES.filter((t:string)=>day[t]&&guestCount(day[t])):[],first=withGuests[0],target=first?{date:selectedDate,type:first}:guestNextMeal(selectedDate),n=withGuests.reduce((a:number,t:string)=>Math.max(a,guestCount(day[t])),0);
  const html=`<button class="btn guest-shortcut under-strip" type="button" data-fm="guests" data-date="${esc(target.date)}" data-type="${esc(target.type)}">${typeof uiArt==='function'?uiArt('family','btn-art'):''}<span>${n?flowT(`Khách: ${n} · sửa`,`Guests: ${n} · edit`):flowT('Có khách','Guests coming')}</span></button>`;
- const place=()=>{main.querySelector('.guest-shortcut')?.remove();const cal=main.querySelector('.calendar-shortcut'),strip=main.querySelector('.day-strip');if(!cal&&!strip)return;let row=main.querySelector('.day-actions') as HTMLElement|null;if(!row){row=document.createElement('div');row.className='day-actions'}(cal||strip)!.after(row);if(cal)row.append(cal);row.insertAdjacentHTML('beforeend',html)};place();queueMicrotask(()=>queueMicrotask(place))}
+ const place=()=>{main.querySelector('.guest-shortcut')?.remove();const cal=main.querySelector('.calendar-shortcut'),strip=main.querySelector('.day-strip');if(!cal&&!strip)return;let row=main.querySelector('.day-actions') as HTMLElement|null;if(!row){row=document.createElement('div');row.className='day-actions'}if(!(cal&&row.contains(cal))){(cal||strip)!.after(row);if(cal)row.append(cal)}row.insertAdjacentHTML('beforeend',html)};place();queueMicrotask(()=>queueMicrotask(place))}
 {const flowGuestRender=render;render=function(this:any,...a:any[]){const r=flowGuestRender.apply(this,a);try{guestShortcut()}catch(err){console.warn('guest shortcut',err)}return r}}
 
