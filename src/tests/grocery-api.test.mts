@@ -83,3 +83,19 @@ assert.equal((await cache.get(cacheKey('NSW','2026-11-04'))).observations[0].sou
 res=await(await createGroceryCron({getStoreFn,env:{GROCERY_FEED_URL:'http://insecure.example'},fetchFn,now:()=>at6,log:()=>{}})()).json();assert.equal(res.reason,'invalid-url');
 assert.doesNotMatch(readFileSync('src/netlify/functions/grocery-cron.mts','utf8')+readFileSync('src/netlify/lib/grocery-pricing.mts','utf8'),/woolworths\.com|coles\.com|aldi\.com|chemistwarehouse|amazon\.com/,'no retailer scraping endpoints');
 console.log('PASS grocery cron: no-op without GROCERY_FEED_URL, Sydney 06:xx window, licensed feed import only');
+// v1.7.11 (owner decision, 7 Nov 2026): without an account, 5 online-price tries per device, counted on the server, then an account
+{const g=createGroceryHandler({getStoreFn,now:()=>new Date('2026-11-07T01:00:00Z')});
+ const guest=(op:string,id:string,method='GET',body:any=null,ip='203.0.113.7')=>g(new Request('https://test.example/.netlify/functions/grocery?op='+op,{method,headers:{Origin:'https://test.example','X-Bep-Trial':id,'x-nf-client-connection-ip':ip,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})}));
+ assert.equal((await guest('prices','short')).status,401,'no valid device id → sign in');
+ const id='trial-device-aaaaaaaaaaaa';const lefts:number[]=[];
+ for(let i=0;i<5;i++){const r=await guest(i===2?'online-want':'prices',id,i===2?'POST':'GET',i===2?{query:'gravy beef'}:null);assert.equal(r.status,200,'try '+(i+1));const d:any=await r.json();lefts.push(d.trial.left);
+  if(i!==2){assert.equal(d.guest,true);assert.deepEqual(d.observations,[],'a guest never gets any family\'s own prices');assert.equal(d.householdId,null)}}
+ assert.deepEqual(lefts,[4,3,2,1,0],'each try counts, refresh and find alike');
+ const no=await guest('prices',id);assert.equal(no.status,403);const nd:any=await no.json();assert.equal(nd.error,'trial-used');assert.equal(nd.trial.left,0);
+ assert.equal((await guest('online-want',id,'POST',{query:'gravy beef'})).status,403,'find online price also stops');
+ // clearing the browser gives a new device id, but the network's daily cap still holds
+ let ok=0;for(let i=0;i<30;i++){const r=await guest('prices','trial-device-'+String(i).padStart(12,'b'));if(r.status===200)ok++}
+ assert.equal(ok,15,'20 tries a day per network in all (5 used above + 15 here)');
+ assert.equal((await guest('prices','trial-device-zzzzzzzzzzzz','GET',null,'198.51.100.9')).status,200,'another network is not affected');
+ assert.equal((await guest('observe','trial-device-yyyyyyyyyyyy','POST',{observation:obs('obs-guest')},'198.51.100.10')).status,401,'saving prices still needs an account');
+ console.log('PASS online prices without an account: 5 server-counted tries per device (refresh or find), shared supermarket prices only, then 403 trial-used; per-network daily cap; saving still needs an account')}

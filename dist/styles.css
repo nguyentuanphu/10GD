@@ -2176,3 +2176,11 @@ html[data-theme="dark"] #modal-root .modal:has(.recipe-detail-hero)>.modal-foote
 /* taps on the floating footer's see-through fade and gaps reach the field behind it; only its buttons catch taps */
 #modal-root .modal>.modal-footer.floating-footer{pointer-events:none}
 #modal-root .modal>.modal-footer.floating-footer>*{pointer-events:auto}
+/* v1.7.11: online-price trial line for devices without an account */
+.scout-trial{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--green) 6%,transparent)}
+.scout-trial p{margin:0;flex:1;min-width:0}
+.scout-trial .ol-cart{width:32px;height:32px;flex:none}
+.scout-trial .btn{min-height:44px;flex:none}
+.scout-trial.used{background:color-mix(in srgb,#c58b2a 10%,transparent)}
+.scout-trial{flex-wrap:wrap}.scout-trial p{flex:1 1 200px}
+@media (max-width:560px){.scout-trial .btn{flex:1 1 100%}}

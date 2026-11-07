@@ -25,7 +25,7 @@ async function main(){
  mkdirSync(out,{recursive:true});
  const browser=await chromium.launch();
  async function open({viewport=sizes.mobile,lang='vi',theme='light',ios=true,init={} as Record<string,string>,engine='ok',delay=0}={}){
-  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any,hasTouch:viewport.width<1000,...(ios?{userAgent:IPHONE,isMobile:viewport.width<1000}:{})});
+  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any,hasTouch:viewport.width<1000,...(ios?{userAgent:IPHONE,isMobile:viewport.width<1000}:{})});
   await context.addInitScript(({lang,theme,init})=>{const w=window as any;
    if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');for(const [k,v] of Object.entries(init))localStorage.setItem(k,v)}
    w.BEP_VOICE_AUTO_DELAY_MS=600000;
