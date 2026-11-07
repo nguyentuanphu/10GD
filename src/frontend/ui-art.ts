@@ -8,6 +8,13 @@ const UA_O='#3b2a4f',UA_W=`stroke="${UA_O}" stroke-width="2.6" stroke-linejoin="
 const uaSvg=(body:string,cls='')=>`<svg class="ui-art ${cls}" viewBox="0 0 48 48" aria-hidden="true" focusable="false">${body}</svg>`;
 const uaCirc=(x:number,y:number,r:number,f:string)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" ${UA_W}/>`;
 const UI_ART:Record<string,string>={
+ // v1.7.10 (owner, 7 Nov 2026: “các nút X tắt, đóng, lưu phải thiết kế kiểu riêng biệt bằng artwork”): one picture per meaning —
+ // X = dismiss (red-brown cross in a circle), Đóng / Xong = put the sheet away (a chevron down), Lưu = keep it (a green tick)
+ 'close-x':`${uaCirc(24,24,17,'#f3dcd5')}<path d="M17 17l14 14M31 17L17 31" ${UA_W} stroke-width="4" fill="none"/>`,
+ 'close-down':`${uaCirc(24,24,17,'#e7eadf')}<path d="M15 20l9 9 9-9" ${UA_W} stroke-width="4" fill="none"/>`,
+ 'save-check':`${uaCirc(24,24,17,'#8fd0b0')}<path d="M15 25l6 6 12-13" ${UA_W} stroke-width="4" fill="none"/>`,
+ // the “cooked” bubble: a pot with steam
+ 'cooked-pot':`<path d="M18 8c-2 3 2 4 0 7M24 6c-2 3 2 4 0 7M30 8c-2 3 2 4 0 7" ${UA_W} fill="none" class="ua-steam"/><path d="M8 22h32v10a8 8 0 0 1-8 8H16a8 8 0 0 1-8-8z" fill="#e8a25a" ${UA_W}/><path d="M5 22h38" ${UA_W} fill="none"/><path d="M15 29h18" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".6" fill="none"/>`,
  // v1.7.10 (owner, 7 Nov 2026): every button that sends something to another person (Messages, Messenger, Zalo…) wears this one
  // picture — a chat bubble with an arrow going out — next to the same word “Chia sẻ”
  'share-msg':`<path d="M8 12h22a4 4 0 0 1 4 4v12a4 4 0 0 1-4 4H18l-7 6v-6H8a4 4 0 0 1-4-4V16a4 4 0 0 1 4-4z" fill="#8fd0b0" ${UA_W}/><circle cx="13" cy="22" r="2" fill="#3b2a4f"/><circle cx="19" cy="22" r="2" fill="#3b2a4f"/><circle cx="25" cy="22" r="2" fill="#3b2a4f"/>${uaCirc(36,13,9,'#f6c34a')}<path d="M32 17l8-8M34 9h6v6" ${UA_W} fill="none"/>`,

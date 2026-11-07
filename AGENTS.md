@@ -53,3 +53,8 @@ This is an agent workflow rule, not a claim that GitHub branch protection or hos
 ## Buttons keep the page still — owner instruction, 7 November 2026
 
 24. Tapping a button, tab or chip must not make the page jump up or down. The tapped control stays where it was on screen after the view redraws (for example the Bữa sáng / Bữa trưa / Bữa tối tabs). Only real navigation (a new screen, opening a sheet, a link to a section) may move the page. Every change to buttons, tabs or redraws keeps a browser check that the tapped control does not move.
+
+## Sheet buttons and wording — owner instruction, 7 November 2026
+
+25. In every sheet (pop-up), the dismiss X, *Đóng / Xong* and *Lưu* each show their own drawn picture from the shared art kit (X in a circle = dismiss, chevron down = close, green tick = save), so the family can tell them apart at a glance. *Đóng* and *Lưu* buttons are pill-shaped (fully rounded) and float at the bottom of the sheet, always visible without scrolling. Buttons in one sheet footer are the same size, side by side (stacked evenly on the narrowest phones), and wrap their words instead of dropping to another row. Every change to a sheet keeps a browser check for this.
+26. Vietnamese and English text is written for the situation, not translated word for word: say what the button does or what just happened (“Bỏ đánh dấu đã nấu”, not “Hoàn tác bữa”). Family-authored text is never rewritten.

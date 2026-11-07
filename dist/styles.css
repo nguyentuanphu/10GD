@@ -2139,3 +2139,36 @@ html[data-theme="dark"] #modal-root .modal:has(.recipe-detail-hero)>.modal-foote
    a full row so “Cả tuần” / “Tất cả cửa hàng” are never cut at “Rất lớn”; “Khẩu vị gia đình” may wrap inside its button */
 @media (max-width:560px){.week-tools .toolbar{flex-wrap:wrap;flex:1 1 100%;width:100%;row-gap:8px!important}.week-tools .toolbar>select.input,.simple-screen .week-tools .toolbar>select.input{flex:1 1 100%;grid-column:1/-1;width:100%!important;min-width:0}}
 .week-tools [data-mr="open-tastes"]{white-space:normal!important;height:auto;min-height:44px;text-align:center}
+/* v1.7.10 (owner, 7 Nov 2026; AGENTS.md rule 25): sheet buttons. Corner X = drawn dismiss picture in a round 44 px button.
+   Footer floats at the bottom of the sheet; its buttons share equal columns (two per row from four buttons) and wrap their words
+   instead of dropping to a second row; Đóng / Xong / Hủy and Lưu are pills with their own picture. */
+#modal-root .modal>header .close-x-btn{width:44px;height:44px;min-width:44px;padding:0;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:0}
+#modal-root .modal>header .close-x-btn .sheet-art{width:34px;height:34px}
+#modal-root .modal>.modal-footer.floating-footer{position:sticky!important;bottom:0;z-index:5;display:grid!important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;align-items:stretch;padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--paper,#fffefa) 70%,color-mix(in srgb,var(--paper,#fffefa) 0%,transparent));border-top:0}
+#modal-root .modal>.modal-footer.floating-footer[data-count="1"]{grid-auto-columns:minmax(0,min(100%,320px));justify-content:end}
+#modal-root .modal>.modal-footer.floating-footer:has(>:nth-child(4)){grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}
+#modal-root .modal>.modal-footer.floating-footer>.btn,#modal-root .modal>.modal-footer.floating-footer>a.btn{width:100%;min-width:0;min-height:48px;margin:0;padding:8px 12px;white-space:normal!important;line-height:1.2;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:6px;overflow-wrap:normal}
+#modal-root .modal>.modal-footer .pill-btn{border-radius:999px!important;box-shadow:0 6px 16px rgba(40,50,40,.16)}
+#modal-root .modal>.modal-footer .pill-btn .sheet-art{width:1.35em;height:1.35em;flex:none}
+#modal-root .modal>.modal-footer .pill-close,#modal-root .modal>.modal-footer .pill-cancel{background:var(--paper,#fffefa);color:var(--text,#22352a);border:1.5px solid var(--line,#d9dccf)}
+#modal-root .modal>.modal-footer .pill-save{background:var(--green);color:#fff;border-color:var(--green)}
+#modal-root .modal:has(.recipe-detail-hero)>.modal-footer{border-radius:0}
+/* the “cooked” bubble */
+#cook-bubble{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;pointer-events:none;z-index:120;display:flex;align-items:center;gap:10px;max-width:min(92vw,420px);padding:10px 16px 10px 10px;border-radius:22px;background:var(--paper,#fffefa);color:var(--text,#22352a);border:1.5px solid var(--green);box-shadow:0 10px 26px rgba(30,40,30,.22);transition:opacity .2s,transform .2s}
+#cook-bubble.visible{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#cook-bubble .bubble-art{width:40px;height:40px;flex:none}
+#cook-bubble span{display:grid;gap:2px;line-height:1.25}
+#cook-bubble small{font-size:.92em;color:var(--muted,#5c6b5f)}
+@media (min-width:761px){#cook-bubble{left:calc(50% + 115px);bottom:32px}}
+@media (prefers-reduced-motion:reduce){#cook-bubble{transition:none}.ua-steam{animation:none}}
+/* all buttons in a floating sheet footer share the pill shape, so the row looks like one set */
+#modal-root .modal>.modal-footer.floating-footer>.btn,#modal-root .modal>.modal-footer.floating-footer>a.btn{border-radius:999px!important;box-shadow:0 6px 16px rgba(40,50,40,.14)}
+#cook-bubble{width:min(92vw,360px);box-sizing:border-box}
+@media (max-width:360px){#modal-root .modal>.modal-footer.floating-footer:has(>:nth-child(3)){grid-auto-flow:row;grid-template-columns:minmax(0,1fr)}}
+/* CI text-size: at “Rất lớn” on phones the grouping and store drop-downs stack so “Tất cả cửa hàng” is not cut */
+@media (max-width:560px){html[data-text-size="xlarge"] #main.cl .shopping-store-tools{grid-template-columns:minmax(0,1fr)}}
+/* the floating footer never covers the field being filled: anything scrolled or focused into view stops above it */
+#modal-root .modal:has(>.modal-footer.floating-footer){scroll-padding-bottom:110px}
+/* taps on the floating footer's see-through fade and gaps reach the field behind it; only its buttons catch taps */
+#modal-root .modal>.modal-footer.floating-footer{pointer-events:none}
+#modal-root .modal>.modal-footer.floating-footer>*{pointer-events:auto}

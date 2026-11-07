@@ -88,9 +88,24 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   for(const x of boxes){assert.ok(x!.y+x!.height<=vh+1,`${label}: recipe action visible without scrolling`);assert.ok(Math.abs(x!.width-boxes[0]!.width)<2&&Math.abs(x!.height-boxes[0]!.height)<2,`${label}: recipe actions the same size`);assert.ok(x!.height>=44)}
   assert.notEqual(await f.locator('.btn.danger').evaluate((e:any)=>getComputedStyle(e).backgroundColor),'rgb(154, 63, 49)',`${label}: delete is outlined, not filled`);
   await textOk('recipe sheet actions');await shot('recipe-actions');await page.evaluate(`closeModal();location.hash='today'`);await page.locator('#main h1').waitFor()}
+ // v1.7.10 (owner, 7 Nov 2026; AGENTS.md rule 25): corner X, Đóng and Lưu each have their own picture; footer buttons are equal pills
+ // on one row, floating at the bottom of the sheet
+ {await page.evaluate(`closeModal();view='shopping';location.hash='shopping';render()`);await page.locator('#main [data-action="ingredient-detail"]').first().click();const m=page.locator('#modal-root .modal');await m.locator('.modal-footer').waitFor();
+  const x=m.locator('header .close-x-btn');assert.equal(await x.locator('svg.sheet-art').count(),1,`${label}: corner X is the drawn dismiss picture`);assert.ok((await x.boundingBox())!.width>=44);
+  const bs=await m.locator('.modal-footer>.btn').all();const bx=await Promise.all(bs.map(b=>b.boundingBox()));assert.ok(bs.length>=2);
+  const row=bx.every(b=>Math.abs(b!.y-bx[0]!.y)<2),col=bx.every(b=>Math.abs(b!.x-bx[0]!.x)<2);assert.ok(row||(page.viewportSize()!.width<=360&&col),`${label}: footer buttons side by side (stacked evenly on narrow phones)`);for(const b of bx){assert.ok(Math.abs(b!.width-bx[0]!.width)<2&&Math.abs(b!.height-bx[0]!.height)<2,`${label}: footer buttons the same size`);assert.ok(b!.y+b!.height<=page.viewportSize()!.height+1,`${label}: footer visible`)}
+  const close=m.locator('.modal-footer [data-art="close"]');assert.equal(await close.count(),1,`${label}: Đóng is marked`);assert.ok(parseFloat(await close.evaluate((e:any)=>getComputedStyle(e).borderTopLeftRadius))>=20,`${label}: Đóng is a pill`);
+  assert.equal(await close.locator('svg.sheet-art').count(),1,`${label}: Đóng has its picture`);await textOk('ingredient sheet');await shot('sheet-buttons');
+  await page.evaluate(`closeModal();familyEditMeal(sydneyDate(),'dinner')`);const save=page.locator('#modal-root .modal-footer [data-art="save"]').first();await save.waitFor();
+  assert.equal(await save.locator('svg.sheet-art').count(),1,`${label}: Lưu has its picture`);assert.ok(parseFloat(await save.evaluate((e:any)=>getComputedStyle(e).borderTopLeftRadius))>=20,`${label}: Lưu is a pill`);
+  assert.notEqual(await save.locator('svg').innerHTML(),await page.evaluate(`uiArt('close-down')`).then((h:any)=>h.replace(/^<svg[^>]*>|<\/svg>$/g,'')),`${label}: Lưu and Đóng pictures differ`);
+  await page.evaluate(`closeModal();view='today';location.hash='today';render()`);await page.locator('#main h1').waitFor()}
  // v1.7.10 (owner, 7 Nov 2026: “Hoàn tác bữa là gì đọc không hiểu… dịch theo ngữ cảnh”): after “Đã nấu” the button says what it does
  {const cook=page.locator('#main [data-fm="cook-meal"]').first();if(await cook.count()){await cook.scrollIntoViewIfNeeded();await cook.click();await page.waitForTimeout(150);
    const t=(await page.locator('#main [data-fm="cook-meal"]').first().innerText()).trim();assert.equal(t,lang==='vi'?'Bỏ đánh dấu đã nấu':'Mark as not cooked',`${label}: cooked meal button wording`);
+   /* v1.7.10 (owner: “hiện lên pop up nhỏ kiểu bubble báo là bữa ăn đã nấu và đã trừ vào kho đồ”): a short bubble, real ingredient names, no codes */
+   {const bub=page.locator('#cook-bubble.visible');await bub.waitFor({timeout:3000});const bt=(await bub.innerText()).replace(/\s+/g,' ');assert.match(bt,lang==='vi'?/^Đã nấu .+ (Đã trừ \d+ nguyên liệu khỏi tủ|Tủ chưa có đồ cho bữa này)/:/ cooked (Took \d+ ingredients? out of the pantry|Nothing for this meal)/,`${label}: cooked bubble “${bt}”`);
+    assert.ok(!/[a-z][A-Z]/.test(bt.replace(/Weekends feast/,'')),`${label}: no internal ingredient codes in the bubble`);assert.equal(await bub.locator('svg.bubble-art[aria-hidden="true"]').count(),1);await shot('cooked-bubble')}
    assert.ok(!/Hoàn tác bữa|Undo meal/.test(await page.locator('#main').innerText()),`${label}: no “Hoàn tác bữa”`);await textOk('cooked meal');await shot('cooked-meal');
    await page.locator('#main [data-fm="cook-meal"]').first().click();await page.waitForTimeout(150)}}
  // 1. Today: the calendar says Ba Phú is away for lunch → “Who is eating?” says Away too (it said At home)

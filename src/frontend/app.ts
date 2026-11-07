@@ -276,3 +276,23 @@ document.addEventListener('click',e=>{const el=(e.target as any)?.closest?.('but
 
 // v1.7.10: “Đặt tất cả” in the put-away sheet ticks one place for every item (no redraw, nothing saved until Cất)
 document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('[data-store-all]');if(!b)return;for(const i of document.querySelectorAll(`#store-form input[type=radio][value="${b.dataset.storeAll}"]`))(i as HTMLInputElement).checked=true});
+// v1.7.10 (owner, 7 Nov 2026: “Các nút X tắt, đóng, lưu phải thiết kế kiểu riêng biệt bằng artwork… nút đóng, lưu thì bo tròn như
+// viên thuốc và floating”; AGENTS.md rule 25). Every sheet: the corner X shows the dismiss picture; Đóng / Xong and Lưu / Save
+// buttons become pills with their own picture; the footer floats at the bottom of the sheet and its buttons share equal columns.
+function sheetButtonKind(b:Element){const t=(b.textContent||'').trim().toLowerCase(),a=b.getAttribute('data-action');
+ if(a==='close-modal')return /^(hủy|huỷ|cancel|bỏ qua)/.test(t)?'cancel':'close';
+ if(/^(lưu|save)\b/.test(t))return 'save';if(/^(đóng|close|xong|done)$/.test(t))return 'close';return null}
+function decorateSheet(){const root=document.getElementById('modal-root');if(!root||typeof uiArt!=='function')return;
+ for(const x of root.querySelectorAll('.modal>header [data-action="close-modal"].icon:not([data-art])') as any){x.dataset.art='1';x.classList.add('close-x-btn');x.innerHTML=uiArt('close-x','sheet-art')}
+ for(const f of root.querySelectorAll('.modal>.modal-footer') as any){f.classList.add('floating-footer');const bs=[...f.children].filter((c:any)=>c.matches('.btn,button,a.btn'));f.dataset.count=String(bs.length);
+  for(const b of bs as any[]){if(b.dataset.art)continue;const k=sheetButtonKind(b);if(!k)continue;b.dataset.art=k;b.classList.add('pill-btn','pill-'+k);
+   if(!b.querySelector('svg'))b.insertAdjacentHTML('afterbegin',uiArt(k==='save'?'save-check':k==='close'?'close-down':'close-x','sheet-art'))}}}
+new MutationObserver(()=>decorateSheet()).observe(document.getElementById('modal-root')||document.body,{childList:true,subtree:true});
+// v1.7.10 (owner: “Khi ấn đã nấu thì hiện lên pop up nhỏ kiểu bubble báo là bữa ăn đã nấu và đã trừ vào kho đồ — ngắn gọn dễ hiểu”)
+function cookedBubble(title:string,line:string){let el=document.getElementById('cook-bubble');if(!el){el=document.createElement('div');el.id='cook-bubble';el.setAttribute('role','status');el.setAttribute('aria-live','polite');document.body.append(el);el.addEventListener('click',()=>el!.classList.remove('visible'))}
+ el.innerHTML=`${typeof uiArt==='function'?uiArt('cooked-pot','bubble-art'):''}<span><b>${esc(title)}</b><small>${esc(line)}</small></span>`;el.classList.add('visible');clearTimeout((cookedBubble as any).t);(cookedBubble as any).t=setTimeout(()=>el!.classList.remove('visible'),4500)}
+function cookedSummary(m:any,type:string,missing:string[]){const en=typeof appLanguage!=='undefined'&&appLanguage==='en',meal=typeof mealName==='function'?mealName(type):type,n=new Set((m.consumed||[]).map((c:any)=>c.ingredient)).size;
+ const names=missing.slice(0,2).map(k=>typeof INGREDIENTS!=='undefined'&&INGREDIENTS[k]?shopIngName(k):k).join(', ')+(missing.length>2?` +${missing.length-2}`:'');
+ const title=en?`${meal} cooked`:`Đã nấu ${meal.toLowerCase()}`;
+ const line=n?(en?`Took ${n} ingredient${n>1?'s':''} out of the pantry.`:`Đã trừ ${n} nguyên liệu khỏi tủ.`)+(missing.length?(en?` Short: ${names}.`:` Tủ còn thiếu: ${names}.`):''):(en?'Nothing for this meal in the pantry — nothing taken out.':'Tủ chưa có đồ cho bữa này — không trừ gì.');
+ return{title,line}}
