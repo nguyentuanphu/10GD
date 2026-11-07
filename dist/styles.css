@@ -2208,4 +2208,14 @@ button:has(>.btn-art:only-child) .btn-art,[role="tab"]:has(>.btn-art:only-child)
 .cook-ahead-row span{display:grid;gap:2px;min-width:0}
 .cook-ahead-row small{color:var(--muted);overflow-wrap:anywhere}
 .cooked-ahead-note{margin:4px 0 0;color:var(--green);font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));font-weight:600}
+/* v1.7.12: guests on a meal (owner: “ăn nhiều người như kiểu bạn qua chơi”) */
+.meal-guests{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 16px 4px}
+.meal-guest-note{margin:0;color:var(--text);font-weight:600;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));overflow-wrap:anywhere}
+.meal-guest-btn{min-height:44px}
+.guest-step{display:grid;grid-template-columns:minmax(0,1fr) 48px 64px 48px;align-items:center;gap:8px;margin:10px 0}
+.guest-step span{display:grid;gap:2px;min-width:0}
+.guest-step small{color:var(--muted)}
+.guest-step .icon-step{min-width:48px;min-height:48px;padding:0;font-size:1.3em;font-weight:700;border-radius:12px}
+.guest-step input{width:64px;min-height:48px;text-align:center;font-size:1.1em;font-weight:700}
+.hint.warn{color:var(--orange)}
 

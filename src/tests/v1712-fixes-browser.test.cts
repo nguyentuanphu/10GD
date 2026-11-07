@@ -5,6 +5,7 @@
 //  4. "Nút xong không được căn chỉnh và không nằm ở giữa" — a lone sheet button is centred
 //  5. "Chỗ giải phóng… cái nút hơi khó nhìn và dài dòng" — one short button under the words
 //  6. Cook once for several meals (pop-up: ask when “Đã nấu” is tapped)
+//  7. Guests for a meal — adults 1 portion, children ½, with a name (pop-up: guests with a name)
 // 320×740, 375×812, 430×932, 820×1100, 1280×800; VI (EN for the cook-ahead sheet). Chromium viewport simulation, not devices.
 // Screenshots: docs/reviews/v1.7.12/.
 import assert from 'node:assert/strict';
@@ -93,9 +94,27 @@ const MEMBERS=[['m-phu','Ba Phú',1],['m-mi','Mẹ Mi',1],['m-chi','Chi',.75],['
     await page.locator(`#main [data-fm="cook-meal"][data-date="${today}"][data-type="dinner"]`).click();await sheet.waitFor();await page.locator('#modal-root [data-fm="cook-ahead"][data-only="1"]').click();await page.waitForTimeout(300);
     assert.equal(await E(`(()=>{const later=mealAt(state,${JSON.stringify(tomorrow)},'lunch');return mealAt(state,${JSON.stringify(today)},'dinner').cooked&&!later.cooked&&!later.recipes.some(r=>r.cookedAhead)})()`),true,`${label}: “Chỉ bữa này” cooks only tonight`)}
 
+   // 7. guests (owner, 8 Nov 2026 — pop-up: guests with a name): friends over are added to the family's portions
+   {await E(`(()=>{const m=mealAt(state,${JSON.stringify(today)},'lunch');m.recipes=[clone(state.recipes.find(r=>r.category==='main'&&r.ingredients.length&&r.id!==mealAt(state,${JSON.stringify(today)},'dinner').recipes[0].id))];delete m.recipes[0].batchId;m.cooked=false;m.consumed=[];m.servings=null;delete m.guests;delete m.cookedWith;for(const p of state.members)m.attendance[p.id]='home';save();weekStart=planStartOf(state,${JSON.stringify(today)});selectedDate=${JSON.stringify(today)};view='today';attendanceType='lunch';render();window.__qaBase=mealServings(m,state);window.__qaNeed=mealIngredients(m,state)})()`);
+    const open=page.locator(`#main [data-fm="guests"][data-date="${today}"][data-type="lunch"]`);await open.scrollIntoViewIfNeeded();assert.ok((await open.boundingBox())!.height>=44,`${label}: guest button ≥ 44 px`);await open.click();await page.locator('#modal-root .guest-step').first().waitFor();
+    const steps:any=await E(`[...document.querySelectorAll('#modal-root [data-fm="guest-step"]')].map(b=>({art:!!b.querySelector('.btn-art')&&!b.innerText.trim(),w:b.getBoundingClientRect().width,h:b.getBoundingClientRect().height}))`);
+    assert.equal(steps.length,4,`${label}: − and + for adults and children`);assert.ok(steps.every((x:any)=>x.art&&x.w>=44&&x.h>=44),`${label}: − / + drawn (no leftover text symbol), ≥ 44 px ${JSON.stringify(steps)}`);
+    const plusA=page.locator('#modal-root [data-fm="guest-step"][data-k="adults"][data-d="1"]'),plusK=page.locator('#modal-root [data-fm="guest-step"][data-k="kids"][data-d="1"]'),minusA=page.locator('#modal-root [data-fm="guest-step"][data-k="adults"][data-d="-1"]');
+    await plusA.click();await plusA.click();await plusA.click();await minusA.click();await plusK.click();await page.fill('#guest-note','Nhà anh Tuấn');
+    assert.match(await page.locator('#guest-total').innerText(),lang==='en'?/Adds 2\.5 portions/:/Thêm 2,5 suất/,`${label}: the sheet adds up the portions`);
+    const foot:any=await E(`(()=>{const bs=[...document.querySelectorAll('#modal-root .modal-footer > .btn')],r=bs.map(b=>b.getBoundingClientRect());return{n:bs.length,row:Math.abs(r[0].top-r[1].top)<=1,size:Math.abs(r[0].width-r[1].width)<=1,art:bs.every(b=>!!b.dataset.art&&b.querySelectorAll('svg').length===1)}})()`);
+    assert.ok(foot.n===2&&foot.row&&foot.size&&foot.art,`${label}: Đóng / Lưu side by side, same size, drawn (rule 25) ${JSON.stringify(foot)}`);
+    await noOverflow('guest sheet');await shot('guests-sheet');
+    await page.locator('#modal-root [data-fm="guests-save"]').click();await page.waitForFunction(()=>!document.querySelector('#modal-root .guest-step'));
+    const g:any=await E(`(()=>{const m=mealAt(state,${JSON.stringify(today)},'lunch'),n=mealIngredients(m,state),k=Object.keys(window.__qaNeed)[0];return{guests:m.guests,more:mealServings(m,state)-window.__qaBase,buy:n[k]>window.__qaNeed[k]}})()`);
+    assert.deepEqual(g.guests,{adults:2,kids:1,note:'Nhà anh Tuấn'},`${label}: guests saved with their name`);assert.ok(Math.abs(g.more-2.5)<1e-9,`${label}: 2 adults + 1 child add 2.5 portions`);assert.ok(g.buy,`${label}: more to buy for the guests`);
+    const card=page.locator(`#main [data-fm="guests"][data-date="${today}"][data-type="lunch"]`).locator('xpath=ancestor::article[1]');const txt=await card.innerText();
+    assert.match(txt,lang==='en'?/2 guests, 1 child/:/2 khách, 1 bé/,`${label}: the meal card shows the guests`);assert.match(txt,/Nhà anh Tuấn/,`${label}: and their name`);
+    await card.scrollIntoViewIfNeeded();await noOverflow('meal card with guests');await shot('guests-card')}
+
    assert.deepEqual(errors,[],`${label}: page errors`);
    await context.close();console.log('✓',label);
   }
-  console.log('PASS v1.7.12: round buttons the same on every row, no jump on pantry chips and “Trừ đồ”, centred Xong, short use-it-up button, cook once for several meals');
+  console.log('PASS v1.7.12: round buttons the same on every row, no jump on pantry chips and “Trừ đồ”, centred Xong, short use-it-up button, cook once for several meals, guests with a name');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

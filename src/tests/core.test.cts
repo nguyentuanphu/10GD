@@ -95,5 +95,16 @@ check(!validImport(null),'null backup is rejected without throwing');
  check(Object.keys(shoppingMealIngredientsSafe(s2,later)).length===0,'a meal cooked ahead is not on the shopping list');
  undoCook(s2,src);check(!later.cooked&&!later.cookedWith,'undo also reopens the meal that was fully cooked ahead');
  check(validImport(JSON.parse(JSON.stringify(s2))),'cook-ahead marks pass backup validation')}
+// v1.7.12 (owner, 8 Nov 2026 — pop-up: guests with a name): friends over are added to the family's portions
+{const s3=defaults(),w3=ensureWeek(s3,monday(sydneyDate())),d=Object.keys(w3.days)[0],m=w3.days[d].dinner;m.servings=null;const base=mealServings(m,s3),need0=mealIngredients(m,s3);
+ setMealGuests(m,2,1,'  Nhà anh Tuấn  ');check(m.guests.adults===2&&m.guests.kids===1&&m.guests.note==='Nhà anh Tuấn','guests stored with a trimmed name');
+ check(Math.abs(mealServings(m,s3)-(base+2.5))<1e-9,'an adult guest adds 1 portion, a child ½');
+ const need1=mealIngredients(m,s3),k=Object.keys(need0)[0];check(need1[k]>need0[k],'guests raise the amounts to buy');
+ check(validImport(JSON.parse(JSON.stringify(s3))),'guests pass backup validation');
+ const bad=JSON.parse(JSON.stringify(s3));Object.values(bad.weeks)[0].days[d].dinner.guests={adults:-1,kids:0};check(!validImport(bad),'negative guests rejected');
+ const bad2=JSON.parse(JSON.stringify(s3));Object.values(bad2.weeks)[0].days[d].dinner.guests={adults:1.5};check(!validImport(bad2),'fractional guests rejected');
+ m.servings=6;check(mealServings(m,s3)===6,'portions set by hand stay as typed');m.servings=null;
+ setMealGuests(m,99,0,'');check(m.guests.adults===30,'guests capped at 30');setMealGuests(m,0,0,'');check(m.guests===undefined,'no guests and no name removes the record');
+ check(Math.abs(mealServings(m,s3)-base)<1e-9,'without guests the meal is back to the family’s portions')}
 function shoppingMealIngredientsSafe(s,m){return m.cooked?{}:mealIngredients(m,s)}
 `,ctx);
