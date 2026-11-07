@@ -12,7 +12,7 @@ Branch: `agent-f/studio`, based on `8d7a7a7`. Not merged, pushed or deployed. Re
 | `src/netlify/functions/studio.mts` | Single API with `op=` routing. Exports `createStudioHandler()` for tests. |
 | `src/netlify/lib/studio.mts` | Roles, audit/event logs, platform settings, hook helpers, password re-confirm, metrics. |
 | `src/tests/studio.test.mts` | Backend suite, added to `npm test`. |
-| `docs/reviews/v1.5/studio/studio-shots.mjs` | Screenshot harness: synthetic seed, real handlers, in-memory stores. |
+| `docs/reviews/v1.5/studio/studio-shots.mts` | Screenshot harness: synthetic seed, real handlers, in-memory stores. |
 
 Size: `studio.js` is 78 KB raw and 23 KB gzipped. This is **over the 60 KB raw target**. The TypeScript emitter pretty-prints the output, and every string is stored in both languages. The source file is 67 KB. No minifier exists in the build.
 
@@ -248,7 +248,7 @@ Original instructions, kept for reference:
 **Method:**
 - Ran Chromium 1243 headless (Playwright 1.64.1, browser viewport simulation; this is not physical hardware testing).
 - Used real Studio, accounts and family handlers with in-memory stores and synthetic data: 27 accounts, 8 families, push devices on 4 platforms, urgent-message records, events and reminder runs.
-- To reproduce, run `npm run build && node docs/reviews/v1.5/studio/studio-shots.mjs`.
+- To reproduce, run `npm run build && node docs/reviews/v1.5/studio/studio-shots.mts`.
 
 **Sizes and states captured:**
 

@@ -56,7 +56,7 @@ async function main(){
  const evidence='docs/reviews/v1.7/alerts-online';mkdirSync(evidence,{recursive:true});
  const results:Record<string,any>={};
  try{
-  const context=await browser.newContext({viewport:{width:375,height:812},serviceWorkers:'allow',reducedMotion:'reduce'});
+  const context=await browser.newContext({locale:'vi-VN',viewport:{width:375,height:812},serviceWorkers:'allow',reducedMotion:'reduce'});
   const eq=cookie.indexOf('=');await context.addCookies([{name:cookie.slice(0,eq),value:cookie.slice(eq+1),domain:'kitchen.localhost',path:'/'}]);
   await context.addInitScript(()=>{try{localStorage.setItem('bep-account-present','yes');localStorage.setItem('bep-theme-mode','light')}catch{}});
   const page=await context.newPage();const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));

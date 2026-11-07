@@ -13,7 +13,7 @@ async function main(){
  if(process.env.SKIP_BROWSER_SHOTS!=='1')mkdirSync(out,{recursive:true});
  const browser=await chromium.launch();const shots:string[]=[];
  async function open({viewport=sizes.mobile,lang='vi',theme='light',notice=NOTICE as any,status=200,path='/#today'}={}){
-  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any});
+  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any});
   await context.addInitScript(({lang,theme})=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes')},{lang,theme});
   const page=await context.newPage(),errors:string[]=[],calls:{banner:number}={banner:0};
   page.on('pageerror',e=>errors.push(e.message));

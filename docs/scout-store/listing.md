@@ -6,7 +6,7 @@ Copy the text below into the store forms. Everything here matches what the exten
 
 - **Name:** FamTray So Giá · Price Check (EN listing: FamTray Price Check; VI listing: FamTray So Giá)
 - **Short description / summary (max 132 characters)**
-  - EN: `Saves the shelf prices you view on Woolworths, Coles, ALDI, Chemist Warehouse and Amazon AU for your family kitchen app.` (117)
+  - EN: `Saves the shelf prices you view on Woolworths, Coles, ALDI, Chemist Warehouse and Amazon AU for FamTray, your family kitchen app.` (117)
   - VI: `Ghi lại giá kệ bạn xem trên Woolworths, Coles, ALDI, Chemist Warehouse và Amazon AU cho ứng dụng bếp gia đình.` (112)
 - **Category:** Shopping (Chrome) / Shopping (Edge)
 - **Language:** Vietnamese and English (the extension switches between them)
@@ -15,7 +15,7 @@ Copy the text below into the store forms. Everything here matches what the exten
 
 ### English
 
-FamTray Price Check is the price helper for the FamTray / Bếp Gia Đình family kitchen app.
+FamTray Price Check is the price helper for the FamTray · Bếp Nhà family kitchen app.
 
 When you open a product or specials page on a supported Australian supermarket site, Price Compare reads the shelf facts on that page: product name, price, unit price, was-price, promotion, pack size, product id and the store name. It then saves them to your family's kitchen app, where they help compare prices for your shopping list and are shared with Community prices.
 
@@ -27,7 +27,7 @@ When you open a product or specials page on a supported Australian supermarket s
 
 ### Tiếng Việt
 
-FamTray So Giá là trợ lý ghi giá cho ứng dụng bếp gia đình FamTray / Bếp Gia Đình.
+FamTray So Giá là trợ lý ghi giá cho ứng dụng bếp gia đình FamTray · Bếp Nhà.
 
 Khi bạn mở trang sản phẩm hoặc trang khuyến mãi trên các siêu thị Úc được hỗ trợ, tiện ích đọc thông tin giá trên trang đó: tên sản phẩm, giá, giá theo đơn vị, giá cũ, khuyến mãi, quy cách, mã sản phẩm và tên cửa hàng. Sau đó tiện ích lưu chúng vào ứng dụng bếp của gia đình. Ở đó, giá giúp so giá cho danh sách đi chợ và được chia sẻ với Giá cộng đồng.
 

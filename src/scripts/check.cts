@@ -57,3 +57,10 @@ console.log('Edge entry points executed as ES modules.');
  for(const p of new Set(ctx.paths as string[])){const bytes=fs.readFileSync('dist/'+p);if(bytes.toString('ascii',0,4)!=='RIFF'||bytes.toString('ascii',8,12)!=='WEBP')throw Error('Invalid artwork cell: '+p)}
  console.log('Lite precache '+(wire/1024).toFixed(0)+' KB on the wire; catalog lazy ('+packs.catalogHash+'); '+new Set(ctx.paths).size+' artwork cells verified.');
 }
+// v1.7.11 (owner, 7 Nov 2026: “Rules là tất cả viết bằng ts, tại sao tôi vẫn thấy viết bằng js?”): every script is written in
+// TypeScript. JavaScript only exists as build output (dist/, tests/, netlify/, scripts/ — not tracked). Fail when a hand-written
+// .js/.cjs/.mjs file is tracked or a page carries an inline <script> instead of a compiled TypeScript file.
+{const tracked=execFileSync('git',['ls-files'],{encoding:'utf8'}).split('\n').filter(Boolean);
+ const js=tracked.filter((f:string)=>/\.(js|cjs|mjs|jsx)$/.test(f));if(js.length)throw Error('Hand-written JavaScript is tracked — write it in TypeScript: '+js.join(', '));
+ const inline=tracked.filter((f:string)=>/^(dist|extension)\/.*\.html$/.test(f)&&/<script(?![^>]*\bsrc=)[^>]*>/i.test(fs.readFileSync(f,'utf8')));if(inline.length)throw Error('Inline <script> in '+inline.join(', ')+' — move it to a TypeScript file');
+ console.log('All scripts are TypeScript: no hand-written JavaScript tracked, no inline page scripts.')}

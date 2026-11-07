@@ -421,7 +421,7 @@ let navSig='';
 const closedGroups=new Set<string>((()=>{try{return JSON.parse(store.get('studio-nav-closed')||'[]')}catch{return[]}})());
 function navHtml(cur:string){return `<button type="button" class="nav-jump" id="jump-open" aria-keyshortcuts="Control+K Meta+K"><span aria-hidden="true">⌕</span><span>${T('Tìm trang…','Jump to page…')}</span><kbd>Ctrl K</kbd></button>`+groups().map(g=>{const open=!closedGroups.has(g.id)||g.pages.includes(cur);
  return `<section class="ngroup" data-group="${g.id}"><h2 class="ngroup-h"><button type="button" aria-expanded="${open}" aria-controls="ng-${g.id}" data-group-toggle="${g.id}"><span class="ng-icon" aria-hidden="true">${g.icon}</span><span class="ng-label">${esc(T(g.vi,g.en))}</span><span class="nbadge" data-gbadge="${g.id}" hidden></span><span class="chev" aria-hidden="true"></span></button></h2><div class="ngroup-items" id="ng-${g.id}" ${open?'':'hidden'}>${g.pages.map(k=>`<a href="#${k}" data-nav="${k}"><span aria-hidden="true">${pages[k].icon}</span><span class="nl">${esc(lang==='en'?pages[k].en:pages[k].vi)}</span><span class="nbadge" data-badge="${k}" hidden></span></a>`).join('')}</div></section>`}).join('')}
-function shell(){document.documentElement.lang=lang;document.title='Studio · FamTray · Bếp Gia Đình';const cur=hashInfo().key,nav=$('#nav');
+function shell(){document.documentElement.lang=lang;document.title='Studio · FamTray · Bếp Nhà';const cur=hashInfo().key,nav=$('#nav');
  const sig=lang+'|'+groups().map(g=>g.pages.map(k=>k+':'+pages[k].vi).join(',')).join(';');
  if(navSig!==sig){nav.innerHTML=navHtml(cur);navSig=sig;paintBadges(nav)}
  $$('a[data-nav]',nav).forEach((a:any)=>a.dataset.nav===cur?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
@@ -429,7 +429,7 @@ function shell(){document.documentElement.lang=lang;document.title='Studio · Fa
  const p=pages[cur],g=groups().find(x=>x.pages.includes(cur));$('#navcur').textContent=p&&!p.hidden?(lang==='en'?p.en:p.vi):T('Menu','Menu');$('#navbtn').title=g?T(g.vi,g.en):'';
  $('#navbtn').setAttribute('aria-label',T('Mở menu Studio','Open the Studio menu'));
  // v1.7.6 (owner: no way back to the app from Studio on the phone): a visible “← App” in the top bar
- {const b=$('#back-app');if(b){const l=b.querySelector('.back-app-label');if(l)l.textContent=lang==='en'?'Back to app':'Về app';b.setAttribute('aria-label',lang==='en'?'Back to the FamTray app':'Quay lại app Bếp Gia Đình')}}
+ {const b=$('#back-app');if(b){const l=b.querySelector('.back-app-label');if(l)l.textContent=lang==='en'?'Back to app':'Về app';b.setAttribute('aria-label',lang==='en'?'Back to the FamTray app':'Quay lại app Bếp Nhà')}}
  $('#lang').textContent=lang==='en'?'Tiếng Việt':'English';$('#lang').setAttribute('aria-label',lang==='en'?'Chuyển sang tiếng Việt':'Switch to English');
  $('#theme').textContent=({auto:T('Giao diện: tự động','Theme: auto'),light:T('Giao diện: sáng','Theme: light'),dark:T('Giao diện: tối','Theme: dark')} as any)[themePref];
  showVersion();$('#who').textContent=me?`${me.username} · ${canManage()?T('chủ','owner'):T('hỗ trợ','support')}`:'';$('#net').textContent=navigator.onLine?T('Trực tuyến','Online'):T('Ngoại tuyến','Offline');$('#net').className='net '+(navigator.onLine?'on':'off')}

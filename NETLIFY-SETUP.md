@@ -10,7 +10,7 @@ Bản tiếp theo dùng tài khoản cá nhân; luồng mật khẩu gia đình 
 
 ---
 
-# Triển khai Bếp Gia Đình lên Netlify
+# Triển khai FamTray · Bếp Nhà lên Netlify
 
 Gói này gồm giao diện PWA trong `dist/`, backend trong `netlify/functions/`, cấu hình `netlify.toml` và dependency đã khóa trong `package-lock.json`.
 

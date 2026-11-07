@@ -8,7 +8,7 @@ let guideIndex=0,guideSteps=[],guideSwipeX=null;
 function guideStatus(){try{return localStorage.getItem(GUIDE_KEY)||''}catch{return ''}}
 function guideRemember(value){try{localStorage.setItem(GUIDE_KEY,value)}catch{}}
 function guideFlagOff(flag){return document.body.classList.contains('flag-off-'+flag)}
-function guideBrand(){return typeof APP_BRAND!=='undefined'?tr(APP_BRAND.vi,APP_BRAND.en):tr('Bếp Gia Đình','FamTray')}
+function guideBrand(){return typeof APP_BRAND!=='undefined'?tr(APP_BRAND.vi,APP_BRAND.en):tr('Bếp Nhà','FamTray')}
 function guideArt(emoji,tone){return `<div class="guide-art guide-art-${tone}" aria-hidden="true"><svg viewBox="0 0 120 120" width="120" height="120"><circle cx="60" cy="60" r="54" class="guide-art-ring"/><circle cx="60" cy="60" r="42" class="guide-art-disc"/><path d="M14 84c18 10 74 10 92 0" class="guide-art-line"/></svg><span>${emoji}</span></div>`}
 function guideAllSteps(){const lib=(state.recipes||[]).filter(r=>typeof ownRecipe!=='function'||!ownRecipe(r)).length,urgent=!guideFlagOff('urgentMessages');return [
  {id:'welcome',art:guideArt('👋','green'),title:tr(`Chào mừng đến ${guideBrand()}`,`Welcome to ${guideBrand()}`),body:tr('Ứng dụng giúp cả nhà lên thực đơn, đi chợ và nấu ăn mỗi ngày. Mọi thứ được lưu ngay trên máy này — không cần tài khoản.','Plan family meals, shop and cook every day. Everything is saved on this device — no account needed.'),points:[tr('Hôm nay: xem bữa trưa, bữa tối, việc cần chuẩn bị và món gợi ý.','Today: lunch and dinner, prep tasks and dish ideas at a glance.'),tr('Chọn “Đơn giản” để chữ to, ít mục hơn; “Đầy đủ” để xem hết.','Choose “Simple” for larger text and fewer items, or “Full” to see everything.')],show:[{href:'today',label:tr('Xem trang Hôm nay','Show me Today')}]},

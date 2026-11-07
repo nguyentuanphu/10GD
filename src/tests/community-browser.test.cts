@@ -39,7 +39,7 @@ async function main(){
  for(const f of readdirSync(out))if(f.endsWith('.png'))unlinkSync(`${out}/${f}`);// replace outdated screenshots
  const browser=await chromium.launch();const shots:string[]=[];
  async function open({viewport=sizes.mobile,lang='vi',theme='light',status=STATUS(),api,account=true,community=COMMUNITY,family=FAMILY,rewards=REWARDS,scoutExtra={}}:any={}){
-  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme});
+  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme});
   const scope=account?'account/qa-household/':'guest/',scout={version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:[],pending:[],pool:account?{at:Date.now(),observations:family,official:null}:null,...scoutExtra};
   await context.addInitScript(({scope,lang,theme,scout,account}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem(scope+'bep-language',lang);if(account)localStorage.setItem('bep-account-present','yes');else localStorage.setItem('bep-local-locked','yes');localStorage.setItem(scope+'bep-price-scout-v1',JSON.stringify(scout))},{scope,lang,theme,scout,account});
   const page=await context.newPage(),errors:string[]=[],calls:any[]=[];let linked:any=null;
@@ -77,25 +77,18 @@ async function main(){
  const screenDraft=`scoutConfirm(scoutNewDraft({source:'screenshot',itemId:'gao-jasmine',label:'Jasmine rice 5kg',retailer:'coles',price:13.5,packQty:5,packUnit:'kg',ocrPrice:13.5,imageHash:'b'.repeat(64),raw:'Jasmine rice 5kg $13.50',capturedAt:new Date().toISOString()}))`;
  const ALL3=[['vi','light','mobile'],['en','dark','tablet'],['vi','dark','desktop']] as const;
  try{
-  // 1. Device-only user, no own prices: "N community prices in NSW this week", comparisons from community prices, sign-in prompt.
+  // 1. (owner, 7 Nov 2026: “So giá bây giờ chỉ nên có tài khoản”; replaces the 1 Nov device-only reading) without an account So Giá — community prices included — is one card asking for an account.
   for(const [lang,theme,size] of [['vi','light','mobile'],['en','dark','mobile'],['vi','light','tablet'],['en','light','desktop'],['vi','dark','desktop']] as const){
    const {page,context,errors,calls}=await open({lang,theme,viewport:sizes[size],account:false,status:GUEST});
-   await page.waitForSelector('.scout-empty-community',{timeout:10000});
-   const empty=await page.locator('.scout-empty-community').innerText();
-   assert.match(empty,lang==='vi'?/7 giá cộng đồng ở NSW tuần này/:/7 community prices in NSW this week/);assert.doesNotMatch(empty,/Chưa có giá nào/);
-   assert.match(await page.locator('.scout-points.guest').innerText(),lang==='vi'?/Đăng nhập để chia sẻ giá và nhận điểm/:/Sign in to share prices and earn points/);
-   const onestop=await page.locator('.scout-cards .scout-card:not(.scout-trips)').first().innerText()/* v1.7.5: the trip-plan card now comes first; this checks the one-stop card */;assert.match(onestop,/Woolworths/);assert.match(onestop,lang==='vi'?/rẻ hơn|bằng giá/:/cheaper|same/,'one-stop comparison works without own prices');
-   assert.match((await page.locator('.scout-mix').allInnerTexts()).join(' '),lang==='vi'?/giá cộng đồng đã xác nhận/:/confirmed community price/);
-   assert.equal(await page.locator('[data-community="report"]').count(),0,'device-only users cannot report');assert.equal(await page.locator('[data-community="shelf"]').count(),0);
-   assert.match(await page.locator('.scout-community').innerText(),lang==='vi'?/Giá online/:/Online price/);
-   assert.ok(calls.every((c:any)=>c.method==='GET'),'device-only never writes community data');assert.ok(!calls.some((c:any)=>c.op==='rewards'||c.op==='wanted'));
-   await check(page,`guest ${lang} ${theme} ${size}`);
-   await scrollTo(page,'.scout-points');await shot(page,`empty-community-${lang}-${theme}-${size}`);
-   if(size!=='mobile'){await scrollTo(page,'.scout-cards');await shot(page,`guest-compare-${lang}-${theme}-${size}`)}
+   const card=page.locator('.scout-account-only');await card.waitFor({timeout:10000});
+   assert.match(await card.innerText(),lang==='vi'?/So Giá cần tài khoản/:/Price Check needs an account/);assert.equal(await card.locator('a[href="/login"]').count(),1);
+   assert.equal(await page.locator('.scout-community, .scout-empty-community, .scout-cards, [data-community]').count(),0,'no community prices or actions without an account');
+   assert.ok(!calls.some((c:any)=>c.method!=='GET'),'never writes without an account');assert.ok(!calls.some((c:any)=>/^prices|rewards|wanted/.test(String(c.op))),'no community price requests without an account');
+   await check(page,`guest ${lang} ${theme} ${size}`);await scrollTo(page,'.scout-account-only');await shot(page,`guest-account-${lang}-${theme}-${size}`);
    assert.deepEqual(errors,[]);await context.close();
   }
   // 2. First contributor: no community prices yet → invite with points incentive + 3 steps; device-only variant shows sign-in.
-  for(const [lang,theme,size,account] of [['vi','light','mobile',true],['en','dark','mobile',true],['vi','light','tablet',true],['en','light','desktop',true],['vi','dark','mobile',false]] as const){
+  for(const [lang,theme,size,account] of [['vi','light','mobile',true],['en','dark','mobile',true],['vi','light','tablet',true],['en','light','desktop',true]] as const){
    const {page,context,errors,calls}=await open({lang,theme,viewport:sizes[size],account,status:account?STATUS({termsAcceptedAt:new Date().toISOString(),shareDefault:true}):GUEST,community:EMPTY_COMMUNITY,family:[],rewards:{...REWARDS,total:0,progress:0,level:LEVELS[0],next:LEVELS[1],toNext:100,badges:[],recent:[]}});
    await page.waitForSelector('.scout-empty-first',{timeout:10000});
    const t=await page.locator('.scout-empty-first').innerText();
@@ -208,7 +201,7 @@ async function main(){
   {const {page,context}=await open({lang:'en'});await page.waitForSelector('.scout-community .scout-cp');await context.setOffline(true);await page.evaluate('dispatchEvent(new Event("offline"));scoutRerender()');await page.waitForTimeout(200);assert.match(await page.locator('.scout-sub').innerText(),/Offline/);assert.ok(await page.locator('.scout-community .scout-cp').count()>0);await scrollTo(page,'.scout-community');await shot(page,'community-offline-en-light-mobile');await context.close()}
   // 8. Studio: moderation queue + rewards (leaderboard, ledger drawer, audited adjust with reason)
   for(const [lang,theme,size] of [['vi','light','mobile'],['en','dark','mobile'],['vi','light','tablet'],['en','dark','tablet'],['en','light','desktop'],['vi','dark','desktop']] as const){
-   const context=await browser.newContext({viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme});await context.addInitScript(({lang,theme}:any)=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});
+   const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme});await context.addInitScript(({lang,theme}:any)=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});
    const page=await context.newPage(),errors:string[]=[],posts:any[]=[],gets:string[]=[];page.on('pageerror',e=>errors.push(e.message));
    await page.route(origin+'/**',async route=>{const req=route.request(),url=new URL(req.url()),op=url.searchParams.get('op')||'';
     if(url.pathname.endsWith('/studio')){if(req.method()==='POST')posts.push({op,body:JSON.parse(req.postData()||'{}')});else gets.push(op);await route.fulfill({json:op==='me'?{username:'henrynguyen',name:'Henry',role:'owner',csrf:'qa'}:op==='community'?MOD:op==='community-ledger'?LEDGER:{done:true}});return}

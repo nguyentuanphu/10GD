@@ -32,8 +32,8 @@ const EXTRAS=[['Rau muống','500 g'],['Giấy vệ sinh','1 gói'],['Viên rử
 async function main(){
  mkdirSync(out,{recursive:true});
  const browser=await chromium.launch();const shots=[];
- async function open({viewport=sizes.mobile,lang='vi',theme='light',scout=null,account=false,offline=false,path='/#shopping',api=null}={}){
-  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme});
+ async function open({viewport=sizes.mobile,lang='vi',theme='light',scout=null,account=true,offline=false,path='/#shopping',api=null}={}){
+  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme});
   const scope=account?'account/qa-household/':'guest/';
   await context.addInitScript(({scope,lang,theme,scout,account})=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem(scope+'bep-language',lang);if(account)localStorage.setItem('bep-account-present','yes');else localStorage.setItem('bep-local-locked','yes');if(scout)localStorage.setItem(scope+'bep-price-scout-v1',JSON.stringify(scout));else localStorage.removeItem(scope+'bep-price-scout-v1')},{scope,lang,theme,scout,account});
   const page=await context.newPage(),errors=[],calls=[];
@@ -53,7 +53,7 @@ async function main(){
   // Build a realistic shopping list: one planned dinner + extras typed by the family.
   // A one-time startup reload (live account check adopting the household) can race the first evaluate; retry once it settles.
   for(let attempt=0;;attempt++){try{await page.waitForFunction(()=>typeof (globalThis as any).scoutMount==='function'&&document.querySelector('#main h1'),null,{timeout:20000});await page.evaluate(`(()=>{const extras=${JSON.stringify(EXTRAS)};const w=currentWeek();const day=w.days[selectedDate]||Object.values(w.days)[0];const r=state.recipes.find(x=>x.id==='r1')||state.recipes[0];day.dinner.recipes=[clone(r)];day.dinner.cooked=false;w.extras=extras.map(([name,qty],i)=>({id:'qa-extra-'+i,name,qty,cost:0,currency:'AUD',done:false}));save();view='shopping';render()})()`);break}catch(e){if(attempt>=3||!/context was destroyed|navigation/i.test(String((e as Error)?.message)))throw e;await page.waitForTimeout(700)}}
-  if(account){for(let i=0;i<5;i++){await page.waitForTimeout(700);try{await page.waitForFunction(()=>typeof (globalThis as any).scoutMount==='function',null,{timeout:15000});await page.evaluate('state.preferences.onboardingComplete=true;save();closeModal();view="shopping";render()');break}catch(e){if(i===4)throw e}}}
+  if(account){for(let i=0;i<5;i++){await page.waitForTimeout(700);try{await page.waitForFunction(()=>typeof (globalThis as any).scoutMount==='function',null,{timeout:15000});await page.evaluate('state.preferences.onboardingComplete=true;save();if(!document.querySelector("#scout-obs-form"))closeModal();view="shopping";render()');break}catch(e){if(i===4)throw e}}}
   if(offline){await context.setOffline(true);await page.evaluate('dispatchEvent(new Event("offline"));render()')}
   await page.waitForTimeout(300);
   return{page,context,errors,calls};
@@ -65,9 +65,12 @@ async function main(){
  }
  async function shot(page,name){await page.screenshot({path:`${out}/${name}.png`,fullPage:false});shots.push(name)}
  const scrollTo=async(page,sel)=>{await page.evaluate(sel=>{const el=document.querySelector(sel);if(el){const y=el.getBoundingClientRect().top+scrollY-70;scrollTo(0,y)}},sel);await page.waitForTimeout(150)};
- const withData={version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:SAMPLE,pending:[],pool:null};
+ // v1.7.11: So Giá is account-only, so the sample prices are the family's (pool), refreshed just now
+ const withData={version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:[],pending:[],pool:{at:Date.now(),observations:SAMPLE,official:null}};
  try{
-  // 1. Setup / empty state (no postcode yet)
+  // 0. (owner, 7 Nov 2026: “So giá bây giờ chỉ nên có tài khoản”) without an account So Giá is one card asking for an account — no postcode, no prices, no requests
+  for(const[size,viewport]of Object.entries(sizes)){const {page,context,errors,calls}=await open({viewport,account:false,scout:withData});await scrollTo(page,'.price-scout');const card=page.locator('.scout-account-only');assert.ok(await card.isVisible(),size+': account card');assert.equal(await page.locator('#scout-postcode, [data-scout="refresh"], .scout-row').count(),0,size+': no So Giá controls or saved prices without an account');assert.equal(await card.locator('a[href="/login"]').count(),1);assert.deepEqual(calls,[]);await check(page,'guest '+size);await shot(page,`guest-account-vi-light-${size}`);assert.deepEqual(errors,[]);await context.close()}
+  // 1. Setup / empty state (no postcode yet) — signed-in family
   for(const[size,viewport]of Object.entries(sizes)){const {page,context,errors}=await open({viewport});await scrollTo(page,'.price-scout');assert.ok(await page.locator('#scout-postcode').isVisible());await check(page,'setup '+size);await shot(page,`setup-vi-light-${size}`);assert.deepEqual(errors,[]);await context.close()}
   {const {page,context}=await open({lang:'en',theme:'dark'});await scrollTo(page,'.price-scout');await shot(page,'setup-en-dark-mobile');await context.close()}
   // 2. Unsupported postcode (Melbourne 3000; ACT 2600 is not NSW)
@@ -91,15 +94,19 @@ async function main(){
    const badge=await page.locator('.scout-viet-badge').count();assert.ok(badge>=1,'Chợ Việt badge on list items');await context.close()}
   // 4. Capture confirm sheet via paste (and save) — all sizes
   for(const[size,viewport]of Object.entries(sizes)){const {page,context}=await open({viewport,scout:withData});await page.locator('[data-scout="paste"]').click();await page.fill('#scout-paste-text','Chemist Warehouse\nFinish Quantum 60 Pack\n$24.99\n$0.42 per wash');await page.locator('.modal-footer .btn.primary').click();await page.waitForSelector('#scout-obs-form');assert.equal(await page.inputValue('#scout-price'),'24.99');assert.equal(await page.inputValue('#scout-item'),'finish-tablets');assert.equal(await page.inputValue('#scout-retailer'),'chemist');assert.equal(await page.inputValue('#scout-unit-price'),'0.42');await check(page,'confirm '+size);await shot(page,`confirm-vi-light-${size}`);
-   if(size==='mobile'){await page.locator('.modal-footer .btn.primary').click();await page.waitForTimeout(200);const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-price-scout-v1')!).local.length);assert.equal(saved,SAMPLE.length+1,'device-only save stays local')}
+   if(size==='mobile'){await page.locator('.modal-footer .btn.primary').click();await page.waitForTimeout(200);const saved=await page.evaluate(()=>{const d=JSON.parse(localStorage.getItem('account/qa-household/bep-price-scout-v1')!);return (d.pool?.observations||[]).length+(d.pending||[]).length+(d.local||[]).length});assert.equal(saved,SAMPLE.length+1,'saved price goes to the family (v1.7.11: no device-only So Giá)')}
    await context.close()}
   {const {page,context}=await open({lang:'en',theme:'dark',scout:withData});await page.locator('[data-scout="manual"]').click();await page.waitForSelector('#scout-obs-form');await shot(page,'confirm-en-dark-mobile');
    await page.selectOption('#scout-item','gao-jasmine');await page.fill('#scout-price','60');await page.fill('#scout-pack','5');await page.selectOption('#scout-pack-unit','kg');await page.waitForTimeout(100);
    assert.ok(await page.locator('#scout-sanity').isVisible(),'unusual price warning');assert.match(await page.locator('#scout-sanity').innerText(),/unusual/);await page.locator('#scout-sanity').scrollIntoViewIfNeeded();await shot(page,'confirm-sanity-en-dark-mobile');
-   await page.locator('.modal-footer .btn.primary').click();await page.waitForTimeout(200);const kept=await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-price-scout-v1')!).local[0]);assert.deepEqual([kept.price,kept.confidence,kept.visibility],[60,'low','family'],'still allowed to save');await context.close()}
+   await page.locator('.modal-footer .btn.primary').click();await page.waitForTimeout(200);const kept=await page.evaluate(()=>{const d=JSON.parse(localStorage.getItem('account/qa-household/bep-price-scout-v1')!);return [...(d.pending||[]),...(d.pool?.observations||[])].find((o:any)=>o.itemId==='gao-jasmine'&&o.price===60)});assert.deepEqual([kept.price,kept.confidence,kept.visibility],[60,'low','family'],'still allowed to save');await context.close()}
   // 5. Bookmark landing: /?price-capture=<json>
   {const payload={v:1,label:'Coles Tasty Cheese Slices 500g',price:4.5,currency:'AUD',wasPrice:9,unitText:'$0.90 per 100g',packText:'500g',url:'https://www.coles.com.au/product/qa-cheese',host:'coles.com.au',source:'bookmark',promoText:'half-price'};
-   const {page,context}=await open({scout:withData,path:'/?price-capture='+encodeURIComponent(JSON.stringify(payload))+'#shopping'});await page.waitForSelector('#scout-obs-form');assert.equal(await page.inputValue('#scout-retailer'),'coles');assert.equal(await page.inputValue('#scout-price'),'4.5');assert.equal(await page.inputValue('#scout-promo'),'half-price');assert.doesNotMatch(page.url(),/price-capture/);await shot(page,'bookmark-capture-vi-light-mobile');await context.close()}
+   const {page,context}=await open({scout:withData,path:'/?price-capture='+encodeURIComponent(JSON.stringify(payload))+'#shopping'});await page.waitForSelector('#scout-obs-form');assert.equal(await page.inputValue('#scout-retailer'),'coles');assert.equal(await page.inputValue('#scout-price'),'4.5');assert.equal(await page.inputValue('#scout-promo'),'half-price');assert.doesNotMatch(page.url(),/price-capture/);await shot(page,'bookmark-capture-vi-light-mobile');
+   // v1.7.11: a reload while the sheet is open (e.g. the one-time start-up reload adopting the signed-in family) must not lose the price
+   await page.reload({waitUntil:'domcontentloaded'});await page.waitForSelector('#scout-obs-form',{timeout:20000});assert.equal(await page.inputValue('#scout-price'),'4.5','price survives a reload');
+   await page.locator('[data-action="close-modal"]').first().click();await page.waitForTimeout(200);assert.equal(await page.evaluate(()=>sessionStorage.getItem('bep-price-capture')),null,'forgotten once the sheet is closed');
+   await page.reload({waitUntil:'domcontentloaded'});await page.waitForTimeout(1500);assert.equal(await page.locator('#scout-obs-form').count(),0,'does not open again after closing');await context.close()}
   // 6. Bookmark help, catalogue sheet, Amazon tray
   {const {page,context}=await open({scout:withData});await page.locator('[data-scout="bookmark"]').click();const href=await page.locator('.scout-bookmarklet').getAttribute('href');assert.match(href!,/^javascript:/);{const code=decodeURIComponent(href!.slice(11));assert.ok(code.includes('"https://kitchen.test"')&&code.includes('/?price-capture='),'bookmarklet targets app origin');assert.doesNotMatch(code,/fetch\(|XMLHttpRequest/,'bookmarklet never fetches pages')}await shot(page,'bookmark-help-vi-light-mobile');await page.keyboard.press('Escape');await page.evaluate('closeModal()');
    await page.locator('[data-scout="catalogue"]').click();await shot(page,'catalogue-vi-light-mobile');await page.evaluate('closeModal()');

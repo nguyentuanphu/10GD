@@ -23,7 +23,7 @@ const seed=()=>(0,eval)(`(()=>{state.members=[{id:'dad',name:'Bố',weight:1,emo
  familyStorage.setItem('bep-active-member','mum');save();render();return D})()`);
 (async()=>{const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});
 for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet',820,1100],['desktop',1280,800]] as [string,number,number][]){
- const phone=width<=760,context=await browser.newContext({viewport:{width,height},reducedMotion:'reduce',hasTouch:name!=='desktop',isMobile:phone}),page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page);
+ const phone=width<=760,context=await browser.newContext({locale:'vi-VN',viewport:{width,height},reducedMotion:'reduce',hasTouch:name!=='desktop',isMobile:phone}),page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page);
  const tap=(loc:any)=>name!=='desktop'?loc.tap():loc.click();
  await page.goto('https://kitchen.test/#today');await page.locator('#main .page-heading').waitFor({timeout:20000});await page.waitForTimeout(500);
  const D:string=await page.evaluate(seed);await theme(page,'light');await page.waitForTimeout(150);
@@ -102,7 +102,7 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  await tap(en.locator('.who-busy-row.away').first());await page.locator('#availability-form.family-view .calendar-daylist').waitFor();assert.equal(await G(page,'availabilityFocus'),D);assert.equal(await page.locator('#calendar-member').inputValue(),'');
  await page.evaluate(()=>(0,eval)('closeModal')());
  // Schedule note on Today's attendance for that dinner uses the clearer wording.
- await page.evaluate((d:string)=>{const ev=(0,eval);ev(`selectedDate='${d}';attendanceType='dinner'`);(0,eval)('render')()},D);
+ await page.evaluate((d:string)=>{const ev=(0,eval);ev(`selectedDate='${d}';weekStart=planStartOf(state,'${d}');attendanceType='dinner'`)/* the day and its plan week together, as the app's own day links do (on a Sunday, tomorrow is in next week) */;(0,eval)('render')()},D);
  const note=page.locator('#main .attendance .schedule-note').first();await note.waitFor();const nt=await note.innerText();assert.match(nt,/Bố: Busy · still cooking their portion/);assert.match(nt,/Bé nhỏ: Away 18:00–21:00 · no portion/);
  // Offline (account-free device): saving still works and nothing errors.
  await context.setOffline(true);await page.evaluate(()=>{const ev=(0,eval);ev(`availabilityMember='ti';availabilitySelected=new Set([selectedDate]);availabilityMonth=selectedDate.slice(0,7)`);(0,eval)('availabilityModal')()});

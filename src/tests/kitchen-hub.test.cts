@@ -24,7 +24,7 @@ async function main() {
   try {
     type Options = { account?: boolean; grant?: unknown; viewport?: { width: number; height: number }; status?: () => Promise<Record<string, unknown> | number>; theme?: string; members?: number; families?: number; name?: string; ops?: string[] };
     async function open({ account = true, grant = null, viewport = { width: 375, height: 812 }, status, theme = 'light', members = 1, families = 1, name = 'QA', ops = [] }: Options = {}) {
-      const context = await browser.newContext({ viewport, serviceWorkers: 'block', reducedMotion: 'reduce' });
+      const context = await browser.newContext({locale:'vi-VN', viewport, serviceWorkers: 'block', reducedMotion: 'reduce' });
       await context.addInitScript(({ account, grant, theme }) => {
         if (sessionStorage.getItem('qa-init')) return; sessionStorage.setItem('qa-init', '1');
         localStorage.setItem('bep-theme-mode', theme);

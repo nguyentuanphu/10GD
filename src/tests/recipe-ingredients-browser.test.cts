@@ -48,7 +48,7 @@ const NOTES=['Tỏi 3 tép','Nước mắm 2 muỗng canh'];
  // The app's “today” follows the family time zone (Australia/Sydney) while seeding uses the browser's local date, so the
 // browser runs in Sydney time; in UTC the dates differ from 13:00 to 24:00 UTC and today's dinner was seeded on yesterday.
 async function openApp({viewport=sizes.mobile,ua=IPHONE,touch=true,lang='vi',theme='light',account=false,hash='today',context:given}:any={}){
-  const context=given||await browser.newContext({viewport,userAgent:ua,hasTouch:touch,isMobile:touch&&viewport.width<900,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme==='dark'?'dark':'light',timezoneId:'Australia/Sydney'});
+  const context=given||await browser.newContext({locale:'vi-VN',viewport,userAgent:ua,hasTouch:touch,isMobile:touch&&viewport.width<900,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme==='dark'?'dark':'light',timezoneId:'Australia/Sydney'});
   if(!given){await context.addInitScript(({account}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-guide-done','1');if(account)localStorage.setItem('bep-account-present','yes');else localStorage.setItem('bep-local-locked','yes')},{account});if(account)await context.addCookies([cookieOf(dadCookie)])}
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page,{account});
   await page.goto(origin+'/#'+hash);await page.locator('#main .page-heading').waitFor({timeout:30000});await page.waitForTimeout(account?1500:600);await page.waitForFunction(()=>typeof appLanguage!=='undefined'&&typeof rcEnabled==='function'&&typeof recipeIngredientRows==='function',null,{timeout:30000});

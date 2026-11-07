@@ -18,6 +18,8 @@ export function createGroceryHandler({getStoreFn=getStore,now=()=>new Date()}={}
   if(op==='photos'&&method==='GET'){let ph:any=null;try{ph=await cacheStore()?.get(ONLINE_PHOTOS_KEY,{type:'json'})}catch{}const items:any={};for(const[k,v]of Object.entries(ph?.items||{}) as any){const photo=cleanPhoto(v?.photo);if(/^[a-z0-9-]{1,60}$/.test(k)&&photo)items[k]={photo,retailer:String(v.retailer||'').slice(0,20),label:String(v.label||'').slice(0,160)}}return Response.json({updatedAt:ph?.updatedAt||null,items},{headers:{'Cache-Control':'public, max-age=3600'}})}
   if(!['GET','HEAD'].includes(method)&&request.headers.get('origin')!==url.origin)return json({error:'Same-origin request required.'},403);
   const context=await resolveAccount(request,getStoreFn);
+  // v1.7.11 (owner, 7 Nov 2026: “So giá bây giờ chỉ nên có tài khoản đi cho chắc”): So Giá — online prices included — needs an
+  // account; there are no guest tries.
   if(!context)return json({error:'Sign in to family storage.'},401);
   if(!context.household)return json({error:'Chọn hoặc tạo gia đình trước.'},409);
   if(context.member?.role==='viewer'&&!['GET','HEAD'].includes(method))return json({error:'Tài khoản chỉ xem không được sửa dữ liệu.'},403);

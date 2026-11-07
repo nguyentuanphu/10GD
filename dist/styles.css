@@ -2176,3 +2176,14 @@ html[data-theme="dark"] #modal-root .modal:has(.recipe-detail-hero)>.modal-foote
 /* taps on the floating footer's see-through fade and gaps reach the field behind it; only its buttons catch taps */
 #modal-root .modal>.modal-footer.floating-footer{pointer-events:none}
 #modal-root .modal>.modal-footer.floating-footer>*{pointer-events:auto}
+/* v1.7.11: So Giá is for signed-in families; without an account one short card asks for a free account */
+.scout-account-card{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.scout-account-card>div{flex:1 1 200px;min-width:0}.scout-account-card h3{margin:0 0 4px}.scout-account-card p{margin:0}
+.scout-account-card .ol-cart{width:40px;height:40px;flex:none}.scout-account-card .btn{min-height:44px}
+@media (max-width:560px){.scout-account-card .btn{flex:1 1 100%}}
+/* v1.7.11 drawn pictures on every button, chip and tab */
+.btn-art{width:1.3em;height:1.3em;flex:none;vertical-align:-.3em;margin-right:6px}
+button:has(>.btn-art),a.btn:has(>.btn-art),.chip:has(>.btn-art),[role="tab"]:has(>.btn-art){display:inline-flex;align-items:center;justify-content:center;gap:0}
+button:has(>.btn-art:only-child) .btn-art,[role="tab"]:has(>.btn-art:only-child) .btn-art{margin-right:0}
+.icon:has(>.btn-art) .btn-art,.rc-icon .btn-art,.qty-round .btn-art,.dish-remove-btn .btn-art,.row-skip .btn-art{width:26px;height:26px;margin:0}
+@media (prefers-reduced-motion:reduce){.btn-art *{animation:none!important}}

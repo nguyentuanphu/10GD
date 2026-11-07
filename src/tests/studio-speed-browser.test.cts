@@ -21,7 +21,7 @@ async function main(){
  let delay=1500;
  const browser=await chromium.launch();
  async function open({viewport=sizes.desktop,lang='vi',hash='#overview'}:any={}){
-  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce'});
+  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce'});
   await context.addInitScript((l:string)=>{localStorage.setItem('studio-lang',l);localStorage.setItem('studio-theme','light')},lang);
   const page=await context.newPage(),errors:string[]=[],calls:string[]=[],aborted:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   page.on('requestfailed',r=>{if(r.url().includes('/studio?')&&/ABORT/i.test(r.failure()?.errorText||''))aborted.push(new URL(r.url()).searchParams.get('op')||'')});

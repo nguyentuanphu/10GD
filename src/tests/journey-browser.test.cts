@@ -16,7 +16,7 @@ const VI_WORDS=/(?<![\p{L}])(bữa|món|người|tủ|mua|giỏ|nấu|xem|thêm|
 (async()=>{const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});const root=process.cwd();
 for(const lang of ['vi','en'])for(const mode of ['light','dark'])for(const [size,viewport,touch] of SIZES){
  if(mode==='dark'&&size==='tablet')continue; // dark: phone and desktop; light: every size
- const label=`${lang} ${mode} ${size}`,ctx=await browser.newContext({viewport,hasTouch:touch,isMobile:size==='mobile',reducedMotion:'reduce',timezoneId:'Australia/Sydney',serviceWorkers:'block',colorScheme:mode as any});
+ const label=`${lang} ${mode} ${size}`,ctx=await browser.newContext({locale:'vi-VN',viewport,hasTouch:touch,isMobile:size==='mobile',reducedMotion:'reduce',timezoneId:'Australia/Sydney',serviceWorkers:'block',colorScheme:mode as any});
  await ctx.addInitScript(([l,m]:string[])=>{if(sessionStorage.getItem('qa'))return;sessionStorage.setItem('qa','1');localStorage.setItem('guest/bep-language',l);localStorage.setItem('bep-theme-mode',m)},[lang,mode]);
  const page=await ctx.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));page.on('console',(m:any)=>{if(m.type()==='error'&&!/Failed to load resource|net::ERR/.test(m.text()))errors.push('console: '+m.text())});
  await page.route('https://kitchen.test/**',async(route:any)=>{const url=new URL(route.request().url());if(url.pathname.startsWith('/.netlify/')){const op=url.searchParams.get('op');return route.fulfill({json:op==='status'?{configured:false,connected:false}:op==='state'?{state:null,etag:null}:op==='families'?{families:[]}:{announcements:[],devices:[]}})}const file=path.join(root,'dist',url.pathname==='/'?'index.html':url.pathname);try{await route.fulfill({body:fs.readFileSync(file),contentType:({'.html':'text/html','.js':'application/javascript','.json':'application/json','.css':'text/css','.webp':'image/webp','.svg':'image/svg+xml','.png':'image/png'} as any)[path.extname(file)]||'application/octet-stream'})}catch{await route.fulfill({status:404,body:'Missing'})}});
@@ -70,7 +70,7 @@ for(const lang of ['vi','en'])for(const mode of ['light','dark'])for(const [size
  await E(`closeModal();view='expenses';render();scrollTo(0,0)`);await check('spending');await shot('9-spending');
  assert.match(await page.locator('#main').innerText(),/3[.,]10/,`${label}: Spending shows the receipt`);
  // 5. Quick-add a new dish → its recipe page opens → saved, and the meal has it
- const tomorrow:string=await E('addDays(sydneyDate(),1)');await E(`view='planner';selectedDate=${JSON.stringify(tomorrow)};render();familyEditMeal(${JSON.stringify(tomorrow)},'lunch')`);
+ const tomorrow:string=await E('addDays(sydneyDate(),1)');await E(`view='planner';selectedDate=${JSON.stringify(tomorrow)};weekStart=planStartOf(state,${JSON.stringify(tomorrow)});render();familyEditMeal(${JSON.stringify(tomorrow)},'lunch')`);
  const dish=`Cá kho thử ${lang} ${mode} ${size}`;await page.locator('#quick-dish-name').fill(dish);await tap(page.locator('[data-fm="quick-add-dish"]'));await page.locator('#family-recipe-form').waitFor();
  const r0=page.locator('#rc-ing-list .rc-ing-row').first();await r0.locator('.rc-ing-name-input').fill('Cá thu');await r0.locator('.rc-ing-qty').fill('400');await r0.locator('.rc-ing-unit').selectOption('g');await check('new dish');await shot('10-new-dish');
  await tap(page.locator('[data-action="submit-form"][data-id="family-recipe-form"]'));await page.waitForFunction(()=>!document.querySelector('#family-recipe-form'));
@@ -80,7 +80,7 @@ for(const lang of ['vi','en'])for(const mode of ['light','dark'])for(const [size
  // 7. Offline: the app says so and keeps working on this device; back online it says so again
  await ctx.setOffline(true);await E(`dispatchEvent(new Event('offline'))`);await page.waitForTimeout(300);await E(`view='today';render()`);
  const offlineText:string=await page.evaluate(()=>document.body.innerText);assert.match(offlineText,lang==='en'?/offline|Offline|no connection|on this device/i:/ngoại tuyến|mất mạng|Không có mạng|trên máy này|Ngoại tuyến/i,`${label}: offline is shown`);
- await E(`(()=>{const m=currentWeek().days[sydneyDate()].lunch;m.note='offline note';save();render()})()`);assert.equal(await E(`Object.keys(localStorage).some(k=>(localStorage.getItem(k)||'').includes('offline note'))`),true,`${label}: offline edits are kept on this device`);
+ await E(`(()=>{const m=planWeek(state,planStartOf(state,sydneyDate())).days[sydneyDate()].lunch/* today's own week: the steps above opened tomorrow, which on a Sunday is next week */;m.note='offline note';save();render()})()`);assert.equal(await E(`Object.keys(localStorage).some(k=>(localStorage.getItem(k)||'').includes('offline note'))`),true,`${label}: offline edits are kept on this device`);
  await check('offline');await shot('12-offline');await ctx.setOffline(false);await E(`dispatchEvent(new Event('online'))`);await page.waitForTimeout(200);await check('online again');
  console.log('✓',label);await ctx.close()}
 await browser.close();console.log('PASS family day end to end (away → portions → shopping → bought → pantry → cooked → undo → receipt → spending → new dish → notification link → offline) at 375 / 820 / 1280 px, VI and EN, light and dark')})().catch(e=>{console.error(e);process.exit(1)});

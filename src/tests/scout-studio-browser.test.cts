@@ -41,7 +41,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
 
  const browser=await chromium.launch();const posts:any[]=[],studioOps:string[]=[],reqLog:string[]=[];
  async function open(size:string,lang:string,theme:string){
-  const context=await browser.newContext({viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme as any,hasTouch:size!=='desktop'});
+  const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme as any,hasTouch:size!=='desktop'});
   await context.addInitScript(({lang,theme}:any)=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});
   await context.addCookies([{name:henry.split('=')[0],value:henry.split('=').slice(1).join('='),domain:'kitchen.test',path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
   studioOps.length=0;reqLog.length=0;const page=await context.newPage();page.on('dialog',(d:any)=>d.accept(d.type()==='prompt'?'QA: thiết bị thử nghiệm':undefined));
