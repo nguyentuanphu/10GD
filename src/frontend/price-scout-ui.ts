@@ -644,10 +644,11 @@ document.addEventListener('submit',async event=>{
 });
 // Bookmark landing: /?price-capture=<json>. Show the confirm sheet; never auto-save.
 (function scoutCaptureLanding(){
- try{const params=new URLSearchParams(location.search),raw=params.get('price-capture');if(!raw)return;if(!scoutEnabled()){params.delete('price-capture');history.replaceState(null,'',location.pathname+(params.toString()?'?'+params:'')+location.hash);return}params.delete('price-capture');history.replaceState(null,'',location.pathname+(params.toString()?'?'+params:'')+'#shopping');
-  const draft=raw.length<=20000?PS.captureToDraft(raw,scoutCatalog()):null;if(!draft){toast(scoutT('Không đọc được giá từ nút “Lưu giá”.','Could not read the price from the “Save price” button.'),true);return}
+ // v1.7.11: kept for this tab until the sheet opens, so a one-time start-up reload (adopting the signed-in family) does not lose it
+ try{const params=new URLSearchParams(location.search),fromUrl=params.get('price-capture');let raw=fromUrl;try{if(fromUrl)sessionStorage.setItem('bep-price-capture',fromUrl);else raw=sessionStorage.getItem('bep-price-capture')}catch{}if(!raw)return;const done=()=>{try{sessionStorage.removeItem('bep-price-capture')}catch{}};if(!scoutEnabled()){done();params.delete('price-capture');history.replaceState(null,'',location.pathname+(params.toString()?'?'+params:'')+location.hash);return}if(fromUrl){params.delete('price-capture');history.replaceState(null,'',location.pathname+(params.toString()?'?'+params:'')+'#shopping')}
+  const draft=raw.length<=20000?PS.captureToDraft(raw,scoutCatalog()):null;if(!draft){done();toast(scoutT('Không đọc được giá từ nút “Lưu giá”.','Could not read the price from the “Save price” button.'),true);return}
   if(view!=='shopping'){view='shopping';render()}
-  setTimeout(()=>{if(scoutViewer()){toast(scoutT('Tài khoản chỉ xem không thêm được giá.','View-only accounts cannot add prices.'),true);return}scoutConfirm(scoutFromParsed(draft,'bookmark',[draft.label,draft.url].filter(Boolean).join('\n')))},50)}catch(e){console.warn('Price Scout capture',e)}
+  setTimeout(()=>{if(scoutViewer()){done();toast(scoutT('Tài khoản chỉ xem không thêm được giá.','View-only accounts cannot add prices.'),true);return}scoutConfirm(scoutFromParsed(draft,'bookmark',[draft.label,draft.url].filter(Boolean).join('\n')));/* forget it once the sheet is saved or closed */const mo=new MutationObserver(()=>{if(!document.getElementById('scout-obs-form')){done();mo.disconnect()}});mo.observe(document.body,{childList:true,subtree:true})},50)}catch(e){console.warn('Price Scout capture',e)}
 })();
 if(view==='shopping')scoutMount();
 
