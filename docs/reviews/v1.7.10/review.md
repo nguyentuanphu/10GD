@@ -18,7 +18,7 @@ Scope, from Henry's choices in the question dialog on 7 Nov 2026:
 - **Saved on this device only**, in the same setting the seasonal themes use. Nothing is synced or changed for the family.
 - **Top-bar light / dark button:** now our own drawings (sun, crescent moon, half and half for auto), replacing ☀️ 🌙 🌤️ 🌌 and the seasonal emoji (rule 19).
 - **Tests:** `v176-fixes:browser` (320 / 375 / 820 / 1280, VI and EN) checks the 12 swatches ≥ 44 px, that a tap changes the colours and the radio state, the dark version, and the drawn toggle with no emoji. `kitchen-hub` follows the swatch group.
-- **Evidence:** `docs/reviews/v1.7.10/themes/{colour}-{light,dark}-375.png` and `picker-375.png` (Chromium simulation).
+- **Evidence:** `docs/reviews/v1.7.10/themes/{colour}-{light,dark}-375.png` and `picker-375.png`, plus the real Appearance sheet from the test, `docs/reviews/v1.7.8/{vi,en}-mobile-appearance-themes.png` (Chromium simulation).
 - **Limitation:** some cards and the bottom bar in dark mode keep the shared dark surface colours, which are slightly green. Only the accents and the page background follow the theme there.
 
 ### Test fix
