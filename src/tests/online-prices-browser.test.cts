@@ -121,6 +121,8 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
   // chosen trip plan, the list keeps its online price lines, and opening it is remembered.
   for(const size of ['mobile','tablet','desktop']){const {page,context,errors}=await open(size,'vi','light',{version:1,open:true,postcode:'2166',state:'NSW',prefs:{},local:[],pending:[],pool:null});
    assert.equal(await page.locator('.price-scout #scout-body').count(),0,size+': So Giá starts folded');
+   // wait until the list has drawn: the page re-draws once after the prices load, and an earlier check could land in between
+   await page.waitForFunction(()=>!!document.querySelector('#main .price-scout')&&!!document.querySelector('#main .shopping-layout'),null,{timeout:10000});
    assert.ok(await page.evaluate(()=>{const a=document.querySelector('#main .price-scout'),b=document.querySelector('#main .shopping-layout');return!!a&&!!b&&!!(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)}),size+': So Giá is above the list');
    assert.match(await page.locator('.price-scout .scout-plan-sum').innerText(),/phút/,size+': folded header shows the chosen trip plan');
    assert.ok(await page.locator('.shop-row .online-line').count()>0,size+': list keeps online prices while folded');

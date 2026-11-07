@@ -20,3 +20,7 @@ Scope, from Henry's choices in the question dialog on 7 Nov 2026:
 - **Tests:** `v176-fixes:browser` (320 / 375 / 820 / 1280, VI and EN) checks the 12 swatches ≥ 44 px, that a tap changes the colours and the radio state, the dark version, and the drawn toggle with no emoji. `kitchen-hub` follows the swatch group.
 - **Evidence:** `docs/reviews/v1.7.10/themes/{colour}-{light,dark}-375.png` and `picker-375.png` (Chromium simulation).
 - **Limitation:** some cards and the bottom bar in dark mode keep the shared dark surface colours, which are slightly green. Only the accents and the page background follow the theme there.
+
+### Test fix
+
+- `online-prices:browser`: before checking that *So Giá* sits above the list, the check now waits for the list to draw. On 7 Nov it failed locally on the v1.7.9 code too: the page re-draws once after the prices load, and the check landed in between (tablet in one run, desktop in another). No check removed.
