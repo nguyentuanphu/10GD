@@ -2145,7 +2145,7 @@ html[data-theme="dark"] #modal-root .modal:has(.recipe-detail-hero)>.modal-foote
 #modal-root .modal>header .close-x-btn{width:44px;height:44px;min-width:44px;padding:0;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:0}
 #modal-root .modal>header .close-x-btn .sheet-art{width:34px;height:34px}
 #modal-root .modal>.modal-footer.floating-footer{position:sticky!important;bottom:0;z-index:5;display:grid!important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;align-items:stretch;padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--paper,#fffefa) 70%,color-mix(in srgb,var(--paper,#fffefa) 0%,transparent));border-top:0}
-#modal-root .modal>.modal-footer.floating-footer[data-count="1"]{grid-auto-columns:minmax(0,min(100%,320px));justify-content:end}
+#modal-root .modal>.modal-footer.floating-footer[data-count="1"]{grid-auto-columns:minmax(0,min(100%,320px));justify-content:center}
 #modal-root .modal>.modal-footer.floating-footer:has(>:nth-child(4)){grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}
 #modal-root .modal>.modal-footer.floating-footer>.btn,#modal-root .modal>.modal-footer.floating-footer>a.btn{width:100%;min-width:0;min-height:48px;margin:0;padding:8px 12px;white-space:normal!important;line-height:1.2;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:6px;overflow-wrap:normal}
 #modal-root .modal>.modal-footer .pill-btn{border-radius:999px!important;box-shadow:0 6px 16px rgba(40,50,40,.16)}
@@ -2187,3 +2187,123 @@ button:has(>.btn-art),a.btn:has(>.btn-art),.chip:has(>.btn-art),[role="tab"]:has
 button:has(>.btn-art:only-child) .btn-art,[role="tab"]:has(>.btn-art:only-child) .btn-art{margin-right:0}
 .icon:has(>.btn-art) .btn-art,.rc-icon .btn-art,.qty-round .btn-art,.dish-remove-btn .btn-art,.row-skip .btn-art{width:26px;height:26px;margin:0}
 @media (prefers-reduced-motion:reduce){.btn-art *{animation:none!important}}
+/* v1.7.12 (owner, 8 Nov 2026: "nút round up và down không đồng đều"): the amount and its two round buttons always sit the same
+   way on every row and every screen size: the amount, and under it the two round buttons sharing its width. The drawing already
+   shows the arrow, so the extra text arrow is hidden. */
+.shop-row .qty-cell{display:inline-grid;grid-template-columns:max-content;justify-items:stretch;gap:6px;min-width:0}
+.shop-row .qty-cell>*{grid-column:1!important;grid-row:auto!important;margin:0!important}
+.shop-row .qty-cell>button[data-action="purchase-quantity"]{width:100%}
+.shop-row .qty-cell>.qty-round-pair{display:flex;width:100%;margin:0}
+.shop-row .qty-cell>.qty-round-pair>.qty-round{flex:1 1 0;min-width:44px;padding:0 6px}
+.qty-round:has(>.btn-art) .qr-dir{display:none}
+/* v1.7.12 (owner: "chỗ giải phóng món ăn cái nút hơi khó nhìn và dài dòng quá"): the use-it-up card keeps its words full width
+   and puts one short button and the pantry link on their own line underneath. */
+.fridge-rescue-card .fridge-rescue-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:12px}
+.fridge-rescue-card .fridge-rescue-actions .btn{min-height:44px}
+.fridge-rescue-card .fridge-rescue-actions .text-btn{min-height:44px;display:inline-flex;align-items:center}
+/* v1.7.12: “Nấu luôn cho bữa sau?” sheet and the note on a meal cooked ahead */
+.cook-ahead-list{display:grid;gap:8px;margin:12px 0}
+.cook-ahead-row{display:flex;align-items:flex-start;gap:12px;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white)}
+.cook-ahead-row input{width:22px;height:22px;margin:2px 0 0;flex:none}
+.cook-ahead-row span{display:grid;gap:2px;min-width:0}
+.cook-ahead-row small{color:var(--muted);overflow-wrap:anywhere}
+.cooked-ahead-note{margin:4px 0 0;color:var(--green);font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));font-weight:600}
+/* v1.7.12: guests (owner: “ăn nhiều người như kiểu bạn qua chơi”; “nút thêm khách nên để gọn hơn, chỉ hiện khi cần”) */
+.meal-guests{padding:4px 16px 0}
+.meal-guests{min-width:0;max-width:100%}
+.meal-guest-line{display:block;width:100%;max-width:100%;min-height:44px;padding:0;text-align:left;font-weight:600;color:var(--green);white-space:normal!important;overflow-wrap:anywhere}
+.attendance .guest-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px}
+.attendance .guest-row .guest-row-info{color:var(--muted);font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));overflow-wrap:anywhere}
+.attendance .guest-row .btn{min-height:44px}
+.guest-when{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;display:grid;gap:8px}
+.guest-when legend{font-weight:700;padding:0 4px}
+.guest-when-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:8px;align-items:end}
+.guest-when-row label{display:grid;gap:4px;min-width:0;font-weight:600}
+.guest-when-row input,.guest-when-row select{min-height:44px;width:100%;min-width:0}
+.guest-group{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:var(--white)}
+.guest-group-head{display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:8px;align-items:center}
+.guest-group-head input{min-height:44px;width:100%;min-width:0}
+.guest-step{display:grid;grid-template-columns:minmax(0,1fr) 48px 44px 48px;align-items:center;gap:8px;margin:8px 0 0}
+.guest-step span{display:grid;gap:2px;min-width:0}
+.guest-step small{color:var(--muted)}
+.guest-step output{text-align:center;font-size:1.15em;font-weight:700}
+.icon-step{min-width:48px;min-height:48px;padding:0;font-size:1.3em;font-weight:700;border-radius:12px}
+.guest-book{display:flex;flex-wrap:wrap;gap:8px}
+.guest-book .chip{min-height:44px}
+.guest-total{font-weight:700;color:var(--text)}
+.hint.warn{color:var(--orange)}
+
+/* v1.7.12 (owner: “cất đồ đúng chỗ tự động”): things kept in the wrong place — a notice, moved only when the family taps */
+.misplaced-callout{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-color:#efc9a8;background:#fff6ee}
+.misplaced-callout p{margin:0;min-width:0;overflow-wrap:anywhere}
+.misplaced-callout .btn{min-height:44px}
+html[data-theme="dark"] .misplaced-callout{background:#2b2420;border-color:#5a4232}
+.misplaced-list{display:grid;gap:10px;margin-top:10px}
+.misplaced-row{display:grid;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white)}
+.misplaced-row>span{display:grid;gap:2px;min-width:0}
+.misplaced-row small{color:var(--muted)}
+.misplaced-actions{display:flex;flex-wrap:wrap;gap:8px}
+.misplaced-actions .btn{min-height:44px}
+.store-useby{display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:600}
+.store-useby input{min-height:44px;min-width:0}
+/* v1.7.12 (owner: “chế độ đi chợ”): in the shop, a big plain list to tick off; extra buttons on a tapped row only */
+.shop-mode-start{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin:0 0 14px}
+.shop-mode-start .btn{min-height:48px}
+.shop-mode-start small{color:var(--muted)}
+.shop-mode-bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--paper,#fffefa);box-shadow:0 6px 16px rgba(40,50,40,.12)}
+.shop-mode-bar span{display:grid;gap:2px;min-width:0}
+.shop-mode-bar small{color:var(--muted)}
+.shop-mode-bar .btn{min-height:48px;flex:none}
+body.shop-mode #main>.callout,body.shop-mode #main>.kitchen-action-dock,body.shop-mode #main>.week-tools,body.shop-mode #main>.price-scout,body.shop-mode #main>.page-heading,body.shop-mode #main .shopping-layout>details,body.shop-mode #main .shopping-store-tools,body.shop-mode #main .remaining-toggle{display:none!important}
+body.shop-mode #main .shopping-group{display:flex;flex-direction:column}
+body.shop-mode #main .shopping-group>.shop-row{order:1}
+body.shop-mode #main .shopping-group>.shop-row.is-bought{order:2;opacity:.6}
+body.shop-mode #main .shopping-group>.shop-row.is-bought .item-label{text-decoration:line-through}
+body.shop-mode #main .shop-row .item-label{font-size:1.12em;font-weight:700}
+body.shop-mode #main .shop-row .large-check-target{min-width:56px;min-height:56px}
+body.shop-mode #main .shop-row .large-check-target input.check{transform:scale(1.25)}
+body.shop-mode #main .shop-row:not(.flow-open) :is(.qty-round-pair,.store-pill,.row-skip,.price,.online-line,.online-find,.pantry-peek,.shop-pantry,.buy-extra-note,.pp-wrap){display:none!important}
+body.shop-mode #main .shop-row.flow-open{background:color-mix(in srgb,var(--mint,#eef5ec) 60%,transparent);border-radius:12px}
+@media (prefers-reduced-motion:no-preference){body.shop-mode #main .shopping-group>.shop-row{transition:opacity .2s}}
+body.shop-mode .kitchen-action-dock,body.shop-mode #main .shopping-layout section>.card:not(.shopping-group),body.shop-mode #main .shopping-layout section>.btn.full{display:none!important}
+/* v1.7.12: Today, compact — next meal first, extras as one-line rows */
+.next-meal{margin:6px 0 14px}
+.next-meal-label{margin:0 0 6px}
+.flow-rows{display:grid;gap:10px;margin-top:14px}
+.flow-rows>details{margin:0}
+/* v1.7.12: leftovers */
+.leftover-ask{padding:6px 16px 0}
+.leftover-ask .btn{min-height:44px}
+.leftover-offer{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 8px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--mint,#eef5ec) 70%,transparent)}
+.leftover-offer .btn{min-height:44px}
+.leftover-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.leftover-item{display:grid;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white)}
+.leftover-item span{overflow-wrap:anywhere}
+.leftover-item.is-expired{border-color:#efc9a8}
+.leftover-expired{color:var(--orange);font-weight:700}
+.leftover-actions{display:flex;flex-wrap:wrap;gap:8px}
+.leftover-actions .btn{min-height:44px}
+.leftover-card h2{margin-top:0}
+.leftover-dish,.leftover-place{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;display:flex;flex-wrap:wrap;gap:8px}
+/* v1.7.12: weekly plan */
+.week-plan-nudge{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 14px}
+.week-plan-nudge p{margin:0;min-width:0}
+.nudge-actions{display:flex;gap:8px;flex-wrap:wrap}
+.nudge-actions .btn{min-height:44px}
+.plan-member{margin:12px 0}
+.plan-days{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.plan-days .chip{min-height:44px}
+.plan-days .chip.active{background:var(--green);color:#fff;border-color:var(--green)}
+.plan-guests{list-style:none;padding:0;margin:10px 0;display:grid;gap:8px}
+.plan-guests li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px}
+.plan-guests .btn{min-height:44px}
+.plan-guest-form{display:grid;gap:10px;margin-top:10px}
+.plan-ak{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.plan-ak input,.plan-guest-form select,.plan-guest-form input{min-height:44px;min-width:0;width:100%}
+.plan-summary{margin:8px 0;padding-left:20px}
+body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.shop-mode #main.cl .kitchen-action-dock{display:none!important}
+/* v1.7.12: one “Có khách” button on Today, next to “Lịch tháng” */
+.guest-shortcut.under-strip{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin:0 0 14px 8px;vertical-align:top}
+.guest-shortcut .btn-art{width:22px;height:22px}
+#main .day-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px}
+#main .day-actions>.under-strip{margin:0}

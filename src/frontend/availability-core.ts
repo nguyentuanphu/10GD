@@ -4,7 +4,7 @@ function deductsBySchedule(s,memberId,date,type){const a=availabilityEntry(s,mem
 const availabilityEnsureWeek=ensureWeek;
 ensureWeek=function(s,start){const w=availabilityEnsureWeek(s,start);for(const[date,day]of Object.entries(w.days))for(const type of MEAL_TYPES){if(day[type]){day[type].scheduleDate=date;day[type].scheduleType=type}}return w};
 const attendanceServings=mealServings;
-mealServings=function(m,s){if(m.servings!==null||m.cooked||!m.scheduleDate)return attendanceServings(m,s);return s.members.reduce((n,p)=>n+(['home','packed','pending'].includes(m.attendance[p.id])&&!deductsBySchedule(s,p.id,m.scheduleDate,m.scheduleType)?p.weight:0),0)};
+mealServings=function(m,s){if(m.servings!==null||m.cooked||!m.scheduleDate)return attendanceServings(m,s);return s.members.reduce((n,p)=>n+(['home','packed','pending'].includes(m.attendance[p.id])&&!deductsBySchedule(s,p.id,m.scheduleDate,m.scheduleType)?p.weight:0),0)+guestServings(m)/* v1.7.12 guests */};
 // An availability entry: {status:'away'|'busy', deduct, remind, note ≤150, by?: reporter member id (v1.7.3, optional —
 // older entries have none and stay valid)}. Sync stamps (updatedAt/updatedBy) may be present and are ignored here.
 // v1.7.9 (owner, 6 Nov 2026: "chỉ báo được bữa nào bận… chứ không báo được thời gian"): optional from / to times "HH:MM"

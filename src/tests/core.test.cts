@@ -74,4 +74,70 @@ vm.runInContext(`
 const missingSeed=defaults();missingSeed.recipes=missingSeed.recipes.filter(r=>r.id!=='r2');
 check(!!ensureWeek(missingSeed,monday(sydneyDate())),'deleting a built-in recipe does not break a new week');
 check(!validImport(null),'null backup is rejected without throwing');
+// v1.7.12 (owner, 8 Nov 2026 — pop-up: ask when “Đã nấu” is tapped): one pot for the same dish in the next meals
+{const s2=defaults(),w2=ensureWeek(s2,monday(sydneyDate())),days=Object.keys(w2.days).sort(),d0=days[0],d1=days[1];
+ const src=w2.days[d0].dinner,dish=clone(src.recipes[0]);w2.days[d1].lunch.recipes=[clone(dish),clone(s2.recipes.find(r=>r.id!==dish.id&&r.category==='veg'))];w2.days[d1].lunch.servings=null;
+ const ids=[...new Set(src.recipes.concat(w2.days[d1].lunch.recipes).flatMap(r=>r.ingredients.map(i=>i.id)))];s2.pantry=ids.map((id,n)=>({id:'p'+n,ingredient:id,qty:100000,place:'fridge',expiry:''}));
+ const cand=cookAheadCandidates(s2,d0,'dinner');const hit=cand.find(c=>c.date===d1&&c.type==='lunch');
+ check(!!hit&&hit.recipeIds.length===1&&hit.recipeIds[0]===dish.id,'cook ahead offers the next meal with the same dish (only that dish)');
+ check(cand.length>0&&cand.every(c=>c.date>d0&&c.date<=addDays(d0,3)),'cook ahead only offers later meals, up to 3 days on (dinner is the last meal of its day)');
+ const later=w2.days[d1].lunch,ownNeed=mealIngredients(src,s2),aheadNeed=dishNeeds(later,s2,later.recipes.filter(r=>r.id===dish.id)),fullLater=mealIngredients(later,s2);
+ const before=Object.fromEntries(ids.map(id=>[id,stock(s2,id)]));cookMealAhead(s2,d0,'dinner',[hit]);
+ check(src.cooked&&src.aheadFor?.length===1,'the cooked meal records the meals it cooked for');
+ check(ids.every(id=>Math.abs(before[id]-stock(s2,id)-((ownNeed[id]||0)+(aheadNeed[id]||0)))<.11),'pantry taken once: this meal plus the later portion of the same dish');
+ check(later.recipes[0].cookedAhead?.date===d0&&!later.recipes[1].cookedAhead&&!later.cooked,'later meal: the shared dish is cooked ahead, the other dish still to cook');
+ const after=mealIngredients(later,s2);check(Object.keys(aheadNeed).every(id=>(after[id]||0)<=(fullLater[id]||0)-(aheadNeed[id]||0)+.11),'a dish cooked ahead leaves the later meal’s needs (pantry and shopping list)');
+ consumeMeal(s2,later);let blocked=false;try{undoCook(s2,src)}catch(e){blocked=true}check(blocked&&src.cooked,'undo waits while a later meal was cooked on its own');
+ undoCook(s2,later);undoCook(s2,src);check(!src.cooked&&!src.aheadFor&&!later.recipes[0].cookedAhead,'undo clears the cooked-ahead marks');
+ check(ids.every(id=>Math.abs(before[id]-stock(s2,id))<.11),'undo gives back everything that was taken');
+ w2.days[d1].lunch.recipes=[clone(dish)];const c2=cookAheadCandidates(s2,d0,'dinner').filter(c=>c.date===d1&&c.type==='lunch');cookMealAhead(s2,d0,'dinner',c2);
+ check(later.cooked&&later.cookedWith?.date===d0&&later.consumed.length===0,'a later meal whose every dish was cooked ahead counts as cooked');
+ check(Object.keys(shoppingMealIngredientsSafe(s2,later)).length===0,'a meal cooked ahead is not on the shopping list');
+ undoCook(s2,src);check(!later.cooked&&!later.cookedWith,'undo also reopens the meal that was fully cooked ahead');
+ check(validImport(JSON.parse(JSON.stringify(s2))),'cook-ahead marks pass backup validation')}
+// v1.7.12 (owner, 8 Nov 2026 — pop-ups: guests with a name; several families or people; regular guests; several meals)
+{const s3=defaults(),w3=ensureWeek(s3,monday(sydneyDate())),d=Object.keys(w3.days)[0],m=w3.days[d].dinner;m.servings=null;const base=mealServings(m,s3),need0=mealIngredients(m,s3);
+ setMealGuests(m,[{name:'  Nhà anh Tuấn  ',adults:2,kids:1},{name:'',adults:1,kids:0},{name:'Trống',adults:0,kids:0}]);
+ check(m.guests.length===2&&m.guests[0].name==='Nhà anh Tuấn'&&m.guests[1].name===undefined,'guest groups stored, names trimmed, empty groups dropped');
+ check(Math.abs(mealServings(m,s3)-(base+3.5))<1e-9,'every group counts: an adult 1 portion, a child ½');
+ const need1=mealIngredients(m,s3),k=Object.keys(need0)[0];check(need1[k]>need0[k],'guests raise the amounts to buy');
+ check(validImport(JSON.parse(JSON.stringify(s3))),'guests pass backup validation');
+ const bad=JSON.parse(JSON.stringify(s3));Object.values(bad.weeks)[0].days[d].dinner.guests=[{adults:-1,kids:0}];check(!validImport(bad),'negative guests rejected');
+ const bad2=JSON.parse(JSON.stringify(s3));Object.values(bad2.weeks)[0].days[d].dinner.guests=[{adults:1.5}];check(!validImport(bad2),'fractional guests rejected');
+ const bad3=JSON.parse(JSON.stringify(s3));Object.values(bad3.weeks)[0].days[d].dinner.guests={adults:1};check(!validImport(bad3),'guests must be a list of groups');
+ m.servings=6;check(mealServings(m,s3)===6,'portions set by hand stay as typed');m.servings=null;
+ setMealGuests(m,[{adults:99}]);check(m.guests[0].adults===30,'guests capped at 30 per group');setMealGuests(m,Array.from({length:14},()=>({adults:1})));check(m.guests.length===10,'at most 10 groups');
+ setMealGuests(m,[]);check(m.guests===undefined,'no guests removes the record');check(Math.abs(mealServings(m,s3)-base)<1e-9,'without guests the meal is back to the family’s portions');
+ rememberGuests(s3,[{name:'Nhà anh Tuấn',adults:2,kids:1},{name:'',adults:3}]);rememberGuests(s3,[{name:'Chị Lan',adults:1}]);rememberGuests(s3,[{name:'nhà anh tuấn',adults:2,kids:2}]);
+ check(s3.guestBook.length===2&&s3.guestBook[0].kids===2&&s3.guestBook[1].name==='Chị Lan','regular guests remembered by name, newest first, no duplicates, unnamed groups not kept');
+ check(validImport(JSON.parse(JSON.stringify(s3))),'regular guests pass backup validation');const bb=JSON.parse(JSON.stringify(s3));bb.guestBook.push({name:'',adults:1});check(!validImport(bb),'a regular guest needs a name');
+ forgetGuest(s3,'Chị Lan');check(s3.guestBook.length===1,'a regular guest can be forgotten');
+ const r=mealsBetween(s3,'2026-11-14','dinner','2026-11-15','lunch');check(JSON.stringify(r.map(x=>x.date.slice(8)+x.type))==='["14dinner","15breakfast","15snackAm","15lunch"]','meals from Saturday dinner to Sunday lunch, in order');
+ check(mealsBetween(s3,'2026-11-15','lunch','2026-11-14','dinner').length===0&&mealsBetween(s3,'2026-11-14','dinner','2026-11-14','lunch').length===0,'a last meal before the first gives nothing');
+ check(mealsBetween(s3,'2026-11-14','lunch','2026-11-14','lunch').length===1,'one meal')}
+// v1.7.12 (owner, 8 Nov 2026 — “đồ còn dư”): cooked food kept for later
+{const s4=defaults(),w4=ensureWeek(s4,monday(sydneyDate())),d=Object.keys(w4.days)[1],m=w4.days[d].dinner,dish=m.recipes[0];
+ const lo=addLeftover(s4,{name:dish.name,recipeId:dish.id,portions:2.3,place:'fridge',cookedOn:'2026-11-08'});check(lo.portions===2.5&&lo.useBy==='2026-11-11','leftover: portions in halves, fridge use-by 3 days');
+ const fz=addLeftover(s4,{name:'Canh',portions:1,place:'freezer',cookedOn:'2026-11-08'});check(fz.useBy==='2026-12-08','leftover: freezer use-by 30 days');
+ check(validImport(JSON.parse(JSON.stringify(s4))),'leftovers pass backup validation');const bl=JSON.parse(JSON.stringify(s4));bl.leftovers[0].portions=-1;check(!validImport(bl),'negative leftovers rejected');
+ const now=leftoversNow(s4,'2026-11-12');check(now.find(x=>x.id===lo.id).expired&&!now.find(x=>x.id===fz.id).expired,'leftover past its date is flagged');
+ const later=w4.days[d].lunch;later.recipes=[];later.cooked=false;later.servings=2;const took=serveLeftover(s4,lo.id,later);
+ check(took===2&&later.recipes[0].fromLeftover?.id===lo.id&&s4.leftovers.find(x=>x.id===lo.id).portions===.5,'serving leftovers adds the dish and takes the portions');
+ check(Object.keys(mealIngredients(later,s4)).length===0,'a dish served from leftovers is not bought or taken from the pantry again');
+ eatLeftover(s4,lo.id,1);check(!s4.leftovers.some(x=>x.id===lo.id),'eaten up leftovers disappear');dropLeftover(s4,fz.id);check(s4.leftovers===undefined,'thrown out leftovers disappear');
+ check(validImport(JSON.parse(JSON.stringify(s4))),'meals with leftover dishes pass backup validation')}
+function shoppingMealIngredientsSafe(s,m){return m.cooked?{}:mealIngredients(m,s)}
 `,ctx);
+// v1.7.12 (owner, 8 Nov 2026 — “cất đồ đúng chỗ tự động”): put-away places and use-by suggestions
+{const ctx2=vm.createContext({console,Intl,Date,Math,crypto:require('node:crypto').webcrypto});vm.runInContext(['seed','core','unit-registry','purchase-units'].map(f=>fs.readFileSync('dist/'+f+'.js','utf8')).join('\n'),ctx2);
+ vm.runInContext(`function check(t,n){if(!t)throw Error(n);console.log('PASS',n)}
+ const st={preferences:{storePlaces:{beef:'dry',garlic:'dry',rice:'fridge'}}};
+ check(suggestStorePlace(st,'beef')==='fridge','meat remembered on the dry shelf is suggested for the fridge');
+ check(suggestStorePlace(st,'garlic')==='dry','garlic may stay on the shelf as the family keeps it');
+ check(suggestStorePlace(st,'rice')==='fridge','a cold place the family chose is kept');
+ check(suggestStorePlace({},'tomato')==='fridge'&&suggestUseBy('tomato','fridge','2026-11-08')==='2026-11-13','tomato: fridge, 5 days (not read as fish)');
+ check(suggestUseBy('beef','fridge','2026-11-08')==='2026-11-10'&&suggestUseBy('beef','freezer','2026-11-08')==='2027-02-06','meat: 2 days in the fridge, 90 in the freezer');
+ check(suggestUseBy('egg','fridge','2026-11-08')==='2026-11-29'&&suggestUseBy('rice','dry','2026-11-08')==='','eggs 21 days; dry goods no date');
+ const s5={pantry:[{id:'a',ingredient:'beef',qty:500,place:'dry',expiry:''},{id:'b',ingredient:'rice',qty:500,place:'dry',expiry:''},{id:'c',ingredient:'chicken',qty:0,place:'dry',expiry:''}]};
+ check(JSON.stringify(misplacedLots(s5).map(p=>p.id))==='["a"]','only perishable stock on the shelf is flagged (nothing moved)');`,ctx2)}
+
