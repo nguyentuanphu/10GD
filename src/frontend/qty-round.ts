@@ -34,5 +34,7 @@ function qrDecorate(){if(view!=='shopping')return;for(const b of document.queryS
   if(!b.parentElement?.classList.contains('qty-cell')){const cell=document.createElement('span');cell.className='qty-cell';b.before(cell);cell.append(b)}
   b.insertAdjacentHTML('afterend',`<span class="qty-round-pair" role="group" aria-label="${esc(tr('Làm tròn lượng mua','Round the amount'))}">${btn('down')}${btn('up')}</span>`)}}
 document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('.qty-round');if(!b)return;e.preventDefault();qrApply(b.dataset.qrId,{dir:b.dataset.qrDir==='down'?'down':'up'})});
-{const qrBaseRender=render;render=function(this:any,...a:any[]){const r=qrBaseRender.apply(this,a);try{qrDecorate()}catch(err){console.warn('qty round',err)}return r}}
+/* v1.7.11: the round buttons get their drawing in the same redraw (like every other button in render()), so the row is
+   measured as it will stay; decorated a moment later, a wider font could wrap the row and move the amount (rule 24) */
+{const qrBaseRender=render;render=function(this:any,...a:any[]){const r=qrBaseRender.apply(this,a);try{qrDecorate();const g=globalThis as any;if(typeof g.decorateButtons==='function')g.decorateButtons(document.getElementById('main'))}catch(err){console.warn('qty round',err)}return r}}
 (globalThis as any).qrNext=qrNext;
