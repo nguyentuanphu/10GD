@@ -23,23 +23,24 @@ const RECIPE_EN='Recipe for beef stir fry for 2 people. Ingredients: 300g beef, 
 async function main(){
  mkdirSync(out,{recursive:true});
  const browser=await chromium.launch();let shots=0;
- async function open({viewport=sizes.mobile as {width:number,height:number},lang='vi',theme='light',offline=false,hold=false,gated=false}={}){
+ async function open({viewport=sizes.mobile as {width:number,height:number},lang='vi',theme='light',offline=false,hold=false,gated=false,account=true}={}){
   // gated: the recipe library request fails while gate.mode is 'fail', waits for gate.release() while 'hold'
   const gate:any={mode:gated?'fail':'serve',hits:0,release:()=>{}};gate.wait=new Promise(r=>{gate.release=()=>{gate.mode='serve';r(null)}});
   const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any});
-  await context.addInitScript(({lang,theme,scout,hold})=>{const w=window as any;
-   if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-voice-ptt-v171','1');localStorage.setItem('bep-voice-ptt',hold?'1':'0');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('account/qa-household/bep-language',lang);localStorage.setItem('bep-account-present','yes');localStorage.removeItem('bep-voice-lang');localStorage.removeItem('bep-voice-auto');localStorage.setItem('account/qa-household/bep-price-scout-v1',JSON.stringify(scout))}
+  await context.addInitScript(({lang,theme,scout,hold,account})=>{const w=window as any;
+   if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-voice-ptt-v171','1');localStorage.setItem('bep-voice-ptt',hold?'1':'0');localStorage.setItem('bep-theme-mode',theme);const scope=account?'account/qa-household/':'guest/';localStorage.setItem(scope+'bep-language',lang);if(account)localStorage.setItem('bep-account-present','yes');else localStorage.setItem('bep-local-locked','yes');localStorage.removeItem('bep-voice-lang');localStorage.removeItem('bep-voice-auto');localStorage.setItem(scope+'bep-price-scout-v1',JSON.stringify(scout))}
    w.__recs=[];class FakeRec{lang='';n=0;started=false;ended=false;continuous=false;onresult:any;onend:any;onerror:any;constructor(){w.__recs.push(this)}start(){this.started=true}stop(){this.end()}abort(){this.end()}end(){if(this.ended)return;this.ended=true;setTimeout(()=>this.onend&&this.onend(),0)}}
    w.SpeechRecognition=FakeRec;w.webkitSpeechRecognition=FakeRec;
    w.__live=()=>w.__recs.filter((r:any)=>r.started&&!r.ended).pop();
    w.__say=(text:string)=>{const r=w.__live();if(!r)throw Error('no live recogniser');const alt:any=[{transcript:text,confidence:.9}];alt.isFinal=true;const results:any=[];results[r.n]=alt;r.onresult({resultIndex:r.n,results});r.n++};
    // the browser ends a recognition session after a pause; the dictation wrapper must restart it
    w.__pauseEnd=()=>{const r=w.__live();if(r){r.ended=true;r.onend&&r.onend()}};
-  },{lang,theme,scout:SCOUT,hold});
+  },{lang,theme,scout:SCOUT,hold,account});
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route(origin+'/**',async route=>{const url=new URL(route.request().url()),path=url.pathname;
    if(path==='/recipe-catalog-data.js'&&gate.mode!=='serve'){gate.hits++;if(gate.mode==='fail'){await route.abort('failed');return}await gate.wait}
    // v1.7.11: So Giá needs an account, so these checks run as a signed-in family (mocked)
+   if(path.startsWith('/.netlify/')&&!account){await route.fulfill({status:401,json:{error:'no'}});return}
    if(path.startsWith('/.netlify/')){const op=url.searchParams.get('op');
     if(path.endsWith('/grocery')){await route.fulfill({json:op==='photos'?{items:{}}:op==='prices'?{householdId:'qa-household',observations:[]}:{}});return}
     if(path.includes('/accounts')&&op==='families'){await route.fulfill({json:{families:[{id:'qa-household',name:'QA',role:'owner'}],account:{username:'qa',name:'Mẹ'}}});return}
@@ -52,7 +53,8 @@ async function main(){
   await page.goto(origin+'/#shopping',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>typeof (globalThis as any).voicePriceOpen==='function'&&typeof (globalThis as any).voiceRecipeOpen==='function'&&typeof (globalThis as any).scoutMount==='function'&&document.querySelector('#main h1'),null,{timeout:20000});
   // a one-time startup reload (live account check adopting the household) can race the first evaluate; retry once it settles
-  for(let i=0;i<5;i++){await page.waitForTimeout(500);try{await page.waitForFunction(()=>typeof (globalThis as any).voicePriceOpen==='function'&&typeof (globalThis as any).scoutMount==='function'&&document.querySelector('#main h1'),null,{timeout:15000});await page.evaluate('state.preferences.onboardingComplete=true;save();closeModal();view="shopping";render()');break}catch(e){if(i===4)throw e}}
+  let navs=0;page.on('framenavigated',(f:any)=>{if(f===page.mainFrame())navs++});
+  for(let i=0;i<8;i++){const before=navs;await page.waitForTimeout(i?1200:500);if(i&&navs===before&&(!account||await page.evaluate('view==="shopping"&&!!state.preferences.onboardingComplete').catch(()=>false)))break;try{await page.waitForFunction(()=>typeof (globalThis as any).voicePriceOpen==='function'&&typeof (globalThis as any).scoutMount==='function'&&document.querySelector('#main h1'),null,{timeout:15000});await page.evaluate('state.preferences.onboardingComplete=true;save();closeModal();view="shopping";render()')}catch(e){if(i===7)throw e}}
   await page.waitForTimeout(200);
   if(offline){await context.setOffline(true);await page.evaluate('dispatchEvent(new Event("offline"))')}
   return{page,context,errors,gate};
@@ -148,7 +150,7 @@ async function main(){
    assert.deepEqual(errors,[]);await context.close()}
   // 5. Recipe dictation: two takes (pause / continue, browser pauses restart the recogniser), review, edit, fill the form, save as a NEW family recipe.
   for(const[size,lang,theme]of[['mobile','vi','light'],['tablet','en','dark'],['desktop','vi','dark']]as const){
-   const {page,context,errors}=await open({viewport:sizes[size],lang,theme});
+   const {page,context,errors}=await open({viewport:sizes[size],lang,theme,account:false});
    // an existing family recipe with the same name must never be overwritten
    await page.evaluate(`state.recipes.push({id:'qa-own-canh',name:'Canh chua cá lóc',category:'soup',protein:'fish',time:30,servings:4,yield:4,purposes:['side'],ingredients:[{id:'fish',qty:400}],missingIngredients:[],prep:'',steps:['Nấu theo cách nhà mình.'],custom:true,origin:'family',favorite:false});save()`);
    const before=await page.evaluate('JSON.stringify(state.recipes.find(r=>r.id==="qa-own-canh"))'),count0=await page.evaluate('state.recipes.length');
@@ -203,7 +205,7 @@ async function main(){
    assert.deepEqual(errors,[]);await context.close();
   }
   // 6. Typed recipe (no microphone at all) + offline.
-  {const {page,context,errors}=await open({offline:true});await page.evaluate('voiceRecipeOpen()');
+  {const {page,context,errors}=await open({offline:true,account:false});await page.evaluate('voiceRecipeOpen()');
    assert.match(await page.locator('#vr-state').innerText(),/offline/);
    await page.fill('#vr-text','Món trứng chiên, cho hai người. Nguyên liệu: ba quả trứng, hành lá, nước mắm. Đập trứng ra tô rồi đánh đều, sau đó chiên vàng.');
    await page.locator('[data-vr="review"]').click();assert.equal(await page.inputValue('#vr-title'),'Trứng chiên');assert.equal(await page.locator('.vr-steps textarea').count(),3);
@@ -215,7 +217,7 @@ async function main(){
   //    ingredient exactly as recognised (rows too), the steps and the transcript; v1.7.3 opened an empty form.
   {const lout='docs/reviews/v1.7.4/voice-recipe-loading';mkdirSync(lout,{recursive:true});
    for(const[size,lang,theme]of[['mobile','vi','light'],['tablet','en','dark'],['desktop','vi','light']]as const){
-    const {page,context,errors,gate}=await open({viewport:sizes[size],lang,theme,gated:true});
+    const {page,context,errors,gate}=await open({viewport:sizes[size],lang,theme,gated:true,account:false});
     assert.equal(await page.evaluate('catalogLoaded()'),false,'fresh start: library not loaded');
     await page.evaluate('familyRecipeEditor()');await page.waitForSelector('#family-recipe-form [data-vr="open"]');
     gate.mode='hold';const hits=gate.hits;

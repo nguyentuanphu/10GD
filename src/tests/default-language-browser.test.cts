@@ -93,7 +93,7 @@ for(const l of ['vi','en']){const {ctx,page,errors}=await open({locale:l==='vi'?
    if(e.matches('[data-color-theme],.day,.plan-day-head,.theme-fold-summary,[data-fm="recipe-snapshot"]')||e.closest('.ladybug'))continue;
    const t=(e.textContent||'').replace(/\s+/g,' ').trim();const pic=!!e.querySelector('svg,img,.ingredient-art,.dish-art,.pp-wrap');
    if(e.matches(MAIN)&&!e.matches('.chip,[role="tab"],summary')&&!pic)out.bare.push(t.slice(0,40)||e.outerHTML.slice(0,60));if(!t&&!pic)out.bare.push(e.outerHTML.slice(0,60));
-   if(e.querySelector(':scope > .btn-art')&&t&&(e.matches('.chip,[role="tab"],summary')||!e.matches(MAIN)))out.extra.push(t.slice(0,40));
+   const iconWords=t.replace(/[\s+✧↶↷▧▤▦↓↑⇅⇵✗✓↗→←‹›×≈•·▾▴−-]+/gu,'');if(e.querySelector(':scope > .btn-art')&&iconWords&&(e.matches('.chip,[role="tab"],summary')||!e.matches(MAIN)))out.extra.push(t.slice(0,40));
    const words=t.replace(/[\d()·/]+/g,'').trim();if(words.length>22&&rc.width<(e.parentElement?.getBoundingClientRect().width||9999)-4&&!e.matches('summary,.item-label,.shop-pantry-btn,.text-btn'))out.long.push(t.slice(0,50))}
   return out});for(const b of r.bare)bare.push(where+': '+b);for(const x of r.long)long.push(where+': '+x);for(const x of r.extra)extra.push(where+': '+x)};
  for(const v of ['today','planner','shopping','recipes','pantry','expenses','insights','products']){await page.evaluate(`closeModal();location.hash='${v}'`);await scan(v)}
