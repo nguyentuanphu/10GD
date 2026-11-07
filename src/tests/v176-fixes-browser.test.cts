@@ -52,6 +52,8 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   for(const [v,sel,want] of [['today','[data-fm="share-day"]','share-day'],['planner','[data-action="share-week"]','share-week'],['shopping','[data-action="share-shopping"]','share-shopping']] as [string,string,string][]){
    await page.evaluate(`closeModal();view='${v}';location.hash='${v}';render()`);const b=page.locator('#main '+sel).first();await b.waitFor();await b.scrollIntoViewIfNeeded();
    assert.equal(await b.locator('svg.share-art[aria-hidden="true"]').count(),1,`${label} ${v}: share picture`);const t=(await b.innerText()).trim();assert.match(t,word,`${label} ${v}: “${t}”`);assert.ok(!EMO.test(t),`${label} ${v}: no emoji`);
+   assert.ok(!/\bprimary\b/.test((await b.getAttribute('class'))||''),`${label} ${v}: same outlined style as the other share buttons`);
+   if(viewport.width<=760&&v!=='planner'){const bx=(await b.boundingBox())!.x,hx=(await page.locator('#main h1').boundingBox())!.x;assert.ok(Math.abs(bx-hx)<2,`${label} ${v}: under the title, lined up with it (${bx} vs ${hx})`)}
    assert.ok((await b.boundingBox())!.height>=44,`${label} ${v}: ≥ 44 px`);await b.click();await page.waitForTimeout(150);
    const sent:any=await page.evaluate(`navigator.__sent.pop()`);assert.ok(sent&&sent.text&&sent.text.length>10,`${label} ${v}: opens the phone's share sheet with the text`)}
   assert.equal(await page.locator('#main [data-action="copy-week"],#main [data-action="copy-shopping"]').count(),0,`${label}: no separate copy-only buttons`);

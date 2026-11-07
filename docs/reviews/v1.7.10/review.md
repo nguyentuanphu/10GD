@@ -106,6 +106,7 @@ Scope, from Henry's choices in the question dialog on 7 Nov 2026:
 - **Not changed:** “Chia sẻ với cộng đồng” / “Chia sẻ lên cộng đồng” (sharing prices or recipes to the community, not to a person) keep their own look so the two are not confused. The shared message text itself is unchanged.
 - **Tests:** `v176-fixes:browser` at 320 / 375 / 820 / 1280, VI and EN: each share button has the share picture, starts with “Chia sẻ” / “Share”, no emoji, ≥ 44 px, opens the share sheet with the text; no copy-only buttons remain; without a share sheet the Chia sẻ sheet has the SMS link carrying the text, Messenger and Copy.
 - **Evidence:** `docs/reviews/v1.7.8/{vi,en}-{size}-share-sheet.png` (Chromium simulation).
+- **Follow-up (Henry, 7 Nov 2026: “nút chia sẻ danh sách phải đồng đều với nút khác để không bị nhìn lệch mắt”):** *Chia sẻ danh sách* was a filled button squeezed beside “Đi chợ”, out of line with the buttons below. It now has the same outlined style as *Chia sẻ hôm nay* / *Chia sẻ tuần*; on phones it sits under the title, lined up with it, like on Hôm nay; on tablet and desktop it stays top-right, lined up with the buttons under it. `v176-fixes:browser` checks the style and, on phones, the alignment with the title.
 
 ### CI fix — `online-prices:browser` (runs 305–308)
 
