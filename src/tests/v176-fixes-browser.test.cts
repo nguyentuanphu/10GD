@@ -52,6 +52,8 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   for(const b of await wb.locator('.who-busy-row').all())assert.ok((await b.boundingBox())!.height>=44,`${label}: rows ≥ 44 px`);
   await textOk('who-busy');await shot('who-busy');
   await page.evaluate(`state.availability=JSON.parse(${JSON.stringify(saved)});save();render()`)}
+ // v1.7.10 (Henry's choice, 7 Nov 2026): online estimate for items counted by the piece
+ if(size==='mobile'&&lang==='vi')assert.deepEqual(await page.evaluate(`[scoutOnlineEstimate({qty:6,unit:'quả'},{unitBasis:'per_each',unitPrice:.5}),scoutOnlineEstimate({qty:14,unit:'quả'},{packQty:12,packUnit:'each',price:7}),scoutOnlineEstimate({qty:2,unit:'cái'},{packQty:3,packUnit:'ea',price:2}),scoutOnlineEstimate({qty:500,unit:'g'},{unitBasis:'per_kg',unitPrice:10}),scoutOnlineEstimate({qty:3,unit:'quả'},{packQty:500,packUnit:'g',price:4})]`),[3,14,2,5,null],'per-piece estimates: per each, whole packs, and no guess across units');
  // v1.7.10 (Henry, 7 Nov 2026): eight colour themes in Other settings → Appearance, light and dark, this device only; the
  // light / dark button in the top bar is our own drawing, no emoji
  {await page.evaluate(`otherSettingsModal('appearance')`);const sw=page.locator('#modal-root [data-color-theme]');await sw.first().waitFor();assert.equal(await sw.count(),12,`${label}: default + 8 colours + 3 seasonal`);

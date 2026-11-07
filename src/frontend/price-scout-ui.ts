@@ -201,9 +201,12 @@ async function scoutFindSave(){const f=document.getElementById('online-find-form
  catch(e){toast(e.message,true)}}
 // v1.7.9 (owner, 6 Nov 2026: "nhiều dòng chưa có giá"): a row whose own price is unknown but has an online price shows an
 // estimate from it — unit price × amount (per kg / 100 g / L / 100 mL / each), else packs × shelf price.
-function scoutOnlineEstimate(it,o){if(!o||!(it.qty>0))return null;const q=it.qty,u=String(it.unit||'').toLowerCase(),b=o.unitBasis,up=o.unitPrice;
+// v1.7.10 (Henry's choice, 7 Nov 2026): items counted by the piece (quả / cái — eggs, lemons) get an estimate too:
+// a per-each unit price × count, or whole packs of N pieces × the pack price.
+const SCOUT_EACH=new Set(['each','ea','quả','qua','trái','cái','cai','piece','pieces','pc','pcs']);
+function scoutOnlineEstimate(it,o){if(!o||!(it.qty>0))return null;const q=it.qty,u0=String(it.unit||'').toLowerCase(),u=SCOUT_EACH.has(u0)?'each':u0,b=o.unitBasis,up=o.unitPrice;
  if(up!=null){if(u==='g'&&b==='per_kg')return q/1000*up;if(u==='g'&&b==='per_100g')return q/100*up;if(u==='ml'&&b==='per_L')return q/1000*up;if(u==='ml'&&b==='per_100mL')return q/100*up;if(u==='each'&&b==='per_each')return q*up}
- const pu=String(o.packUnit||'').toLowerCase().replace('ml','ml');if(o.packQty>0&&(pu===u||pu==='ml'&&u==='ml'))return Math.ceil(q/o.packQty-1e-9)*o.price;return null}
+ const pu0=String(o.packUnit||'').toLowerCase(),pu=SCOUT_EACH.has(pu0)?'each':pu0;if(o.packQty>0&&o.price>0&&pu===u)return Math.ceil(q/o.packQty-1e-9)*o.price;return null}
 function scoutRowEstimate(row,it,id){const price=row.querySelector('.price');if(!price||!/Chưa rõ giá|Unknown price|price unknown/i.test(price.textContent||''))return;const o=scoutOnlineBest(scoutOnlineFor(id)),v=scoutOnlineEstimate(it,o);if(v==null)return;price.classList.add('price-est');price.innerHTML=`≈ ${scoutMoney(v)}<small>${esc(scoutT('theo giá online','from online price'))}</small>`}
 function scoutDecorateList(){
  // v1.7.8: online prices are national — the list shows them even before the family gives a postcode (no trip plan yet)

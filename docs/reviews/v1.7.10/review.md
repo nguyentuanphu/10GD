@@ -7,7 +7,7 @@ Scope, from Henry's choices in the question dialog on 7 Nov 2026:
 | # | Item | Status |
 |---|------|--------|
 | 1 | English for the reference recipes' prep and steps. Today the Vietnamese shows in English mode. Family-authored recipes are never rewritten (rule 6). | planned |
-| 2 | Online price estimate (“≈ $X theo giá online”) for items counted by the piece (eggs, lemons …). | planned |
+| 2 | Online price estimate (“≈ $X theo giá online”) for items counted by the piece (eggs, lemons …). | done: rows in *quả / cái* use a per-each unit price × count, or whole packs of N pieces × the pack price (e.g. 14 eggs with packs of 12 at $7 = 2 packs, $14). A pack in grams never estimates a count, so nothing is guessed across units. Test: `v176-fixes:browser`. |
 | 3 | Henry, 7 Nov: “Thêm 5–6 loại themes” — display themes (he chose **Biển, Lá sen, Gỗ ấm, Đất nung, Khoai môn, Hoa đào, Đêm xanh, Nắng vàng**, picked in Settings + the top-bar button, **each device on its own**) | done |
 
 ### Row 3 — colour themes
