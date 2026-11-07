@@ -2251,7 +2251,7 @@ html[data-theme="dark"] .misplaced-callout{background:#2b2420;border-color:#5a42
 .shop-mode-start .btn{min-height:48px}
 .shop-mode-start small{color:var(--muted)}
 .shop-mode-bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--paper,#fffefa);box-shadow:0 6px 16px rgba(40,50,40,.12)}
-.shop-mode-bar span{display:grid;gap:2px;min-width:0}
+.shop-mode-bar>span:not(.shop-mode-actions){display:grid;gap:2px;min-width:0}
 .shop-mode-bar small{color:var(--muted)}
 .shop-mode-bar .btn{min-height:48px;flex:none}
 body.shop-mode #main>.callout,body.shop-mode #main>.kitchen-action-dock,body.shop-mode #main>.week-tools,body.shop-mode #main>.price-scout,body.shop-mode #main>.page-heading,body.shop-mode #main .shopping-layout>details,body.shop-mode #main .shopping-store-tools,body.shop-mode #main .remaining-toggle{display:none!important}
@@ -2307,3 +2307,56 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 .guest-shortcut .btn-art{width:22px;height:22px}
 #main .day-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px}
 #main .day-actions>.under-strip{margin:0}
+/* v1.7.13 (owner, 8 Nov 2026): the guest sheet picks days and meals with the app's own chips (like the week strip / meal tabs) */
+.guest-when .pick-label{margin:6px 0 2px;font-weight:700}
+.pick-days{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.pick-day{flex:0 0 auto;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:56px;min-height:64px;padding:6px 6px;border:1px solid var(--line);border-radius:12px;background:var(--white,#fff);color:var(--text);font:inherit;cursor:pointer}
+.pick-day span{font-size:max(calc(11px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--muted)}
+.pick-day strong{font-size:max(calc(19px * var(--fs-mul,1)),var(--fs-floor,0px));line-height:1.2}
+.pick-day small{font-size:max(calc(10px * var(--fs-mul,1)),var(--fs-floor-small,0px));color:var(--muted);white-space:nowrap}
+.pick-day.active{background:var(--green);border-color:var(--green);color:#fff}
+.pick-day.active span,.pick-day.active small{color:#d7e8dc}
+.pick-day:focus-visible,.pick-meals .chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.pick-meals{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+.pick-meals .chip{min-height:44px}
+.pick-meals .chip.active{background:var(--green);color:#fff;border-color:var(--green)}
+/* v1.7.13 (owner: “nút chưa nấu bị đẩy xuống, nút còn dư nên để đâu hợp lý hơn?”): the cook button stays at the top right of
+   the meal, and “Còn dư?” sits right under it in the same column */
+.family-meal-card>header,.simple-screen .family-meal-card>header{flex-wrap:nowrap;align-items:flex-start}
+.family-meal-card>header>.meal-head-text{flex:1 1 auto;min-width:0}
+.family-meal-card .meal-head-actions{display:flex;flex-direction:column;align-items:stretch;gap:6px;flex:none}
+.family-meal-card .meal-head-actions:empty{display:none}
+.family-meal-card .meal-head-actions .btn{min-height:44px;justify-content:center;white-space:nowrap}
+/* v1.7.13 (owner: “các nút rời rạc và còn nhiều chỗ trống quá”): the week tools in three tidy rows — the week, three small
+   buttons, then the plan actions */
+#main .week-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px!important;margin-bottom:16px}
+#main .week-tools>.week-switch{order:0;flex:1 1 100%;gap:8px}
+#main .week-tools>.week-switch .icon{min-width:44px;min-height:44px}
+#main .week-tools>[data-flow="plan-start"]{order:1}
+#main .week-tools>.share-btn{order:2}
+#main .week-tools>.week-start-pick{order:3;margin:0;gap:6px;flex-wrap:nowrap}
+#main .week-tools>.week-start-pick select{min-width:0;width:auto}
+#main .week-tools>.plan-actions{order:4;margin-top:4px}
+#main .week-tools>[data-flow="plan-start"],#main .week-tools>.share-btn{min-height:44px;padding:8px 12px;margin:0}
+/* v1.7.13 (owner: “phải có nút thoát ra… nút ghi đúng phải là đi chợ xong. Làm 2 nút này bự và lấp lánh viền”) */
+.shop-mode-bar{flex-wrap:wrap}
+.shop-mode-bar>span:first-child{flex:1 1 auto}
+.shop-mode-actions{display:flex;gap:10px;flex:1 1 100%}
+.shop-mode-actions .btn{flex:1 1 0;min-height:56px;font-size:max(calc(16px * var(--fs-mul,1)),var(--fs-floor,0px));font-weight:800;justify-content:center;border-radius:14px}
+.shop-mode-actions .shop-finish{color:#fff}
+@media (min-width:760px){.shop-mode-actions{flex:0 1 auto;min-width:360px}}
+.family-meal-card .meal-head-actions{max-width:46%}
+.family-meal-card .meal-head-actions .btn{white-space:normal;text-align:center;line-height:1.2}
+.guest-when{min-width:0;max-width:100%}
+.guest-when .pick-days{max-width:100%}
+.shop-mode-actions .btn,.simple-screen .shop-mode-actions .btn{flex:1 1 0!important;width:auto!important;min-width:0;margin:0!important}
+.guest-when{grid-template-columns:minmax(0,1fr)}
+#guest-when-picks{min-width:0;max-width:100%}
+.shop-mode-bar>.shop-mode-actions{display:flex}
+.shop-mode-actions .btn{white-space:nowrap;gap:6px;padding:8px 10px}
+@media (max-width:400px){.shop-mode-actions .btn{font-size:max(calc(15px * var(--fs-mul,1)),var(--fs-floor,0px))}}
+.shop-mode-bar .shop-mode-actions .btn{min-height:56px!important;height:auto!important}
+@media (max-width:360px){#main .week-tools>[data-flow="plan-start"],#main .week-tools>.share-btn{padding:8px 9px;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));gap:4px}#main .week-tools>.share-btn .share-art{width:18px;height:18px}}
+@media (max-width:360px){#main .week-tools>[data-flow="plan-start"],#main .week-tools>.share-btn{flex:1 1 0;min-width:0;white-space:normal;line-height:1.15;text-align:center;justify-content:center}
+ #main .week-tools>.week-switch{gap:4px;flex-wrap:nowrap}#main .week-tools>.week-switch b{font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));white-space:nowrap}#main .week-tools>.week-switch .text-btn{white-space:nowrap;padding:0 4px}}
+@media (max-width:360px){#main .week-tools>.week-start-pick{flex:1 1 100%}#main .week-tools>.week-switch{flex-wrap:wrap}}

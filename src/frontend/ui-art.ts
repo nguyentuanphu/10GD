@@ -146,7 +146,7 @@ const BTN_BY_DATA:Record<string,Record<string,string>>={
  planning:{stores:'store'},pushAction:{'request-item':'request',subscribe:'bell',test:'bell',settings:'bell',unsubscribe:'skip'},
  product:{import:'upload',new:'add',receipt:'receipt'},offlineDownload:{'*':'download'},offlineFix:{'*':'download'},
  rci:{add:'add',up:'arrow-up',down:'arrow-down',paste:'paste',remove:'trash'},vlCheck:{'*':'mic'},planMeal:{'*':'meal-plan'},mealMore:{'*':'more'},
- mr:{'open-tastes':'taste',who:'whole-family',up:'thumb-up',down:'thumb-down',like:'thumb-up',dislike:'thumb-down'},qrDir:{up:'round-up',down:'round-down'},flow:{'shop-start':'cart','shop-done':'save-check','plan-start':'plan-week','plan-next':'arrow-right','plan-preview':'meal-plan','leftover-save':'save-check'},guestStep:{'1':'add','-1':'minus'},
+ mr:{'open-tastes':'taste',who:'whole-family',up:'thumb-up',down:'thumb-down',like:'thumb-up',dislike:'thumb-down'},qrDir:{up:'round-up',down:'round-down'},flow:{'shop-start':'cart','shop-done':'save-check','shop-exit':'arrow-left','plan-start':'plan-week','plan-next':'arrow-right','plan-preview':'meal-plan','leftover-save':'save-check'},guestStep:{'1':'add','-1':'minus'},
  scout:{refresh:'repeat','online-find':'search',toggle:'money'},
 };
 const BTN_CHIP:Record<string,string>={all:'chip-all',main:'dish-main',side:'dish-veg',veg:'dish-veg',soup:'dish-soup',noodle:'dish-noodle',dessert:'dish-dessert',snack:'meal-snack',lunchbox:'dish-lunchbox',western:'tag-western',healthy:'tag-healthy',vegetarian:'tag-vegetarian',vegan:'tag-vegan',dressing:'tag-dressing',fridge:'fridge',freezer:'freezer',dry:'shelf',breakfast:'meal-breakfast',lunch:'meal-lunch',dinner:'meal-dinner',snackAm:'meal-snack-am'};
@@ -163,7 +163,7 @@ function buttonArtName(el:Element):string|null{const e=el as HTMLElement;
  const href=e.getAttribute('href')||'';const BY_HREF:Record<string,string>={'#insights':'idea','#products':'money','#shopping':'cart','#recipes':'book','#today':'calendar','#planner':'plan-week','#pantry':'fridge','#expenses':'money','/login':'account'};if(BY_HREF[href])return BY_HREF[href];
  const t=(e.textContent||e.getAttribute('aria-label')||'').replace(/\s+/g,' ').replace(BTN_SYMBOLS,'').trim().toLowerCase();if(BTN_CHIP[t])return BTN_CHIP[t];
  for(const[re,name]of BTN_BY_TEXT)if(re.test(t))return name;return'other'}
-const BTN_MAIN:Record<string,string[]>={fm:['generate','edit-meal','quick-add-dish','new','cook-meal','cook-batch','undo-batch'],action:['start-cooking','add-to-meal','add-extra','add-stock','store-purchases'],product:['new']};
+const BTN_MAIN:Record<string,string[]>={fm:['generate','edit-meal','quick-add-dish','new','cook-meal','cook-batch','undo-batch'],action:['start-cooking','add-to-meal','add-extra','add-stock','store-purchases'],product:['new'],flow:['shop-exit']};
 // the app's own old emoji on buttons (leading only, so family-written names are never touched)
 const BTN_EMOJI=/^[\s🔄🏷️📍📱🟢⚪👍👎🍲\u{FE0F}]+/u;
 function isMainButton(el:HTMLElement):boolean{if(el.matches('.chip,a.chip,[role="tab"],summary'))return false;if(el.matches('.primary'))return true;
