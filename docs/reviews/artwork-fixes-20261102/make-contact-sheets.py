@@ -1,4 +1,4 @@
-"""Run from repository root after make-report.cjs; needs Pillow and DejaVu Sans."""
+"""Run from repository root after make-report.cts; needs Pillow and DejaVu Sans."""
 import json,textwrap
 from pathlib import Path
 from PIL import Image,ImageDraw,ImageFont

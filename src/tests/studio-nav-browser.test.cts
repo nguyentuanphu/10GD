@@ -39,7 +39,7 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
   assert.deepEqual(groups,[['home',['overview','urgent','notifications','health']],['people',['accounts','families','invites']],['content',['community','recipes','feedback']],['price',['scout','onlinePrices','scanlist','unplaced','catalog']],['stats',['usage','voice']],['release',['settings','roles','broadcast','rollout','logs']]],'6 groups, every page once (v1.7.5: Quyền Studio under Settings & release)');
   assert.equal(await page.locator('#nav a[href="#messages"]').count(),0,'old daily urgent page is not a separate menu item');
   assert.equal(await page.locator('#nav a[aria-current="page"]').getAttribute('href'),'#overview');
-  assert.deepEqual(scripts(log),['/studio.js'],'only studio.js before any page module opens: '+scripts(log).join(' '));
+  /* v1.7.11: the tiny light/dark script that used to be inline in studio.html is now studio-theme.ts (TypeScript only) */assert.deepEqual(scripts(log),['/studio-theme.js','/studio.js'],'only the theme script and studio.js before any page module opens: '+scripts(log).join(' '));
   // Badges (counts only): 20 failed urgent messages, 20 community items in moderation, 3 new feedback reports.
   const badge=(k:string)=>page.locator(`#nav [data-badge="${k}"]`).evaluate((b:any)=>b.hidden?'':b.firstChild?.textContent||'');
   assert.equal(await badge('urgent'),'20');assert.equal(await badge('community'),'20');assert.equal(await badge('feedback'),'3');assert.equal(await badge('recipes'),'');
@@ -241,7 +241,7 @@ const sleep=(ms:number)=>new Promise(r=>setTimeout(r,ms));
   // headroom because shared CI machines pause the page now and then (the measured values go into perf-after.json).
   assert.ok(ty.summary.medianCachedSwitchMs<300,'page switch with saved data < 300 ms (median): '+ty.summary.medianCachedSwitchMs);assert.ok(ty.summary.maxCachedSwitchMs<1000,'no saved-data switch waits for the network: '+ty.summary.maxCachedSwitchMs);
   assert.ok(ty.cold.firstContentMs<1500,'first Studio content (target < 1 s): '+ty.cold.firstContentMs);assert.ok(ty.warmReload.firstContentMs<1000,'reload < 1 s: '+ty.warmReload.firstContentMs);
-  assert.equal(ty.cold.scriptRequests,1,'one script at start')}
+  /* v1.7.11: studio.js plus the 0.3 KB light/dark script that was inline before and is TypeScript now (studio-theme.ts) */assert.equal(ty.cold.scriptRequests,2,'two scripts at start: studio-theme.js and studio.js')}
  await browser.close();
  console.log(`PASS Studio navigation: groups, lazy pages, badges, old hashes, merged urgent page, Ctrl+K, menu sheet, settings note, device readiness, 4 sizes VI/EN light/dark (${shots} screenshots), timing`);
 })().catch(e=>{console.error(e);process.exit(1)});

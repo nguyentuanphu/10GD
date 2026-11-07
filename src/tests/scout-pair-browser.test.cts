@@ -32,7 +32,7 @@ async function main() {
     type Opt = { account?: boolean; role?: string; trusted?: boolean; assigned?: boolean; hash?: string; grantedAt?: string | null; viewport?: { width: number; height: number }; theme?: string; download?: boolean; posts?: any[]; ua?: string; touch?: number; platform?: string; ext?: string | null; store?: any };
     async function open({ account = true, role = 'owner', trusted = false, assigned, hash = '', grantedAt = null, viewport = sizes.mobile, theme = 'light', download = false, posts = [], ua, touch, platform, ext = null, store = null }: Opt = {}) {
       const isAssigned = assigned ?? (role === 'owner' || trusted);
-      const context = await browser.newContext({ viewport, serviceWorkers: 'block', reducedMotion: 'reduce', hasTouch: viewport.width < 1000, ...(ua ? { userAgent: ua } : {}) });
+      const context = await browser.newContext({locale:'vi-VN', viewport, serviceWorkers: 'block', reducedMotion: 'reduce', hasTouch: viewport.width < 1000, ...(ua ? { userAgent: ua } : {}) });
       await context.addInitScript(({ account, theme }) => { if (sessionStorage.getItem('qa-init')) return; sessionStorage.setItem('qa-init', '1'); localStorage.setItem('bep-theme-mode', theme); if (account) localStorage.setItem('bep-account-present', 'yes'); }, { account, theme });
       // Platform overrides (iPadOS reports a desktop Mac UA; only maxTouchPoints gives it away).
       await context.addInitScript(({ touch, platform }) => { if (touch !== undefined) Object.defineProperty(Navigator.prototype, 'maxTouchPoints', { get: () => touch }); if (platform) Object.defineProperty(Navigator.prototype, 'platform', { get: () => platform }); }, { touch, platform });

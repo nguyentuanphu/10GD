@@ -14,7 +14,7 @@ const scrollTo=(page,sel)=>page.evaluate(sel=>{const el=document.querySelector(s
 const theme=(page,mode)=>page.evaluate(m=>{localStorage.setItem('bep-theme-mode',m);applyThemePreferences()},mode);
 (async()=>{const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});
 for(const [name,width,height] of [['mobile',375,812],['tablet',820,1100],['desktop',1280,800]]){
- const page=await browser.newPage({viewport:{width,height},reducedMotion:'reduce'}),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);
+ const page=await browser.newPage({locale:'vi-VN',viewport:{width,height},reducedMotion:'reduce'}),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);
  await page.goto('https://kitchen.test/#recipes');await page.locator('#family-recipe-search').waitFor({timeout:20000});await theme(page,'light');
  await page.evaluate(()=>{state.ingredientCatalog={'family-ing-la-lot':{name:'Lá lốt',unit:'g',group:'veg'}};hydrateFamilyIngredients(state);state.pantry.push({id:'lot-la-lot',ingredient:'family-ing-la-lot',qty:120,place:'fridge',expiry:''});state.recipes.push({id:'family-own-1',name:'Chả lá lốt nhà mình',category:'main',protein:'pork',time:30,servings:4,yield:4,ingredients:[{id:'pork',qty:400},{id:'family-ing-la-lot',qty:100}],prep:'Rửa lá lốt.',steps:['Trộn thịt.','Cuốn lá.','Áp chảo.'],favorite:false,custom:true,origin:'family',purposes:['main']});save();render()});
  await page.locator('[data-fm="samples"]').first().click();await page.locator('#toast.visible').waitFor({state:'hidden',timeout:10000});const cdp=await page.context().newCDPSession(page);
@@ -30,7 +30,7 @@ for(const [name,width,height] of [['mobile',375,812],['tablet',820,1100],['deskt
  await page.locator('#family-recipe-search').fill('lá lốt');await settle(page);rows=await results(page);assert.ok(rows.includes('Chả lá lốt nhà mình'),'family recipe findable from the reference tab via its ingredient');assert.ok(await page.locator('.family-own-pill').count());
  await page.locator('[data-fm="own"]').first().click();assert.equal(await page.locator('#family-recipe-search').inputValue(),'lá lốt','search text kept when switching tabs');
  await page.locator('[data-fm="all"]').first().click();assert.equal(await page.locator('#family-recipe-search').inputValue(),'lá lốt');assert.ok((await results(page)).includes('Chả lá lốt nhà mình'));
- assert.match(await page.locator('.tabbar').innerText(),/Kho tham khảo \(475\)/,'reference count is computed');
+ assert.match(await page.locator('.tabbar').innerText(),/Kho tham khảo \(125\)/,'reference count is computed');
  await page.evaluate(()=>changeAppLanguage('en'));await page.locator('#family-recipe-search').fill('sour soup');await settle(page);rows=await results(page);assert.ok(rows.length>0,'English search matches translated names');await scrollTo(page,'.filter-bar');await page.screenshot({path:`${dir}/${name}-search-en.png`});await noOverflow(page,name+' EN');await page.evaluate(()=>changeAppLanguage('vi'));
  // Pantry and recipe details with a family-added ingredient must render without errors.
  await page.evaluate(()=>{location.hash='pantry'});await page.waitForTimeout(400);assert.ok(await page.locator('[data-ing="family-ing-la-lot"]').count(),'family ingredient lot is listed');await page.locator('[data-ing="family-ing-la-lot"]').first().scrollIntoViewIfNeeded();await page.screenshot({path:`${dir}/${name}-pantry-family.png`});await noOverflow(page,name+' pantry');

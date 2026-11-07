@@ -28,19 +28,19 @@ async function main() {
   try {
     // ---- Lazy catalog paths and offline behaviour (one device, mobile size) ----
     {
-      const context = await browser.newContext({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce', serviceWorkers: 'allow' });
+      const context = await browser.newContext({locale:'vi-VN', viewport: { width: 375, height: 812 }, reducedMotion: 'reduce', serviceWorkers: 'allow' });
       const page = await context.newPage(); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
       const ready = () => page.waitForFunction(() => (window as any).BEP_STARTUP?.ready, null, { timeout: 60000 });
       const loaded = () => page.evaluate(() => (window as any).catalogLoaded());
       await page.goto(origin + '/', { waitUntil: 'domcontentloaded' }); await ready();
       // New household: the reference recipes arrive with the first start.
       assert.equal(await loaded(), true, 'new household loads the catalog at start');
-      assert.equal(await page.evaluate(() => state.recipes.length), 475/* v1.7.5: Vietnamese references halved */);
+      assert.equal(await page.evaluate(() => state.recipes.length), 125/* v1.7.10: recognised dishes only */);
       await waitAsync(page, async () => !!(await navigator.serviceWorker.getRegistration())?.active, undefined, 60000);
       await page.reload({ waitUntil: 'domcontentloaded' }); await ready(); await page.waitForFunction(() => !!navigator.serviceWorker.controller);
       // Existing household: the catalog is not part of startup; painted art still matches (build-time hashes).
       assert.equal(await loaded(), false, 'repeat start without the catalog');
-      assert.equal(await page.evaluate(() => state.recipes.filter((r: any) => (window as any).dishArtworkCell(r) !== null).length), 475/* v1.7.5 */, 'all painted art matched before the catalog loads');
+      assert.equal(await page.evaluate(() => state.recipes.filter((r: any) => (window as any).dishArtworkCell(r) !== null).length), 125/* v1.7.10 */, 'all painted art matched before the catalog loads');
       const lazyPath = async (label: string, run: string, selector: string) => {
         await page.evaluate(() => { location.hash = 'today'; }); await page.reload({ waitUntil: 'domcontentloaded' }); await ready();
         assert.equal(await loaded(), false, label + ': starts without catalog');
@@ -87,9 +87,9 @@ async function main() {
       // Offline-ready status and the header indicator.
       await page.evaluate(() => { (window as any).closeModal(); (window as any).otherSettingsModal('offline-ready'); });
       await page.locator('#offline-ready-body .offline-ready-list').waitFor();
-      await page.waitForFunction(() => /Kho 475 món/.test((document.querySelector('#offline-ready-body') as HTMLElement)?.innerText || '') && !/…/.test((document.querySelector('#offline-ready-body') as HTMLElement)?.innerText || ''), null, { timeout: 15000 });
+      await page.waitForFunction(() => /Kho 125 món/.test((document.querySelector('#offline-ready-body') as HTMLElement)?.innerText || '') && !/…/.test((document.querySelector('#offline-ready-body') as HTMLElement)?.innerText || ''), null, { timeout: 15000 });
       const readyText = await page.locator('#offline-ready-body').innerText();
-      assert.match(readyText, /✓\s*Thực đơn tuần này/); assert.match(readyText, /✓\s*Hình món ăn tuần này/); assert.match(readyText, /✗\s*Kho 475 món/);
+      assert.match(readyText, /✓\s*Thực đơn tuần này/); assert.match(readyText, /✓\s*Hình món ăn tuần này/); assert.match(readyText, /✗\s*Kho 125 món/);
       assert.match(await page.locator('#network-status').getAttribute('title') || '', /Sẵn sàng offline: .*Kho món ăn ✗/);
       await page.screenshot({ path: `${shots}/offline-status-375-vi-offline.png` });
       await context.setOffline(false);
@@ -99,7 +99,7 @@ async function main() {
     }
     // ---- Downloads screen: responsive, bilingual, light/dark; a real download ----
     for (const [vw, vh] of [[375, 812], [820, 1100], [1280, 800]]) for (const lang of ['vi', 'en']) for (const theme of ['light', 'dark']) {
-      const context = await browser.newContext({ viewport: { width: vw, height: vh }, reducedMotion: 'reduce', serviceWorkers: 'allow' });
+      const context = await browser.newContext({locale:'vi-VN', viewport: { width: vw, height: vh }, reducedMotion: 'reduce', serviceWorkers: 'allow' });
       await context.addInitScript(([l, t]) => { localStorage.setItem('guest/bep-language', l); localStorage.setItem('bep-theme-mode', t); }, [lang, theme]);
       const page = await context.newPage(); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
       await page.goto(origin + '/', { waitUntil: 'domcontentloaded' }); await page.waitForFunction(() => (window as any).BEP_STARTUP?.ready, null, { timeout: 60000 });
@@ -111,7 +111,7 @@ async function main() {
       // v1.7.1: only the on-device "More accurate" pack fills the voice slot (the Light pack is retired).
       assert.deepEqual(info.rows, ['art', 'sheets', 'catalog', 'ocr', 'voice-local-small', 'price-scout']);
       assert.equal(info.wifi, true, 'Wi-Fi only is on by default'); assert.equal(info.overflow, false, 'no horizontal overflow'); assert.equal(info.small, 0, 'buttons ≥44px');
-      assert.match(info.text!, lang === 'vi' ? /Tải về để dùng offline[\s\S]*Chỉ tải khi có Wi-Fi[\s\S]*Toàn bộ hình món ăn[\s\S]*Kho 475 món[\s\S]*Đọc hoá đơn\/giá bằng camera[\s\S]*Nhận giọng nói trên máy · Chính xác hơn/ : /Downloads for offline use[\s\S]*Download on Wi-Fi only[\s\S]*All dish pictures[\s\S]*475-recipe library[\s\S]*Read receipts & prices with the camera[\s\S]*On-device speech · More accurate/);
+      assert.match(info.text!, lang === 'vi' ? /Tải về để dùng offline[\s\S]*Chỉ tải khi có Wi-Fi[\s\S]*Toàn bộ hình món ăn[\s\S]*Kho 125 món[\s\S]*Đọc hoá đơn\/giá bằng camera[\s\S]*Nhận giọng nói trên máy · Chính xác hơn/ : /Downloads for offline use[\s\S]*Download on Wi-Fi only[\s\S]*All dish pictures[\s\S]*125-recipe library[\s\S]*Read receipts & prices with the camera[\s\S]*On-device speech · More accurate/);
       assert.doesNotMatch(info.text!, /Netlify|Blobs/i);assert.doesNotMatch(info.text!, /Nhẹ|· Light|Not available on this server|Chưa có trên máy chủ này/);
       // v1.7.1 evidence: the Account & settings sheet (account part on top, Other settings under it) and the voice row.
       fs.mkdirSync(v171, { recursive: true });
@@ -152,7 +152,7 @@ async function main() {
     for (const dev of [
       { name: 'ipad', viewport: { width: 820, height: 1180 }, ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15', platform: 'MacIntel', touch: 5 },
       { name: 'iphone', viewport: { width: 375, height: 812 }, ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', platform: 'iPhone', touch: 5 }]) for (const lang of ['vi', 'en']) {
-      const context = await browser.newContext({ viewport: dev.viewport, userAgent: dev.ua, hasTouch: true, reducedMotion: 'reduce', serviceWorkers: 'allow' });
+      const context = await browser.newContext({locale:'vi-VN', viewport: dev.viewport, userAgent: dev.ua, hasTouch: true, reducedMotion: 'reduce', serviceWorkers: 'allow' });
       await context.addInitScript(([l, p, t]) => { localStorage.setItem('guest/bep-language', l as string); Object.defineProperty(Navigator.prototype, 'platform', { get: () => p }); Object.defineProperty(Navigator.prototype, 'maxTouchPoints', { get: () => t }); Object.defineProperty(Navigator.prototype, 'gpu', { get: () => undefined }); }, [lang, dev.platform, dev.touch]);
       const page = await context.newPage(); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
       await page.goto(origin + '/', { waitUntil: 'domcontentloaded' }); await page.waitForFunction(() => (window as any).BEP_STARTUP?.ready, null, { timeout: 60000 });

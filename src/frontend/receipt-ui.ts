@@ -177,7 +177,7 @@ function reconcilePlan(s,rec,week,start,end){
  const rows=RP.reconcile(lines.filter(l=>l.quantity),id=>need[id]??0).map(r=>({...r,onList:Object.hasOwn(need,r.ingredient)}));
  return{rows,unknown:lines.filter(l=>!l.quantity)};
 }
-function placeFor(id,rec){const lab=(rec.items||[]).filter(i=>i.ingredient===id).map(i=>i.label).join(' ');if(/\b(frz|frozen|frzn)\b/i.test(lab))return'freezer';return INGREDIENTS[id][2]==='dry'&&!['egg','tofu','milk','yogurt','cream','butter','parmesan','mozzarella','feta'].includes(id)?'dry':'fridge'}
+function placeFor(id,rec){const lab=(rec.items||[]).filter(i=>i.ingredient===id).map(i=>i.label).join(' ');if(/\b(frz|frozen|frzn)\b/i.test(lab))return'freezer';if(typeof suggestStorePlace==='function')return suggestStorePlace(state,id);return INGREDIENTS[id][2]==='dry'&&!['egg','tofu','milk','yogurt','cream','butter','parmesan','mozzarella','feta'].includes(id)?'dry':'fridge'}
 // Marks the covered part bought on this week's list and adds the extra to the pantry with the
 // purchase date (no expiry is invented). Returns the undo record stored on the receipt.
 function applyReconcile(s,rec,week,start,end,ticked){

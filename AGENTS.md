@@ -31,6 +31,10 @@ This is an agent workflow rule, not a claim that GitHub branch protection or hos
 16. Never skip, disable, weaken or quarantine a test, step or workflow to obtain a green run. Fix the cause, or report the failure and its blocker to Henry. A green CI run is not deploy approval; rules 1–5 and 10 still apply.
 17. To keep work fast, the full suite runs on GitHub, not on the agent's machine. The `CI` workflow splits every `test:all` step into parallel jobs (read from package.json, so new suites are included automatically) and reports one combined `npm run test:all` result. Locally, agents run only the checks relevant to what they changed (build/check, the touched suites, and any browser suite for touched UI) before pushing, then wait for GitHub CI. Rule 15 still applies: only a green GitHub CI run on the exact head commit counts as release evidence.
 
+## Local test runs — owner instruction, 7 November 2026 (Sydney time)
+
+17a. GitHub CI can wait about two hours in the queue, so the agent runs every `test:all` step on its own machine and may tell Henry a release is ready, with the local results (each step OK, the exact commit, the date and time in Sydney time). Henry, 7 Nov 2026: “Test trên GitHub đợi 2 tiếng nữa là ít, nên nếu được chạy local” — pop-up: local is enough to report ready, CI follows. This replaces the parts of rules 15 and 17 that require GitHub CI before reporting ready. GitHub CI still runs on every push and **must be green on the exact head before anything is merged into `main` after Henry says DEPLOY**; if it fails, fix it and tell Henry. Rules 1–3, 16 and 18 are unchanged.
+
 ## Hosting build credits — owner instruction, 1 November 2026
 
 18. Nothing is built or loaded on the hosting provider until Henry explicitly authorises DEPLOY. `netlify.toml` cancels every non-production build (deploy previews and branch deploys) before it starts; do not remove or weaken that `ignore` rule, do not trigger builds or deploys through the hosting API/CLI/tools, and do not create preview links. Review happens with local QA evidence and GitHub CI (rules 7–9, 14–17). A one-off preview is allowed only when Henry asks for one for a specific commit; then the head commit message must contain `[netlify-preview]`, and that request is not deploy approval.
@@ -49,3 +53,16 @@ This is an agent workflow rule, not a claim that GitHub branch protection or hos
 ## Agent does the preparation — owner instruction, 6 November 2026
 
 23. Henry only says **DEPLOY**. Everything before it is the agent's job without asking: create the release branch, implement and test, keep the release record and evidence, push, open the pull request to `main` as soon as the release is ready for review (not a draft), watch CI, fix real failures, and tell Henry — in Sydney time, with the PR and CI links — when the exact PR head is green and ready. Opening or updating a PR is not a deploy; rules 1–3, 15–16 and 18 still apply: nothing is merged into `main` or built on the hosting provider until Henry says DEPLOY for that release. Questions to Henry are only for real product decisions (plans under rule 4, data or privacy choices), asked with the pop-up question tool when available.
+
+## Buttons keep the page still — owner instruction, 7 November 2026
+
+24. Tapping a button, tab or chip must not make the page jump up or down. The tapped control stays where it was on screen after the view redraws (for example the Bữa sáng / Bữa trưa / Bữa tối tabs). Only real navigation (a new screen, opening a sheet, a link to a section) may move the page. Every change to buttons, tabs or redraws keeps a browser check that the tapped control does not move.
+
+## Sheet buttons and wording — owner instruction, 7 November 2026
+
+25. In every sheet (pop-up), the dismiss X, *Đóng / Xong* and *Lưu* each show their own drawn picture from the shared art kit (X in a circle = dismiss, chevron down = close, green tick = save), so the family can tell them apart at a glance. *Đóng* and *Lưu* buttons are pill-shaped (fully rounded) and float at the bottom of the sheet, always visible without scrolling. Buttons in one sheet footer are the same size and side by side — on phones too, as small pills with the picture above the words — and wrap their words instead of dropping to another row; they never stack. Every change to a sheet keeps a browser check for this.
+26. Vietnamese and English text is written for the situation, not translated word for word: say what the button does or what just happened (“Bỏ đánh dấu đã nấu”, not “Hoàn tác bữa”). Family-authored text is never rewritten.
+
+## Every button has a drawing — owner instruction, 7 November 2026
+
+27. Main buttons show a drawing from the shared art kit (one drawing per meaning) next to their words: the main action of a screen or sheet (`.primary`, and main actions such as plan the week, add a dish, cooked, cooking mode, add to the list/pantry, put away), icon-only buttons (the drawing replaces a text symbol), the sheet X / Đóng / Lưu (rule 25), the bottom navigation and share buttons. Owner, 7 Nov 2026: “Nhiều emoji quá, giảm bớt thôi” — chips, tabs, disclosures and secondary buttons are words only, without a drawing. Phone emoji are never used. When a label is too long for its button, use a short name that fits the situation (“Chưa nấu”, “Bỏ qua”, “Lượng mua”) and keep the full wording for screen readers. A browser check fails when a main or icon-only button has no drawing, or a chip, tab or secondary button has one.

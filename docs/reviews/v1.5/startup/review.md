@@ -17,7 +17,7 @@ Status: implemented on a feature branch for preview testing. **Not deployed; dep
 - `dist/index.html`: sidebar "Nhà mình · 4 thành viên · Sydney" replaced by a neutral skeleton filled at runtime (family name, member count, currency — no city).
 
 ## Throttled timings (account user with a family, 375×812)
-Bench: `docs/reviews/v1.5/startup/startup-timing.cjs` (run from the repo root after `npm run build`). It serves `dist/` through the real gate and account/family handlers with in-memory stores, throttles **every response server-side** (150 ms latency, 1.6 Mbit/s — so service-worker fetches are throttled too) and also applies CDP `Network.emulateNetworkConditions` (150 ms, 1.6 Mbit/s) to the page. Time = navigation start → app content rendered and skeleton removed.
+Bench: `docs/reviews/v1.5/startup/startup-timing.cts` (run from the repo root after `npm run build`). It serves `dist/` through the real gate and account/family handlers with in-memory stores, throttles **every response server-side** (150 ms latency, 1.6 Mbit/s — so service-worker fetches are throttled too) and also applies CDP `Network.emulateNetworkConditions` (150 ms, 1.6 Mbit/s) to the page. Time = navigation start → app content rendered and skeleton removed.
 
 | Scenario | Before (8d7a7a7) | After |
 |---|---|---|

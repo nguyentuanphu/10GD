@@ -8,6 +8,84 @@ const UA_O='#3b2a4f',UA_W=`stroke="${UA_O}" stroke-width="2.6" stroke-linejoin="
 const uaSvg=(body:string,cls='')=>`<svg class="ui-art ${cls}" viewBox="0 0 48 48" aria-hidden="true" focusable="false">${body}</svg>`;
 const uaCirc=(x:number,y:number,r:number,f:string)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" ${UA_W}/>`;
 const UI_ART:Record<string,string>={
+ // v1.7.11 (owner, 7 Nov 2026: “Thiết kế các nút phải có emoji artwork”): one drawing per meaning for every button, chip and tab
+ 'add':`${uaCirc(24,24,17,'#8fd0b0')}<path d="M24 15v18M15 24h18" ${UA_W} stroke-width="4" fill="none"/>`,
+ 'edit':`<path d="M12 36l3-10 17-17 7 7-17 17z" fill="#f6c34a" ${UA_W}/><path d="M29 12l7 7" ${UA_W} fill="none"/><path d="M12 36l3-10 7 7z" fill="#f3dcd5" ${UA_W}/>`,
+ 'trash':`<path d="M14 15h20l-2 23H16z" fill="#f3dcd5" ${UA_W}/><path d="M10 15h28M19 15v-4h10v4M20 21v12M28 21v12" ${UA_W} fill="none"/>`,
+ 'skip':`${uaCirc(24,24,16,'#e7eadf')}<path d="M14 34L34 14" ${UA_W} stroke-width="4" fill="none"/>`,
+ 'cook-mode':`<path d="M14 26c-5 0-7-6-3-9 0-6 7-8 10-4 3-4 10-3 11 2 5 0 7 7 2 10v9H14z" fill="#fffefa" ${UA_W}/><path d="M14 30h20" ${UA_W} fill="none"/>`,
+ 'calendar':`<rect x="9" y="12" width="30" height="27" rx="5" fill="#fffefa" ${UA_W}/><path d="M9 20h30" ${UA_W}/><path d="M17 8v7M31 8v7" ${UA_W} fill="none"/><rect x="15" y="25" width="6" height="5" rx="1" fill="#e8a25a"/>`,
+ 'busy':`${uaCirc(24,25,15,'#9cc9e8')}<path d="M24 17v8l6 4" ${UA_W} fill="none"/><path d="M15 9l-4 4M33 9l4 4" ${UA_W} fill="none"/>`,
+ 'arrow-left':`${uaCirc(24,24,17,'#e7eadf')}<path d="M27 15l-9 9 9 9" ${UA_W} stroke-width="4" fill="none"/>`,
+ 'arrow-right':`${uaCirc(24,24,17,'#e7eadf')}<path d="M21 15l9 9-9 9" ${UA_W} stroke-width="4" fill="none"/>`,
+ 'arrow-up':`${uaCirc(24,24,17,'#e7eadf')}<path d="M15 27l9-9 9 9" ${UA_W} stroke-width="4" fill="none"/>`,
+ 'arrow-down':`${uaCirc(24,24,17,'#e7eadf')}<path d="M15 21l9 9 9-9" ${UA_W} stroke-width="4" fill="none"/>`,
+ 'round-up':`${uaCirc(24,24,19,'#e7eadf')}<path d="M10 30c4-12 24-12 28 0" ${UA_W} fill="none"/><path d="M24 34V14M17 21l7-7 7 7" ${UA_W} stroke-width="3.4" fill="none"/>`,
+ 'round-down':`${uaCirc(24,24,19,'#e7eadf')}<path d="M10 18c4 12 24 12 28 0" ${UA_W} fill="none"/><path d="M24 14v20M17 27l7 7 7-7" ${UA_W} stroke-width="3.4" fill="none"/>`,
+ 'plan-week':`<rect x="8" y="12" width="32" height="26" rx="5" fill="#fffefa" ${UA_W}/><path d="M8 20h32" ${UA_W}/><path d="M33 4l1.8 4.2L39 10l-4.2 1.8L33 16l-1.8-4.2L27 10l4.2-1.8z" fill="#f6c34a" ${UA_W} stroke-width="2"/><path d="M14 27h6M14 32h12" ${UA_W} fill="none"/>`,
+ 'repeat':`${uaCirc(24,24,19,'#d8ecf7')}<path d="M12 22a12 12 0 0 1 21-7l3 3M36 26a12 12 0 0 1-21 7l-3-3" ${UA_W} fill="none"/><path d="M36 10v8h-8M12 38v-8h8" ${UA_W} fill="none"/>`,
+ 'book':`<path d="M8 12c6-3 11-3 16 1v25c-5-4-10-4-16-1z" fill="#9cc9e8" ${UA_W}/><path d="M40 12c-6-3-11-3-16 1v25c5-4 10-4 16-1z" fill="#fffefa" ${UA_W}/>`,
+ 'taste':`<path d="M24 38S9 29 9 19a7 7 0 0 1 15-3 7 7 0 0 1 15 3c0 10-15 19-15 19z" fill="#f3a3a0" ${UA_W}/>`,
+ 'tools':`<path d="M30 9a8 8 0 0 0-9 11L9 32l7 7 12-12a8 8 0 0 0 11-9l-5 5-5-1-1-5z" fill="#c9a27a" ${UA_W}/>`,
+ 'note':`<path d="M12 8h18l7 7v25H12z" fill="#fffefa" ${UA_W}/><path d="M30 8v7h7M17 22h14M17 28h14M17 34h9" ${UA_W} fill="none"/>`,
+ 'receipt':`<path d="M12 7h24v34l-4-3-4 3-4-3-4 3-4-3-4 3z" fill="#fffefa" ${UA_W}/><path d="M17 15h14M17 21h14M17 27h8" ${UA_W} fill="none"/>`,
+ 'store':`<path d="M9 19l3-10h24l3 10z" fill="#e8a25a" ${UA_W}/><path d="M11 19h26v19H11z" fill="#fffefa" ${UA_W}/><path d="M20 38V28h8v10" ${UA_W} fill="none"/>`,
+ 'request':`<path d="M24 8c-6 0-10 4-10 10v8l-4 6h28l-4-6v-8c0-6-4-10-10-10z" fill="#f6c34a" ${UA_W}/><path d="M20 36a4 4 0 0 0 8 0" ${UA_W} fill="none"/><path d="M19 20h10" ${UA_W} fill="none"/>`,
+ 'fridge':`<rect x="13" y="6" width="22" height="36" rx="4" fill="#9cc9e8" ${UA_W}/><path d="M13 19h22M17 11v4M17 23v6" ${UA_W} fill="none"/>`,
+ 'freezer':`${uaCirc(24,24,17,'#d8ecf7')}<path d="M24 12v24M14 18l20 12M34 18L14 30" ${UA_W} fill="none"/>`,
+ 'shelf':`<path d="M8 38h32M8 24h32" ${UA_W} fill="none"/><rect x="11" y="12" width="9" height="12" rx="2" fill="#e8a25a" ${UA_W}/><rect x="25" y="15" width="8" height="9" rx="2" fill="#f6c34a" ${UA_W}/><rect x="14" y="28" width="10" height="10" rx="2" fill="#8fd0b0" ${UA_W}/>`,
+ 'family':`${uaCirc(17,17,6,'#f6c34a')}${uaCirc(31,17,6,'#f3a3a0')}<path d="M7 38c0-8 4-13 10-13s10 5 10 13M21 38c0-8 4-13 10-13s10 5 10 13" fill="#8fd0b0" ${UA_W}/>`,
+ 'guide':`${uaCirc(24,24,17,'#fffefa')}<path d="M28 20l-6 3-2 8 6-3z" fill="#e8a25a" ${UA_W}/><path d="M24 7v4M24 37v4M7 24h4M37 24h4" ${UA_W} fill="none"/>`,
+ 'weather':`${uaCirc(18,18,8,'#f6c34a')}<path d="M16 38h18a6 6 0 0 0 0-12 9 9 0 0 0-17 2 5 5 0 0 0-1 10z" fill="#fffefa" ${UA_W}/>`,
+ 'urgent':`<path d="M24 7L4 40h40z" fill="#f3a3a0" ${UA_W}/><path d="M24 18v11" ${UA_W} stroke-width="4" fill="none"/>${uaCirc(24,34,2,'#3b2a4f')}`,
+ 'download':`${uaCirc(24,24,19,'#d8ecf7')}<path d="M24 8v20M15 20l9 9 9-9" ${UA_W} stroke-width="3.4" fill="none"/><path d="M10 32v6h28v-6" ${UA_W} fill="none"/>`,
+ 'upload':`${uaCirc(24,24,19,'#d8ecf7')}<path d="M24 30V10M15 18l9-9 9 9" ${UA_W} stroke-width="3.4" fill="none"/><path d="M10 32v6h28v-6" ${UA_W} fill="none"/>`,
+ 'money':`<rect x="7" y="13" width="34" height="22" rx="4" fill="#8fd0b0" ${UA_W}/>${uaCirc(24,24,6,'#f6c34a')}`,
+ 'mic':`<rect x="18" y="7" width="12" height="21" rx="6" fill="#9cc9e8" ${UA_W}/><path d="M12 22a12 12 0 0 0 24 0M24 34v6M18 40h12" ${UA_W} fill="none"/>`,
+ 'bell':`<path d="M24 8c-6 0-10 4-10 10v8l-4 6h28l-4-6v-8c0-6-4-10-10-10z" fill="#9cc9e8" ${UA_W}/><path d="M20 36a4 4 0 0 0 8 0" ${UA_W} fill="none"/>`,
+ 'search':`${uaCirc(21,21,11,'#d8ecf7')}<path d="M29 29l10 10" ${UA_W} stroke-width="4" fill="none"/>`,
+ 'paste':`<rect x="11" y="10" width="26" height="31" rx="4" fill="#c9a27a" ${UA_W}/><rect x="17" y="6" width="14" height="8" rx="3" fill="#fffefa" ${UA_W}/><path d="M17 24h14M17 30h10" ${UA_W} fill="none"/>`,
+ 'more':`${uaCirc(24,24,17,'#e7eadf')}${uaCirc(16,24,2,'#3b2a4f')}${uaCirc(24,24,2,'#3b2a4f')}${uaCirc(32,24,2,'#3b2a4f')}`,
+ 'meal-plan':`<ellipse cx="24" cy="28" rx="17" ry="10" fill="#fffefa" ${UA_W}/><ellipse cx="24" cy="27" rx="9" ry="5" fill="#e7eadf" ${UA_W}/><path d="M36 6v10M31 11h10" ${UA_W} stroke-width="3" fill="none"/>`,
+ 'idea':`<path d="M24 7a12 12 0 0 0-7 22v5h14v-5a12 12 0 0 0-7-22z" fill="#f6c34a" ${UA_W}/><path d="M19 39h10" ${UA_W} fill="none"/>`,
+ 'account':`${uaCirc(24,17,8,'#f6c34a')}<path d="M10 40c0-9 6-14 14-14s14 5 14 14z" fill="#9cc9e8" ${UA_W}/>`,
+ 'thumb-up':`<path d="M10 22h6v17h-6z" fill="#8fd0b0" ${UA_W}/><path d="M16 22l7-13c3 0 5 2 4 6l-1 5h9c3 0 4 3 3 5l-3 11c-1 2-2 3-4 3H16z" fill="#fffefa" ${UA_W}/>`,
+ 'thumb-down':`<path d="M10 9h6v17h-6z" fill="#f3a3a0" ${UA_W}/><path d="M16 26l7 13c3 0 5-2 4-6l-1-5h9c3 0 4-3 3-5l-3-11c-1-2-2-3-4-3H16z" fill="#fffefa" ${UA_W}/>`,
+ 'whole-family':`${uaCirc(14,20,5,'#f6c34a')}${uaCirc(24,16,6,'#f3a3a0')}${uaCirc(34,20,5,'#9cc9e8')}<path d="M6 38c0-7 3-11 8-11M42 38c0-7-3-11-8-11M14 38c0-9 4-14 10-14s10 5 10 14z" fill="#8fd0b0" ${UA_W}/>`,
+ 'unit':`<path d="M12 18h24l-3 20H15z" fill="#d8ecf7" ${UA_W}/><path d="M17 26h6M17 31h4" ${UA_W} fill="none"/>`,
+ 'meal-breakfast':`<path d="M6 34h36" ${UA_W} fill="none"/><path d="M12 34a12 12 0 0 1 24 0z" fill="#f6c34a" ${UA_W}/><path d="M24 10v6M11 17l4 4M37 17l-4 4" ${UA_W} fill="none"/>`,
+ 'meal-lunch':`${uaCirc(24,24,9,'#f6c34a')}<path d="M24 6v5M24 37v5M6 24h5M37 24h5M11 11l3 3M34 34l3 3M11 37l3-3M34 14l3-3" ${UA_W} fill="none"/>`,
+ 'meal-dinner':`<path d="M30 7a16 16 0 1 0 11 26 13 13 0 0 1-11-26z" fill="#8f86c9" ${UA_W}/>`,
+ 'meal-snack-am':`<path d="M24 14c-8-4-15 2-14 11 1 10 8 16 14 13 6 3 13-3 14-13 1-9-6-15-14-11z" fill="#f3a3a0" ${UA_W}/><path d="M24 14c0-4 2-6 5-7" ${UA_W} fill="none"/>`,
+ 'meal-snack':`<path d="M12 18h24l-2 20H14z" fill="#e8a25a" ${UA_W}/><path d="M16 18c0-6 4-9 8-9s8 3 8 9" ${UA_W} fill="none"/>`,
+ 'chip-all':`<rect x="8" y="8" width="13" height="13" rx="3" fill="#8fd0b0" ${UA_W}/><rect x="27" y="8" width="13" height="13" rx="3" fill="#f6c34a" ${UA_W}/><rect x="8" y="27" width="13" height="13" rx="3" fill="#9cc9e8" ${UA_W}/><rect x="27" y="27" width="13" height="13" rx="3" fill="#f3a3a0" ${UA_W}/>`,
+ 'dish-main':`<ellipse cx="24" cy="30" rx="18" ry="9" fill="#fffefa" ${UA_W}/><path d="M14 27c2-7 18-7 20 0z" fill="#c97a4a" ${UA_W}/>`,
+ 'dish-veg':`<path d="M10 38C10 20 22 9 38 10c1 16-10 28-28 28z" fill="#8fd0b0" ${UA_W}/><path d="M10 38L28 20" ${UA_W} fill="none"/>`,
+ 'dish-soup':`<path d="M8 24h32a16 14 0 0 1-32 0z" fill="#e8a25a" ${UA_W}/><path d="M18 8c-2 3 2 5 0 9M26 8c-2 3 2 5 0 9" ${UA_W} fill="none"/>`,
+ 'dish-noodle':`<path d="M8 24h32a16 14 0 0 1-32 0z" fill="#f6c34a" ${UA_W}/><path d="M30 6L20 24M38 8L26 24" ${UA_W} fill="none"/>`,
+ 'dish-dessert':`<path d="M12 22h24l-4 16H16z" fill="#f3a3a0" ${UA_W}/><path d="M14 22a10 10 0 0 1 20 0" fill="#fffefa" ${UA_W}/>${uaCirc(24,10,3,'#e05a5a')}`,
+ 'dish-lunchbox':`<rect x="7" y="16" width="34" height="22" rx="4" fill="#9cc9e8" ${UA_W}/><path d="M7 25h34M24 25v13" ${UA_W} fill="none"/>`,
+ 'tag-western':`${uaCirc(24,24,19,'#f6e7c1')}<path d="M14 6v14a4 4 0 0 0 8 0V6M18 6v36" ${UA_W} fill="none"/><path d="M30 6c6 2 6 14 0 16v20" ${UA_W} fill="none"/>`,
+ 'tag-healthy':`<path d="M24 38S9 29 9 19a7 7 0 0 1 15-3 7 7 0 0 1 15 3c0 10-15 19-15 19z" fill="#8fd0b0" ${UA_W}/><path d="M17 23h5l2-5 3 9 2-4h4" ${UA_W} fill="none"/>`,
+ 'tag-vegetarian':`<path d="M24 40V22" ${UA_W} fill="none"/><path d="M24 24C14 24 10 16 12 8c8 0 13 6 12 16z" fill="#8fd0b0" ${UA_W}/><path d="M24 30c8 0 13-6 12-14-8 0-12 6-12 14z" fill="#b9e3c9" ${UA_W}/>`,
+ 'tag-vegan':`<path d="M24 40V24" ${UA_W} fill="none"/><path d="M24 26c-9 0-13-8-11-15 8 0 12 7 11 15zM24 26c9 0 13-8 11-15-8 0-12 7-11 15z" fill="#5fb88a" ${UA_W}/>`,
+ 'tag-dressing':`<path d="M20 6h8v6l4 6v20a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4V18l4-6z" fill="#f6c34a" ${UA_W}/><path d="M16 26h16" ${UA_W} fill="none"/>`,
+ 'tag-noodle':`<path d="M8 24h32a16 14 0 0 1-32 0z" fill="#fffefa" ${UA_W}/><path d="M14 22c3-4 6 4 9 0s6 4 9 0" ${UA_W} fill="none"/>`,
+ 'filter':`<path d="M8 10h32L28 25v12l-8 4V25z" fill="#d8ecf7" ${UA_W}/>`,
+ // v1.7.10 (owner, 7 Nov 2026: “các nút X tắt, đóng, lưu phải thiết kế kiểu riêng biệt bằng artwork”): one picture per meaning —
+ // X = dismiss (red-brown cross in a circle), Đóng / Xong = put the sheet away (a chevron down), Lưu = keep it (a green tick)
+ 'close-x':`${uaCirc(24,24,17,'#f3dcd5')}<path d="M17 17l14 14M31 17L17 31" ${UA_W} stroke-width="4" fill="none"/>`,
+ 'close-down':`${uaCirc(24,24,17,'#e7eadf')}<path d="M15 20l9 9 9-9" ${UA_W} stroke-width="4" fill="none"/>`,
+ 'save-check':`${uaCirc(24,24,17,'#8fd0b0')}<path d="M15 25l6 6 12-13" ${UA_W} stroke-width="4" fill="none"/>`,
+ // the “cooked” bubble: a pot with steam
+ 'cooked-pot':`<path d="M18 8c-2 3 2 4 0 7M24 6c-2 3 2 4 0 7M30 8c-2 3 2 4 0 7" ${UA_W} fill="none" class="ua-steam"/><path d="M8 22h32v10a8 8 0 0 1-8 8H16a8 8 0 0 1-8-8z" fill="#e8a25a" ${UA_W}/><path d="M5 22h38" ${UA_W} fill="none"/><path d="M15 29h18" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity=".6" fill="none"/>`,
+ // v1.7.10 (owner, 7 Nov 2026): every button that sends something to another person (Messages, Messenger, Zalo…) wears this one
+ // picture — a chat bubble with an arrow going out — next to the same word “Chia sẻ”
+ 'share-msg':`<path d="M8 12h22a4 4 0 0 1 4 4v12a4 4 0 0 1-4 4H18l-7 6v-6H8a4 4 0 0 1-4-4V16a4 4 0 0 1 4-4z" fill="#8fd0b0" ${UA_W}/><circle cx="13" cy="22" r="2" fill="#3b2a4f"/><circle cx="19" cy="22" r="2" fill="#3b2a4f"/><circle cx="25" cy="22" r="2" fill="#3b2a4f"/>${uaCirc(36,13,9,'#f6c34a')}<path d="M32 17l8-8M34 9h6v6" ${UA_W} fill="none"/>`,
+ // v1.7.10 theme toggle (replaces ☀️ / 🌙 / 🌤️ emoji): a sun, a crescent moon, and "auto" = half sun, half moon
+ 'theme-light':`<g ${UA_W} stroke-width="2.6"><path d="M24 5v6M24 37v6M5 24h6M37 24h6M10.6 10.6l4.2 4.2M33.2 33.2l4.2 4.2M10.6 37.4l4.2-4.2M33.2 14.8l4.2-4.2" fill="none"/></g><circle cx="24" cy="24" r="9" fill="#f6c34a" ${UA_W}/>`,
+ 'theme-dark':`<path d="M30 7a17 17 0 1 0 11 27 14 14 0 0 1-11-27z" fill="#8f86c9" ${UA_W}/><circle cx="16" cy="21" r="2" fill="#c9c3ee"/><circle cx="22" cy="31" r="1.6" fill="#c9c3ee"/>`,
+ 'theme-auto':`<path d="M24 9a15 15 0 0 0 0 30z" fill="#f6c34a" ${UA_W}/><path d="M24 9a15 15 0 0 1 0 30 11 11 0 0 0 0-30z" fill="#8f86c9" ${UA_W}/><path d="M9 6l2 3M5 13l3 1M14 3l1 3" ${UA_W} fill="none"/>`,
  // shopping trolley: green basket, two wheels
  cart:`<path d="M4 8h6l5 22h22l5-16H13" fill="none" ${UA_W}/><path d="M13 14h29l-5 16H15z" fill="#7cc79a" ${UA_W}/><path d="M20 18v8M27 18v8M34 18v8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>${uaCirc(18,38,4,'#fff6d6')}${uaCirc(34,38,4,'#fff6d6')}`,
  // real deal: flame (flickers)
@@ -50,3 +128,58 @@ const UI_ART:Record<string,string>={
 const UA_STORE:Record<string,string>={woolworths:'#4caf6e',coles:'#e8433a',aldi:'#2f6fd6',chemist:'#e83a8a','viet-grocer':'#ffb84d',amazon:'#ff9a3d',other:'#9aa39b'};
 function uiArt(name:string,cls=''){if(name.startsWith('store:')){const c=UA_STORE[name.slice(6)]||UA_STORE.other;return uaSvg(`${uaCirc(24,24,16,c)}<path d="M17 21c4-5 10-5 14 0" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none" opacity=".75"/>`,cls)}const b=UI_ART[name];return b?uaSvg(b,cls):''}
 (globalThis as any).uiArt=uiArt;
+// v1.7.11 (owner, 7 Nov 2026: “Thiết kế các nút phải có emoji artwork, nếu nút dài quá có thể thu gọn chữ lại hoặc đổi tên phù hợp
+// ngữ cảnh”; then “Nhiều emoji quá, giảm bớt thôi” — pop-up: drawings on the main buttons only, keep the short names).
+// A drawing goes on main action buttons (.primary and the few main actions in BTN_MAIN: plan the week, add a dish, cooked, cook mode…)
+// and on icon-only buttons, where the drawing replaces a text symbol. Chips, tabs, disclosures and secondary buttons are words only.
+// Sheet X / Đóng / Lưu (decorateSheet in app.ts), the bottom navigation and share buttons have their own drawings.
+// Every button: long labels get a short name for the situation (full wording kept for screen readers).
+const BTN_BY_DATA:Record<string,Record<string,string>>={
+ action:{'reminders':'bell','add-extra':'add','add-stock':'add','add-to-meal':'meal-plan','check-pantry':'fridge','delete-recipe-dialog':'trash','duplicate-week':'repeat','edit-stock':'edit','export':'download','import':'upload','pantry-peek':'fridge','start-cooking':'cook-mode','use-ingredient':'search','week-now':'calendar','week-prev':'arrow-left','week-next':'arrow-right','skip-row':'skip','skip-ingredient':'skip','store-purchases':'fridge','copy-share':'paste','purchase-quantity':'unit','calendar-month':'calendar','add-member':'add','edit-member':'edit','delete-stock':'trash','recipe-detail':'book'},
+ fm:{'edit-meal':'add','cook-meal':'cooked-pot','remove-dish':'trash','clear-meal':'trash','generate':'plan-week','new':'add','quick-add-dish':'add','use-pantry':'fridge','filter-sheet':'filter','all':'chip-all','own':'whole-family','samples':'book','edit-recipe':'edit','lock':'calendar','load-more':'more','regenerate':'repeat','apply':'save-check','cook-batch':'cooked-pot','undo-batch':'cooked-pot'},
+ personal:{accounts:'family',busy:'busy',weather:'weather',currency:'money',invite:'family',settings:'tools','sign-out':'account','device-only':'account',export:'download',import:'upload'},
+ guide:{open:'guide',dismiss:'close-x',next:'arrow-right',prev:'arrow-left',done:'save-check'},
+ house:{'urgent-new':'urgent','alert-read':'save-check','alert-archive':'download'},
+ feature:{'notes-import':'note','receipt-new':'receipt','cloud-settings':'family','receipt-parse':'search'},
+ planning:{stores:'store'},pushAction:{'request-item':'request',subscribe:'bell',test:'bell',settings:'bell',unsubscribe:'skip'},
+ product:{import:'upload',new:'add',receipt:'receipt'},offlineDownload:{'*':'download'},offlineFix:{'*':'download'},
+ rci:{add:'add',up:'arrow-up',down:'arrow-down',paste:'paste',remove:'trash'},vlCheck:{'*':'mic'},planMeal:{'*':'meal-plan'},mealMore:{'*':'more'},
+ mr:{'open-tastes':'taste',who:'whole-family',up:'thumb-up',down:'thumb-down',like:'thumb-up',dislike:'thumb-down'},qrDir:{up:'round-up',down:'round-down'},
+ scout:{refresh:'repeat','online-find':'search',toggle:'money'},
+};
+const BTN_CHIP:Record<string,string>={all:'chip-all',main:'dish-main',side:'dish-veg',veg:'dish-veg',soup:'dish-soup',noodle:'dish-noodle',dessert:'dish-dessert',snack:'meal-snack',lunchbox:'dish-lunchbox',western:'tag-western',healthy:'tag-healthy',vegetarian:'tag-vegetarian',vegan:'tag-vegan',dressing:'tag-dressing',fridge:'fridge',freezer:'freezer',dry:'shelf',breakfast:'meal-breakfast',lunch:'meal-lunch',dinner:'meal-dinner',snackAm:'meal-snack-am'};
+const BTN_BY_TEXT:[RegExp,string][]=[[/^(\+|thêm|add\b)/,'add'],[/^(sửa|chỉnh|edit)/,'edit'],[/^(xoá|xóa|bỏ hết|delete|remove|clear)/,'trash'],[/^(bỏ qua|skip)/,'skip'],[/^(lưu|save)\b/,'save-check'],[/^(đóng|close|xong|done)$/,'close-down'],[/^(hủy|huỷ|cancel)/,'close-x'],[/(tải về|tải|download)/,'download'],[/(khôi phục|restore|nhập bảng|import)/,'upload'],[/^(tìm|search|find)/,'search'],[/(lịch|calendar)/,'calendar'],[/(hướng dẫn|guide|tour)/,'guide'],[/(gia đình|family)/,'family'],[/(tài khoản|account|đăng nhập|sign in|đăng xuất|sign out)/,'account'],[/(thông báo|push|notification|reminder|nhắc)/,'bell'],[/(giọng|voice)/,'mic'],[/(hóa đơn|hoá đơn|receipt)/,'receipt'],[/(cửa hàng|nơi mua|store)/,'store'],[/(tủ|pantry|fridge)/,'fridge'],[/(giá|price|tiền|money|currency)/,'money'],[/(xem thêm|more)/,'more'],[/(gợi ý|idea|suggest)/,'idea'],[/(công cụ|tools)/,'tools'],[/(ghi chú|note)/,'note'],[/(sao chép|copy)/,'paste'],[/(món|recipe|dish)/,'book'],[/(thực đơn|menu|plan)/,'plan-week'],[/(nấu|cook)/,'cooked-pot'],[/(thời tiết|weather)/,'weather'],[/(bận|busy|away|vắng)/,'busy'],[/(ai nấu|who cooks|phân công|assign)/,'whole-family'],[/(tìm kiếm|search)/,'search'],[/(danh sách đi chợ|shopping list)/,'cart'],[/(nguyên liệu|ingredients)/,'note'],[/(thống kê|insights|stats)/,'idea']];
+// short names for the situation (full wording stays in aria-label)
+const BTN_SHORT:[RegExp,string][]=[[/^Lặp lại tuần trước$/,'Lặp tuần trước'],[/^Khẩu vị gia đình$/,'Khẩu vị'],[/^Bỏ đánh dấu đã nấu cả mẻ$/,'Chưa nấu mẻ'],[/^Bỏ đánh dấu đã nấu$/,'Chưa nấu'],[/^Mark batch as not cooked$/,'Batch not cooked'],[/^Mark as not cooked$/,'Not cooked'],[/^Bỏ qua lần mua này$/,'Bỏ qua'],[/^Skip (this|for this) (time|trip|purchase)$/i,'Skip'],[/^Chọn lượng mua$/,'Lượng mua'],[/^Choose (the )?amount( to buy)?$/i,'Amount'],[/^Viết \/ phân loại món ăn$/,'Viết món'],[/^Write \/ categorise recipes$/,'Write recipe'],[/^Lên thực đơn cả tuần$/,'Lên thực đơn'],[/^Auto-plan (the )?week$/,'Plan week'],[/^Kiểm tra đồ trong tủ(?= \(|$)/,'Đồ trong tủ'],[/^Kiểm tra đồ đã có \/ bỏ qua(?= \(|$)/,'Đồ đã có'],[/^Check (what's in )?the pantry(?= \(|$)/,'Pantry'],[/^Check what you have \/ skip(?= \(|$)/,'In stock'],[/^Chụp \/ nhập hóa đơn$/,'Hóa đơn'],[/^(Snap|Photo) \/ (enter|type) (a )?receipt$/i,'Receipt'],[/^Đổi tiền tệ & giá nguyên liệu$/,'Tiền tệ & giá'],[/^(Change )?currency & ingredient prices$/i,'Currency & prices'],[/^Write your first recipe$/,'Write a recipe'],[/^Kiểm tra giọng chính xác trên máy này$/,'Thử giọng nói'],[/^Check (the )?accurate voice on this device$/i,'Test voice'],[/^Bật \/ lưu nhận push$/,'Bật thông báo'],[/^Turn on \/ save push$/i,'Turn on alerts'],[/^Thử thiết bị này$/,'Thử thông báo'],[/^Test this device$/,'Test alert'],[/^Gợi ý từ thói quen của nhà mình$/,'Gợi ý cho nhà'],[/^Ideas based on your cooking history$/,'Ideas for you'],[/^Phân công ai nấu & ai đi chợ$/,'Ai nấu, ai đi chợ'],[/^Who cooks & who shops$/,'Who cooks, shops'],[/^Thêm ngay vào bữa$/,'Thêm vào bữa'],[/^Xem thống kê & sở thích(?=\s*[→↗]?$)/,'Thống kê & sở thích'],[/^Tạo liên kết tìm kiếm(?=\s*[→↗]?$)/,'Link tìm kiếm'],[/^View history & preferences(?=\s*[→↗]?$)/,'History & tastes'],[/^Add (it )?(straight )?to the meal now$/i,'Add to meal']];
+const BTN_SYMBOLS=/^[\s+✧↶↷▧▤▦↓↑⇅⇵✗✓↗→←‹›×≈•·▾▴🔄🏷️📍📱🟢⚪👍👎🍲☀☾]+|[\s▾▴↗→]+$/gu;
+function buttonArtName(el:Element):string|null{const e=el as HTMLElement;
+ if(e.matches('[data-color-theme],.day,.plan-day-head,.theme-fold-summary,[data-art-skip],[data-fm="recipe-snapshot"]'))return null;
+ if(e.querySelector('svg,img,.ingredient-art,.dish-art,.pp-wrap,.recipe-visual,.composed-dish,.lb-bug'))return null;
+ const d=e.dataset;
+ if(d.action==='attendance-tab'||d.action==='pantry-filter'||d.fm==='cat-filter'||d.fm==='tag-filter'||d.fm==='diet-filter'){const k=d.type||d.id||d.key||'';if(BTN_CHIP[k])return BTN_CHIP[k]}
+ for(const[attr,map]of Object.entries(BTN_BY_DATA)){const v=(d as any)[attr];if(v===undefined)continue;if(map[v])return map[v];if(map['*'])return map['*']}
+ const href=e.getAttribute('href')||'';const BY_HREF:Record<string,string>={'#insights':'idea','#products':'money','#shopping':'cart','#recipes':'book','#today':'calendar','#planner':'plan-week','#pantry':'fridge','#expenses':'money','/login':'account'};if(BY_HREF[href])return BY_HREF[href];
+ const t=(e.textContent||e.getAttribute('aria-label')||'').replace(/\s+/g,' ').replace(BTN_SYMBOLS,'').trim().toLowerCase();if(BTN_CHIP[t])return BTN_CHIP[t];
+ for(const[re,name]of BTN_BY_TEXT)if(re.test(t))return name;return'other'}
+const BTN_MAIN:Record<string,string[]>={fm:['generate','edit-meal','quick-add-dish','new','cook-meal','cook-batch','undo-batch'],action:['start-cooking','add-to-meal','add-extra','add-stock','store-purchases'],product:['new']};
+// the app's own old emoji on buttons (leading only, so family-written names are never touched)
+const BTN_EMOJI=/^[\s🔄🏷️📍📱🟢⚪👍👎🍲\u{FE0F}]+/u;
+function isMainButton(el:HTMLElement):boolean{if(el.matches('.chip,a.chip,[role="tab"],summary'))return false;if(el.matches('.primary'))return true;
+ for(const[attr,keys]of Object.entries(BTN_MAIN)){const v=(el.dataset as any)[attr];if(v!==undefined&&keys.includes(v))return true}return false}
+function decorateButtons(root:ParentNode=document){if(typeof document==='undefined')return;
+ for(const el of root.querySelectorAll<HTMLElement>('button:not([data-btn-art]),a.btn:not([data-btn-art]),a.chip:not([data-btn-art]),[role="tab"]:not([data-btn-art]),summary:not([data-btn-art]),.chip:not([data-btn-art])')){
+  if(el.closest('.ladybug,#lb-root,svg'))continue;
+  const tw=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);const texts:Text[]=[];let n:Node|null;while((n=tw.nextNode()))if((n as Text).nodeValue?.trim())texts.push(n as Text);
+  const full=(el.textContent||'').replace(/\s+/g,' ').trim();const name=buttonArtName(el);const known=!!name&&name!=='other'&&!!UI_ART[name];
+  const iconOnly=known&&!full.replace(BTN_SYMBOLS,'').replace(BTN_EMOJI,'').trim()&&!el.matches('.chip,a.chip,[role="tab"],summary');
+  const draw=known&&(iconOnly||isMainButton(el));el.dataset.btnArt=draw?name!:(name===null?'own':'words');
+  if(texts[0])texts[0].nodeValue=texts[0].nodeValue!.replace(BTN_EMOJI,'');
+  // word-only buttons drop the old decorative marks too (+ ✧ ↶ ▧ ⇅ …); status marks (✓ ✗) stay
+  if(!draw&&texts[0]&&texts[0].nodeValue!.replace(/^[\s+✧↶↷▧▤▦⇅⇵]+/u,'').trim())texts[0].nodeValue=texts[0].nodeValue!.replace(/^[\s+✧↶↷▧▤▦⇅⇵]+/u,'');
+  if(draw){if(texts[0])texts[0].nodeValue=texts[0].nodeValue!.replace(/^[\s+✧↶↷▧▤▦↓↑⇅⇵✗✓↗→←‹›×≈•·☀☾]+/u,'');const last=texts[texts.length-1];if(last)last.nodeValue=last.nodeValue!.replace(/[\s▾▴↗→]+$/u,'')}
+  if(texts.length===1){const v=texts[0].nodeValue!.trim();for(const[re,short]of BTN_SHORT)if(re.test(v)){texts[0].nodeValue=v.replace(re,short);if(!el.hasAttribute('aria-label'))el.setAttribute('aria-label',full.replace(/^[\s+✧↶▧▤⇅↗🔄🏷️📍📱🟢⚪👍👎🍲\u{FE0F}]+/u,''));el.title=el.title||full;break}}
+  if(!(el.textContent||'').trim()&&!el.hasAttribute('aria-label'))el.setAttribute('aria-label',full||name||'');
+  if(draw)el.insertAdjacentHTML('afterbegin',uiArt(name!,'btn-art'));}}
+(globalThis as any).decorateButtons=decorateButtons;(globalThis as any).buttonArtName=buttonArtName;
+if(typeof document!=='undefined'){let queued=false;const run=()=>{queued=false;try{decorateButtons()}catch(e){console.warn('button art',e)}};
+ new MutationObserver(()=>{if(!queued){queued=true;queueMicrotask(run)}}).observe(document.body,{childList:true,subtree:true});run()}

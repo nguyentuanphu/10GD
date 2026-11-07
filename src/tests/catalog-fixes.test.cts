@@ -1,7 +1,7 @@
 // v1.5 catalog review fixes: mixed-version sync, tombstones, menu balance, rice rule, pricing for scoring and diet labels.
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const {MAIN_INGREDIENTS,MAIN_VALID_IMPORT}=require('./fixtures/main-0bcef70-client.cjs');
-const load=()=>{const c=vm.createContext({console,Intl,Date,Math:Object.create(Math),structuredClone,crypto:require('node:crypto').webcrypto});vm.runInContext(['seed','recipe-catalog','core','spending-core','purchase-units','planning-core','insights-core','family-menu-core','availability-core','personal-core'].map(f=>fs.readFileSync('dist/'+f+'.js','utf8')).join('\n')+'\nthis.api={RECIPES,INGREDIENTS,WESTERN_HEALTHY_RECIPES,PLANT_RECIPES,APP_EDITION,defaults,validImport,upgradeReferenceCatalog,recordDeletedReferenceRecipes,mergeDeletedRecipeIds,stateEdition,generateWeek,familyGenerate,ensureWeek,monday,addDays,mealHasRice,recipeCuisine,recipeCost,scoringPrice,scoringRecipeCost,pantryMatchCount,recipeDiet,isVegetarianRecipe,isVeganRecipe,recipeNeedsDietCheck,recipeSuggestions,clone}',c);return c};
+const load=()=>{const c=vm.createContext({console,Intl,Date,Math:Object.create(Math),structuredClone,crypto:require('node:crypto').webcrypto});vm.runInContext(['seed','recipe-catalog','core','spending-core','purchase-units','planning-core','insights-core','family-menu-core','availability-core','personal-core'].map(f=>fs.readFileSync('dist/'+f+'.js','utf8')).join('\n')+'\nthis.api={RECIPES,RETIRED_REFERENCE_RECIPES,INGREDIENTS,WESTERN_HEALTHY_RECIPES,PLANT_RECIPES,APP_EDITION,defaults,validImport,upgradeReferenceCatalog,recordDeletedReferenceRecipes,mergeDeletedRecipeIds,stateEdition,generateWeek,familyGenerate,ensureWeek,monday,addDays,mealHasRice,recipeCuisine,recipeCost,scoringPrice,scoringRecipeCost,pantryMatchCount,recipeDiet,isVegetarianRecipe,isVeganRecipe,recipeNeedsDietCheck,recipeSuggestions,clone}',c);return c};
 const c=load(),a=c.api,json=x=>JSON.parse(JSON.stringify(x));
 
 // 1. Mixed-version sync. The released main client validates every ingredient id against its own table.
@@ -10,7 +10,7 @@ const fresh=json(a.defaults());
 assert.equal(old.validImport(fresh),false,'documented one-time risk: the main client rejects a state containing the new catalogue ingredients');
 const legacy=json(a.defaults());legacy.seedVersion=3;delete legacy.appEdition;legacy.recipes=JSON.parse(fs.readFileSync('docs/reviews/artwork-audit-20261102/source.json','utf8')).recipes.filter(r=>!r.catalogEdition||r.catalogEdition<4); // frozen pre-correction recipes: current defaults now contain spaghetti, introduced in edition 4.
 assert.equal(old.validImport(json(legacy)),true,'a v3 state without new ingredients is still readable by main');
-assert.equal(a.validImport(legacy),true);assert.equal(a.upgradeReferenceCatalog(legacy),200);assert.equal(legacy.appEdition,a.APP_EDITION);
+assert.equal(a.validImport(legacy),true);assert.equal(a.upgradeReferenceCatalog(legacy),62/* v1.7.10: 45 Western + 17 plant recognised recipes */);assert.equal(legacy.appEdition,a.APP_EDITION);
 // The new client keeps unknown ids written by a newer edition instead of rejecting or dropping them.
 const future=json(a.defaults());future.appEdition=a.APP_EDITION+1;future.seedVersion=a.APP_EDITION+1;future.recipes.push({...json(a.RECIPES[0]),id:'future-1',ingredients:[{id:'yuzu',qty:2},{id:'pork',qty:300}]});future.pantry.push({id:'lot-yuzu',ingredient:'yuzu',qty:3,place:'fridge',expiry:''});future.newerField={kept:true};
 assert.equal(a.stateEdition(future),a.APP_EDITION+1);assert.equal(a.validImport(future),true,'newer edition: unknown ingredient ids are tolerated');
@@ -21,12 +21,12 @@ assert.equal(c2.api.validImport(same),false,'unknown ids from the same edition r
 const bad=json(a.defaults());bad.deletedRecipeIds=[42];assert.equal(a.validImport(bad),false);bad.deletedRecipeIds=['r1'];bad.appEdition=1.5;assert.equal(a.validImport(bad),false);
 
 // 2. Tombstones: deleted reference recipes never come back through an older copy, sync or backup.
-const s=json(a.defaults());s.recipes=s.recipes.filter(r=>r.id!=='west-v4-001'&&r.id!=='plant-v5-041');a.recordDeletedReferenceRecipes(s);
-assert.equal(JSON.stringify([...s.deletedRecipeIds].sort()),JSON.stringify(['plant-v5-041','west-v4-001']));assert.ok(a.validImport(s));
+const s=json(a.defaults());s.recipes=s.recipes.filter(r=>r.id!=='west-v4-001'&&r.id!=='plant-v5-004');a.recordDeletedReferenceRecipes(s);
+assert.equal(JSON.stringify([...s.deletedRecipeIds].sort()),JSON.stringify(['plant-v5-004','west-v4-001']));assert.ok(a.validImport(s));
 const olderCopy=json(a.defaults());olderCopy.seedVersion=3;delete olderCopy.appEdition;olderCopy.recipes=olderCopy.recipes.filter(r=>!r.catalogEdition||r.catalogEdition<4);
-assert.equal(a.upgradeReferenceCatalog(olderCopy,s.deletedRecipeIds),198,'union with tombstones known on this device');
-assert.ok(!olderCopy.recipes.some(r=>r.id==='west-v4-001'||r.id==='plant-v5-041'));assert.equal(a.upgradeReferenceCatalog(olderCopy),0,'idempotent');assert.ok(olderCopy.deletedRecipeIds.includes('west-v4-001'));
-const backup=json(olderCopy);backup.seedVersion=4;backup.recipes=backup.recipes.filter(r=>!r.id.startsWith('plant-v5-'));assert.ok(a.validImport(backup));assert.equal(a.upgradeReferenceCatalog(backup),99,'backup import keeps its own tombstones');assert.ok(!backup.recipes.some(r=>r.id==='plant-v5-041'));
+assert.equal(a.upgradeReferenceCatalog(olderCopy,s.deletedRecipeIds),60/* v1.7.10: 62 recognised edition-4 recipes − 2 deleted */,'union with tombstones known on this device');
+assert.ok(!olderCopy.recipes.some(r=>r.id==='west-v4-001'||r.id==='plant-v5-004'));assert.equal(a.upgradeReferenceCatalog(olderCopy),0,'idempotent');assert.ok(olderCopy.deletedRecipeIds.includes('west-v4-001'));
+const backup=json(olderCopy);backup.seedVersion=4;backup.recipes=backup.recipes.filter(r=>!r.id.startsWith('plant-v5-'));assert.ok(a.validImport(backup));assert.equal(a.upgradeReferenceCatalog(backup),16/* v1.7.10: 17 plant − 1 deleted */,'backup import keeps its own tombstones');assert.ok(!backup.recipes.some(r=>r.id==='plant-v5-004'));
 const restored=json(s);restored.recipes.push(json(a.RECIPES.find(r=>r.id==='west-v4-001')));a.recordDeletedReferenceRecipes(restored);assert.ok(!restored.deletedRecipeIds.includes('west-v4-001'),'a recipe the family restores clears its tombstone');
 const merged={deletedRecipeIds:['a']};a.mergeDeletedRecipeIds(merged,['b','a']);assert.equal(merged.deletedRecipeIds.join(),'a,b');
 const authored=json(a.defaults());authored.recipes.push({...json(a.RECIPES[5]),id:'family-own-1',custom:true,origin:'family',name:'Cá kho bà nội'});authored.seedVersion=3;a.upgradeReferenceCatalog(authored);assert.equal(authored.recipes.find(r=>r.id==='family-own-1').name,'Cá kho bà nội','family recipes untouched');
@@ -43,7 +43,7 @@ const d0=a.defaults();assert.ok(a.recipeSuggestions(d0,{limit:30}).every(x=>x.re
 
 // 4. Rice is decided by the main dish only.
 const R=id=>json(a.RECIPES.find(r=>r.id===id));const meal=recipes=>({recipes,staple:'auto',servings:4,attendance:{}});
-const westSoup=a.RECIPES.find(r=>r.category==='soup'&&r.stapleIncluded===true),salad=a.RECIPES.find(r=>r.recipeKind==='seed-salad'&&r.stapleIncluded===true),pasta=a.RECIPES.find(r=>r.category==='main'&&r.stapleIncluded===true);
+const westSoup=a.RECIPES.find(r=>r.category==='soup'&&r.stapleIncluded===true),salad=[...a.RECIPES,...a.RETIRED_REFERENCE_RECIPES].find(r=>r.recipeKind==='seed-salad'&&r.stapleIncluded===true)/* v1.7.10: seed salads retired; a family may still hold one */,pasta=a.RECIPES.find(r=>r.category==='main'&&r.stapleIncluded===true);
 assert.ok(westSoup&&salad&&pasta);assert.equal(a.mealHasRice(meal([R('r1'),json(westSoup)])),true);assert.equal(a.mealHasRice(meal([R('r1'),json(salad)])),true);assert.equal(a.mealHasRice(meal([json(pasta),json(salad)])),false);assert.equal(a.mealHasRice(meal([R('n1')])),false);assert.equal(a.mealHasRice(meal([R('r13'),R('r23')])),true);assert.equal(a.mealHasRice({...meal([json(pasta)]),staple:'rice'}),true);
 
 // 5. Unknown prices are only estimated for scoring; displayed cost is unchanged and staples are no pantry bonus.
@@ -56,5 +56,5 @@ const ANIMAL=['pork','ribs','chicken','beef','salmon','fish','shrimp','fishSauce
 let vegan=0,veg=0,check=0;for(const r of a.RECIPES){const ids=r.ingredients.map(i=>i.id);if(a.isVeganRecipe(r)){vegan++;assert.ok(ids.every(id=>!ANIMAL.includes(id)&&!DAIRY_EGG.includes(id)&&!CHECK.includes(id)),r.name+' wrongly vegan')}if(a.isVegetarianRecipe(r)){veg++;assert.ok(ids.every(id=>!ANIMAL.includes(id)&&!CHECK.includes(id)),r.name+' wrongly vegetarian')}if(a.recipeNeedsDietCheck(r)){check++;assert.ok(ids.some(id=>CHECK.includes(id))&&!ids.some(id=>ANIMAL.includes(id)))}if(ids.some(id=>ANIMAL.includes(id)))assert.equal(a.recipeDiet(r),'meat',r.name)}
 assert.equal(a.isVeganRecipe({ingredients:[{id:'eggNoodle',qty:200},{id:'bokchoy',qty:200}]}),false);assert.equal(a.isVegetarianRecipe({ingredients:[{id:'eggNoodle',qty:200},{id:'bokchoy',qty:200}]}),true);
 assert.equal(a.isVegetarianRecipe({ingredients:[{id:'miso',qty:20},{id:'tofu',qty:200}]}),false);assert.equal(a.recipeNeedsDietCheck({ingredients:[{id:'miso',qty:20}]}),true);assert.equal(a.isVegetarianRecipe({ingredients:[{id:'family-ing-x',qty:1}]}),false);
-const vietMeatless=a.RECIPES.filter(r=>!r.catalogEdition&&a.isVegetarianRecipe(r)).length;/* v1.7.5: the owner halved the Vietnamese references, 140+ → 78 */assert.ok(vietMeatless>=75,'meatless Vietnamese dishes now carry diet labels: '+vietMeatless);
+const vietMeatless=a.RECIPES.filter(r=>!r.catalogEdition&&a.isVegetarianRecipe(r)).length;/* v1.7.10: only recognised dishes stay (78 → 18) */assert.ok(vietMeatless>=18,'meatless Vietnamese dishes now carry diet labels: '+vietMeatless);
 console.log(`PASS mixed-version sync guard (main rejects new state; newer-edition ids kept), tombstones across older copies/backups, 50-week Vietnamese-first menus (0 dressings, rice kept, <=2 treats/week), main-dish rice rule, scoring-only prices, ingredient-checked diet labels (${vegan} vegan, ${veg} vegetarian, ${check} need label check)`);

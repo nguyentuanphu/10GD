@@ -83,3 +83,9 @@ assert.equal((await cache.get(cacheKey('NSW','2026-11-04'))).observations[0].sou
 res=await(await createGroceryCron({getStoreFn,env:{GROCERY_FEED_URL:'http://insecure.example'},fetchFn,now:()=>at6,log:()=>{}})()).json();assert.equal(res.reason,'invalid-url');
 assert.doesNotMatch(readFileSync('src/netlify/functions/grocery-cron.mts','utf8')+readFileSync('src/netlify/lib/grocery-pricing.mts','utf8'),/woolworths\.com|coles\.com|aldi\.com|chemistwarehouse|amazon\.com/,'no retailer scraping endpoints');
 console.log('PASS grocery cron: no-op without GROCERY_FEED_URL, Sydney 06:xx window, licensed feed import only');
+// v1.7.11 (owner, 7 Nov 2026: “So giá bây giờ chỉ nên có tài khoản đi cho chắc”): no guest path, whatever the request carries
+{const g=createGroceryHandler({getStoreFn,now:()=>new Date('2026-11-07T01:00:00Z')});
+ for(const [op,method,body] of [['prices','GET',null],['online-want','POST',{query:'gravy beef'}],['observe','POST',{observation:obs('obs-guest')}]] as any[]){
+  const r=await g(new Request('https://test.example/.netlify/functions/grocery?op='+op,{method,headers:{Origin:'https://test.example','X-Bep-Trial':'trial-device-aaaaaaaaaaaa',...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})}));
+  assert.equal(r.status,401,op+' without an account → sign in')}
+ console.log('PASS So Giá needs an account: prices, find online price and saving all answer 401 without a session')}

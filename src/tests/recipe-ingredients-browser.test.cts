@@ -48,7 +48,7 @@ const NOTES=['Tỏi 3 tép','Nước mắm 2 muỗng canh'];
  // The app's “today” follows the family time zone (Australia/Sydney) while seeding uses the browser's local date, so the
 // browser runs in Sydney time; in UTC the dates differ from 13:00 to 24:00 UTC and today's dinner was seeded on yesterday.
 async function openApp({viewport=sizes.mobile,ua=IPHONE,touch=true,lang='vi',theme='light',account=false,hash='today',context:given}:any={}){
-  const context=given||await browser.newContext({viewport,userAgent:ua,hasTouch:touch,isMobile:touch&&viewport.width<900,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme==='dark'?'dark':'light',timezoneId:'Australia/Sydney'});
+  const context=given||await browser.newContext({locale:'vi-VN',viewport,userAgent:ua,hasTouch:touch,isMobile:touch&&viewport.width<900,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme==='dark'?'dark':'light',timezoneId:'Australia/Sydney'});
   if(!given){await context.addInitScript(({account}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-guide-done','1');if(account)localStorage.setItem('bep-account-present','yes');else localStorage.setItem('bep-local-locked','yes')},{account});if(account)await context.addCookies([cookieOf(dadCookie)])}
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page,{account});
   await page.goto(origin+'/#'+hash);await page.locator('#main .page-heading').waitFor({timeout:30000});await page.waitForTimeout(account?1500:600);await page.waitForFunction(()=>typeof appLanguage!=='undefined'&&typeof rcEnabled==='function'&&typeof recipeIngredientRows==='function',null,{timeout:30000});
@@ -156,7 +156,10 @@ async function openApp({viewport=sizes.mobile,ua=IPHONE,touch=true,lang='vi',the
   // amounts the way an iPhone delivers them: typed on the decimal keypad ("500", "0,5"), unit from the picker; and a
   // change iOS makes without an input event (keyboard dictation / QuickType / picker wheel) — value set, no event.
   const rows=page.locator('#rc-ing-list .rc-ing-row');
-  const typeRow=async(i:number,qty:string,unit:string)=>{const row=rows.nth(i);await tap(row.locator('.rc-ing-qty'));await page.keyboard.type(qty);await row.locator('.rc-ing-unit').selectOption(unit)};
+  /* v1.7.10: the sheet's footer floats (rule 25), so focusing a low field scrolls the sheet to keep it above the footer; a person
+     types after that settles — wait until the sheet stops scrolling before typing */
+  const settle=async()=>{let last=-1,still=0;for(let k=0;k<30&&still<4;k++){await page.waitForTimeout(80);const y=await page.evaluate(()=>document.querySelector('#modal-root .modal')?.scrollTop??0);still=y===last?still+1:0;last=y}};
+  const typeRow=async(i:number,qty:string,unit:string)=>{const row=rows.nth(i);await tap(row.locator('.rc-ing-qty'));await settle();await page.keyboard.type(qty);await row.locator('.rc-ing-unit').selectOption(unit)};
   await typeRow(0,'500','g');await typeRow(1,'300','g');await typeRow(2,'0,5','kg');await typeRow(6,'2','muỗng canh');
   await rows.nth(3).evaluate((li:any)=>{li.querySelector('.rc-ing-qty').value='1';li.querySelector('.rc-ing-unit').value='gói'});
   await rows.nth(4).evaluate((li:any)=>{li.querySelector('.rc-ing-qty').value='200';li.querySelector('.rc-ing-unit').value='g'});

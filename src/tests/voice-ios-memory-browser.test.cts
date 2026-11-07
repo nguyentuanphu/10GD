@@ -114,7 +114,9 @@ async function main(){
    const {page,context,errors}=await open({viewport:sizes[size],lang,theme,ios:size!=='desktop',delay:300});
    await fakePack(page);
    await page.evaluate("otherSettingsModal()");await page.waitForSelector('#settings-voice [data-vl-check]');
-   assert.match(await page.locator('#settings-voice').innerText(),lang==='vi'?/Giọng nói trên máy[\s\S]*Kiểm tra giọng chính xác trên máy này/:/On-device voice[\s\S]*Check accurate voice on this device/);
+   // v1.7.11 (owner: long button labels get a short name; the full wording stays for screen readers)
+   assert.match(await page.locator('#settings-voice').innerText(),lang==='vi'?/Giọng nói trên máy[\s\S]*Thử giọng nói/:/On-device voice[\s\S]*Test voice/);
+   assert.match(String(await page.locator('#settings-voice [data-vl-check]').getAttribute('aria-label')),lang==='vi'?/Kiểm tra giọng chính xác trên máy này/:/Check accurate voice on this device/);
    await page.locator('#settings-voice [data-vl-check]').click();await page.waitForSelector('#vl-selfcheck [data-vl-check-run]');
    assert.match(await page.locator('#modal-title').innerText(),lang==='vi'?/Kiểm tra giọng chính xác trên máy này/:/Check accurate voice on this device/);
    await page.locator('[data-vl-check-run]').click();

@@ -36,7 +36,7 @@ async function main() {
   try {
     for (const [name, viewport, lang] of [['mobile', { width: 375, height: 812 }, 'vi'], ['tablet', { width: 820, height: 1100 }, 'en'], ['desktop', { width: 1280, height: 800 }, 'vi'], ['desktop', { width: 1280, height: 800 }, 'en']] as const) {
       minBuild = null; events.length = 0;
-      const context = await browser.newContext({ viewport, reducedMotion: 'reduce', serviceWorkers: 'allow' });
+      const context = await browser.newContext({locale:'vi-VN', viewport, reducedMotion: 'reduce', serviceWorkers: 'allow' });
       await context.addInitScript(l => { if (!localStorage.getItem('guest/bep-language')) localStorage.setItem('guest/bep-language', l); }, lang);
       const page = await context.newPage(); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
       const ready = async () => { await page.waitForFunction(() => (window as any).BEP_STARTUP?.ready && !!navigator.serviceWorker.controller, null, { timeout: 60000 }); await page.waitForFunction(() => !!(window as any).bepUpdater?.registration, null, { timeout: 30000 }); };

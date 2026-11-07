@@ -16,7 +16,7 @@ const theme=(page,mode)=>page.evaluate(m=>{localStorage.setItem('bep-theme-mode'
 const expected=(page,{cat='all',key='all',diet='all',time='all'})=>page.evaluate(([cat,key,diet,time])=>{const meta=r=>libraryRecipeMeta(r),test={all:()=>true,western:r=>recipeCuisine(meta(r))==='western','seed-salad':r=>meta(r).recipeKind==='seed-salad',dressing:r=>meta(r).recipeKind==='dressing',healthy:r=>recipeMatchesLibraryTag(r,'healthy'),vegetarian:r=>['vegan','vegetarian','check'].includes(recipeDiet(r)),vegan:r=>recipeDiet(r)==='vegan'};return state.recipes.filter(r=>!ownRecipe(r)&&(cat==='all'||r.category===cat)&&test[key](r)&&test[diet](r)&&(time==='all'||(+r.time||0)<=20)).length},[cat,key,diet,time]);
 const statusCount=async page=>+((await page.locator('#family-recipe-status').innerText()).match(/^(\d+)/)||[])[1];
 const badge=async loc=>+(await loc.locator('.chip-count').innerText());
-async function openPage(browser,{width,height,touch,mobile,storage}){const context=await browser.newContext({viewport:{width,height},reducedMotion:'reduce',hasTouch:touch,isMobile:mobile});if(storage)await context.addInitScript(s=>{if(!sessionStorage.getItem('qa-seeded')){for(const [k,v] of Object.entries(s))localStorage.setItem(k,v);sessionStorage.setItem('qa-seeded','1')}},storage);const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);return {context,page,errors}}
+async function openPage(browser,{width,height,touch,mobile,storage}){const context=await browser.newContext({locale:'vi-VN',viewport:{width,height},reducedMotion:'reduce',hasTouch:touch,isMobile:mobile});if(storage)await context.addInitScript(s=>{if(!sessionStorage.getItem('qa-seeded')){for(const [k,v] of Object.entries(s))localStorage.setItem(k,v);sessionStorage.setItem('qa-seeded','1')}},storage);const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);return {context,page,errors}}
 (async()=>{const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});
 for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet',820,1100],['desktop',1280,800]]){
  const phone=width<=760,{context,page,errors}=await openPage(browser,{width,height,touch:name!=='desktop',mobile:phone});
@@ -24,8 +24,9 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  // ---------- Today: inline guide card, no blocking modal at startup ----------
  await page.goto('https://kitchen.test/');await page.locator('#main .page-heading').waitFor({timeout:20000});await page.waitForTimeout(800);
  assert.equal(await page.locator('#modal-root .modal').count(),0,'no startup modal');
- const card=page.locator('#main .guide-card');await card.waitFor();assert.match(await card.innerText(),/Bắt đầu với Bếp Gia Đình/);
- assert.ok(await page.evaluate(()=>document.querySelector('.page-heading').nextElementSibling.classList.contains('guide-card')),'card sits right under the heading');
+ const card=page.locator('#main .guide-card');await card.waitFor();assert.match(await card.innerText(),/Bắt đầu với Bếp Nhà/);
+ // v1.7.10 (owner, 7 Nov 2026): the kitchen / voice buttons stay right under the title on every page, so the welcome card comes right after them
+ assert.ok(await page.evaluate(()=>{const h=document.querySelector('.page-heading'),n=h.nextElementSibling;return n.classList.contains('guide-card')||n.classList.contains('kitchen-action-dock')&&n.nextElementSibling.classList.contains('guide-card')}),'card sits right under the heading and its kitchen / voice buttons');
  const closeBox=await card.locator('.guide-card-close').boundingBox();assert.ok(closeBox.width>=44&&closeBox.height>=44,'dismiss target ≥44px');
  await quietToast(page);await noOverflow(page,name+' today');await theme(page,'light');await page.evaluate(()=>document.querySelector('.guide-card').scrollIntoView({block:'center'}));await shot(page,`${name}-today-card-vi-light`);
  // Tour: progress dots, Next/Back, keyboard arrows, swipe, Show me buttons.
@@ -33,7 +34,7 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  const ids=()=>page.evaluate(()=>guideSteps.map(s=>s.id)),total=(await ids()).length;assert.deepEqual(await ids(),['welcome','menu','shopping','scout','family','voice','alerts']);
  assert.equal(await page.locator('.guide-dot').count(),total);assert.match(await page.locator('#guide-progress').innerText(),new RegExp(`1/${total}`,'i'));assert.ok(await page.locator('#guide-back').isDisabled(),'Back disabled on step 1');
  await page.locator('#guide-next').click();assert.equal(await page.locator('.guide-step').getAttribute('data-step-id'),'menu');assert.equal(await page.locator('.guide-dot.active').count(),1);assert.ok(await page.locator('.guide-show a[href="#recipes"]').count(),'menu step can show the Library');
- assert.match(await page.locator('.guide-step').innerText(),/475 món tham khảo/);
+ assert.match(await page.locator('.guide-step').innerText(),/125 món tham khảo/);
  await page.locator('#guide-back').click();assert.equal(await page.locator('.guide-step').getAttribute('data-step-id'),'welcome');
  await page.keyboard.press('ArrowRight');assert.equal(await page.locator('.guide-step').getAttribute('data-step-id'),'menu','ArrowRight moves on');
  const vp=await page.locator('#guide-viewport').boundingBox();await page.mouse.move(vp.x+vp.width*0.8,vp.y+40);await page.mouse.down();await page.mouse.move(vp.x+vp.width*0.2,vp.y+44,{steps:4});await page.mouse.up();assert.equal(await page.locator('.guide-step').getAttribute('data-step-id'),'shopping','swipe left = next');
@@ -68,14 +69,14 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  const tops=await row.locator('.chip').evaluateAll(els=>[...new Set(els.map(e=>Math.round(e.offsetTop)))]);assert.equal(tops.length,1,'category chips stay on one line');
  // v1.7.5 owner order (Phân loại món ăn): Món chính, Món phụ, Món canh / soup, Món sợi; empty dish types (dessert, snack,
  // lunch box) have no chip until the family has such a recipe.
- assert.deepEqual(await row.locator('.chip').evaluateAll(els=>els.map(e=>e.dataset.key)),['all','main','veg','soup','noodle','western','seed-salad','dressing']);
+ assert.deepEqual(await row.locator('.chip').evaluateAll(els=>els.map(e=>e.dataset.key)),['all','main','veg','soup','noodle','western','dressing'],'v1.7.10: the Salad hạt chip went with the retired seed-salad mixes');
  assert.equal(await page.locator('#family-recipe-chips [data-fm="diet-filter"],#family-recipe-chips [data-fm="time-filter"]').count(),0,'diet/time live in the Filters sheet');
  const rowBox=await page.locator('#family-recipe-chips').boundingBox();assert.ok(rowBox.height<=(phone?72:72),`chip area is compact (${rowBox.height}px)`);
  if(phone)assert.ok(await row.evaluate(e=>e.scrollWidth>e.clientWidth),'row scrolls sideways on a phone');
  // Category/kind counts in the row equal the catalogue.
  assert.equal(await badge(row.locator('[data-key="all"]')),await expected(page,{}));
  for(const cat of ['main','soup','veg','noodle'])assert.equal(await badge(row.locator(`[data-key="${cat}"]`)),await expected(page,{cat}),cat+' badge');
- for(const key of ['western','seed-salad','dressing'])assert.equal(await badge(row.locator(`[data-key="${key}"]`)),await expected(page,{key}),key+' badge');
+ for(const key of ['western','dressing'])assert.equal(await badge(row.locator(`[data-key="${key}"]`)),await expected(page,{key}),key+' badge');
  // Filters sheet: aria-expanded, diet counts, time label, badge, clear-all, Escape.
  const filterBtn=page.locator('#family-recipe-chips .lib-filter-btn');assert.equal(await filterBtn.getAttribute('aria-expanded'),'false');const fbBox=await filterBtn.boundingBox();assert.ok(fbBox.height>=44&&fbBox.width>=44);
  await tap(filterBtn);await page.locator('#family-filter-panel').waitFor();assert.equal(await filterBtn.getAttribute('aria-expanded'),'true');
@@ -117,7 +118,7 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  await page.evaluate(()=>changeAppLanguage('vi'));
  assert.deepEqual(errors,[],name+' page errors');await context.close()}
 // Storage blocked for these keys (private mode / blocked site data): defaults are used and nothing throws.
-{const context=await browser.newContext({viewport:{width:375,height:812}});await context.addInitScript(()=>{const g=Storage.prototype.getItem,s=Storage.prototype.setItem,blocked=k=>/^bep-(guide|library)/.test(String(k));Storage.prototype.getItem=function(k){if(blocked(k))throw new Error('blocked');return g.call(this,k)};Storage.prototype.setItem=function(k,v){if(blocked(k))throw new Error('blocked');return s.call(this,k,v)}});const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);
+{const context=await browser.newContext({locale:'vi-VN',viewport:{width:375,height:812}});await context.addInitScript(()=>{const g=Storage.prototype.getItem,s=Storage.prototype.setItem,blocked=k=>/^bep-(guide|library)/.test(String(k));Storage.prototype.getItem=function(k){if(blocked(k))throw new Error('blocked');return g.call(this,k)};Storage.prototype.setItem=function(k,v){if(blocked(k))throw new Error('blocked');return s.call(this,k,v)}});const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);
  await page.goto('https://kitchen.test/');await page.locator('#main .guide-card').waitFor({timeout:20000});await page.locator('#main .guide-card [data-guide="dismiss"]').click();assert.equal(await page.locator('.guide-card').count(),0,'dismiss works without storage');
  await page.evaluate(()=>{location.hash='recipes'});await page.locator('#family-recipe-search').waitFor();await page.locator('[data-fm="samples"]').first().click();assert.equal(await page.locator('#family-recipe-results .lib-card').count(),20,'default page size without storage');await page.locator('[data-fm="page-size"][data-id="50"]').click();assert.equal(await page.locator('#family-recipe-results .lib-card').count(),50);
  assert.deepEqual(errors,[],'no errors with blocked storage');await context.close()}
