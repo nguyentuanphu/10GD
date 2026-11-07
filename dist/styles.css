@@ -2135,3 +2135,7 @@ html[data-festival="datnung"]:not([data-theme="dark"]){--green2:#9a4524}
 #modal-root .modal:has(.recipe-detail-hero)>.modal-footer>.btn{width:100%;min-width:0;min-height:48px;margin:0;padding:6px 8px;white-space:normal!important;line-height:1.2;text-align:center;justify-content:center}
 #modal-root .modal:has(.recipe-detail-hero)>.modal-footer>.btn.danger{background:transparent;color:#ae4e43;border:1px solid #e3b9b2}
 html[data-theme="dark"] #modal-root .modal:has(.recipe-detail-hero)>.modal-footer>.btn.danger{color:#f0a89c;border-color:#7a4038}
+/* v1.7.10 text-size audit on CI (wider fonts than the local machine): on phones the shopping range and store drop-downs each take
+   a full row so “Cả tuần” / “Tất cả cửa hàng” are never cut at “Rất lớn”; “Khẩu vị gia đình” may wrap inside its button */
+@media (max-width:560px){.week-tools .toolbar{flex-wrap:wrap;flex:1 1 100%;width:100%;row-gap:8px!important}.week-tools .toolbar>select.input,.simple-screen .week-tools .toolbar>select.input{flex:1 1 100%;grid-column:1/-1;width:100%!important;min-width:0}}
+.week-tools [data-mr="open-tastes"]{white-space:normal!important;height:auto;min-height:44px;text-align:center}

@@ -141,3 +141,7 @@ Scope, from Henry's choices in the question dialog on 7 Nov 2026:
 - **Tests:** `v176-fixes:browser` at 320 / 375 / 820 / 1280, VI and EN — buttons right under the title with the same gap on all eight pages; recipe sheet: three actions visible without scrolling, the same size, delete not filled.
 - **Evidence:** `docs/reviews/v1.7.8/{vi,en}-{size}-recipe-actions.png` (Chromium simulation).
 - **Test updates that follow these owner decisions (no check removed):** `library-guide:browser` — the welcome card now sits right under the title *and its kitchen / voice buttons*; the library chip row no longer has *Salad hạt* (row 4).
+
+### CI fix — `text-size:browser` on GitHub (run 315)
+
+- GitHub's machine has wider fonts than the local one and found 4 cut labels at *Rất lớn*: the shopping drop-downs *Cả tuần* / *Tất cả cửa hàng* (and *Whole week*) at 375 px, and *👍 Khẩu vị gia đình* sticking out of its button on the desktop menu page. Fixes: on phones each shopping drop-down takes its own full row; the *Khẩu vị gia đình* button may wrap and loses its phone emoji (rule 21). No check changed.
