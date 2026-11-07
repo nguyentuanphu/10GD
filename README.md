@@ -1,4 +1,8 @@
-# FamTray · Bếp Gia Đình · v1.7.5
+# FamTray · Bếp Nhà
+
+*One table, the whole family · Một mâm, cả nhà.* (Named “Bếp Gia Đình” before v1.7.11.)
+
+## Release notes · v1.7.5
 
 ## What's new in v1.7.5 (owner feedback, 4 Nov 2026)
 - **Photo buttons work again:** “Chụp ảnh” / “Chọn ảnh” and “Dán danh sách nguyên liệu” did nothing when tapped — the recipe form itself matched a click handler that cancelled every tap inside it. Fixed; 44 px buttons.

@@ -70,7 +70,7 @@ async function render(){
  <section class="card pop-card" aria-labelledby="pop-state" data-pop-state="${state.key}">
   <h2 id="pop-state" class="pop-state" ${state.key==='running'?'data-run-status':''} role="status"><span class="dot dot-${state.key}" aria-hidden="true"></span>${esc(state.line)}</h2>
   ${paired?`<p class="muted pop-sub" id="semi-summary">${capture?esc(capture):T('Chưa ghi giá — mở trang siêu thị để bắt đầu.','No prices yet — open a supermarket page.')}</p>`
-   :`<p class="muted pop-sub">${T('Ghép một chạm với Bếp Gia Đình của bạn.','Pair in one tap with your family kitchen app.')}</p>`}
+   :`<p class="muted pop-sub">${T('Ghép một chạm với Bếp Nhà của bạn.','Pair in one tap with your FamTray app.')}</p>`}
   ${state.key==='paused'?`<p class="muted pop-sub">${T('Không ghi giá, không chạy tự động.','No capture and no auto runs.')}</p>`:''}
   ${state.key==='blocked'?`<p class="muted pop-sub">${T('Trang siêu thị yêu cầu xác minh nên đã tự dừng 24 giờ. Không cần làm gì.','A supermarket site asked for a check, so it stopped for 24 hours by itself. Nothing to do.')}</p>`:''}
   ${primary}

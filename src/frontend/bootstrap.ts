@@ -77,7 +77,7 @@ interface Window {
     const main = document.querySelector('main') ?? document.body.appendChild(document.createElement('main'));
     main.removeAttribute('aria-busy');
     const heading = document.createElement('h1');
-    heading.textContent = 'Chưa mở được Bếp Gia Đình / Unable to open FamTray';
+    heading.textContent = 'Chưa mở được Bếp Nhà / Unable to open FamTray';
     const description = document.createElement('p');
     description.textContent = message;
     const note = document.createElement('p');

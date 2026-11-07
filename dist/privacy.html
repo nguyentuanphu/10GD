@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="referrer" content="same-origin">
-<title>Quyền riêng tư & điều khoản · FamTray · Bếp Gia Đình</title>
+<title>Quyền riêng tư & điều khoản · FamTray · Bếp Nhà</title>
 <link rel="icon" href="family-logo.png" type="image/png">
 <!-- v1.7 privacy & terms page. Final wording approved for release review on 1 Nov 2026.
      TODO(Henry, optional): if an operator contact outside the app is required, add it in the
      "Liên hệ / Contact" sections below. Do not invent an e-mail, company or domain. -->
-<script>(function(){var t='auto',l='';try{t=localStorage.getItem('bep-theme-mode')||'auto';for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&/bep-language$/.test(k)){l=localStorage.getItem(k);if(k.indexOf('guest/')===0)break}}}catch(e){}var q=/[?&]lang=(vi|en)/.exec(location.search);if(q)l=q[1];if(l!=='en'&&l!=='vi')l=String(navigator.language||'').toLowerCase().indexOf('vi')===0?'vi':(l||'vi');var d=document.documentElement;d.dataset.theme=t==='dark'||t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.dataset.lang=l;d.lang=l})()</script>
+<script src="privacy-head.js"></script>
 <style>
 :root{--bg:#f6f5f0;--panel:#fff;--line:#e2e1d8;--text:#22332b;--muted:#5f6a62;--brand:#174e3c;--accent:#b8643a;--focus:#c87649;color-scheme:light}
 html[data-theme="dark"]{--bg:#111714;--panel:#18211c;--line:#2f3b34;--text:#e6ece8;--muted:#a7b3ab;--brand:#8fd1ae;--accent:#e39a6f;--focus:#e39a6f;color-scheme:dark}
@@ -44,7 +44,7 @@ html[data-lang="vi"] [lang="en"].doc,html[data-lang="en"] [lang="vi"].doc{displa
 <body>
 <div class="wrap">
 <header class="top">
- <a class="brand" href="/"><img src="family-logo.png" alt=""><span>FamTray · Bếp Gia Đình</span></a>
+ <a class="brand" href="/"><img src="family-logo.png" alt=""><span>FamTray · Bếp Nhà</span></a>
  <div class="tools" role="group" aria-label="Ngôn ngữ · Language">
   <button class="btn" type="button" data-set-lang="vi" lang="vi">Tiếng Việt</button>
   <button class="btn" type="button" data-set-lang="en" lang="en">English</button>
@@ -223,11 +223,6 @@ html[data-lang="vi"] [lang="en"].doc,html[data-lang="en"] [lang="vi"].doc{displa
  </section>
 </main>
 </div>
-<script>(function(){var d=document.documentElement;function sync(){var l=d.dataset.lang;d.lang=l;document.title=l==='en'?'Privacy & terms · FamTray · Bếp Gia Đình':'Quyền riêng tư & điều khoản · FamTray · Bếp Gia Đình';var b=document.querySelectorAll('[data-set-lang]');for(var i=0;i<b.length;i++)b[i].setAttribute('aria-pressed',String(b[i].dataset.setLang===l))}
-document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-set-lang]');if(!b)return;d.dataset.lang=b.dataset.setLang;sync()});
-// English sections use -en ids; #usage etc. from the app jump to the visible language.
-function jump(){var h=location.hash.slice(1);if(!h)return;var id=d.dataset.lang==='en'&&!/-en$/.test(h)?h+'-en':h,el=document.getElementById(id);if(el&&el.scrollIntoView)el.scrollIntoView();if(el&&id!==h&&el.style!==undefined){el.style.boxShadow='0 0 0 2px var(--brand)';el.style.borderColor='var(--brand)'}}
-document.addEventListener('click',function(e){var a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a||d.dataset.lang!=='en')return;e.preventDefault();history.replaceState(null,'',a.getAttribute('href'));jump()});
-sync();addEventListener('load',jump);addEventListener('hashchange',jump)})()</script>
+<script src="privacy-page.js"></script>
 </body>
 </html>
