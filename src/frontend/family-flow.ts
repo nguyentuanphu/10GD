@@ -132,3 +132,13 @@ document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('[dat
   case'plan-next':weekPlan.step=Math.min(3,weekPlan.step+1);weekPlanDraw();break;
   case'plan-preview':{const start=weekPlan.start;weekPlanApply();try{localStorage.setItem('bep-week-plan-done',start)}catch(err){}save(flowT('Đã lưu ai vắng và khách cho tuần tới.','Away days and guests saved for next week.'));closeModal();weekStart=start;selectedDate=start;view='planner';location.hash='planner';render();familyGeneratePreview();break}
  }}catch(err:any){toast(err.message,true)}});
+
+// ── 6. One “Có khách” button (owner, 8 Nov 2026: “khách đột xuất vẫn là khách nên chỉ để trong một nút có khách”): on Today, under
+//       the week days next to “Lịch tháng”. It opens the guest sheet on the day being looked at — the meal that already has guests,
+//       or the next meal not cooked yet; guests coming later are set with “Từ / Đến” in the sheet.
+function guestShortcut(){const main=document.getElementById('main');if(view!=='today'||!main||!currentWeek().familyMode)return;main.querySelector('.guest-shortcut')?.remove();
+ const day=currentWeek().days[selectedDate],withGuests=day?MEAL_TYPES.filter((t:string)=>day[t]&&guestCount(day[t])):[],first=withGuests[0],target=first?{date:selectedDate,type:first}:guestNextMeal(selectedDate),n=withGuests.reduce((a:number,t:string)=>Math.max(a,guestCount(day[t])),0);
+ const html=`<button class="btn guest-shortcut under-strip" type="button" data-fm="guests" data-date="${esc(target.date)}" data-type="${esc(target.type)}">${typeof uiArt==='function'?uiArt('family','btn-art'):''}<span>${n?flowT(`Khách: ${n} · sửa`,`Guests: ${n} · edit`):flowT('Có khách','Guests coming')}</span></button>`;
+ const place=()=>{main.querySelector('.guest-shortcut')?.remove();const cal=main.querySelector('.calendar-shortcut'),strip=main.querySelector('.day-strip');if(!cal&&!strip)return;let row=main.querySelector('.day-actions') as HTMLElement|null;if(!row){row=document.createElement('div');row.className='day-actions'}(cal||strip)!.after(row);if(cal)row.append(cal);row.insertAdjacentHTML('beforeend',html)};place();queueMicrotask(()=>queueMicrotask(place))}
+{const flowGuestRender=render;render=function(this:any,...a:any[]){const r=flowGuestRender.apply(this,a);try{guestShortcut()}catch(err){console.warn('guest shortcut',err)}return r}}
+

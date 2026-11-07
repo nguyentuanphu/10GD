@@ -33,10 +33,13 @@ Henry's feedback on v1.7.11, 8 Nov 2026 (~06:45 Sydney time), with iPhone screen
   - After seeing the first version: *“nút thêm khách nên để gọn hơn, chỉ hiện khi cần… nhiều khi sẽ có nhiều gia đình hoặc cá nhân nữa”*.
   - Pop-up 2: as proposed, *“và khách có thể đến đột xuất trong ngày hay vài ngày tới nên cần làm cho hợp lý”*.
 - **Before:** the only way was to type a total in **Sửa bữa → Khẩu phần bữa**. That needed adding up by hand, replaced the automatic count and said nothing about guests.
-- **Where:** guests are added where people are already counted, so meal cards carry no extra button.
-  - **Short notice (today):** Today → **Ai ăn bữa này?** → the **Khách** row at the end of the family list → **Thêm khách** (or **Sửa**). This works for the meal tab being looked at.
-  - **A few days ahead:** Thực đơn → **Có khách** (one button in the week tools). It opens on the next meal that is not cooked yet, from the day being looked at.
-  - **Meal cards:** only a meal that has guests shows one short line, *“Khách: 3 khách, 1 bé · Nhà anh Tuấn, Chị Lan”*. The line wraps inside the card, is a ≥ 44 px target and opens the same sheet.
+- **Where (owner, 8 Nov 2026: *“khách đột xuất vẫn là khách nên chỉ để trong một nút có khách”*):** there is **one button, Có khách**, on Today, under the week days next to **Lịch tháng**.
+  - It opens the guest sheet on the day being looked at: on the meal that already has guests, or on the next meal not cooked yet.
+  - Guests coming another day are set with *Từ / Đến* in the sheet.
+  - When a meal that day has guests, the button reads *“Khách: 4 · sửa”*.
+  - **Meal cards:** only a meal that has guests shows one short line, *“Khách: 3 khách, 1 bé · Nhà anh Tuấn, Chị Lan”*. It wraps inside the card, is a ≥ 44 px target and opens the same sheet.
+  - The weekly plan has its own guest step.
+  - No guest row in *Ai ăn bữa này?* and no second button on the week menu (both tried earlier, removed).
 - **One sheet:**
   - **Bữa nào?** — *Từ* (date + meal) and *Đến* (date + meal). It defaults to the meal it was opened from, and lists the meals it covers (e.g. *“4 bữa: CN 8/11 bữa sáng · … (bỏ qua 1 bữa đã nấu)”*). Cooked meals are skipped and left as they were.
   - **Guest groups** (up to 10): each has a name (optional, e.g. *Nhà anh Tuấn*), **Người lớn** (1 portion) and **Trẻ em** (½ portion) with drawn − / +, and a drawn remove. **Thêm nhóm khách** adds another family or person.
@@ -113,7 +116,7 @@ Henry's feedback on v1.7.11, 8 Nov 2026 (~06:45 Sydney time), with iPhone screen
   - “Xong” centred and visible;
   - the use-it-up button sits under the words, short label, ≥ 44 px;
   - cook-ahead sheet: tomorrow's lunch offered and ticked, two same-size footer buttons side by side, drawing on “Nấu luôn”; after **Nấu luôn** tomorrow is cooked ahead with nothing left to buy and shows the note; undo gives everything back; **Chỉ bữa này** cooks only tonight;
-  - guests: no guest button on meal cards without guests; **Thêm khách** from “Ai ăn bữa này?” ≥ 44 px; − / + / × drawn, no leftover symbol, ≥ 44 px; two groups (Nhà anh Tuấn 2 + 1 bé, Chị Lan 1) from today to tomorrow breakfast; total *Thêm 3,5 suất mỗi bữa*; Đóng / Lưu side by side, same size, drawn; saved on every open meal in the range, cooked meals untouched, +3.5 portions, both remembered; the card line counts and names them, stays inside its card; **Có khách** on the week menu opens on a meal that can take guests and offers the regular guests in one tap;
+  - guests: no guest button on meal cards without guests; exactly one guest button on Today, next to “Lịch tháng”, opening on the next meal not cooked yet, ≥ 44 px; no guest row in “Ai ăn bữa này?” and none on the week menu; − / + / × drawn, no leftover symbol, ≥ 44 px; two groups (Nhà anh Tuấn 2 + 1 bé, Chị Lan 1) from today to tomorrow breakfast; total *Thêm 3,5 suất mỗi bữa*; Đóng / Lưu side by side, same size, drawn; saved on every open meal in the range, cooked meals untouched, +3.5 portions, both remembered; the card line counts and names them, stays inside its card; the button shows *Khách: 4 · sửa*; on a later visit it reads *Có khách*, opens on a meal that can take guests and offers the regular guests in one tap;
   - no horizontal overflow, no page errors.
 
 - **New browser suite `test:v1712-flow:browser`** (in `test:all`), at 375×812, 320×740, 820×1100 (VI) and 1280×800 (EN). It checks:
@@ -127,7 +130,7 @@ Henry's feedback on v1.7.11, 8 Nov 2026 (~06:45 Sydney time), with iPhone screen
 - **Unit:** leftovers (halves, use-by, validation, expiry flag, serving, not bought again, eat / drop) and put-away rules (shelf memory overridden for meat, garlic kept, tomato not read as fish, use-by per kind, only perishables flagged).
 
 ## Evidence (Chromium and WebKit viewport simulation, not physical devices)
-- **Chromium:** `docs/reviews/v1.7.12/{round-buttons,done-centred,pantry-chips,use-it-up,cook-ahead-sheet,cooked-ahead-note,guests-sheet,guests-card,guests-regular}-{vi,en}-{size}.png`.
+- **Chromium:** `docs/reviews/v1.7.12/{round-buttons,done-centred,pantry-chips,use-it-up,cook-ahead-sheet,cooked-ahead-note,guests-sheet,guests-card,guests-button,guests-regular}-{vi,en}-{size}.png`.
 - **Chromium, new flows:** `docs/reviews/v1.7.12/flow/{put-away,misplaced-notice,misplaced-sheet,shopping-mode,today-next-meal,today-rows,leftover-sheet,leftover-offer,week-plan-1,week-plan-2,week-plan-3}-{vi,en}-{size}.png`.
 - **WebKit, new flows:** `flow/webkit-iphone15promax-{shopping-mode,put-away,misplaced-notice,today-next-meal,today-rows}.png`.
 - **WebKit, iPhone 15 Pro Max emulation (430 px):**
