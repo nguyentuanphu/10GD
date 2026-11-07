@@ -95,16 +95,25 @@ check(!validImport(null),'null backup is rejected without throwing');
  check(Object.keys(shoppingMealIngredientsSafe(s2,later)).length===0,'a meal cooked ahead is not on the shopping list');
  undoCook(s2,src);check(!later.cooked&&!later.cookedWith,'undo also reopens the meal that was fully cooked ahead');
  check(validImport(JSON.parse(JSON.stringify(s2))),'cook-ahead marks pass backup validation')}
-// v1.7.12 (owner, 8 Nov 2026 — pop-up: guests with a name): friends over are added to the family's portions
+// v1.7.12 (owner, 8 Nov 2026 — pop-ups: guests with a name; several families or people; regular guests; several meals)
 {const s3=defaults(),w3=ensureWeek(s3,monday(sydneyDate())),d=Object.keys(w3.days)[0],m=w3.days[d].dinner;m.servings=null;const base=mealServings(m,s3),need0=mealIngredients(m,s3);
- setMealGuests(m,2,1,'  Nhà anh Tuấn  ');check(m.guests.adults===2&&m.guests.kids===1&&m.guests.note==='Nhà anh Tuấn','guests stored with a trimmed name');
- check(Math.abs(mealServings(m,s3)-(base+2.5))<1e-9,'an adult guest adds 1 portion, a child ½');
+ setMealGuests(m,[{name:'  Nhà anh Tuấn  ',adults:2,kids:1},{name:'',adults:1,kids:0},{name:'Trống',adults:0,kids:0}]);
+ check(m.guests.length===2&&m.guests[0].name==='Nhà anh Tuấn'&&m.guests[1].name===undefined,'guest groups stored, names trimmed, empty groups dropped');
+ check(Math.abs(mealServings(m,s3)-(base+3.5))<1e-9,'every group counts: an adult 1 portion, a child ½');
  const need1=mealIngredients(m,s3),k=Object.keys(need0)[0];check(need1[k]>need0[k],'guests raise the amounts to buy');
  check(validImport(JSON.parse(JSON.stringify(s3))),'guests pass backup validation');
- const bad=JSON.parse(JSON.stringify(s3));Object.values(bad.weeks)[0].days[d].dinner.guests={adults:-1,kids:0};check(!validImport(bad),'negative guests rejected');
- const bad2=JSON.parse(JSON.stringify(s3));Object.values(bad2.weeks)[0].days[d].dinner.guests={adults:1.5};check(!validImport(bad2),'fractional guests rejected');
+ const bad=JSON.parse(JSON.stringify(s3));Object.values(bad.weeks)[0].days[d].dinner.guests=[{adults:-1,kids:0}];check(!validImport(bad),'negative guests rejected');
+ const bad2=JSON.parse(JSON.stringify(s3));Object.values(bad2.weeks)[0].days[d].dinner.guests=[{adults:1.5}];check(!validImport(bad2),'fractional guests rejected');
+ const bad3=JSON.parse(JSON.stringify(s3));Object.values(bad3.weeks)[0].days[d].dinner.guests={adults:1};check(!validImport(bad3),'guests must be a list of groups');
  m.servings=6;check(mealServings(m,s3)===6,'portions set by hand stay as typed');m.servings=null;
- setMealGuests(m,99,0,'');check(m.guests.adults===30,'guests capped at 30');setMealGuests(m,0,0,'');check(m.guests===undefined,'no guests and no name removes the record');
- check(Math.abs(mealServings(m,s3)-base)<1e-9,'without guests the meal is back to the family’s portions')}
+ setMealGuests(m,[{adults:99}]);check(m.guests[0].adults===30,'guests capped at 30 per group');setMealGuests(m,Array.from({length:14},()=>({adults:1})));check(m.guests.length===10,'at most 10 groups');
+ setMealGuests(m,[]);check(m.guests===undefined,'no guests removes the record');check(Math.abs(mealServings(m,s3)-base)<1e-9,'without guests the meal is back to the family’s portions');
+ rememberGuests(s3,[{name:'Nhà anh Tuấn',adults:2,kids:1},{name:'',adults:3}]);rememberGuests(s3,[{name:'Chị Lan',adults:1}]);rememberGuests(s3,[{name:'nhà anh tuấn',adults:2,kids:2}]);
+ check(s3.guestBook.length===2&&s3.guestBook[0].kids===2&&s3.guestBook[1].name==='Chị Lan','regular guests remembered by name, newest first, no duplicates, unnamed groups not kept');
+ check(validImport(JSON.parse(JSON.stringify(s3))),'regular guests pass backup validation');const bb=JSON.parse(JSON.stringify(s3));bb.guestBook.push({name:'',adults:1});check(!validImport(bb),'a regular guest needs a name');
+ forgetGuest(s3,'Chị Lan');check(s3.guestBook.length===1,'a regular guest can be forgotten');
+ const r=mealsBetween(s3,'2026-11-14','dinner','2026-11-15','lunch');check(JSON.stringify(r.map(x=>x.date.slice(8)+x.type))==='["14dinner","15breakfast","15snackAm","15lunch"]','meals from Saturday dinner to Sunday lunch, in order');
+ check(mealsBetween(s3,'2026-11-15','lunch','2026-11-14','dinner').length===0&&mealsBetween(s3,'2026-11-14','dinner','2026-11-14','lunch').length===0,'a last meal before the first gives nothing');
+ check(mealsBetween(s3,'2026-11-14','lunch','2026-11-14','lunch').length===1,'one meal')}
 function shoppingMealIngredientsSafe(s,m){return m.cooked?{}:mealIngredients(m,s)}
 `,ctx);

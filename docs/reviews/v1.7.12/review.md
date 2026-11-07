@@ -27,36 +27,48 @@ Henry's feedback on v1.7.11, 8 Nov 2026 (~06:45 Sydney time), with iPhone screen
 - **Data:** new optional fields only: `meal.aheadFor`, `meal.cookedWith`, `dish.cookedAhead`. Older data and backups are unchanged and still valid. Family-authored recipes are untouched.
 - The Weekends feast batch keeps working as before.
 
-## 6b. Guests for a meal (owner, 8 Nov 2026: “ăn nhiều người như kiểu bạn qua chơi… add thêm số lượng người để biết số lượng thực phẩm cần mua”; pop-up: guests with a name)
-- **Before:** the only way was to type a total in **Sửa bữa → Khẩu phần bữa**. That needed adding up by hand, replaced the automatic count (a family member reporting away no longer lowered it) and said nothing about guests.
-- **Now:** every meal card with dishes has **Thêm khách** (*Add guests*). Its sheet has:
-  - **Người lớn** (1 portion each) and **Trẻ em** (½ portion each), each with drawn − / + buttons (48 px);
-  - an optional **Tên / ghi chú** (e.g. *Nhà anh Tuấn*, up to 80 characters);
-  - a running total *“Thêm 2,5 suất”*;
+## 6b. Guests (owner, 8 Nov 2026, Sydney time)
+- **Asked:** *“ăn nhiều người như kiểu bạn qua chơi… add thêm số lượng người để biết số lượng thực phẩm cần mua”*.
+  - Pop-up 1: guests with a name.
+  - After seeing the first version: *“nút thêm khách nên để gọn hơn, chỉ hiện khi cần… nhiều khi sẽ có nhiều gia đình hoặc cá nhân nữa”*.
+  - Pop-up 2: as proposed, *“và khách có thể đến đột xuất trong ngày hay vài ngày tới nên cần làm cho hợp lý”*.
+- **Before:** the only way was to type a total in **Sửa bữa → Khẩu phần bữa**. That needed adding up by hand, replaced the automatic count and said nothing about guests.
+- **Where:** guests are added where people are already counted, so meal cards carry no extra button.
+  - **Short notice (today):** Today → **Ai ăn bữa này?** → the **Khách** row at the end of the family list → **Thêm khách** (or **Sửa**). This works for the meal tab being looked at.
+  - **A few days ahead:** Thực đơn → **Có khách** (one button in the week tools). It opens on the next meal that is not cooked yet, from the day being looked at.
+  - **Meal cards:** only a meal that has guests shows one short line, *“Khách: 3 khách, 1 bé · Nhà anh Tuấn, Chị Lan”*. The line wraps inside the card, is a ≥ 44 px target and opens the same sheet.
+- **One sheet:**
+  - **Bữa nào?** — *Từ* (date + meal) and *Đến* (date + meal). It defaults to the meal it was opened from, and lists the meals it covers (e.g. *“4 bữa: CN 8/11 bữa sáng · … (bỏ qua 1 bữa đã nấu)”*). Cooked meals are skipped and left as they were.
+  - **Guest groups** (up to 10): each has a name (optional, e.g. *Nhà anh Tuấn*), **Người lớn** (1 portion) and **Trẻ em** (½ portion) with drawn − / +, and a drawn remove. **Thêm nhóm khách** adds another family or person.
+  - **Khách quen** (regular guests): named groups are remembered (newest first, up to 20) and offered as chips. One tap fills a group. A group already in the sheet is not offered again.
+  - The running total reads *“Thêm 3,5 suất mỗi bữa”*.
   - **Đóng / Lưu**.
-- **What changes:** guests are added on top of the family's own portions, which still follow attendance. The card reads *“4 người + 2 khách, 1 bé → 6 suất”* and *“Khách: 2 khách, 1 bé · Nhà anh Tuấn”*. The shopping list and the pantry deduction use the total. Sharing the day's menu adds *“(+2 khách, 1 bé · Nhà anh Tuấn)”* to that meal.
-- **Portions set by hand** stay as typed. The sheet says so and points to *Sửa bữa*.
-- **Cooked meals:** guests can't be changed (undo “Đã nấu” first).
-- **Data:** optional `meal.guests = {adults, kids, note}` (whole numbers 0–30, note ≤ 80). It is validated on import and sync. With no guests and no name, the field is removed.
-- **Drawings:** a new **minus** drawing in the shared style (circle with a bar) sits next to the existing **add** (rule 20).
+- **Counting:** guests are added on top of the family's own portions, which still follow attendance. The portion line reads *“4 người + 3 khách, 1 bé → 7 suất”*. The shopping list and the pantry deduction use the total. Sharing the day's menu adds *“(+3 khách, 1 bé · Nhà anh Tuấn, Chị Lan)”*.
+  - **Portions set by hand** stay as typed. The sheet says so and points to *Sửa bữa*.
+  - **Cooked meals** keep their guests unchanged.
+- **Data:**
+  - optional `meal.guests = [{name?, adults, kids}]` (whole numbers 0–30, name ≤ 60, ≤ 10 groups);
+  - optional `state.guestBook = [{name, adults, kids}]` (≤ 20, a name required).
+  - Both are validated on import and sync. With no guests the field is removed.
+- **Drawings:** a new **minus** drawing in the shared style (circle with a bar) sits next to the existing **add**. The group remove uses **trash** (rule 20).
 
 ## 7. Tests that broke on Sundays (fixed during the v1.7.11 deploy, kept here for the record)
 `journey`, `family-calendar` and `v176-fixes` now keep the day and its plan week together (see v1.7.11 record).
 
 ## Tests
 - **Unit** (`core.test`): which meals are offered (later only, up to 3 days, only the shared dish); pantry taken once for both meals; the later meal drops off the shopping list and pantry deduction; undo gives everything back and clears the marks; undo waits while a later meal was cooked on its own; a fully cooked-ahead meal counts as cooked and reopens on undo; backups still validate.
-- **Guests (unit):** adult 1 portion, child ½; amounts to buy go up; backups validate; negative and fractional counts rejected; portions set by hand stay; capped at 30; cleared when empty.
+- **Guests (unit):** groups with trimmed names, empty groups dropped; adult 1 / child ½ across groups; amounts to buy go up; backups validate; negative, fractional and non-list values rejected; portions set by hand stay; caps (30 per group, 10 groups); cleared when empty; regular guests remembered by name (newest first, no duplicates, unnamed not kept, name required, can be forgotten); meals from Saturday dinner to Sunday lunch in order; an empty range when the last meal is before the first.
 - **New browser suite `test:v1712-fixes:browser`** (in `test:all`), at 320×740, 375×812, 430×932, 820×1100 (VI) and 1280×800 (EN). It runs with scroll anchoring off (as on iPhone Safari) and checks:
   - round buttons under the amount, same width, equal halves, ≥ 44 px, one arrow;
   - “Trừ đồ” tick on/off and pantry chips stay put (≤ 2 px), including when the page gets shorter, and the spacer goes after scrolling up;
   - “Xong” centred and visible;
   - the use-it-up button sits under the words, short label, ≥ 44 px;
   - cook-ahead sheet: tomorrow's lunch offered and ticked, two same-size footer buttons side by side, drawing on “Nấu luôn”; after **Nấu luôn** tomorrow is cooked ahead with nothing left to buy and shows the note; undo gives everything back; **Chỉ bữa này** cooks only tonight;
-  - guests: button ≥ 44 px; − / + drawn with no leftover symbol; the total adds up (*Thêm 2,5 suất*); Đóng / Lưu side by side, same size, drawn; after saving the guests and name are stored, +2.5 portions, more to buy, and the card shows them;
+  - guests: no guest button on meal cards without guests; **Thêm khách** from “Ai ăn bữa này?” ≥ 44 px; − / + / × drawn, no leftover symbol, ≥ 44 px; two groups (Nhà anh Tuấn 2 + 1 bé, Chị Lan 1) from today to tomorrow breakfast; total *Thêm 3,5 suất mỗi bữa*; Đóng / Lưu side by side, same size, drawn; saved on every open meal in the range, cooked meals untouched, +3.5 portions, both remembered; the card line counts and names them, stays inside its card; **Có khách** on the week menu opens on a meal that can take guests and offers the regular guests in one tap;
   - no horizontal overflow, no page errors.
 
 ## Evidence (Chromium and WebKit viewport simulation, not physical devices)
-- **Chromium:** `docs/reviews/v1.7.12/{round-buttons,done-centred,pantry-chips,use-it-up,cook-ahead-sheet,cooked-ahead-note,guests-sheet,guests-card}-{vi,en}-{size}.png`.
+- **Chromium:** `docs/reviews/v1.7.12/{round-buttons,done-centred,pantry-chips,use-it-up,cook-ahead-sheet,cooked-ahead-note,guests-sheet,guests-card,guests-regular}-{vi,en}-{size}.png`.
 - **WebKit, iPhone 15 Pro Max emulation (430 px):**
   - after the fix: `webkit-iphone15promax-{round-buttons,done-centred,use-it-up}.png`;
   - before the fix: `before-webkit-iphone15promax-done-off-centre.png`.

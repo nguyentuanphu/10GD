@@ -5,7 +5,8 @@
 //  4. "Nút xong không được căn chỉnh và không nằm ở giữa" — a lone sheet button is centred
 //  5. "Chỗ giải phóng… cái nút hơi khó nhìn và dài dòng" — one short button under the words
 //  6. Cook once for several meals (pop-up: ask when “Đã nấu” is tapped)
-//  7. Guests for a meal — adults 1 portion, children ½, with a name (pop-up: guests with a name)
+//  7. Guests — out of the way until needed: “Ai ăn bữa này?” on Today and “Có khách” on the week menu; several groups with
+//     names, regular guests, one or several meals (pop-ups 8 Nov 2026)
 // 320×740, 375×812, 430×932, 820×1100, 1280×800; VI (EN for the cook-ahead sheet). Chromium viewport simulation, not devices.
 // Screenshots: docs/reviews/v1.7.12/.
 import assert from 'node:assert/strict';
@@ -94,23 +95,43 @@ const MEMBERS=[['m-phu','Ba Phú',1],['m-mi','Mẹ Mi',1],['m-chi','Chi',.75],['
     await page.locator(`#main [data-fm="cook-meal"][data-date="${today}"][data-type="dinner"]`).click();await sheet.waitFor();await page.locator('#modal-root [data-fm="cook-ahead"][data-only="1"]').click();await page.waitForTimeout(300);
     assert.equal(await E(`(()=>{const later=mealAt(state,${JSON.stringify(tomorrow)},'lunch');return mealAt(state,${JSON.stringify(today)},'dinner').cooked&&!later.cooked&&!later.recipes.some(r=>r.cookedAhead)})()`),true,`${label}: “Chỉ bữa này” cooks only tonight`)}
 
-   // 7. guests (owner, 8 Nov 2026 — pop-up: guests with a name): friends over are added to the family's portions
-   {await E(`(()=>{const m=mealAt(state,${JSON.stringify(today)},'lunch');m.recipes=[clone(state.recipes.find(r=>r.category==='main'&&r.ingredients.length&&r.id!==mealAt(state,${JSON.stringify(today)},'dinner').recipes[0].id))];delete m.recipes[0].batchId;m.cooked=false;m.consumed=[];m.servings=null;delete m.guests;delete m.cookedWith;for(const p of state.members)m.attendance[p.id]='home';save();weekStart=planStartOf(state,${JSON.stringify(today)});selectedDate=${JSON.stringify(today)};view='today';attendanceType='lunch';render();window.__qaBase=mealServings(m,state);window.__qaNeed=mealIngredients(m,state)})()`);
-    const open=page.locator(`#main [data-fm="guests"][data-date="${today}"][data-type="lunch"]`);await open.scrollIntoViewIfNeeded();assert.ok((await open.boundingBox())!.height>=44,`${label}: guest button ≥ 44 px`);await open.click();await page.locator('#modal-root .guest-step').first().waitFor();
-    const steps:any=await E(`[...document.querySelectorAll('#modal-root [data-fm="guest-step"]')].map(b=>({art:!!b.querySelector('.btn-art')&&!b.innerText.trim(),w:b.getBoundingClientRect().width,h:b.getBoundingClientRect().height}))`);
-    assert.equal(steps.length,4,`${label}: − and + for adults and children`);assert.ok(steps.every((x:any)=>x.art&&x.w>=44&&x.h>=44),`${label}: − / + drawn (no leftover text symbol), ≥ 44 px ${JSON.stringify(steps)}`);
-    const plusA=page.locator('#modal-root [data-fm="guest-step"][data-k="adults"][data-d="1"]'),plusK=page.locator('#modal-root [data-fm="guest-step"][data-k="kids"][data-d="1"]'),minusA=page.locator('#modal-root [data-fm="guest-step"][data-k="adults"][data-d="-1"]');
-    await plusA.click();await plusA.click();await plusA.click();await minusA.click();await plusK.click();await page.fill('#guest-note','Nhà anh Tuấn');
-    assert.match(await page.locator('#guest-total').innerText(),lang==='en'?/Adds 2\.5 portions/:/Thêm 2,5 suất/,`${label}: the sheet adds up the portions`);
+   // 7. guests (owner, 8 Nov 2026 — pop-ups: guests with a name; “nút thêm khách nên để gọn hơn, chỉ hiện khi cần”; several
+   //    families or people; regular guests; today at short notice or a few days ahead)
+   {const tomorrow:string=await E('addDays(sydneyDate(),1)');
+    const T=await E(`(()=>{for(const w of Object.values(state.weeks))for(const day of Object.values(w.days))for(const m of Object.values(day))if(m&&typeof m==='object')delete m.guests;delete state.guestBook;const day=ensureWeek(state,planStartOf(state,sydneyDate())).days[sydneyDate()],t=MEAL_TYPES.find(x=>x!=='dinner'&&fmMealOn(day,x));const m=day[t];m.cooked=false;m.consumed=[];m.servings=null;for(const p of state.members)m.attendance[p.id]='home';if(!m.recipes.length)m.recipes=[clone(state.recipes.find(r=>r.category==='main'&&r.ingredients.length))];save();weekStart=planStartOf(state,sydneyDate());selectedDate=sydneyDate();view='today';attendanceType=t;render();scrollTo(0,0);window.__qaBase=mealServings(m,state);return t})()`);
+    // out of the way: no guest button on meal cards while nobody is coming
+    assert.equal(await page.locator('#main .family-meal-card [data-fm="guests"]').count(),0,`${label}: meal cards have no guest button without guests`);
+    // short notice: Today → “Ai ăn bữa này?” → Thêm khách
+    const add=page.locator(`#main .attendance .guest-row [data-fm="guests"][data-type="${T}"]`);await add.scrollIntoViewIfNeeded();assert.ok((await add.boundingBox())!.height>=44,`${label}: “Thêm khách” ≥ 44 px`);await add.click();await page.locator('#modal-root .guest-group').first().waitFor();
+    const art:any=await E(`[...document.querySelectorAll('#modal-root [data-fm="guest-step"],#modal-root [data-fm="guest-remove"]')].map(b=>!!b.querySelector('.btn-art')&&!b.innerText.trim()&&b.getBoundingClientRect().width>=44&&b.getBoundingClientRect().height>=44)`);
+    assert.ok(art.length===5&&art.every(Boolean),`${label}: − / + / × drawn, no leftover symbol, ≥ 44 px ${JSON.stringify(art)}`);
+    const step=(i:number,k:string,d:number)=>page.locator(`#modal-root [data-fm="guest-step"][data-i="${i}"][data-k="${k}"][data-d="${d}"]`).click();
+    await step(0,'adults',1);await step(0,'kids',1);await page.fill('#modal-root [data-guest-name="0"]','Nhà anh Tuấn');
+    await page.locator('#modal-root [data-fm="guest-add"]').click();await page.fill('#modal-root [data-guest-name="1"]','Chị Lan');
+    await page.locator('#modal-root [name="to-date"]').fill(tomorrow);await page.locator('#modal-root [name="to-date"]').dispatchEvent('change');await page.locator('#modal-root [name="to-type"]').selectOption('breakfast');
+    assert.match(await page.locator('#guest-total').innerText(),lang==='en'?/Adds 3\.5 portions per meal/:/Thêm 3,5 suất mỗi bữa/,`${label}: the sheet adds up the portions`);
+    const meals=await page.locator('#guest-meals').innerText();assert.match(meals,lang==='en'?/\d+ meals?:/:/\d+ bữa:/,`${label}: the sheet lists the meals (${meals})`);
     const foot:any=await E(`(()=>{const bs=[...document.querySelectorAll('#modal-root .modal-footer > .btn')],r=bs.map(b=>b.getBoundingClientRect());return{n:bs.length,row:Math.abs(r[0].top-r[1].top)<=1,size:Math.abs(r[0].width-r[1].width)<=1,art:bs.every(b=>!!b.dataset.art&&b.querySelectorAll('svg').length===1)}})()`);
     assert.ok(foot.n===2&&foot.row&&foot.size&&foot.art,`${label}: Đóng / Lưu side by side, same size, drawn (rule 25) ${JSON.stringify(foot)}`);
     await noOverflow('guest sheet');await shot('guests-sheet');
-    await page.locator('#modal-root [data-fm="guests-save"]').click();await page.waitForFunction(()=>!document.querySelector('#modal-root .guest-step'));
-    const g:any=await E(`(()=>{const m=mealAt(state,${JSON.stringify(today)},'lunch'),n=mealIngredients(m,state),k=Object.keys(window.__qaNeed)[0];return{guests:m.guests,more:mealServings(m,state)-window.__qaBase,buy:n[k]>window.__qaNeed[k]}})()`);
-    assert.deepEqual(g.guests,{adults:2,kids:1,note:'Nhà anh Tuấn'},`${label}: guests saved with their name`);assert.ok(Math.abs(g.more-2.5)<1e-9,`${label}: 2 adults + 1 child add 2.5 portions`);assert.ok(g.buy,`${label}: more to buy for the guests`);
-    const card=page.locator(`#main [data-fm="guests"][data-date="${today}"][data-type="lunch"]`).locator('xpath=ancestor::article[1]');const txt=await card.innerText();
-    assert.match(txt,lang==='en'?/2 guests, 1 child/:/2 khách, 1 bé/,`${label}: the meal card shows the guests`);assert.match(txt,/Nhà anh Tuấn/,`${label}: and their name`);
-    await card.scrollIntoViewIfNeeded();await noOverflow('meal card with guests');await shot('guests-card')}
+    await page.locator('#modal-root [data-fm="guests-save"]').click();await page.waitForFunction(()=>!document.querySelector('#modal-root .guest-group'));
+    const g:any=await E(`(()=>{const range=mealsBetween(state,sydneyDate(),${JSON.stringify(T)},${JSON.stringify(tomorrow)},'breakfast').filter(x=>{const d=ensureWeek(state,planStartOf(state,x.date)).days[x.date];return fmMealOn(d,x.type)});const open=range.filter(x=>!mealAt(state,x.date,x.type).cooked),cooked=range.filter(x=>mealAt(state,x.date,x.type).cooked);const m=mealAt(state,sydneyDate(),${JSON.stringify(T)});return{n:open.length,all:open.every(x=>guestGroups(mealAt(state,x.date,x.type)).length===2),cookedKept:cooked.every(x=>!mealAt(state,x.date,x.type).guests),groups:m.guests,more:mealServings(m,state)-window.__qaBase,book:(state.guestBook||[]).map(b=>b.name)}})()`);
+    assert.ok(g.n>=2&&g.all,`${label}: guests on every meal from today to tomorrow breakfast ${JSON.stringify(g)}`);assert.ok(g.cookedKept,`${label}: cooked meals left as they were`);
+    assert.deepEqual(g.groups,[{name:'Nhà anh Tuấn',adults:2,kids:1},{name:'Chị Lan',adults:1,kids:0}],`${label}: two groups saved with their names`);assert.ok(Math.abs(g.more-3.5)<1e-9,`${label}: 3 adults + 1 child add 3.5 portions`);
+    assert.deepEqual(g.book,['Nhà anh Tuấn','Chị Lan'],`${label}: both remembered as regular guests`);
+    // the meal card shows one short line, which opens the same sheet
+    const line=page.locator(`#main .family-meal-card .meal-guest-line[data-type="${T}"]`).first();await line.waitFor();const txt=await line.innerText();
+    assert.match(txt,lang==='en'?/3 guests, 1 child/:/3 khách, 1 bé/,`${label}: the card line counts the guests`);assert.match(txt,/Nhà anh Tuấn, Chị Lan/,`${label}: and names them`);assert.ok((await line.boundingBox())!.height>=44,`${label}: the line is a ≥ 44 px target`);
+    assert.ok(await line.evaluate((el:any)=>{const c=el.closest('.family-meal-card'),r=el.getBoundingClientRect(),cr=c.getBoundingClientRect();return r.right<=cr.right+1&&r.left>=cr.left-1&&c.scrollWidth<=c.clientWidth+1}),`${label}: the guest line stays inside its card`);
+    await line.scrollIntoViewIfNeeded();await noOverflow('meal card with guests');await shot('guests-card');
+    // a few days ahead: “Có khách” on the week menu; regular guests in one tap
+    /* a later visit: the meals have no guests any more, the regular guests are remembered */await E(`(()=>{for(const w of Object.values(state.weeks))for(const day of Object.values(w.days))for(const m of Object.values(day))if(m&&typeof m==='object')delete m.guests;save()})()`);
+    await E(`view='planner';render();scrollTo(0,0)`);const pl=page.locator('#main .week-tools [data-fm="guests"]');await pl.waitFor();await pl.click();await page.locator('#modal-root #guest-book .chip').first().waitFor();
+    assert.equal(await page.locator('#modal-root #guest-book .chip').count(),2,`${label}: two regular guests offered`);
+    assert.equal(await page.locator('#modal-root .hint.warn').count(),0,`${label}: the week menu opens on a meal that can take guests`);await page.locator('#modal-root #guest-book .chip',{hasText:'Nhà anh Tuấn'}).click();
+    assert.equal(await page.locator('#modal-root [data-guest-name="0"]').inputValue(),'Nhà anh Tuấn',`${label}: a regular guest fills the group in one tap`);
+    assert.equal(await page.locator('#modal-root #guest-book .chip').count(),1,`${label}: the one already added is no longer offered`);
+    await noOverflow('guest sheet from the week menu');await shot('guests-regular');await E('closeModal()')}
 
    assert.deepEqual(errors,[],`${label}: page errors`);
    await context.close();console.log('✓',label);

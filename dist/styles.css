@@ -2190,7 +2190,7 @@ button:has(>.btn-art:only-child) .btn-art,[role="tab"]:has(>.btn-art:only-child)
 /* v1.7.12 (owner, 8 Nov 2026: "nút round up và down không đồng đều"): the amount and its two round buttons always sit the same
    way on every row and every screen size: the amount, and under it the two round buttons sharing its width. The drawing already
    shows the arrow, so the extra text arrow is hidden. */
-.shop-row .qty-cell{display:inline-grid;grid-template-columns:minmax(0,max-content);justify-items:stretch;gap:6px}
+.shop-row .qty-cell{display:inline-grid;grid-template-columns:max-content;justify-items:stretch;gap:6px;min-width:0}
 .shop-row .qty-cell>*{grid-column:1!important;grid-row:auto!important;margin:0!important}
 .shop-row .qty-cell>button[data-action="purchase-quantity"]{width:100%}
 .shop-row .qty-cell>.qty-round-pair{display:flex;width:100%;margin:0}
@@ -2208,14 +2208,28 @@ button:has(>.btn-art:only-child) .btn-art,[role="tab"]:has(>.btn-art:only-child)
 .cook-ahead-row span{display:grid;gap:2px;min-width:0}
 .cook-ahead-row small{color:var(--muted);overflow-wrap:anywhere}
 .cooked-ahead-note{margin:4px 0 0;color:var(--green);font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));font-weight:600}
-/* v1.7.12: guests on a meal (owner: “ăn nhiều người như kiểu bạn qua chơi”) */
-.meal-guests{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 16px 4px}
-.meal-guest-note{margin:0;color:var(--text);font-weight:600;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));overflow-wrap:anywhere}
-.meal-guest-btn{min-height:44px}
-.guest-step{display:grid;grid-template-columns:minmax(0,1fr) 48px 64px 48px;align-items:center;gap:8px;margin:10px 0}
+/* v1.7.12: guests (owner: “ăn nhiều người như kiểu bạn qua chơi”; “nút thêm khách nên để gọn hơn, chỉ hiện khi cần”) */
+.meal-guests{padding:4px 16px 0}
+.meal-guests{min-width:0;max-width:100%}
+.meal-guest-line{display:block;width:100%;max-width:100%;min-height:44px;padding:0;text-align:left;font-weight:600;color:var(--green);white-space:normal!important;overflow-wrap:anywhere}
+.attendance .guest-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px}
+.attendance .guest-row .guest-row-info{color:var(--muted);font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));overflow-wrap:anywhere}
+.attendance .guest-row .btn{min-height:44px}
+.guest-when{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;display:grid;gap:8px}
+.guest-when legend{font-weight:700;padding:0 4px}
+.guest-when-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:8px;align-items:end}
+.guest-when-row label{display:grid;gap:4px;min-width:0;font-weight:600}
+.guest-when-row input,.guest-when-row select{min-height:44px;width:100%;min-width:0}
+.guest-group{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:var(--white)}
+.guest-group-head{display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:8px;align-items:center}
+.guest-group-head input{min-height:44px;width:100%;min-width:0}
+.guest-step{display:grid;grid-template-columns:minmax(0,1fr) 48px 44px 48px;align-items:center;gap:8px;margin:8px 0 0}
 .guest-step span{display:grid;gap:2px;min-width:0}
 .guest-step small{color:var(--muted)}
-.guest-step .icon-step{min-width:48px;min-height:48px;padding:0;font-size:1.3em;font-weight:700;border-radius:12px}
-.guest-step input{width:64px;min-height:48px;text-align:center;font-size:1.1em;font-weight:700}
+.guest-step output{text-align:center;font-size:1.15em;font-weight:700}
+.icon-step{min-width:48px;min-height:48px;padding:0;font-size:1.3em;font-weight:700;border-radius:12px}
+.guest-book{display:flex;flex-wrap:wrap;gap:8px}
+.guest-book .chip{min-height:44px}
+.guest-total{font-weight:700;color:var(--text)}
 .hint.warn{color:var(--orange)}
 
