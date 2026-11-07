@@ -2233,3 +2233,72 @@ button:has(>.btn-art:only-child) .btn-art,[role="tab"]:has(>.btn-art:only-child)
 .guest-total{font-weight:700;color:var(--text)}
 .hint.warn{color:var(--orange)}
 
+/* v1.7.12 (owner: “cất đồ đúng chỗ tự động”): things kept in the wrong place — a notice, moved only when the family taps */
+.misplaced-callout{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-color:#efc9a8;background:#fff6ee}
+.misplaced-callout p{margin:0;min-width:0;overflow-wrap:anywhere}
+.misplaced-callout .btn{min-height:44px}
+html[data-theme="dark"] .misplaced-callout{background:#2b2420;border-color:#5a4232}
+.misplaced-list{display:grid;gap:10px;margin-top:10px}
+.misplaced-row{display:grid;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white)}
+.misplaced-row>span{display:grid;gap:2px;min-width:0}
+.misplaced-row small{color:var(--muted)}
+.misplaced-actions{display:flex;flex-wrap:wrap;gap:8px}
+.misplaced-actions .btn{min-height:44px}
+.store-useby{display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:600}
+.store-useby input{min-height:44px;min-width:0}
+/* v1.7.12 (owner: “chế độ đi chợ”): in the shop, a big plain list to tick off; extra buttons on a tapped row only */
+.shop-mode-start{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin:0 0 14px}
+.shop-mode-start .btn{min-height:48px}
+.shop-mode-start small{color:var(--muted)}
+.shop-mode-bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--paper,#fffefa);box-shadow:0 6px 16px rgba(40,50,40,.12)}
+.shop-mode-bar span{display:grid;gap:2px;min-width:0}
+.shop-mode-bar small{color:var(--muted)}
+.shop-mode-bar .btn{min-height:48px;flex:none}
+body.shop-mode #main>.callout,body.shop-mode #main>.kitchen-action-dock,body.shop-mode #main>.week-tools,body.shop-mode #main>.price-scout,body.shop-mode #main>.page-heading,body.shop-mode #main .shopping-layout>details,body.shop-mode #main .shopping-store-tools,body.shop-mode #main .remaining-toggle{display:none!important}
+body.shop-mode #main .shopping-group{display:flex;flex-direction:column}
+body.shop-mode #main .shopping-group>.shop-row{order:1}
+body.shop-mode #main .shopping-group>.shop-row.is-bought{order:2;opacity:.6}
+body.shop-mode #main .shopping-group>.shop-row.is-bought .item-label{text-decoration:line-through}
+body.shop-mode #main .shop-row .item-label{font-size:1.12em;font-weight:700}
+body.shop-mode #main .shop-row .large-check-target{min-width:56px;min-height:56px}
+body.shop-mode #main .shop-row .large-check-target input.check{transform:scale(1.25)}
+body.shop-mode #main .shop-row:not(.flow-open) :is(.qty-round-pair,.store-pill,.row-skip,.price,.online-line,.online-find,.pantry-peek,.shop-pantry,.buy-extra-note,.pp-wrap){display:none!important}
+body.shop-mode #main .shop-row.flow-open{background:color-mix(in srgb,var(--mint,#eef5ec) 60%,transparent);border-radius:12px}
+@media (prefers-reduced-motion:no-preference){body.shop-mode #main .shopping-group>.shop-row{transition:opacity .2s}}
+body.shop-mode .kitchen-action-dock,body.shop-mode #main .shopping-layout section>.card:not(.shopping-group),body.shop-mode #main .shopping-layout section>.btn.full{display:none!important}
+/* v1.7.12: Today, compact — next meal first, extras as one-line rows */
+.next-meal{margin:6px 0 14px}
+.next-meal-label{margin:0 0 6px}
+.flow-rows{display:grid;gap:10px;margin-top:14px}
+.flow-rows>details{margin:0}
+/* v1.7.12: leftovers */
+.leftover-ask{padding:6px 16px 0}
+.leftover-ask .btn{min-height:44px}
+.leftover-offer{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 8px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--mint,#eef5ec) 70%,transparent)}
+.leftover-offer .btn{min-height:44px}
+.leftover-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.leftover-item{display:grid;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white)}
+.leftover-item span{overflow-wrap:anywhere}
+.leftover-item.is-expired{border-color:#efc9a8}
+.leftover-expired{color:var(--orange);font-weight:700}
+.leftover-actions{display:flex;flex-wrap:wrap;gap:8px}
+.leftover-actions .btn{min-height:44px}
+.leftover-card h2{margin-top:0}
+.leftover-dish,.leftover-place{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;display:flex;flex-wrap:wrap;gap:8px}
+/* v1.7.12: weekly plan */
+.week-plan-nudge{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 14px}
+.week-plan-nudge p{margin:0;min-width:0}
+.nudge-actions{display:flex;gap:8px;flex-wrap:wrap}
+.nudge-actions .btn{min-height:44px}
+.plan-member{margin:12px 0}
+.plan-days{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.plan-days .chip{min-height:44px}
+.plan-days .chip.active{background:var(--green);color:#fff;border-color:var(--green)}
+.plan-guests{list-style:none;padding:0;margin:10px 0;display:grid;gap:8px}
+.plan-guests li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px}
+.plan-guests .btn{min-height:44px}
+.plan-guest-form{display:grid;gap:10px;margin-top:10px}
+.plan-ak{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.plan-ak input,.plan-guest-form select,.plan-guest-form input{min-height:44px;min-width:0;width:100%}
+.plan-summary{margin:8px 0;padding-left:20px}
+body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.shop-mode #main.cl .kitchen-action-dock{display:none!important}

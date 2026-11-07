@@ -1,4 +1,4 @@
-# v1.7.12 — after-deploy fixes, “cook once for several meals” and guests
+# v1.7.12 — after-deploy fixes, cook once for several meals, guests, shopping mode, put-away, compact Today, leftovers, weekly plan
 
 Henry's feedback on v1.7.11, 8 Nov 2026 (~06:45 Sydney time), with iPhone screenshots. Branch `release/v1.7.12`.
 
@@ -52,6 +52,55 @@ Henry's feedback on v1.7.11, 8 Nov 2026 (~06:45 Sydney time), with iPhone screen
   - Both are validated on import and sync. With no guests the field is removed.
 - **Drawings:** a new **minus** drawing in the shared style (circle with a bar) sits next to the existing **add**. The group remove uses **trash** (rule 20).
 
+## 8–12. Streamlining (owner, 8 Nov 2026, Sydney time)
+- **Owner decisions:**
+  - Pop-up choosing *“Hôm nay gọn lại, Chế độ đi chợ, Cất đồ đúng chỗ tự động, Kế hoạch tuần + đồ còn dư”*, then *“Tất cả việc trên làm trong round này luôn”*.
+  - The two open points were decided with the proposed defaults: leftovers 3 days in the fridge / 30 in the freezer; the weekly plan offered on Today at the weekend (no push notification).
+- **Code:** new file `src/frontend/family-flow.ts`, loaded last.
+
+### 8. Put-away in the right place, with use-by dates
+- **Cause seen in the owner's screenshots:** *Sườn bò* and *Thịt bò gravy* were on **Tủ khô**. The put-away sheet trusted the remembered place first, then the ingredient's group.
+- **Now:**
+  - Meat, fish, seafood, fresh vegetables, eggs and chilled goods are **never suggested for the shelf**, whatever was remembered. Built-in ingredients use their group; family-added ones are read by name.
+  - Hardy vegetables (garlic, onion, potato, pumpkin) may stay on the shelf.
+  - A choice the family makes in the sheet is kept.
+- **Use-by:** each row has a **Hạn dùng** date suggested by kind and place. Meat: fridge 2 days, freezer 90. Vegetables: 5 / 60. Chilled: 7 / 60. Eggs: 21. Dry goods: no date. The date follows the place chosen (and “Đặt tất cả”) until the family types their own. It is saved on the lot.
+- **Stock already kept on the shelf is never moved by itself.**
+  - Tủ thực phẩm shows *“2 món có thể đang để sai chỗ — Xem”*.
+  - The sheet lists each lot with **Ngăn mát / Ngăn đông / Giữ ở Tủ khô**. “Giữ” marks the lot as checked (`placeOk`), and it is not flagged again.
+
+### 9. Shopping mode
+- **Bắt đầu đi chợ** (drawn) on Đi chợ.
+- **In the mode:**
+  - a sticky bar *“Đang đi chợ · còn 5 / 7 món”* with **Xong đi chợ**;
+  - the list by aisle with a bigger tick, name and amount;
+  - the heading, quick buttons, plan card and price panels hidden;
+  - round / store / price / × shown only on a **tapped row** (the tap does not open the ingredient sheet in this mode);
+  - bought items struck through and sunk to the bottom of their aisle.
+- **Xong đi chợ** leaves the mode and opens **Cất đồ** when something was bought.
+- The mode saves nothing by itself and lasts for the tab.
+
+### 10. Today, compact
+- **Order:** the day strip, then **Bữa tiếp theo**, then *Nhắn khẩn*, then the rest of the day's meals.
+  - The next meal is the first not cooked, by Sydney time: breakfast before 10:00, lunch before 14:00, dinner after.
+  - It shows dishes, people + guests → portions, and **Đã nấu**.
+- **Extras** (*Ai nấu, ai đi chợ*, greeting, *Gợi ý cho nhà*, *Giải phóng tủ lạnh*, *Weekends feast*) are one-line rows underneath, closed until tapped. One the family opens stays open for the visit.
+- **Nothing was removed.** At 375 px the screen went from 3,863 px to about 3,400 px tall.
+
+### 11. Leftovers
+- **Còn dư?** appears on a cooked meal (not the Weekends feast, which counts its own portions). The sheet picks the dish, portions (½ steps) and fridge/freezer; use by 3 / 30 days.
+- **On Today:** under *Bữa tiếp theo*, *“Có sẵn trong tủ: Sườn rim mặn ngọt · 2 suất · dùng trước 11/11”* with **Dùng cho bữa này**. That adds the dish to the meal as served from leftovers: not taken from the pantry again, not on the shopping list.
+- **Đồ ăn còn dư (n)** is a row on Today (opened when something is past its date) and a card on Tủ thực phẩm, with **Ăn 1 suất / Bỏ / Dùng cho bữa…**.
+- **Data:** optional `state.leftovers` (≤ 50, validated).
+
+### 12. Weekly plan
+- **Where:** **Kế hoạch tuần tới** in the week tools. On Saturday and Sunday (Sydney time), Today also offers *“Cuối tuần rồi — lên kế hoạch tuần tới?”* with **Bắt đầu / Để sau**. “Để sau” hides it for that week on this device.
+- **Three steps for next week:**
+  1. who is away (whole days, per person, saved as away days);
+  2. guests (day + meal, regular guests in one tap, name, adults / children);
+  3. **Xem trước thực đơn**, which saves those, opens next week and the existing menu preview (the Weekends feast batch is planned there).
+- **Change from the 4-step plan sent to the owner:** “nấu mẻ món gì” is not a separate step. The menu preview already plans the batch, and the app has no separate batch setting to choose.
+
 ## 7. Tests that broke on Sundays (fixed during the v1.7.11 deploy, kept here for the record)
 `journey`, `family-calendar` and `v176-fixes` now keep the day and its plan week together (see v1.7.11 record).
 
@@ -67,13 +116,27 @@ Henry's feedback on v1.7.11, 8 Nov 2026 (~06:45 Sydney time), with iPhone screen
   - guests: no guest button on meal cards without guests; **Thêm khách** from “Ai ăn bữa này?” ≥ 44 px; − / + / × drawn, no leftover symbol, ≥ 44 px; two groups (Nhà anh Tuấn 2 + 1 bé, Chị Lan 1) from today to tomorrow breakfast; total *Thêm 3,5 suất mỗi bữa*; Đóng / Lưu side by side, same size, drawn; saved on every open meal in the range, cooked meals untouched, +3.5 portions, both remembered; the card line counts and names them, stays inside its card; **Có khách** on the week menu opens on a meal that can take guests and offers the regular guests in one tap;
   - no horizontal overflow, no page errors.
 
+- **New browser suite `test:v1712-flow:browser`** (in `test:all`), at 375×812, 320×740, 820×1100 (VI) and 1280×800 (EN). It checks:
+  - put-away: remembered-on-shelf beef suggested for the fridge, date 2 days → 90 on freezer, saved onto the lot;
+  - wrong-place notice: 2 of 3 flagged, nothing moved by itself, move / keep, notice gone;
+  - shopping mode: drawing, extras hidden, counter follows ticks, bought sinks, tapped row shows its buttons without opening a sheet, *Xong* → Cất đồ;
+  - Today order and closed rows;
+  - leftovers: ask ≥ 44 px, 2 portions, fridge +3 days, served into the next meal, eat 1, throw out;
+  - weekly plan: nudge only at the weekend, *Để sau*, away day and guests saved, next week's preview open;
+  - no overflow, touch targets ≥ 44 px, no page errors.
+- **Unit:** leftovers (halves, use-by, validation, expiry flag, serving, not bought again, eat / drop) and put-away rules (shelf memory overridden for meat, garlic kept, tomato not read as fish, use-by per kind, only perishables flagged).
+
 ## Evidence (Chromium and WebKit viewport simulation, not physical devices)
 - **Chromium:** `docs/reviews/v1.7.12/{round-buttons,done-centred,pantry-chips,use-it-up,cook-ahead-sheet,cooked-ahead-note,guests-sheet,guests-card,guests-regular}-{vi,en}-{size}.png`.
+- **Chromium, new flows:** `docs/reviews/v1.7.12/flow/{put-away,misplaced-notice,misplaced-sheet,shopping-mode,today-next-meal,today-rows,leftover-sheet,leftover-offer,week-plan-1,week-plan-2,week-plan-3}-{vi,en}-{size}.png`.
+- **WebKit, new flows:** `flow/webkit-iphone15promax-{shopping-mode,put-away,misplaced-notice,today-next-meal,today-rows}.png`.
 - **WebKit, iPhone 15 Pro Max emulation (430 px):**
   - after the fix: `webkit-iphone15promax-{round-buttons,done-centred,use-it-up}.png`;
   - before the fix: `before-webkit-iphone15promax-done-off-centre.png`.
 
 ## Limits
 - Browser simulation only (Chromium 156 and WebKit 27.2 with iPhone emulation). Not tested on a physical iPhone; momentum scrolling and the Safari toolbar can still behave differently.
+- Leftovers and the weekly plan send no phone notifications; they show in the app only.
+- The next-meal times (10:00 / 14:00) are fixed for now.
 - The cook-ahead offer looks 3 days ahead and matches the same dish (same recipe). A different dish made from the same ingredients is not linked.
-- Seen in the screenshots, not changed: meats such as *Sườn bò* are stored under **Tủ khô** in the family's pantry. That is family data; it is not moved automatically.
+- The family's meat already on **Tủ khô** is not moved automatically. The pantry notice offers to move it.

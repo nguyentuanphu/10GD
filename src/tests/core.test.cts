@@ -115,5 +115,29 @@ check(!validImport(null),'null backup is rejected without throwing');
  const r=mealsBetween(s3,'2026-11-14','dinner','2026-11-15','lunch');check(JSON.stringify(r.map(x=>x.date.slice(8)+x.type))==='["14dinner","15breakfast","15snackAm","15lunch"]','meals from Saturday dinner to Sunday lunch, in order');
  check(mealsBetween(s3,'2026-11-15','lunch','2026-11-14','dinner').length===0&&mealsBetween(s3,'2026-11-14','dinner','2026-11-14','lunch').length===0,'a last meal before the first gives nothing');
  check(mealsBetween(s3,'2026-11-14','lunch','2026-11-14','lunch').length===1,'one meal')}
+// v1.7.12 (owner, 8 Nov 2026 — “đồ còn dư”): cooked food kept for later
+{const s4=defaults(),w4=ensureWeek(s4,monday(sydneyDate())),d=Object.keys(w4.days)[1],m=w4.days[d].dinner,dish=m.recipes[0];
+ const lo=addLeftover(s4,{name:dish.name,recipeId:dish.id,portions:2.3,place:'fridge',cookedOn:'2026-11-08'});check(lo.portions===2.5&&lo.useBy==='2026-11-11','leftover: portions in halves, fridge use-by 3 days');
+ const fz=addLeftover(s4,{name:'Canh',portions:1,place:'freezer',cookedOn:'2026-11-08'});check(fz.useBy==='2026-12-08','leftover: freezer use-by 30 days');
+ check(validImport(JSON.parse(JSON.stringify(s4))),'leftovers pass backup validation');const bl=JSON.parse(JSON.stringify(s4));bl.leftovers[0].portions=-1;check(!validImport(bl),'negative leftovers rejected');
+ const now=leftoversNow(s4,'2026-11-12');check(now.find(x=>x.id===lo.id).expired&&!now.find(x=>x.id===fz.id).expired,'leftover past its date is flagged');
+ const later=w4.days[d].lunch;later.recipes=[];later.cooked=false;later.servings=2;const took=serveLeftover(s4,lo.id,later);
+ check(took===2&&later.recipes[0].fromLeftover?.id===lo.id&&s4.leftovers.find(x=>x.id===lo.id).portions===.5,'serving leftovers adds the dish and takes the portions');
+ check(Object.keys(mealIngredients(later,s4)).length===0,'a dish served from leftovers is not bought or taken from the pantry again');
+ eatLeftover(s4,lo.id,1);check(!s4.leftovers.some(x=>x.id===lo.id),'eaten up leftovers disappear');dropLeftover(s4,fz.id);check(s4.leftovers===undefined,'thrown out leftovers disappear');
+ check(validImport(JSON.parse(JSON.stringify(s4))),'meals with leftover dishes pass backup validation')}
 function shoppingMealIngredientsSafe(s,m){return m.cooked?{}:mealIngredients(m,s)}
 `,ctx);
+// v1.7.12 (owner, 8 Nov 2026 — “cất đồ đúng chỗ tự động”): put-away places and use-by suggestions
+{const ctx2=vm.createContext({console,Intl,Date,Math,crypto:require('node:crypto').webcrypto});vm.runInContext(['seed','core','unit-registry','purchase-units'].map(f=>fs.readFileSync('dist/'+f+'.js','utf8')).join('\n'),ctx2);
+ vm.runInContext(`function check(t,n){if(!t)throw Error(n);console.log('PASS',n)}
+ const st={preferences:{storePlaces:{beef:'dry',garlic:'dry',rice:'fridge'}}};
+ check(suggestStorePlace(st,'beef')==='fridge','meat remembered on the dry shelf is suggested for the fridge');
+ check(suggestStorePlace(st,'garlic')==='dry','garlic may stay on the shelf as the family keeps it');
+ check(suggestStorePlace(st,'rice')==='fridge','a cold place the family chose is kept');
+ check(suggestStorePlace({},'tomato')==='fridge'&&suggestUseBy('tomato','fridge','2026-11-08')==='2026-11-13','tomato: fridge, 5 days (not read as fish)');
+ check(suggestUseBy('beef','fridge','2026-11-08')==='2026-11-10'&&suggestUseBy('beef','freezer','2026-11-08')==='2027-02-06','meat: 2 days in the fridge, 90 in the freezer');
+ check(suggestUseBy('egg','fridge','2026-11-08')==='2026-11-29'&&suggestUseBy('rice','dry','2026-11-08')==='','eggs 21 days; dry goods no date');
+ const s5={pantry:[{id:'a',ingredient:'beef',qty:500,place:'dry',expiry:''},{id:'b',ingredient:'rice',qty:500,place:'dry',expiry:''},{id:'c',ingredient:'chicken',qty:0,place:'dry',expiry:''}]};
+ check(JSON.stringify(misplacedLots(s5).map(p=>p.id))==='["a"]','only perishable stock on the shelf is flagged (nothing moved)');`,ctx2)}
+

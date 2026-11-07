@@ -146,7 +146,7 @@ const BTN_BY_DATA:Record<string,Record<string,string>>={
  planning:{stores:'store'},pushAction:{'request-item':'request',subscribe:'bell',test:'bell',settings:'bell',unsubscribe:'skip'},
  product:{import:'upload',new:'add',receipt:'receipt'},offlineDownload:{'*':'download'},offlineFix:{'*':'download'},
  rci:{add:'add',up:'arrow-up',down:'arrow-down',paste:'paste',remove:'trash'},vlCheck:{'*':'mic'},planMeal:{'*':'meal-plan'},mealMore:{'*':'more'},
- mr:{'open-tastes':'taste',who:'whole-family',up:'thumb-up',down:'thumb-down',like:'thumb-up',dislike:'thumb-down'},qrDir:{up:'round-up',down:'round-down'},guestStep:{'1':'add','-1':'minus'},
+ mr:{'open-tastes':'taste',who:'whole-family',up:'thumb-up',down:'thumb-down',like:'thumb-up',dislike:'thumb-down'},qrDir:{up:'round-up',down:'round-down'},flow:{'shop-start':'cart','shop-done':'save-check','plan-start':'plan-week','plan-next':'arrow-right','plan-preview':'meal-plan','leftover-save':'save-check'},guestStep:{'1':'add','-1':'minus'},
  scout:{refresh:'repeat','online-find':'search',toggle:'money'},
 };
 const BTN_CHIP:Record<string,string>={all:'chip-all',main:'dish-main',side:'dish-veg',veg:'dish-veg',soup:'dish-soup',noodle:'dish-noodle',dessert:'dish-dessert',snack:'meal-snack',lunchbox:'dish-lunchbox',western:'tag-western',healthy:'tag-healthy',vegetarian:'tag-vegetarian',vegan:'tag-vegan',dressing:'tag-dressing',fridge:'fridge',freezer:'freezer',dry:'shelf',breakfast:'meal-breakfast',lunch:'meal-lunch',dinner:'meal-dinner',snackAm:'meal-snack-am'};
