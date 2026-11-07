@@ -2145,7 +2145,7 @@ html[data-theme="dark"] #modal-root .modal:has(.recipe-detail-hero)>.modal-foote
 #modal-root .modal>header .close-x-btn{width:44px;height:44px;min-width:44px;padding:0;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:0}
 #modal-root .modal>header .close-x-btn .sheet-art{width:34px;height:34px}
 #modal-root .modal>.modal-footer.floating-footer{position:sticky!important;bottom:0;z-index:5;display:grid!important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;align-items:stretch;padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--paper,#fffefa) 70%,color-mix(in srgb,var(--paper,#fffefa) 0%,transparent));border-top:0}
-#modal-root .modal>.modal-footer.floating-footer[data-count="1"]{grid-auto-columns:minmax(0,min(100%,320px));justify-content:end}
+#modal-root .modal>.modal-footer.floating-footer[data-count="1"]{grid-auto-columns:minmax(0,min(100%,320px));justify-content:center}
 #modal-root .modal>.modal-footer.floating-footer:has(>:nth-child(4)){grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}
 #modal-root .modal>.modal-footer.floating-footer>.btn,#modal-root .modal>.modal-footer.floating-footer>a.btn{width:100%;min-width:0;min-height:48px;margin:0;padding:8px 12px;white-space:normal!important;line-height:1.2;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:6px;overflow-wrap:normal}
 #modal-root .modal>.modal-footer .pill-btn{border-radius:999px!important;box-shadow:0 6px 16px rgba(40,50,40,.16)}
@@ -2187,3 +2187,25 @@ button:has(>.btn-art),a.btn:has(>.btn-art),.chip:has(>.btn-art),[role="tab"]:has
 button:has(>.btn-art:only-child) .btn-art,[role="tab"]:has(>.btn-art:only-child) .btn-art{margin-right:0}
 .icon:has(>.btn-art) .btn-art,.rc-icon .btn-art,.qty-round .btn-art,.dish-remove-btn .btn-art,.row-skip .btn-art{width:26px;height:26px;margin:0}
 @media (prefers-reduced-motion:reduce){.btn-art *{animation:none!important}}
+/* v1.7.12 (owner, 8 Nov 2026: "nút round up và down không đồng đều"): the amount and its two round buttons always sit the same
+   way on every row and every screen size: the amount, and under it the two round buttons sharing its width. The drawing already
+   shows the arrow, so the extra text arrow is hidden. */
+.shop-row .qty-cell{display:inline-grid;grid-template-columns:minmax(0,max-content);justify-items:stretch;gap:6px}
+.shop-row .qty-cell>*{grid-column:1!important;grid-row:auto!important;margin:0!important}
+.shop-row .qty-cell>button[data-action="purchase-quantity"]{width:100%}
+.shop-row .qty-cell>.qty-round-pair{display:flex;width:100%;margin:0}
+.shop-row .qty-cell>.qty-round-pair>.qty-round{flex:1 1 0;min-width:44px;padding:0 6px}
+.qty-round:has(>.btn-art) .qr-dir{display:none}
+/* v1.7.12 (owner: "chỗ giải phóng món ăn cái nút hơi khó nhìn và dài dòng quá"): the use-it-up card keeps its words full width
+   and puts one short button and the pantry link on their own line underneath. */
+.fridge-rescue-card .fridge-rescue-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:12px}
+.fridge-rescue-card .fridge-rescue-actions .btn{min-height:44px}
+.fridge-rescue-card .fridge-rescue-actions .text-btn{min-height:44px;display:inline-flex;align-items:center}
+/* v1.7.12: “Nấu luôn cho bữa sau?” sheet and the note on a meal cooked ahead */
+.cook-ahead-list{display:grid;gap:8px;margin:12px 0}
+.cook-ahead-row{display:flex;align-items:flex-start;gap:12px;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white)}
+.cook-ahead-row input{width:22px;height:22px;margin:2px 0 0;flex:none}
+.cook-ahead-row span{display:grid;gap:2px;min-width:0}
+.cook-ahead-row small{color:var(--muted);overflow-wrap:anywhere}
+.cooked-ahead-note{margin:4px 0 0;color:var(--green);font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));font-weight:600}
+

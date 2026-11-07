@@ -261,16 +261,25 @@ document.addEventListener('change',e=>{if(!purchasePicker)return;if(e.target.id=
 // v1.7.10 (owner, 7 Nov 2026: “ấn nút bữa sáng / bữa trưa / bữa tối thì web nó nhảy… ấn nút là không được nhảy lên xuống”):
 // a tap that redraws the same screen keeps the tapped control exactly where it was. Taps that open a sheet, change
 // screen or change the address (links, notifications) are left alone.
-const KEEP_ATTRS=['data-action','data-fm','data-house','data-change','data-id','data-type','data-date','data-member','data-key','data-qr-dir','data-qr-id','data-mr','data-planning','data-feature','data-screen'];
+const KEEP_ATTRS=['data-pantry-deduct','data-action','data-fm','data-house','data-change','data-id','data-type','data-date','data-member','data-key','data-qr-dir','data-qr-id','data-mr','data-planning','data-feature','data-screen'];
 function keepPlaceSelector(el:Element){const parts=KEEP_ATTRS.filter(a=>el.hasAttribute(a)).map(a=>`[${a}="${CSS.escape(el.getAttribute(a)||'')}"]`);return parts.length?el.tagName.toLowerCase()+parts.join(''):null}
-document.addEventListener('click',e=>{const el=(e.target as any)?.closest?.('button,[role="tab"],a[data-action],[data-fm],[data-house]');if(!el||el.closest('#modal-root,.modal,#undo-bar')||el.hasAttribute('data-keep-scroll-off'))return;
- const sel=keepPlaceSelector(el);if(!sel)return;const v=view,hash=location.hash,top=el.getBoundingClientRect().top,root=document.documentElement,prev=root.style.overflowAnchor;
+// v1.7.12 (owner, 8 Nov 2026: "từ nút tất cả ấn sang ngăn mát… bị nhảy", "click vào trừ đồ trong tủ cũng bị nhảy"): when a
+// redraw makes the page shorter (a filter with few items, a list with stock taken off) the browser has to scroll up and the
+// tapped control moves. A blank spacer under the page keeps it where it was; the spacer shrinks as the person scrolls back up
+// and goes when the screen changes. Checkboxes that redraw the screen (Trừ đồ đang có trong Tủ) are held like buttons.
+const keepSpacer=()=>{let sp=document.getElementById('keep-place-spacer');if(!sp){sp=document.createElement('div');sp.id='keep-place-spacer';sp.setAttribute('aria-hidden','true');sp.style.cssText='height:0;pointer-events:none';document.body.append(sp)}return sp};
+let keepSpacerView='';const keepSpacerClear=()=>{const sp=document.getElementById('keep-place-spacer');if(sp)sp.style.height='0px'};
+addEventListener('hashchange',keepSpacerClear);
+addEventListener('scroll',()=>{const sp=document.getElementById('keep-place-spacer');if(!sp)return;const h=parseFloat(sp.style.height)||0;if(!h)return;if(view!==keepSpacerView)return keepSpacerClear();const need=scrollY+innerHeight-(document.documentElement.scrollHeight-h);sp.style.height=Math.max(0,Math.min(h,need))+'px'},{passive:true});
+function keepRoomFor(targetY:number){const sp=keepSpacer(),h=parseFloat(sp.style.height)||0,doc=document.documentElement.scrollHeight-h,need=Math.ceil(targetY+innerHeight-doc);keepSpacerView=view;sp.style.height=Math.max(0,need)+'px'}
+document.addEventListener('click',e=>{const el=(e.target as any)?.closest?.('button,[role="tab"],a[data-action],[data-fm],[data-house],input[type="checkbox"][data-pantry-deduct]');if(!el||el.closest('#modal-root,.modal,#undo-bar')||el.hasAttribute('data-keep-scroll-off'))return;
+ const sel=keepPlaceSelector(el);if(!sel)return;if(view!==keepSpacerView)keepSpacerClear();const v=view,hash=location.hash,top=el.getBoundingClientRect().top,root=document.documentElement,prev=root.style.overflowAnchor;
  // hold the control in place right after the redraw and for half a second more, because parts of a screen can redraw a moment
  // later (pictures, counts). Any scroll the person starts themselves (touch, wheel, keys) ends the hold at once.
  // A redraw moves the control without changing the scroll position; any other scroll (the person's own, or the app jumping to a
  // section on purpose) changes it, and ends the hold at once.
  const EV=['touchstart','wheel','keydown'];let stop=false,lastY=-1;const end=()=>{if(stop)return;stop=true;root.style.overflowAnchor=prev;for(const ev of EV)removeEventListener(ev,end,true)};const until=performance.now()+500;
- const hold=()=>{try{if(stop)return;if(view!==v||location.hash!==hash||document.querySelector('#modal-root .modal')||(lastY>=0&&Math.abs(scrollY-lastY)>1))return end();const now=document.querySelector('#main '+sel)||document.querySelector(sel);if(!now)return end();const d=now.getBoundingClientRect().top-top;if(Math.abs(d)>1)window.scrollTo({top:scrollY+d,behavior:'instant' as ScrollBehavior});lastY=scrollY}catch{return end()}if(performance.now()<until)requestAnimationFrame(hold);else end()};
+ const hold=()=>{try{if(stop)return;if(view!==v||location.hash!==hash||document.querySelector('#modal-root .modal')||(lastY>=0&&Math.abs(scrollY-lastY)>1))return end();const now=document.querySelector('#main '+sel)||document.querySelector(sel);if(!now)return end();const d=now.getBoundingClientRect().top-top;if(Math.abs(d)>1){if(d>0)keepRoomFor(scrollY+d);window.scrollTo({top:scrollY+d,behavior:'instant' as ScrollBehavior})}lastY=scrollY}catch{return end()}if(performance.now()<until)requestAnimationFrame(hold);else end()};
  for(const ev of EV)addEventListener(ev,end,true);
  root.style.overflowAnchor='none';setTimeout(hold,0)},true);
 

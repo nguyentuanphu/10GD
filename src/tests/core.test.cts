@@ -74,4 +74,26 @@ vm.runInContext(`
 const missingSeed=defaults();missingSeed.recipes=missingSeed.recipes.filter(r=>r.id!=='r2');
 check(!!ensureWeek(missingSeed,monday(sydneyDate())),'deleting a built-in recipe does not break a new week');
 check(!validImport(null),'null backup is rejected without throwing');
+// v1.7.12 (owner, 8 Nov 2026 — pop-up: ask when “Đã nấu” is tapped): one pot for the same dish in the next meals
+{const s2=defaults(),w2=ensureWeek(s2,monday(sydneyDate())),days=Object.keys(w2.days).sort(),d0=days[0],d1=days[1];
+ const src=w2.days[d0].dinner,dish=clone(src.recipes[0]);w2.days[d1].lunch.recipes=[clone(dish),clone(s2.recipes.find(r=>r.id!==dish.id&&r.category==='veg'))];w2.days[d1].lunch.servings=null;
+ const ids=[...new Set(src.recipes.concat(w2.days[d1].lunch.recipes).flatMap(r=>r.ingredients.map(i=>i.id)))];s2.pantry=ids.map((id,n)=>({id:'p'+n,ingredient:id,qty:100000,place:'fridge',expiry:''}));
+ const cand=cookAheadCandidates(s2,d0,'dinner');const hit=cand.find(c=>c.date===d1&&c.type==='lunch');
+ check(!!hit&&hit.recipeIds.length===1&&hit.recipeIds[0]===dish.id,'cook ahead offers the next meal with the same dish (only that dish)');
+ check(cand.length>0&&cand.every(c=>c.date>d0&&c.date<=addDays(d0,3)),'cook ahead only offers later meals, up to 3 days on (dinner is the last meal of its day)');
+ const later=w2.days[d1].lunch,ownNeed=mealIngredients(src,s2),aheadNeed=dishNeeds(later,s2,later.recipes.filter(r=>r.id===dish.id)),fullLater=mealIngredients(later,s2);
+ const before=Object.fromEntries(ids.map(id=>[id,stock(s2,id)]));cookMealAhead(s2,d0,'dinner',[hit]);
+ check(src.cooked&&src.aheadFor?.length===1,'the cooked meal records the meals it cooked for');
+ check(ids.every(id=>Math.abs(before[id]-stock(s2,id)-((ownNeed[id]||0)+(aheadNeed[id]||0)))<.11),'pantry taken once: this meal plus the later portion of the same dish');
+ check(later.recipes[0].cookedAhead?.date===d0&&!later.recipes[1].cookedAhead&&!later.cooked,'later meal: the shared dish is cooked ahead, the other dish still to cook');
+ const after=mealIngredients(later,s2);check(Object.keys(aheadNeed).every(id=>(after[id]||0)<=(fullLater[id]||0)-(aheadNeed[id]||0)+.11),'a dish cooked ahead leaves the later meal’s needs (pantry and shopping list)');
+ consumeMeal(s2,later);let blocked=false;try{undoCook(s2,src)}catch(e){blocked=true}check(blocked&&src.cooked,'undo waits while a later meal was cooked on its own');
+ undoCook(s2,later);undoCook(s2,src);check(!src.cooked&&!src.aheadFor&&!later.recipes[0].cookedAhead,'undo clears the cooked-ahead marks');
+ check(ids.every(id=>Math.abs(before[id]-stock(s2,id))<.11),'undo gives back everything that was taken');
+ w2.days[d1].lunch.recipes=[clone(dish)];const c2=cookAheadCandidates(s2,d0,'dinner').filter(c=>c.date===d1&&c.type==='lunch');cookMealAhead(s2,d0,'dinner',c2);
+ check(later.cooked&&later.cookedWith?.date===d0&&later.consumed.length===0,'a later meal whose every dish was cooked ahead counts as cooked');
+ check(Object.keys(shoppingMealIngredientsSafe(s2,later)).length===0,'a meal cooked ahead is not on the shopping list');
+ undoCook(s2,src);check(!later.cooked&&!later.cookedWith,'undo also reopens the meal that was fully cooked ahead');
+ check(validImport(JSON.parse(JSON.stringify(s2))),'cook-ahead marks pass backup validation')}
+function shoppingMealIngredientsSafe(s,m){return m.cooked?{}:mealIngredients(m,s)}
 `,ctx);
