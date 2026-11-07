@@ -76,7 +76,9 @@ function validImport(s){if(!s||typeof s!=='object')return false;if(!validCatalog
 // stop and reload instead of overwriting data it cannot fully read.
 // APP_EDITION: data-shape edition (6 = v1.7.5: Bữa phụ meal, new dish types, counted units such as tép/đòn).
 // CATALOG_EDITION: reference-recipe catalogue edition (seedVersion); tombstones for deleted reference recipes depend on it.
-const APP_EDITION=7,CATALOG_EDITION=6;
+// v1.7.10: edition 7 retires the template-built / invented reference recipes (Henry, 7 Nov 2026). Older clients (APP_EDITION 7)
+// still accept a state at seedVersion 7 (stateEdition is not above their APP_EDITION).
+const APP_EDITION=7,CATALOG_EDITION=7;
 function stateEdition(s){return Math.max(Number.isInteger(s?.appEdition)?s.appEdition:0,Number.isInteger(s?.seedVersion)?s.seedVersion:0)}
 function validCatalogMarkers(s){return (s.appEdition===undefined||Number.isInteger(s.appEdition)&&s.appEdition>=1&&s.appEdition<=1000)&&(s.deletedRecipeIds===undefined||Array.isArray(s.deletedRecipeIds)&&s.deletedRecipeIds.length<=5000&&s.deletedRecipeIds.every(id=>typeof id==='string'&&id.length>0&&id.length<=100))}
 // Built-in ingredient ids introduced by a newer edition are kept as-is (never dropped) and given a neutral placeholder
@@ -97,7 +99,7 @@ function retireReferenceRecipes(s){if(!s||!Array.isArray(s.recipes)||typeof RETI
  const removed=[],keep=[];for(const r of s.recipes){if(r&&RETIRED_REFERENCE_IDS.has(r.id)&&!r.custom&&!r.favorite&&!r.photo&&r.origin!=='family'&&!used.has(r.id))removed.push(r.id);else keep.push(r)}
  if(removed.length){s.recipes=keep;mergeDeletedRecipeIds(s,removed)}return removed.length}
 // Add the reference collection once; preserve authored edits, menus and deliberate deletions (tombstones) afterwards.
-function upgradeReferenceCatalog(s,knownDeleted){if(!s||!Array.isArray(s.recipes))return 0;mergeDeletedRecipeIds(s,knownDeleted);if(typeof repairArtworkReferenceState==='function')repairArtworkReferenceState(s);const version=s.seedVersion||1;let added=0;if(version<5){const ids=new Set(s.recipes.map(r=>r.id)),gone=new Set(s.deletedRecipeIds||[]);for(const[edition,recipes]of [[4,WESTERN_HEALTHY_RECIPES],[5,PLANT_RECIPES]])if(version<edition)for(const r of recipes)if(!ids.has(r.id)&&!gone.has(r.id)){s.recipes.push(clone(r));ids.add(r.id);added++}s.seedVersion=5}if((s.seedVersion||1)<6&&typeof RETIRED_REFERENCE_IDS!=='undefined'){retireReferenceRecipes(s);s.seedVersion=6}recordDeletedReferenceRecipes(s);if(!(s.appEdition>=APP_EDITION))s.appEdition=APP_EDITION;return added}
+function upgradeReferenceCatalog(s,knownDeleted){if(!s||!Array.isArray(s.recipes))return 0;mergeDeletedRecipeIds(s,knownDeleted);if(typeof repairArtworkReferenceState==='function')repairArtworkReferenceState(s);const version=s.seedVersion||1;let added=0;if(version<5){const ids=new Set(s.recipes.map(r=>r.id)),gone=new Set(s.deletedRecipeIds||[]);for(const[edition,recipes]of [[4,WESTERN_HEALTHY_RECIPES],[5,PLANT_RECIPES]])if(version<edition)for(const r of recipes)if(!ids.has(r.id)&&!gone.has(r.id)){s.recipes.push(clone(r));ids.add(r.id);added++}s.seedVersion=5}if((s.seedVersion||1)<CATALOG_EDITION&&typeof RETIRED_REFERENCE_IDS!=='undefined'){retireReferenceRecipes(s);s.seedVersion=CATALOG_EDITION}recordDeletedReferenceRecipes(s);if(!(s.appEdition>=APP_EDITION))s.appEdition=APP_EDITION;return added}
 
 // The menu week starting at `start`: the stored week itself when it starts on Monday; otherwise a view whose `days` are the
 // 7 stored day objects (edits change the stored days) and whose other fields (extras, bought marks…) are those of the week

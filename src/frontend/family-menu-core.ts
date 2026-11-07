@@ -70,7 +70,8 @@ const legacyGenerateWeek=generateWeek;generateWeek=function(s,w){if(s.preference
 // same cuisine index as the planner (recipeCuisine) and ingredient-computed diet labels. A reference copy saved by an
 // older edition can lack catalogue metadata (tags, collection, recipeKind), so missing fields fall back to the built-in
 // recipe with the same id; the family's own recipes are never rewritten.
-const LIBRARY_FILTER_TAGS=['western','healthy','vegetarian','vegan','seed-salad','dressing'];
+// v1.7.10: the seed-salad mixes were retired, so the “Salad hạt” chip goes too
+const LIBRARY_FILTER_TAGS=['western','healthy','vegetarian','vegan','dressing'];
 let libraryCatalogById=null;
 function libraryRecipeMeta(r){if(!r||ownRecipe(r)||typeof RECIPES==='undefined')return r;libraryCatalogById??=new Map(RECIPES.map(x=>[x.id,x]));const c=libraryCatalogById.get(r.id);if(!c||(r.tags?.length&&(r.recipeKind??null)===(c.recipeKind??null)&&(r.collection??null)===(c.collection??null)))return r;return {...r,recipeKind:r.recipeKind??c.recipeKind,tags:r.tags?.length?r.tags:c.tags,collection:r.collection??c.collection}}
 function recipeMatchesLibraryTag(r,tag){if(!tag||tag==='all')return true;const x=libraryRecipeMeta(r),cuisine=recipeCuisine(x);switch(tag){case'western':return cuisine==='western';case'healthy':return !isDressingRecipe(x)&&(cuisine==='healthy'||cuisine==='salad'||(x.tags||[]).some(t=>/Healthy|Thanh đạm|Ít dầu/i.test(t))||/Healthy|thanh đạm|ít dầu|\bsalad\b/i.test(x.name||''));case'vegetarian':return isVegetarianRecipe(x)||recipeNeedsDietCheck(x);case'vegan':return isVeganRecipe(x);case'seed-salad':return isSeedSaladRecipe(x);case'dressing':return isDressingRecipe(x)}return false}

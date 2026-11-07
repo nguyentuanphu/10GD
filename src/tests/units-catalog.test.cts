@@ -4,7 +4,8 @@ vm.runInContext(`
 const check=(x,n)=>{if(!x)throw Error(n);console.log('PASS',n)};
 const s=defaults(),start=monday(sydneyDate()),end=addDays(start,6),w=ensureWeek(s,start);
 // v1.7.5: owner halved the Vietnamese reference recipes (740 → 475)
-check(s.recipes.length===475&&new Set(s.recipes.map(r=>r.name)).size===475,'475 distinct named recipes and variants');
+// v1.7.10: only recognised dishes stay (Henry, 7 Nov 2026): 475 → 125
+check(s.recipes.length===125&&new Set(s.recipes.map(r=>r.name)).size===125,'125 distinct named recipes');
 check(s.recipes.every(r=>r.ingredients.length&&r.steps.length>=3&&r.prep&&r.time>0),'all catalog entries include ingredients, preparation, steps and time');
 check(validImport(s),'expanded catalog is backup compatible');
 const original=shopping(s,w,start,end).find(r=>r.id==='chicken');const needs=original.needed;
