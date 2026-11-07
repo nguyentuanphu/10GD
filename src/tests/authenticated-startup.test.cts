@@ -58,7 +58,7 @@ async function main() {
  async function newContext(baseline=false){
   const response=await accounts(new Request(origin+'/.netlify/functions/accounts?op=register',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json','x-nf-client-connection-ip':'fixture-'+number},body:JSON.stringify({username:'startupqa'+(++number),name:'Synthetic QA',password:'synthetic-startup-passphrase-only',trust:true})}));
   assert.equal(response.status,201);const cookie=response.headers.get('set-cookie').split(';')[0],equal=cookie.indexOf('=');
-  const context=await browser.newContext({viewport:{width:375,height:812},serviceWorkers:'allow',reducedMotion:'reduce'});
+  const context=await browser.newContext({locale:'vi-VN',viewport:{width:375,height:812},serviceWorkers:'allow',reducedMotion:'reduce'});
   await context.addCookies([{name:cookie.slice(0,equal),value:cookie.slice(equal+1),domain:'kitchen.localhost',path:'/'},...(baseline?[{name:'qa-baseline',value:'1',domain:'kitchen.localhost',path:'/'}]:[])]);
   await context.addInitScript(()=>{localStorage.setItem('qa-preserved','keep-family-data');localStorage.setItem('bep-account-present','yes')});
   return context;
@@ -66,7 +66,7 @@ async function main() {
  try {
   // Anonymous visitors can work immediately and reload offline with no account.
   for(const [name,viewport] of Object.entries({mobile:{width:375,height:812},tablet:{width:820,height:1100},desktop:{width:1280,height:800}})){
-   const context=await browser.newContext({viewport,serviceWorkers:'allow',reducedMotion:'reduce'}),page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+   const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'allow',reducedMotion:'reduce'}),page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
    const reads=counters.privateReads,writes=counters.privateWrites;
    await page.goto(origin,{waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();assert.equal(new URL(page.url()).pathname,'/');
    await page.locator('.kitchen-action-dock [data-personal=settings]').click();await page.locator('#settings-form input[name=budget]').fill('321');await page.locator('[data-action=submit-form][data-id=settings-form]').click();
@@ -89,12 +89,12 @@ async function main() {
    assert.equal(counters.privateReads,reads);assert.equal(counters.privateWrites,writes);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
    await context.close();
   }
-  const anonymousApi=await browser.newContext();const privateRead=await anonymousApi.request.get(origin+'/.netlify/functions/family?op=state');assert.equal(privateRead.status(),401);const privateWrite=await anonymousApi.request.put(origin+'/.netlify/functions/family?op=state',{headers:{Origin:origin},data:{state:{},etag:null}});assert.equal(privateWrite.status(),401);await anonymousApi.close();
+  const anonymousApi=await browser.newContext({locale:'vi-VN'});const privateRead=await anonymousApi.request.get(origin+'/.netlify/functions/family?op=state');assert.equal(privateRead.status(),401);const privateWrite=await anonymousApi.request.put(origin+'/.netlify/functions/family?op=state',{headers:{Origin:origin},data:{state:{},etag:null}});assert.equal(privateWrite.status(),401);await anonymousApi.close();
   console.log('PASS anonymous device tools, real edits and offline reload at mobile/tablet/desktop without private API calls');
 
   // The authentication card and shared controls must not move between tabs.
   for(const [name,viewport] of Object.entries({narrow:{width:320,height:740},mobile:{width:375,height:812},tablet:{width:820,height:1100},desktop:{width:1280,height:800}})){
-   const context=await browser.newContext({viewport,reducedMotion:'reduce'}),page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+   const context=await browser.newContext({locale:'vi-VN',viewport,reducedMotion:'reduce'}),page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.goto(origin+'/login?locked=1',{waitUntil:'domcontentloaded'});
    assert.equal(await page.getByRole('tab').count(),2);assert.equal(await page.getByText('Gia đình cũ',{exact:true}).count(),0);
    const geometry=async()=>page.evaluate(()=>Object.fromEntries(['main','#username-field','#password-field','#submit','.tabs'].map(selector=>{const b=document.querySelector(selector).getBoundingClientRect();return[selector,[b.x+scrollX,b.y+scrollY,b.width,b.height]]})));
@@ -113,7 +113,7 @@ async function main() {
   console.log('PASS stable login/register/reset card and control coordinates, retained input, keyboard-safe fields, no overflow at 320/375/820/1280 widths');
 
   // Run the UI against real account handlers with a mocked mail transport.
-  const emailContext=await browser.newContext(),emailPage=await emailContext.newPage();
+  const emailContext=await browser.newContext({locale:'vi-VN'}),emailPage=await emailContext.newPage();
   await emailPage.goto(origin+'/login?locked=1');await emailPage.getByRole('tab',{name:'Đăng ký',exact:true}).click();
   await emailPage.locator('#username').fill('browsermail');await emailPage.locator('#password').fill('SyntheticUiPassword42');await emailPage.locator('#name').fill('Synthetic UI');await emailPage.locator('#email').fill('ui@example.test');await emailPage.locator('#submit').click();
   await emailPage.locator('#recovery:not([hidden])').waitFor();assert.match(await emailPage.locator('#result-message').innerText(),/Tài khoản đã được tạo/);assert.equal(mail.length,0);
@@ -175,8 +175,8 @@ async function main() {
   assert((await page.getByRole('link',{name:'Email',exact:true}).getAttribute('href')).startsWith('mailto:'));assert((await page.getByRole('link',{name:'SMS',exact:true}).getAttribute('href')).startsWith('sms:'));
   await page.evaluate(()=>Object.defineProperty(navigator,'share',{configurable:true,value:async payload=>{globalThis.__sharedInvitation=payload}}));await page.getByRole('button',{name:'Messenger',exact:true}).click();const shared=await page.evaluate(()=>globalThis.__sharedInvitation);assert(new URL(shared.url).searchParams.get('invite')===invitation);
   await page.screenshot({path:evidence+'/owner-invitation.png',fullPage:true});await page.keyboard.press('Escape');
-  const recipient=await browser.newContext({viewport:{width:375,height:812}}),recipientPage=await recipient.newPage();await recipientPage.goto(shared.url);assert.equal(await recipientPage.getByRole('tab',{name:'Đăng ký',exact:true}).getAttribute('aria-selected'),'true');assert.equal(await recipientPage.locator('#invitation-code').inputValue(),invitation);await recipientPage.locator('#username').fill('invitednewuser');await recipientPage.locator('#password').fill('InvitedUserPassphrase42');await recipientPage.locator('#name').fill('New family member');await recipientPage.locator('#submit').click();await recipientPage.locator('#recovery:not([hidden])').waitFor();assert.match(await recipientPage.locator('#result-message').innerText(),/Đã tham gia gia đình/);await recipientPage.locator('#continue').click();await recipientPage.waitForFunction(id=>globalThis.BEP_SESSION?.household?.id===id,familyId);assert.equal(await recipientPage.evaluate(()=>globalThis.BEP_SESSION.household.role),'editor');await recipient.close();
-  const desktop=await browser.newContext({viewport:{width:1280,height:800}}),desktopPage=await desktop.newPage();await desktopPage.goto(origin+'/login');await desktopPage.locator('#username').fill(ownerUsername);await desktopPage.locator('#password').fill('synthetic-startup-passphrase-only');await desktopPage.locator('#submit').click();await desktopPage.waitForFunction(id=>globalThis.BEP_SESSION?.household?.id===id,familyId);await desktopPage.waitForFunction(id=>JSON.parse(localStorage.getItem('account/'+id+'/bep-gia-dinh-v1')||'{}').preferences?.budget===777,familyId);await desktop.close();
+  const recipient=await browser.newContext({locale:'vi-VN',viewport:{width:375,height:812}}),recipientPage=await recipient.newPage();await recipientPage.goto(shared.url);assert.equal(await recipientPage.getByRole('tab',{name:'Đăng ký',exact:true}).getAttribute('aria-selected'),'true');assert.equal(await recipientPage.locator('#invitation-code').inputValue(),invitation);await recipientPage.locator('#username').fill('invitednewuser');await recipientPage.locator('#password').fill('InvitedUserPassphrase42');await recipientPage.locator('#name').fill('New family member');await recipientPage.locator('#submit').click();await recipientPage.locator('#recovery:not([hidden])').waitFor();assert.match(await recipientPage.locator('#result-message').innerText(),/Đã tham gia gia đình/);await recipientPage.locator('#continue').click();await recipientPage.waitForFunction(id=>globalThis.BEP_SESSION?.household?.id===id,familyId);assert.equal(await recipientPage.evaluate(()=>globalThis.BEP_SESSION.household.role),'editor');await recipient.close();
+  const desktop=await browser.newContext({locale:'vi-VN',viewport:{width:1280,height:800}}),desktopPage=await desktop.newPage();await desktopPage.goto(origin+'/login');await desktopPage.locator('#username').fill(ownerUsername);await desktopPage.locator('#password').fill('synthetic-startup-passphrase-only');await desktopPage.locator('#submit').click();await desktopPage.waitForFunction(id=>globalThis.BEP_SESSION?.household?.id===id,familyId);await desktopPage.waitForFunction(id=>JSON.parse(localStorage.getItem('account/'+id+'/bep-gia-dinh-v1')||'{}').preferences?.budget===777,familyId);await desktop.close();
   console.log('PASS visible invitations, share composers, invitation-link signup/join and fresh desktop family sync');
   assert.match(invitation,/^[A-Z2-9]{4}-[A-Z2-9]{4}$/,'short 8-char invite code');
   assert.equal(await page.locator('[data-personal=voice]').count(),1,'only one Voice Input button on Today');

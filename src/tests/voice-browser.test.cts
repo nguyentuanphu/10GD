@@ -17,7 +17,7 @@ async function main(){
  const browser=await chromium.launch();
  async function open({viewport=sizes.mobile,lang='vi',theme='light',voicePrefs=null as null|Record<string,string>,languages=null as null|string[],hold=false}={}){
   if(!hold)voicePrefs={'bep-voice-ptt-v171':'1','bep-voice-ptt':'0',...(voicePrefs||{})};
-  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any});
+  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any});
   if(languages)await context.addInitScript((l:string[])=>{Object.defineProperty(navigator,'languages',{get:()=>l});Object.defineProperty(navigator,'language',{get:()=>l[0]})},languages);
   await context.addInitScript(({lang,theme,voicePrefs})=>{const w=window as any;
    if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');localStorage.removeItem('bep-voice-lang');localStorage.removeItem('bep-voice-auto');localStorage.setItem('bep-voice-slow','1');if(voicePrefs)for(const[k,v]of Object.entries(voicePrefs))localStorage.setItem(k,v)}

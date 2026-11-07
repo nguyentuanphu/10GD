@@ -15,7 +15,7 @@ const EMOJI=/\p{Emoji_Presentation}|\p{Extended_Pictographic}️/u;
  const browser=await chromium.launch();
  try{
   for(const [size,lang] of [['mobile','vi'],['narrow','vi'],['tablet','en'],['desktop','vi']] as const){
-   const context=await browser.newContext({viewport:sizes[size],serviceWorkers:'block',reducedMotion:'reduce',timezoneId:'Australia/Sydney'});
+   const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],serviceWorkers:'block',reducedMotion:'reduce',timezoneId:'Australia/Sydney'});
    await context.addInitScript((lang:string)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-local-locked','yes');localStorage.setItem('guest/bep-language',lang)},lang);
    const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
    await page.route(origin+'/**',async(r:any)=>{const u=new URL(r.request().url());if(u.pathname.startsWith('/.netlify/'))return r.fulfill({status:401,json:{error:'no'}});if(u.pathname==='/startup-scripts.json')return r.fulfill({json:JSON.parse(readFileSync('dist/startup-scripts.json','utf8'))});const f=resolve('dist',u.pathname==='/'?'index.html':u.pathname.slice(1));try{await r.fulfill({contentType:mime[extname(f)]||'application/octet-stream',body:readFileSync(f)})}catch{await r.fulfill({status:404,body:''})}});
@@ -36,7 +36,7 @@ const EMOJI=/\p{Emoji_Presentation}|\p{Extended_Pictographic}️/u;
    assert.deepEqual(errors,[]);await context.close();
   }
   // family-authored text is never rewritten: an emoji the family typed stays as typed
-  {const context=await browser.newContext({viewport:sizes.mobile,serviceWorkers:'block'});const page=await context.newPage();await page.setContent(`<div id="a">Đi chợ 🛒 <b data-user-content>Món của Bố 🍜</b><select><option>🛒 Đi chợ</option></select><button title="🛒 Mở">x</button></div><script>${readFileSync('dist/emoji-art.js','utf8')}</script>`);await page.waitForTimeout(100);
+  {const context=await browser.newContext({locale:'vi-VN',viewport:sizes.mobile,serviceWorkers:'block'});const page=await context.newPage();await page.setContent(`<div id="a">Đi chợ 🛒 <b data-user-content>Món của Bố 🍜</b><select><option>🛒 Đi chợ</option></select><button title="🛒 Mở">x</button></div><script>${readFileSync('dist/emoji-art.js','utf8')}</script>`);await page.waitForTimeout(100);
    assert.equal(await page.locator('[data-user-content]').innerText(),'Món của Bố 🍜');assert.equal(await page.locator('#a span.emo-art').count(),1,'interface emoji drawn');assert.equal((await page.locator('option').innerText()).trim(),'Đi chợ','options drop emoji');assert.equal(await page.locator('button').getAttribute('title'),'Mở');await context.close()}
   console.log('PASS no emoji in the interface: today, planner, shopping, recipes, insights and settings at 320/375/820/1280 (VI/EN), drawings shown, no overflow; family text kept as typed; options and titles without emoji');
  }finally{await browser.close()}

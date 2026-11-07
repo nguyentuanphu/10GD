@@ -49,7 +49,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
  const shot=async(page:any,name:string)=>{await page.waitForTimeout(80);await page.screenshot({path:`${out}/${name}.png`})};
  const auditCount=async()=>{const r=await call(studio,'studio','audit&type=view_urgent_family',{method:'GET',cookie:henry});return (await r.json()).items.filter((x:any)=>x.action==='view_urgent_family').length};
  async function studioPage(size:string,lang:string,theme:string,cookie=henry){
-  const context=await browser.newContext({viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme as any,hasTouch:size!=='desktop'});
+  const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme as any,hasTouch:size!=='desktop'});
   await context.addInitScript(({lang,theme}:any)=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});
   await context.addCookies([{name:cookie.split('=')[0],value:cookie.split('=').slice(1).join('='),domain:'kitchen.test',path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
   const page=await context.newPage(),errors:string[]=[],log:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page,log);return{context,page,errors,log}}
@@ -99,7 +99,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
 
  // app urgent panel: the sender sees a one-line fix for a failed alert (device-only page, alert injected)
  for(const [size,lang,theme] of [['mobile','vi','light'],['tablet','en','dark'],['desktop','vi','dark']] as const){
-  const context=await browser.newContext({viewport:sizes[size],serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme,hasTouch:size!=='desktop'});
+  const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme,hasTouch:size!=='desktop'});
   await context.addInitScript(({lang,theme}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes')},{lang,theme});
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page);
   await page.goto(origin+'/#today',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>typeof (globalThis as any).urgentMarkup==='function'&&document.querySelector('#main h1'),null,{timeout:20000});

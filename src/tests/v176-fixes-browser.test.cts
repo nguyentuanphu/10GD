@@ -18,7 +18,7 @@ const TEXT_CHECK=`(()=>{const out=[];const scope=document.querySelector('#modal-
  return out})()`;
 (async()=>{const browser=await chromium.launch();const root=process.cwd();
 for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
- const ctx=await browser.newContext({viewport,reducedMotion:'reduce',timezoneId:'Australia/Sydney',serviceWorkers:'block'});
+ const ctx=await browser.newContext({locale:'vi-VN',viewport,reducedMotion:'reduce',timezoneId:'Australia/Sydney',serviceWorkers:'block'});
  await ctx.addInitScript((l:string)=>{if(sessionStorage.getItem('qa'))return;sessionStorage.setItem('qa','1');localStorage.setItem('guest/bep-language',l)},lang);
  const page=await ctx.newPage();const errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));
  await page.route('https://kitchen.test/**',async(route:any)=>{const url=new URL(route.request().url());if(url.pathname.startsWith('/.netlify/')){const op=url.searchParams.get('op');return route.fulfill({json:op==='status'?{configured:false,connected:false}:op==='state'?{state:null,etag:null}:op==='families'?{families:[]}:{announcements:[],devices:[]}})}const file=path.join(root,'dist',url.pathname==='/'?'index.html':url.pathname);try{await route.fulfill({body:fs.readFileSync(file),contentType:({'.html':'text/html','.js':'application/javascript','.json':'application/json','.css':'text/css','.webp':'image/webp','.svg':'image/svg+xml','.png':'image/png'} as any)[path.extname(file)]||'application/octet-stream'})}catch{await route.fulfill({status:404,body:'Missing'})}});

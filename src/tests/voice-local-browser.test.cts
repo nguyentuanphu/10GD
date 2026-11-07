@@ -25,7 +25,7 @@ async function main(){
  const posts:any[]=[],external:string[]=[];
  // ---------------- Part A: the voice sheet ----------------
  async function open({viewport=sizes.mobile,lang='vi',theme='light',slowWorker=false}={} as any){
-  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme,hasTouch:viewport.width<1000});
+  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme,hasTouch:viewport.width<1000});
   await context.addInitScript(({lang,theme})=>{const w=window as any;
    if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');localStorage.setItem('bep-voice-slow','1');localStorage.setItem('bep-voice-ptt-v171','1');localStorage.setItem('bep-voice-ptt','0')}
    w.__recs=[];class FakeRec{lang='';started=false;ended=false;onresult:any;onend:any;onerror:any;constructor(){w.__recs.push(this)}start(){this.started=true}stop(){this.end()}abort(){this.end()}end(){if(this.ended)return;this.ended=true;setTimeout(()=>this.onend&&this.onend(),0)}}
@@ -173,7 +173,7 @@ async function main(){
    const seed=[['vi','browser',['rau răm','bánh tráng mè'],[{phrase:'rau răm',id:'vietnameseMint',kind:'ingredient'}]],['vi','browser',['rau răm','lá lốt'],[]],['vi','local-base',['lá lốt'],[{phrase:'lá lốt',id:'betelLeaf',kind:'ingredient'}]],['en','browser',['galangal'],[{phrase:'galangal',id:'galangal',kind:'ingredient'}]],['en','local-small',[],[]],['auto','local-base',['canh chua cá lóc'],[{phrase:'canh chua cá lóc',id:'canh-chua-ca',kind:'recipe'}]],['vi','typed',[],[]],['en','browser',['bok choy baby'],[]]];
    let i=0;for(const [lang,recognizer,unrecognised,corrections] of seed){const r=await handlers['voice-stats'](new Request(origin+'/.netlify/functions/voice-stats?op=submit',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json','x-voice-stats-device':'studio-seed-device-'+String(i%3).padStart(8,'0'),'x-nf-client-connection-ip':'s'+(i++)},body:JSON.stringify({ts:new Date().toISOString(),lang,recognizer,transcript:'synthetic',unrecognised,corrections,items:1})}));assert.equal(r.status,201)}
    async function studio(size:string,lang:string,theme:string){
-    const context=await browser.newContext({viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme as any,hasTouch:size!=='desktop',acceptDownloads:true});
+    const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme as any,hasTouch:size!=='desktop',acceptDownloads:true});
     await context.addInitScript(({lang,theme}:any)=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});
     await context.addCookies([{name:henry.split('=')[0],value:henry.split('=').slice(1).join('='),domain:'kitchen.test',path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
     const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));

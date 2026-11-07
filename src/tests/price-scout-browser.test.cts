@@ -33,7 +33,7 @@ async function main(){
  mkdirSync(out,{recursive:true});
  const browser=await chromium.launch();const shots=[];
  async function open({viewport=sizes.mobile,lang='vi',theme='light',scout=null,account=false,offline=false,path='/#shopping',api=null}={}){
-  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme});
+  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme});
   const scope=account?'account/qa-household/':'guest/';
   await context.addInitScript(({scope,lang,theme,scout,account})=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem(scope+'bep-language',lang);if(account)localStorage.setItem('bep-account-present','yes');else localStorage.setItem('bep-local-locked','yes');if(scout)localStorage.setItem(scope+'bep-price-scout-v1',JSON.stringify(scout));else localStorage.removeItem(scope+'bep-price-scout-v1')},{scope,lang,theme,scout,account});
   const page=await context.newPage(),errors=[],calls=[];

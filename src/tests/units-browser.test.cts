@@ -37,7 +37,7 @@ async function main(){
  const sheet=iconSheet();writeFileSync(out+'/unit-icons.html',sheet);
  const browser=await chromium.launch();const shots:string[]=[];
  async function open({viewport=sizes.mobile,lang='vi',theme='light'}:any={}){
-  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme});
+  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme});
   await context.addInitScript(({lang,theme})=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');localStorage.removeItem('guest/bep-recent-units')},{lang,theme});
   const page=await context.newPage(),errors:string[]=[];
   page.on('pageerror',e=>errors.push(e.message));
@@ -119,7 +119,7 @@ async function main(){
   }
   // 3. Icon sheet (generated from the registry) at the three sizes, light and dark.
   for(const theme of ['light','dark'])for(const size of ['mobile','tablet','desktop']){
-   const context=await browser.newContext({viewport:sizes[size],colorScheme:theme as any});const page=await context.newPage();await page.setContent(sheet.replace('<html lang="vi">',`<html lang="vi" data-theme="${theme}">`));
+   const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],colorScheme:theme as any});const page=await context.newPage();await page.setContent(sheet.replace('<html lang="vi">',`<html lang="vi" data-theme="${theme}">`));
    const n=await page.locator('figure svg').count();assert.ok(n>=41*3,'icon sheet lists every unit icon');await overflow(page,'icon sheet '+size);
    await shot(page,`icon-sheet-${theme}-${size}`);await context.close();
   }

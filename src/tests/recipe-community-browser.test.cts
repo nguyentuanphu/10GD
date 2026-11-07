@@ -49,7 +49,7 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
  const noOverflow=async(page:any,label:string)=>{const w=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert.ok(w<=1,label+' horizontal overflow '+w)};
  const shot=async(page:any,name:string)=>{await page.evaluate(()=>{const t=document.querySelector('#toast');if(t)t.className=''});await page.waitForTimeout(120);const f=`${out}/${name}.jpg`;await page.screenshot({path:f,type:'jpeg',quality:70});const kb=statSync(f).size/1024;assert.ok(kb<250,`${name}.jpg is ${kb.toFixed(0)} KB`)};
  async function openApp({viewport=sizes.mobile,ua=IPHONE,touch=true,lang='vi',theme='light',account=false,hash='recipes'}:any={}){
-  const context=await browser.newContext({viewport,userAgent:ua,hasTouch:touch,isMobile:touch&&viewport.width<900,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme==='dark'?'dark':'light'});
+  const context=await browser.newContext({locale:'vi-VN',viewport,userAgent:ua,hasTouch:touch,isMobile:touch&&viewport.width<900,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme==='dark'?'dark':'light'});
   await context.addInitScript(({account,lang}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-guide-done','1');if(account)localStorage.setItem('bep-account-present','yes');else localStorage.setItem('bep-local-locked','yes')},{account,lang});
   if(account)await context.addCookies([cookieOf(mumCookie)]);
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page,{account});
@@ -219,7 +219,7 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   await page.locator('#meal-lib-list').scrollIntoViewIfNeeded();await noOverflow(page,`${name} meal`);await shot(page,`${name}-meal-search-${lang}-${theme}`);
   assert.deepEqual(errors,[]);await context.close()}
  // Studio page (owner), three sizes
- for(const [name,viewport] of Object.entries(sizes) as any[]){const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce'});await context.addCookies([cookieOf(henry)]);const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page,{account:false});
+ for(const [name,viewport] of Object.entries(sizes) as any[]){const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce'});await context.addCookies([cookieOf(henry)]);const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page,{account:false});
   await page.goto(origin+'/studio.html#recipes');await page.locator('#recipes-main .cr-tabs').waitFor({timeout:20000});await page.locator('[data-cr-tab="all"]').click();await page.locator('#recipes-main .cr-item').first().waitFor();
   assert.match(await page.locator('#nav').textContent(),/Món ăn cộng đồng|Community recipes/);await noOverflow(page,'studio '+name);await shot(page,`${name}-studio-vi`);assert.deepEqual(errors,[]);await context.close()}
  await browser.close();console.log('Recipe form, photos, community recipes and meal search: browser checks passed.');

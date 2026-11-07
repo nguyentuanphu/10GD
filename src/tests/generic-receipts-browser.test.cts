@@ -39,7 +39,7 @@ const fakeVoice=()=>{class FakeRec{constructor(){this.lang='vi-VN';this.continuo
 
 (async()=>{const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});
  async function open({size='mobile',lang='vi',theme='light',account=false,community=COMMUNITY,status=STATUS,hash='#expenses'}:any={}){
-  const context=await browser.newContext({viewport:SIZES[size],reducedMotion:'reduce',colorScheme:theme,serviceWorkers:'block',hasTouch:size!=='desktop',isMobile:size==='narrow'||size==='mobile'});
+  const context=await browser.newContext({locale:'vi-VN',viewport:SIZES[size],reducedMotion:'reduce',colorScheme:theme,serviceWorkers:'block',hasTouch:size!=='desktop',isMobile:size==='narrow'||size==='mobile'});
   const scope=account?'account/qa-household/':'guest/';
   await context.addInitScript(({scope,lang,theme,account})=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem(scope+'bep-language',lang);if(account){localStorage.setItem('bep-account-present','yes');localStorage.setItem(scope+'bep-price-scout-v1',JSON.stringify({version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:[],pending:[],pool:null,communityBranch:{suburb:'Cabramatta',postcode:'2166'}}))}else localStorage.setItem('bep-local-locked','yes')},{scope,lang,theme,account});
   await context.addInitScript(fakeVoice);
@@ -173,7 +173,7 @@ const fakeVoice=()=>{class FakeRec{constructor(){this.lang='vi-VN';this.continuo
 
   // ---------- 4. Studio: unverified single reports shown distinctly
   for(const [size,lang,theme] of [['mobile','vi','light'],['desktop','en','dark']]){
-   const context=await browser.newContext({viewport:SIZES[size],reducedMotion:'reduce',colorScheme:theme});await context.addInitScript(({lang,theme})=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});
+   const context=await browser.newContext({locale:'vi-VN',viewport:SIZES[size],reducedMotion:'reduce',colorScheme:theme});await context.addInitScript(({lang,theme})=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});
    const page=await context.newPage(),errors=[],posts=[];page.on('pageerror',e=>errors.push(e.message));
    const sub={kind:'unverified',state:'NSW',id:'cp-qa-u1',groupId:'aaaa000011112222',itemId:'rau-muong',label:'Water spinach',retailer:'viet-grocer',branchLabel:'Cabramatta 2166',branchId:'viet-grocer:2166:cabramatta',price:3.2,unitPrice:null,unitBasis:null,capturedAt:now,submittedAt:now,status:'accepted',holdReason:null,flags:[],approved:false,shadow:false,counted:true,evidence:{type:'receipt',generic:true,of:null,ocrPrice:null,ocrMatches:null,hash:null},photo:false,families:1,reportsCount:1,contributor:{account:'qa-family-a',trust:0.62,banned:false,flags:[],submissions:4}};
    const MOD={stats:{submissions:12,confirmed:4,pending:3,unverified:1,held:0,reportsOpen:0,contributors:5,banned:0,trust:{'<0.3':0,'0.3–0.7':4,'≥0.7':1},hidden:0,rejected:0},queue:[sub],coi:[],applications:[],shopPrices:[],rewards:{contributors:[],leaderboards:{},config:{},defaults:{},levels:[]},products:[],pilot:{enabled:true,states:['NSW','QLD']},flagSource:'default',rules:{}};

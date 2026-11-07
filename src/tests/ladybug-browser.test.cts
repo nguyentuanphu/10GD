@@ -46,7 +46,7 @@ const dim=(s:string)=>`${sizes[s].width}x${sizes[s].height}`;
  const shot=async(page:any,name:string)=>{await page.waitForTimeout(120);await page.screenshot({path:`${out}/${name}.png`})};
  const cookieOf=(c:string)=>({name:c.split('=')[0],value:c.split('=').slice(1).join('='),domain:'kitchen.test',path:'/',secure:true,httpOnly:true,sameSite:'Strict' as const});
  async function openApp({who=null,size='mobile',lang='vi',theme='light',motion='reduce',hash='#today'}:any={}){
-  const vp=sizes[size],context=await browser.newContext({viewport:vp,serviceWorkers:'block',reducedMotion:motion,colorScheme:theme,hasTouch:size!=='desktop'});
+  const vp=sizes[size],context=await browser.newContext({locale:'vi-VN',viewport:vp,serviceWorkers:'block',reducedMotion:motion,colorScheme:theme,hasTouch:size!=='desktop'});
   const cookie=who==='henrynguyen'?henry:who==='tina'?tina:who==='olive'?olive:'';if(cookie)await context.addCookies([cookieOf(cookie)]);
   await context.addInitScript(({lang,theme,who}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);const scope=who?'account/qa/':'guest/';localStorage.setItem(scope+'bep-language',lang);if(who)localStorage.setItem('bep-account-present','yes');else localStorage.setItem('bep-local-locked','yes')},{lang,theme,who});
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page,who);
@@ -150,7 +150,7 @@ const dim=(s:string)=>`${sizes[s].width}x${sizes[s].height}`;
  const target=(await reports()).find((x:any)=>x.note.includes('chồng'));
  let shots=0;
  for(const [size,lang,theme] of [['desktop','vi','light'],['narrow','vi','light'],['mobile','en','dark'],['tablet','vi','dark'],['tablet','en','light'],['desktop','en','dark']] as const){
-  const context=await browser.newContext({viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme as any,hasTouch:size!=='desktop'});
+  const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme as any,hasTouch:size!=='desktop'});
   await context.addInitScript(({lang,theme}:any)=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});await context.addCookies([cookieOf(henry)]);
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page,'henrynguyen');
   await page.goto(origin+'/studio.html#feedback');await page.waitForSelector('#feedback-main .fb-list');
@@ -209,7 +209,7 @@ const dim=(s:string)=>`${sizes[s].width}x${sizes[s].height}`;
   assert.deepEqual(errors,[]);await context.close()}
  console.log('PASS responsive: Studio shortcut (top bar on desktop, account menu everywhere); bug and sheet at 320×740, 375×812, 820×1100, 1280×800 (light/dark, VI/EN), no overflow');
  // privacy page section linked from the sheet
- for(const lang of ['vi','en']){const context=await browser.newContext({viewport:sizes.mobile});const page=await context.newPage();await route(page,null);await page.goto(origin+`/privacy.html?lang=${lang}#feedback`);await page.waitForSelector(`main[lang="${lang}"] h1`);
+ for(const lang of ['vi','en']){const context=await browser.newContext({locale:'vi-VN',viewport:sizes.mobile});const page=await context.newPage();await route(page,null);await page.goto(origin+`/privacy.html?lang=${lang}#feedback`);await page.waitForSelector(`main[lang="${lang}"] h1`);
   const t=await page.locator(`main[lang="${lang}"] #${lang==='en'?'feedback-en':'feedback'}`).innerText();for(const w of lang==='en'?['only when you press','13 months','Network addresses are not stored']:['chỉ khi bạn bấm','13 tháng','Không lưu địa chỉ IP'])assert.ok(t.includes(w),lang+': '+w);assert.ok(!/netlify|blobs/i.test(t));await noOverflow(page,'privacy '+lang);await context.close()}
  console.log('PASS privacy page: Góp ý / Feedback section (VI/EN)');
  await browser.close();

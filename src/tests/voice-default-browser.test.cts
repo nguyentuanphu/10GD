@@ -21,7 +21,7 @@ async function main(){
  mkdirSync(out,{recursive:true});
  const browser=await chromium.launch();let shots=0;
  async function open({viewport=sizes.mobile,lang='vi',theme='light',ios=false,delay=1500,net=null as any,battery=null as any,stall=false,storage=null as any}={}){
-  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme,hasTouch:viewport.width<1000,...(ios?{userAgent:IPHONE,isMobile:true}:{})});
+  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme,hasTouch:viewport.width<1000,...(ios?{userAgent:IPHONE,isMobile:true}:{})});
   await context.addInitScript(({lang,theme,ios,delay,net,battery,storage})=>{const w=window as any;
    if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');if(storage){for(const [k,v] of Object.entries(storage))localStorage.setItem(k,String(v))}localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes')}
    w.BEP_VOICE_AUTO_TEST=true;if(delay!==null)w.BEP_VOICE_AUTO_DELAY_MS=delay;w.__t0=Date.now();

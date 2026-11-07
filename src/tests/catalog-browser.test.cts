@@ -14,7 +14,7 @@ const scrollTo=(page,sel)=>page.evaluate(sel=>{const el=document.querySelector(s
 const theme=(page,mode)=>page.evaluate(m=>{localStorage.setItem('bep-theme-mode',m);applyThemePreferences()},mode);
 (async()=>{const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});
 for(const [name,width,height] of [['mobile',375,812],['tablet',820,1100],['desktop',1280,800]]){
- const page=await browser.newPage({viewport:{width,height},reducedMotion:'reduce'}),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);
+ const page=await browser.newPage({locale:'vi-VN',viewport:{width,height},reducedMotion:'reduce'}),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);
  await page.goto('https://kitchen.test/#recipes');await page.locator('#family-recipe-search').waitFor({timeout:20000});await theme(page,'light');
  await page.evaluate(()=>{state.ingredientCatalog={'family-ing-la-lot':{name:'Lá lốt',unit:'g',group:'veg'}};hydrateFamilyIngredients(state);state.pantry.push({id:'lot-la-lot',ingredient:'family-ing-la-lot',qty:120,place:'fridge',expiry:''});state.recipes.push({id:'family-own-1',name:'Chả lá lốt nhà mình',category:'main',protein:'pork',time:30,servings:4,yield:4,ingredients:[{id:'pork',qty:400},{id:'family-ing-la-lot',qty:100}],prep:'Rửa lá lốt.',steps:['Trộn thịt.','Cuốn lá.','Áp chảo.'],favorite:false,custom:true,origin:'family',purposes:['main']});save();render()});
  await page.locator('[data-fm="samples"]').first().click();await page.locator('#toast.visible').waitFor({state:'hidden',timeout:10000});const cdp=await page.context().newCDPSession(page);

@@ -30,7 +30,7 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
  mkdirSync(out,{recursive:true});const browser=await chromium.launch();
  const version=JSON.parse(readFileSync('package.json','utf8')).version;assert.equal(JSON.parse(readFileSync('dist/build.json','utf8')).version,version,'build.json carries the release number (Studio reads it)');
  async function open(size:string,lang='vi',theme='light',scoutSeed?:any,{auto=false}:any={}){
-  const context=await browser.newContext({viewport:sizes[size],serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any,timezoneId:'Australia/Sydney'});
+  const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any,timezoneId:'Australia/Sydney'});
   const scope='account/qa-household/',scout=scoutSeed||{version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:[],pending:[],pool:null};
   await context.addInitScript(({scope,lang,theme,scout}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem(scope+'bep-language',lang);localStorage.setItem('bep-account-present','yes');localStorage.setItem(scope+'bep-price-scout-v1',JSON.stringify(scout))},{scope,lang,theme,scout});
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));

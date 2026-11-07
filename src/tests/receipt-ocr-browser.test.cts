@@ -32,7 +32,7 @@ const truth=key=>{const sum=RECEIPTS[key].expect;return sum};
 
 (async()=>{const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});
  // ---------- 1. full pipeline on synthetic renders (desktop, once)
- {const context=await browser.newContext({viewport:{width:1280,height:800},reducedMotion:'reduce'}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);
+ {const context=await browser.newContext({locale:'vi-VN',viewport:{width:1280,height:800},reducedMotion:'reduce'}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);
   await page.goto('https://kitchen.test/#expenses');await page.locator('#main .page-heading').waitFor({timeout:20000});await page.evaluate(seed);
   for(const key of ['aldi-wolli-creek','coles-16-waterloo']){
    const file=await renderReceipt(page,RECEIPTS[key].text);const t0=Date.now();
@@ -54,7 +54,7 @@ const truth=key=>{const sum=RECEIPTS[key].expect;return sum};
 
  // ---------- 2/3. form, reconciliation, duplicates, refund, UK, So Giá at three sizes
  for(const [name,width,height,langs] of [['mobile',375,812,['vi','en']],['tablet',820,1100,['vi']],['desktop',1280,800,['vi']]]){
-  const phone=width<=760,context=await browser.newContext({viewport:{width,height},reducedMotion:'reduce',hasTouch:phone,isMobile:phone}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);
+  const phone=width<=760,context=await browser.newContext({locale:'vi-VN',viewport:{width,height},reducedMotion:'reduce',hasTouch:phone,isMobile:phone}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);
   await page.goto('https://kitchen.test/#expenses');await page.locator('#main .page-heading').waitFor({timeout:20000});await page.waitForTimeout(400);await page.evaluate(seed);
   for(const lang of langs){
    await page.evaluate(l=>{changeAppLanguage(l);state.receipts=[];state.pantry=state.pantry.filter(p=>!['salmon','corn'].includes(p.ingredient));const w=currentWeek();for(const id of ['salmon','corn']){delete w.bought[id];delete (w.boughtAt||{})[id]}save();closeModal();render()},lang);

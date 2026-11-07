@@ -34,7 +34,7 @@ async function main(){
  const evidence='docs/reviews/v1.7.3/sync-merge';mkdirSync(evidence,{recursive:true});
  const shot=async(page:any,file:string)=>{await page.evaluate(()=>{const t=document.querySelector('#toast');if(t)t.className=''});await page.screenshot({path:`${evidence}/${file}.jpg`,type:'jpeg',quality:72});const kb=statSync(`${evidence}/${file}.jpg`).size/1024;assert.ok(kb<250,`${file}.jpg is ${kb.toFixed(0)} KB`)};
  const noOverflow=async(page:any,label:string)=>assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'horizontal overflow: '+label);
- const device=async(label:string)=>{const context=await browser.newContext({viewport:{width:375,height:812},isMobile:true,hasTouch:true,reducedMotion:'reduce',serviceWorkers:'block'});const eq=cookie.indexOf('=');await context.addCookies([{name:cookie.slice(0,eq),value:cookie.slice(eq+1),domain:'kitchen.localhost',path:'/'}]);
+ const device=async(label:string)=>{const context=await browser.newContext({locale:'vi-VN',viewport:{width:375,height:812},isMobile:true,hasTouch:true,reducedMotion:'reduce',serviceWorkers:'block'});const eq=cookie.indexOf('=');await context.addCookies([{name:cookie.slice(0,eq),value:cookie.slice(eq+1),domain:'kitchen.localhost',path:'/'}]);
   await context.addInitScript(()=>{try{localStorage.setItem('bep-account-present','yes');localStorage.setItem('bep-theme-mode','light')}catch{}
    // Record any appearance of the blocking two-device dialog.
    document.addEventListener('DOMContentLoaded',()=>new MutationObserver(()=>{const t=document.querySelector('#modal-title')?.textContent||'';if(/Hai thiết bị|Two devices changed/.test(t))(window as any).__clash=true}).observe(document.body,{childList:true,subtree:true}))});

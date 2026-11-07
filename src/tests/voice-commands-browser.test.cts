@@ -17,7 +17,7 @@ async function main(){
  async function open({viewport=sizes.mobile,lang='vi',theme='light',prefs={} as Record<string,string>,voices=['vi-VN','en-AU']}={}){
   // v1.7.1: hold-to-talk is the default; sections that test commands choose tap mode explicitly (section 5 tests hold).
   if(!('bep-voice-ptt' in prefs))prefs={'bep-voice-ptt-v171':'1','bep-voice-ptt':'0',...prefs};
-  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any});
+  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any});
   await context.addInitScript(({lang,theme,prefs,voices})=>{const w=window as any;
    if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');localStorage.setItem('bep-voice-slow','1');for(const[k,v]of Object.entries(prefs))localStorage.setItem(k,v as string)}
    w.__recs=[];class FakeRec{lang='';n=0;started=false;ended=false;continuous:any;onresult:any;onend:any;onerror:any;constructor(){w.__recs.push(this)}start(){this.started=true}stop(){this.end()}abort(){this.end()}end(){if(this.ended)return;this.ended=true;setTimeout(()=>this.onend&&this.onend(),0)}}

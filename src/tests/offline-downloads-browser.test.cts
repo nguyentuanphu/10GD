@@ -28,7 +28,7 @@ async function main() {
   try {
     // ---- Lazy catalog paths and offline behaviour (one device, mobile size) ----
     {
-      const context = await browser.newContext({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce', serviceWorkers: 'allow' });
+      const context = await browser.newContext({locale:'vi-VN', viewport: { width: 375, height: 812 }, reducedMotion: 'reduce', serviceWorkers: 'allow' });
       const page = await context.newPage(); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
       const ready = () => page.waitForFunction(() => (window as any).BEP_STARTUP?.ready, null, { timeout: 60000 });
       const loaded = () => page.evaluate(() => (window as any).catalogLoaded());
@@ -99,7 +99,7 @@ async function main() {
     }
     // ---- Downloads screen: responsive, bilingual, light/dark; a real download ----
     for (const [vw, vh] of [[375, 812], [820, 1100], [1280, 800]]) for (const lang of ['vi', 'en']) for (const theme of ['light', 'dark']) {
-      const context = await browser.newContext({ viewport: { width: vw, height: vh }, reducedMotion: 'reduce', serviceWorkers: 'allow' });
+      const context = await browser.newContext({locale:'vi-VN', viewport: { width: vw, height: vh }, reducedMotion: 'reduce', serviceWorkers: 'allow' });
       await context.addInitScript(([l, t]) => { localStorage.setItem('guest/bep-language', l); localStorage.setItem('bep-theme-mode', t); }, [lang, theme]);
       const page = await context.newPage(); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
       await page.goto(origin + '/', { waitUntil: 'domcontentloaded' }); await page.waitForFunction(() => (window as any).BEP_STARTUP?.ready, null, { timeout: 60000 });
@@ -152,7 +152,7 @@ async function main() {
     for (const dev of [
       { name: 'ipad', viewport: { width: 820, height: 1180 }, ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15', platform: 'MacIntel', touch: 5 },
       { name: 'iphone', viewport: { width: 375, height: 812 }, ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1', platform: 'iPhone', touch: 5 }]) for (const lang of ['vi', 'en']) {
-      const context = await browser.newContext({ viewport: dev.viewport, userAgent: dev.ua, hasTouch: true, reducedMotion: 'reduce', serviceWorkers: 'allow' });
+      const context = await browser.newContext({locale:'vi-VN', viewport: dev.viewport, userAgent: dev.ua, hasTouch: true, reducedMotion: 'reduce', serviceWorkers: 'allow' });
       await context.addInitScript(([l, p, t]) => { localStorage.setItem('guest/bep-language', l as string); Object.defineProperty(Navigator.prototype, 'platform', { get: () => p }); Object.defineProperty(Navigator.prototype, 'maxTouchPoints', { get: () => t }); Object.defineProperty(Navigator.prototype, 'gpu', { get: () => undefined }); }, [lang, dev.platform, dev.touch]);
       const page = await context.newPage(); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
       await page.goto(origin + '/', { waitUntil: 'domcontentloaded' }); await page.waitForFunction(() => (window as any).BEP_STARTUP?.ready, null, { timeout: 60000 });

@@ -19,7 +19,7 @@ const seed=()=>{const mk=(id,name,cat,protein,ings)=>({id,name,category:cat,prot
  selectedDate=addDays(weekStart,1);const w=currentWeek(),day=w.days[selectedDate];w.familyMode=true;for(const t of MEAL_TYPES)if(day[t]){day[t].cooked=false;if(t!=='breakfast')day[t].recipes=[]}day.dinner.recipes=['qa-canh','qa-ga','qa-rau'].map(id=>clone(state.recipes.find(r=>r.id===id)));day.breakfast.recipes=[clone(state.recipes.find(r=>r.id==='qa-bo'))];save();view='planner';location.hash='planner';render()};
 (async()=>{const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});
 for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet',820,1100],['desktop',1280,800]]){
- const phone=width<=760,context=await browser.newContext({viewport:{width,height},reducedMotion:'reduce',hasTouch:name!=='desktop',isMobile:phone}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);
+ const phone=width<=760,context=await browser.newContext({locale:'vi-VN',viewport:{width,height},reducedMotion:'reduce',hasTouch:name!=='desktop',isMobile:phone}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await route(page);
  const tap=loc=>name!=='desktop'?loc.tap():loc.click();
  await page.goto('https://kitchen.test/#planner');await page.locator('#main .page-heading').waitFor({timeout:20000});await page.waitForTimeout(500);
  await page.evaluate(seed);await page.waitForTimeout(200);await theme(page,'light');

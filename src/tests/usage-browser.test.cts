@@ -38,7 +38,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
  const noOverflow=async(page:any,label:string)=>{const w=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);assert.ok(w<=1,label+' horizontal overflow '+w)};
  const shot=async(page:any,name:string)=>{await page.waitForTimeout(80);await page.screenshot({path:`${out}/${name}.png`})};
  async function openApp({viewport=sizes.mobile,lang='vi',theme='light',init=''}:any={}){
-  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme,hasTouch:viewport.width<1000});
+  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme,hasTouch:viewport.width<1000});
   await context.addInitScript(({lang,theme,init}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');if(init)(0,eval)(init)},{lang,theme,init});
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));await route(page);
   await page.goto(origin+'/#today',{waitUntil:'domcontentloaded'});
@@ -120,7 +120,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
 
  // ---------- 7. privacy page ----------
  for(const [size,lang,theme] of [['mobile','vi','light'],['tablet','en','dark'],['desktop','en','light'],['narrow','vi','dark']] as const){
-  const context=await browser.newContext({viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme});const page=await context.newPage();await route(page);
+  const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme});const page=await context.newPage();await route(page);
   await page.goto(origin+`/privacy.html?lang=${lang}#usage`);await page.waitForSelector(`main[lang="${lang}"] h1`);
   const visible=await page.locator(`main[lang="${lang}"]`).isVisible(),other=await page.locator(`main[lang="${lang==='vi'?'en':'vi'}"]`).isVisible();assert.ok(visible&&!other,'one language shown');
   const body=await page.locator(`main[lang="${lang}"]`).innerText();assert.match(body,lang==='en'?/Updated: 1 Nov 2026/:/Cập nhật: 1\/11\/2026/);
@@ -140,7 +140,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
   await send('studio-install-anon-00002',{platform:'tablet',days:[{day:D(3),secs:200,sessions:1,hours:hrs([12],200),features:{'price-scout':2,voice:1}}]},{g:geo('NZ','AUK')})}
  const log:string[]=[];
  for(const [size,lang,theme] of [['narrow','vi','light'],['mobile','vi','light'],['tablet','vi','light'],['desktop','vi','light'],['mobile','en','dark'],['tablet','en','dark'],['desktop','en','dark']] as const){
-  const context=await browser.newContext({viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme,hasTouch:size!=='desktop'});
+  const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme,hasTouch:size!=='desktop'});
   await context.addInitScript(({lang,theme}:any)=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});
   await context.addCookies([{name:henry.split('=')[0],value:henry.split('=').slice(1).join('='),domain:'kitchen.test',path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',(e:any)=>errors.push(e.message));log.length=0;await route(page,{log});

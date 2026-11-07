@@ -12,7 +12,7 @@ async function main() {
   const browser = await (process.env.QA_BROWSER === 'webkit' ? webkit : chromium).launch();
   try {
     async function open({ account = true, noHousehold = false, fault = '', baseline = false, viewport = { width: 375, height: 812 } } = {}) {
-      const context = await browser.newContext({ viewport, serviceWorkers: 'block', reducedMotion: 'reduce' });
+      const context = await browser.newContext({locale:'vi-VN', viewport, serviceWorkers: 'block', reducedMotion: 'reduce' });
       await context.addInitScript(account => {localStorage.setItem('qa-preserved','family-data-kept');if(account)localStorage.setItem('bep-account-present','yes')},account);
       const page = await context.newPage();
       if (fault === 'timeout') await page.clock.install();

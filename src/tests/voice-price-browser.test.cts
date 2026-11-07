@@ -26,7 +26,7 @@ async function main(){
  async function open({viewport=sizes.mobile as {width:number,height:number},lang='vi',theme='light',offline=false,hold=false,gated=false}={}){
   // gated: the recipe library request fails while gate.mode is 'fail', waits for gate.release() while 'hold'
   const gate:any={mode:gated?'fail':'serve',hits:0,release:()=>{}};gate.wait=new Promise(r=>{gate.release=()=>{gate.mode='serve';r(null)}});
-  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any});
+  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any});
   await context.addInitScript(({lang,theme,scout,hold})=>{const w=window as any;
    if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-voice-ptt-v171','1');localStorage.setItem('bep-voice-ptt',hold?'1':'0');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');localStorage.removeItem('bep-voice-lang');localStorage.removeItem('bep-voice-auto');localStorage.setItem('guest/bep-price-scout-v1',JSON.stringify(scout))}
    w.__recs=[];class FakeRec{lang='';n=0;started=false;ended=false;continuous=false;onresult:any;onend:any;onerror:any;constructor(){w.__recs.push(this)}start(){this.started=true}stop(){this.end()}abort(){this.end()}end(){if(this.ended)return;this.ended=true;setTimeout(()=>this.onend&&this.onend(),0)}}

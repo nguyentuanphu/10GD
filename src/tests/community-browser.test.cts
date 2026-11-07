@@ -39,7 +39,7 @@ async function main(){
  for(const f of readdirSync(out))if(f.endsWith('.png'))unlinkSync(`${out}/${f}`);// replace outdated screenshots
  const browser=await chromium.launch();const shots:string[]=[];
  async function open({viewport=sizes.mobile,lang='vi',theme='light',status=STATUS(),api,account=true,community=COMMUNITY,family=FAMILY,rewards=REWARDS,scoutExtra={}}:any={}){
-  const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme});
+  const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme});
   const scope=account?'account/qa-household/':'guest/',scout={version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:[],pending:[],pool:account?{at:Date.now(),observations:family,official:null}:null,...scoutExtra};
   await context.addInitScript(({scope,lang,theme,scout,account}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem(scope+'bep-language',lang);if(account)localStorage.setItem('bep-account-present','yes');else localStorage.setItem('bep-local-locked','yes');localStorage.setItem(scope+'bep-price-scout-v1',JSON.stringify(scout))},{scope,lang,theme,scout,account});
   const page=await context.newPage(),errors:string[]=[],calls:any[]=[];let linked:any=null;
@@ -208,7 +208,7 @@ async function main(){
   {const {page,context}=await open({lang:'en'});await page.waitForSelector('.scout-community .scout-cp');await context.setOffline(true);await page.evaluate('dispatchEvent(new Event("offline"));scoutRerender()');await page.waitForTimeout(200);assert.match(await page.locator('.scout-sub').innerText(),/Offline/);assert.ok(await page.locator('.scout-community .scout-cp').count()>0);await scrollTo(page,'.scout-community');await shot(page,'community-offline-en-light-mobile');await context.close()}
   // 8. Studio: moderation queue + rewards (leaderboard, ledger drawer, audited adjust with reason)
   for(const [lang,theme,size] of [['vi','light','mobile'],['en','dark','mobile'],['vi','light','tablet'],['en','dark','tablet'],['en','light','desktop'],['vi','dark','desktop']] as const){
-   const context=await browser.newContext({viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme});await context.addInitScript(({lang,theme}:any)=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});
+   const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme});await context.addInitScript(({lang,theme}:any)=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});
    const page=await context.newPage(),errors:string[]=[],posts:any[]=[],gets:string[]=[];page.on('pageerror',e=>errors.push(e.message));
    await page.route(origin+'/**',async route=>{const req=route.request(),url=new URL(req.url()),op=url.searchParams.get('op')||'';
     if(url.pathname.endsWith('/studio')){if(req.method()==='POST')posts.push({op,body:JSON.parse(req.postData()||'{}')});else gets.push(op);await route.fulfill({json:op==='me'?{username:'henrynguyen',name:'Henry',role:'owner',csrf:'qa'}:op==='community'?MOD:op==='community-ledger'?LEDGER:{done:true}});return}

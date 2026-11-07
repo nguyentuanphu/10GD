@@ -155,7 +155,7 @@ const mime:any={'.js':'application/javascript','.css':'text/css','.html':'text/h
  const sizes:any={narrow:[320,740],mobile:[375,812],tablet:[820,1100],desktop:[1280,800]};
  try{
   for(const [size,lang,theme] of [['narrow','vi','light'],['mobile','vi','light'],['tablet','en','dark'],['desktop','vi','light'],['desktop','en','dark']]){
-   const [w,h]=sizes[size];const context=await browser.newContext({viewport:{width:w,height:h},reducedMotion:'reduce',colorScheme:theme as any,hasTouch:size!=='desktop'});
+   const [w,h]=sizes[size];const context=await browser.newContext({locale:'vi-VN',viewport:{width:w,height:h},reducedMotion:'reduce',colorScheme:theme as any,hasTouch:size!=='desktop'});
    await context.addInitScript(({lang,theme}:any)=>{localStorage.setItem('studio-lang',lang);localStorage.setItem('studio-theme',theme)},{lang,theme});
    await context.addCookies([{name:henry.split('=')[0],value:henry.split('=').slice(1).join('='),domain:'kitchen.test',path:'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
    const p=await context.newPage();const errs:string[]=[];p.on('pageerror',(e:any)=>errs.push(e.message));
