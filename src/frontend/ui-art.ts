@@ -174,6 +174,8 @@ function decorateButtons(root:ParentNode=document){if(typeof document==='undefin
   const iconOnly=known&&!full.replace(BTN_SYMBOLS,'').replace(BTN_EMOJI,'').trim()&&!el.matches('.chip,a.chip,[role="tab"],summary');
   const draw=known&&(iconOnly||isMainButton(el));el.dataset.btnArt=draw?name!:(name===null?'own':'words');
   if(texts[0])texts[0].nodeValue=texts[0].nodeValue!.replace(BTN_EMOJI,'');
+  // word-only buttons drop the old decorative marks too (+ ✧ ↶ ▧ ⇅ …); status marks (✓ ✗) stay
+  if(!draw&&texts[0]&&texts[0].nodeValue!.replace(/^[\s+✧↶↷▧▤▦⇅⇵]+/u,'').trim())texts[0].nodeValue=texts[0].nodeValue!.replace(/^[\s+✧↶↷▧▤▦⇅⇵]+/u,'');
   if(draw){if(texts[0])texts[0].nodeValue=texts[0].nodeValue!.replace(/^[\s+✧↶↷▧▤▦↓↑⇅⇵✗✓↗→←‹›×≈•·☀☾]+/u,'');const last=texts[texts.length-1];if(last)last.nodeValue=last.nodeValue!.replace(/[\s▾▴↗→]+$/u,'')}
   if(texts.length===1){const v=texts[0].nodeValue!.trim();for(const[re,short]of BTN_SHORT)if(re.test(v)){texts[0].nodeValue=v.replace(re,short);if(!el.hasAttribute('aria-label'))el.setAttribute('aria-label',full.replace(/^[\s+✧↶▧▤⇅↗🔄🏷️📍📱🟢⚪👍👎🍲\u{FE0F}]+/u,''));el.title=el.title||full;break}}
   if(!(el.textContent||'').trim()&&!el.hasAttribute('aria-label'))el.setAttribute('aria-label',full||name||'');
