@@ -166,8 +166,10 @@ const BTN_MAIN:Record<string,string[]>={fm:['generate','edit-meal','quick-add-di
 const BTN_EMOJI=/^[\s🔄🏷️📍📱🟢⚪👍👎🍲\u{FE0F}]+/u;
 function isMainButton(el:HTMLElement):boolean{if(el.matches('.chip,a.chip,[role="tab"],summary'))return false;if(el.matches('.primary'))return true;
  for(const[attr,keys]of Object.entries(BTN_MAIN)){const v=(el.dataset as any)[attr];if(v!==undefined&&keys.includes(v))return true}return false}
+const btnSeen=new WeakMap<Element,string>();
 function decorateButtons(root:ParentNode=document){if(typeof document==='undefined')return;
- for(const el of root.querySelectorAll<HTMLElement>('button:not([data-btn-art]),a.btn:not([data-btn-art]),a.chip:not([data-btn-art]),[role="tab"]:not([data-btn-art]),summary:not([data-btn-art]),.chip:not([data-btn-art])')){
+ for(const el of root.querySelectorAll<HTMLElement>('button,a.btn,a.chip,[role="tab"],summary,.chip')){
+  if(el.dataset.btnArt&&btnSeen.get(el)===el.innerHTML)continue;/* decorated and unchanged; a screen that rewrites a button's contents gets it again */
   if(el.closest('.ladybug,#lb-root,svg'))continue;
   const tw=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);const texts:Text[]=[];let n:Node|null;while((n=tw.nextNode()))if((n as Text).nodeValue?.trim())texts.push(n as Text);
   const full=(el.textContent||'').replace(/\s+/g,' ').trim();const name=buttonArtName(el);const known=!!name&&name!=='other'&&!!UI_ART[name];
@@ -177,9 +179,9 @@ function decorateButtons(root:ParentNode=document){if(typeof document==='undefin
   // word-only buttons drop the old decorative marks too (+ ✧ ↶ ▧ ⇅ …); status marks (✓ ✗) stay
   if(!draw&&texts[0]&&texts[0].nodeValue!.replace(/^[\s+✧↶↷▧▤▦⇅⇵]+/u,'').trim())texts[0].nodeValue=texts[0].nodeValue!.replace(/^[\s+✧↶↷▧▤▦⇅⇵]+/u,'');
   if(draw){if(texts[0])texts[0].nodeValue=texts[0].nodeValue!.replace(/^[\s+✧↶↷▧▤▦↓↑⇅⇵✗✓↗→←‹›×≈•·☀☾]+/u,'');const last=texts[texts.length-1];if(last)last.nodeValue=last.nodeValue!.replace(/[\s▾▴↗→]+$/u,'')}
-  if(texts.length===1){const v=texts[0].nodeValue!.trim();for(const[re,short]of BTN_SHORT)if(re.test(v)){texts[0].nodeValue=v.replace(re,short);if(!el.hasAttribute('aria-label'))el.setAttribute('aria-label',full.replace(/^[\s+✧↶▧▤⇅↗🔄🏷️📍📱🟢⚪👍👎🍲\u{FE0F}]+/u,''));el.title=el.title||full;break}}
+  if(texts.length===1){const v=texts[0].nodeValue!.trim();for(const[re,short]of BTN_SHORT)if(re.test(v)){texts[0].nodeValue=v.replace(re,short);const clean=full.replace(/^[\s+✧↶↷▧▤▦⇅⇵↗🔄🏷️📍📱🟢⚪👍👎🍲\u{FE0F}]+/u,'').replace(/[\s▾▴↗→]+$/u,'');if(!el.hasAttribute('aria-label'))el.setAttribute('aria-label',clean);el.title=el.title||clean;break}}
   if(!(el.textContent||'').trim()&&!el.hasAttribute('aria-label'))el.setAttribute('aria-label',full||name||'');
-  if(draw)el.insertAdjacentHTML('afterbegin',uiArt(name!,'btn-art'));}}
+  if(draw&&!el.querySelector(':scope > .btn-art'))el.insertAdjacentHTML('afterbegin',uiArt(name!,'btn-art'));btnSeen.set(el,el.innerHTML);}}
 (globalThis as any).decorateButtons=decorateButtons;(globalThis as any).buttonArtName=buttonArtName;
 if(typeof document!=='undefined'){let queued=false;const run=()=>{queued=false;try{decorateButtons()}catch(e){console.warn('button art',e)}};
  new MutationObserver(()=>{if(!queued){queued=true;queueMicrotask(run)}}).observe(document.body,{childList:true,subtree:true});run()}
