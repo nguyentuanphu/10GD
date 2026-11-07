@@ -83,19 +83,22 @@ for(const [l,size,viewport] of [['vi','mobile',{width:375,height:812}],['en','de
  assert.match(await push.innerText(),l==='vi'?/cần tài khoản/:/need a free account/,label+': reminders need an account');assert.equal(await push.locator('a[href="/login"]').count(),1);
  await page.screenshot({path:`${dir}/${l}-${size}-reminders-account.png`});assert.deepEqual(errors,[],label+': no page errors');n++;await ctx.close()}
 
-// 11. (owner, 7 Nov 2026; AGENTS.md rule 27) every button, chip, tab and disclosure has a drawing; long labels are shortened
+// 11. (owner, 7 Nov 2026; AGENTS.md rule 27, then “Nhiều emoji quá, giảm bớt thôi”) drawings on the main buttons and icon-only buttons only;
+//     chips, tabs, disclosures and secondary buttons are words only; long labels are shortened
 for(const l of ['vi','en']){const {ctx,page,errors}=await open({locale:l==='vi'?'vi-VN':'en-AU',languages:[l==='vi'?'vi-VN':'en-AU']});
  await page.evaluate(`(()=>{state.preferences.onboardingComplete=true;const w=currentWeek();for(const d of Object.keys(w.days))w.days[d].dinner.recipes=[clone(state.recipes.find(x=>x.id==='r1'))];state.pantry.push({id:'q1',ingredient:'pork',qty:500,place:'fridge',expiry:''});save();render()})()`);
- const bare:string[]=[],long:string[]=[];
- const scan=async(where:string)=>{await page.waitForTimeout(400);const r:any=await page.evaluate(()=>{const out:any={bare:[],long:[]};const scope=document.querySelector('#modal-root .modal')||document.querySelector('#main');
+ const bare:string[]=[],long:string[]=[],extra:string[]=[];
+ const scan=async(where:string)=>{await page.waitForTimeout(400);const r:any=await page.evaluate(()=>{const out:any={bare:[],long:[],extra:[]};const MAIN='.primary,[data-fm="generate"],[data-fm="edit-meal"],[data-fm="quick-add-dish"],[data-fm="new"],[data-fm="cook-meal"],[data-fm="cook-batch"],[data-fm="undo-batch"],[data-action="start-cooking"],[data-action="add-to-meal"],[data-action="add-extra"],[data-action="add-stock"],[data-action="store-purchases"],[data-product="new"]';const scope=document.querySelector('#modal-root .modal')||document.querySelector('#main');
   for(const e of scope!.querySelectorAll<HTMLElement>('button, a.btn, a.chip, [role="tab"], .chip, summary')){const rc=e.getBoundingClientRect();if(!rc.width||!rc.height||getComputedStyle(e).visibility==='hidden')continue;
    if(e.matches('[data-color-theme],.day,.plan-day-head,.theme-fold-summary,[data-fm="recipe-snapshot"]')||e.closest('.ladybug'))continue;
-   const t=(e.innerText||'').replace(/\s+/g,' ').trim();if(!e.querySelector('svg,img,.ingredient-art,.dish-art,.pp-wrap'))out.bare.push(t.slice(0,40)||e.outerHTML.slice(0,60));
+   const t=(e.textContent||'').replace(/\s+/g,' ').trim();const pic=!!e.querySelector('svg,img,.ingredient-art,.dish-art,.pp-wrap');
+   if(e.matches(MAIN)&&!e.matches('.chip,[role="tab"],summary')&&!pic)out.bare.push(t.slice(0,40)||e.outerHTML.slice(0,60));if(!t&&!pic)out.bare.push(e.outerHTML.slice(0,60));
+   if(e.querySelector(':scope > .btn-art')&&t&&(e.matches('.chip,[role="tab"],summary')||!e.matches(MAIN)))out.extra.push(t.slice(0,40));
    const words=t.replace(/[\d()·/]+/g,'').trim();if(words.length>22&&rc.width<(e.parentElement?.getBoundingClientRect().width||9999)-4&&!e.matches('summary,.item-label,.shop-pantry-btn,.text-btn'))out.long.push(t.slice(0,50))}
-  return out});for(const b of r.bare)bare.push(where+': '+b);for(const x of r.long)long.push(where+': '+x)};
+  return out});for(const b of r.bare)bare.push(where+': '+b);for(const x of r.long)long.push(where+': '+x);for(const x of r.extra)extra.push(where+': '+x)};
  for(const v of ['today','planner','shopping','recipes','pantry','expenses','insights','products']){await page.evaluate(`closeModal();location.hash='${v}'`);await scan(v)}
  for(const [name,js] of [['settings',"otherSettingsModal('')"],['recipe',"showRecipe('r1')"],['edit meal',"familyEditMeal(sydneyDate(),'dinner')"],['push',"pushSettings()"]] as [string,string][]){await page.evaluate(`closeModal();${js}`);await scan(name)}
- assert.deepEqual(bare,[],l+': every button, chip and tab has a drawing '+JSON.stringify(bare));assert.deepEqual(long,[],l+': no long button labels '+JSON.stringify(long));
+ assert.deepEqual(bare,[],l+': main and icon-only buttons have a drawing '+JSON.stringify(bare));assert.deepEqual(extra,[],l+': no drawings on chips, tabs or secondary buttons '+JSON.stringify(extra));assert.deepEqual(long,[],l+': no long button labels '+JSON.stringify(long));
  await page.evaluate(`closeModal();location.hash='planner'`);await page.waitForTimeout(400);await page.screenshot({path:`${dir}/${l}-mobile-button-art.png`});assert.deepEqual(errors,[]);n++;await ctx.close()}
 
 // 9. responsive evidence: header, welcome card and the switch at four sizes, VI and EN, online and offline; sign-in page
@@ -117,5 +120,5 @@ for(const [size,viewport] of SIZES)for(const l of ['vi','en'])for(const net of [
   for(const b of await s.page.locator('[data-set-lang]').all())assert.ok((await b.boundingBox())!.height>=44,label+': sign-in switch ≥ 44 px');
   await s.page.screenshot({path:`${dir}/${l}-${size}-signin.png`});await s.page.locator('#register-tab').click();await s.page.screenshot({path:`${dir}/${l}-${size}-signup.png`});n++;await s.ctx.close()}}
 await browser.close();
-console.log(`PASS v1.7.11 FamTray · Bếp Nhà: So Giá and reminders need an account; drawings on every button; default language (vi phone, en phone, other phones, in-use devices stay Vietnamese, saved choice wins, VI │ EN switch, sign-in page), manifest, name/tagline at 320 / 375 / 820 / 1280 in VI and EN, online and offline (${n} checks)`);
+console.log(`PASS v1.7.11 FamTray · Bếp Nhà: So Giá and reminders need an account; drawings on main buttons only; default language (vi phone, en phone, other phones, in-use devices stay Vietnamese, saved choice wins, VI │ EN switch, sign-in page), manifest, name/tagline at 320 / 375 / 820 / 1280 in VI and EN, online and offline (${n} checks)`);
 })().catch(e=>{console.error(e);process.exit(1)});

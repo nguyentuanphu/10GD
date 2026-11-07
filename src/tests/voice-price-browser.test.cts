@@ -14,7 +14,7 @@ const sizes={mobile:{width:375,height:812},tablet:{width:820,height:1100},deskto
 const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const add=(d:string,n:number)=>new Date(Date.parse(d+'T00:00:00Z')+n*864e5).toISOString().slice(0,10);
 let n=0;const o=(itemId:string,label:string,retailer:string,price:number,packQty:number,packUnit:string)=>({id:'qa-obs-'+(++n),itemId,label,retailer,branchId:null,state:'NSW',price,currency:'AUD',packQty,packUnit,units:null,unitPrice:null,unitBasis:null,wasPrice:null,promo:null,validUntil:null,observedAt:add(today,-2),observedBy:'QA',source:'manual',note:null});
-const SCOUT={version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:[o('thit-ba-chi','Pork belly 1kg','woolworths',15,1,'kg'),o('thit-ba-chi','Pork belly 1kg','coles',14.5,1,'kg'),o('thit-ba-chi','Ba chỉ','viet-grocer',13.99,1,'kg'),o('thit-ba-chi','Pork belly','aldi',14,1,'kg')],pending:[],pool:null};
+const SCOUT={version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:[],pool:{at:Date.now(),official:null,observations:[o('thit-ba-chi','Pork belly 1kg','woolworths',15,1,'kg'),o('thit-ba-chi','Pork belly 1kg','coles',14.5,1,'kg'),o('thit-ba-chi','Ba chỉ','viet-grocer',13.99,1,'kg'),o('thit-ba-chi','Pork belly','aldi',14,1,'kg')]},pending:[]};
 const MULTI='Rau muống hai đô rưỡi một bó, chợ Cabramatta';
 const MULTI2='thịt ba chỉ mười bốn đô chín mươi chín một ký ở Woolworths, đang sale, trước là mười tám đô';
 const RECIPE1='Hôm nay bà dạy các con nấu món canh chua cá lóc nhé, cho bốn người ăn, mất khoảng bốn mươi lăm phút. Nguyên liệu gồm có một con cá lóc khoảng một ký, hai trăm gam bạc hà, ba quả cà chua, một ít me chua, hai muỗng canh nước mắm, đường vừa ăn.';
@@ -28,7 +28,7 @@ async function main(){
   const gate:any={mode:gated?'fail':'serve',hits:0,release:()=>{}};gate.wait=new Promise(r=>{gate.release=()=>{gate.mode='serve';r(null)}});
   const context=await browser.newContext({viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme as any});
   await context.addInitScript(({lang,theme,scout,hold})=>{const w=window as any;
-   if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-voice-ptt-v171','1');localStorage.setItem('bep-voice-ptt',hold?'1':'0');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');localStorage.removeItem('bep-voice-lang');localStorage.removeItem('bep-voice-auto');localStorage.setItem('guest/bep-price-scout-v1',JSON.stringify(scout))}
+   if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-voice-ptt-v171','1');localStorage.setItem('bep-voice-ptt',hold?'1':'0');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem('account/qa-household/bep-language',lang);localStorage.setItem('bep-account-present','yes');localStorage.removeItem('bep-voice-lang');localStorage.removeItem('bep-voice-auto');localStorage.setItem('account/qa-household/bep-price-scout-v1',JSON.stringify(scout))}
    w.__recs=[];class FakeRec{lang='';n=0;started=false;ended=false;continuous=false;onresult:any;onend:any;onerror:any;constructor(){w.__recs.push(this)}start(){this.started=true}stop(){this.end()}abort(){this.end()}end(){if(this.ended)return;this.ended=true;setTimeout(()=>this.onend&&this.onend(),0)}}
    w.SpeechRecognition=FakeRec;w.webkitSpeechRecognition=FakeRec;
    w.__live=()=>w.__recs.filter((r:any)=>r.started&&!r.ended).pop();
@@ -39,13 +39,21 @@ async function main(){
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route(origin+'/**',async route=>{const url=new URL(route.request().url()),path=url.pathname;
    if(path==='/recipe-catalog-data.js'&&gate.mode!=='serve'){gate.hits++;if(gate.mode==='fail'){await route.abort('failed');return}await gate.wait}
-   if(path.startsWith('/.netlify/')){await route.fulfill({status:401,json:{error:'no'}});return}
+   // v1.7.11: So Giá needs an account, so these checks run as a signed-in family (mocked)
+   if(path.startsWith('/.netlify/')){const op=url.searchParams.get('op');
+    if(path.endsWith('/grocery')){await route.fulfill({json:op==='photos'?{items:{}}:op==='prices'?{householdId:'qa-household',observations:[]}:{}});return}
+    if(path.includes('/accounts')&&op==='families'){await route.fulfill({json:{families:[{id:'qa-household',name:'QA',role:'owner'}],account:{username:'qa',name:'Mẹ'}}});return}
+    if(path.includes('/community')){await route.fulfill({status:401,json:{error:'no'}});return}
+    const status={configured:true,connected:true,mode:'account',account:{username:'qa',name:'Mẹ'},household:{id:'qa-household',name:'QA kitchen',role:'owner',memberId:null}};
+    await route.fulfill({json:op==='status'?status:op==='state'?{state:null,etag:null}:{announcements:[],devices:[],alerts:[]}});return}
    if(path==='/startup-scripts.json'){await route.fulfill({json:JSON.parse(readFileSync('dist/startup-scripts.json','utf8'))});return}
    const file=resolve('dist',path==='/'?'index.html':path.slice(1));
    try{await route.fulfill({contentType:mime[extname(file)]||'application/octet-stream',body:readFileSync(file)})}catch{await route.fulfill({status:404,body:'Not found'})}});
   await page.goto(origin+'/#shopping',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>typeof (globalThis as any).voicePriceOpen==='function'&&typeof (globalThis as any).voiceRecipeOpen==='function'&&typeof (globalThis as any).scoutMount==='function'&&document.querySelector('#main h1'),null,{timeout:20000});
-  await page.evaluate('closeModal();view="shopping";render()');await page.waitForTimeout(200);
+  // a one-time startup reload (live account check adopting the household) can race the first evaluate; retry once it settles
+  for(let i=0;i<5;i++){await page.waitForTimeout(500);try{await page.waitForFunction(()=>typeof (globalThis as any).voicePriceOpen==='function'&&typeof (globalThis as any).scoutMount==='function'&&document.querySelector('#main h1'),null,{timeout:15000});await page.evaluate('state.preferences.onboardingComplete=true;save();closeModal();view="shopping";render()');break}catch(e){if(i===4)throw e}}
+  await page.waitForTimeout(200);
   if(offline){await context.setOffline(true);await page.evaluate('dispatchEvent(new Event("offline"))')}
   return{page,context,errors,gate};
  }
@@ -89,15 +97,15 @@ async function main(){
    if(size==='mobile'){await check(page,'confirm '+size,'.modal-footer .btn');await shot(page,`price-confirm-${lang}-${theme}-${size}`)}
    await page.locator('.modal-footer .btn.primary').click();await page.waitForSelector('.vp-row');
    assert.equal(await page.locator('.vp-row').count(),1,'sheet returns with the remaining row');
-   const saved=await page.evaluate('scoutData.local[0]');
+   const saved=await page.evaluate('[...scoutData.pending,...(scoutData.pool?.observations||[])][0]');
    assert.equal(saved.source,'voice');assert.equal(saved.evidence.type,'manual-voice');assert.equal(saved.visibility,'family');assert.equal(saved.packQty,null);assert.equal(saved.itemId,'rau-muong');
-   assert.equal(await page.evaluate('PriceScout.canShareToCommunity(scoutData.local[0])'),false,'voice-only price is not community-shareable');
+   assert.equal(await page.evaluate('PriceScout.canShareToCommunity([...scoutData.pending,...(scoutData.pool?.observations||[])][0])'),false,'voice-only price is not community-shareable');
    await page.locator('[data-vp="confirm"]').first().click();await page.waitForSelector('#scout-obs-form');
    const f2=await page.evaluate(()=>{const f=document.getElementById('scout-obs-form') as any;return[f.itemId.value,f.price.value,f.retailer.value,f.packQty.value,f.packUnit.value,f.wasPrice.value,f.promo.value]});
    assert.deepEqual(f2,['thit-ba-chi','14.99','woolworths','1','kg','18','special']);
    assert.equal(await page.locator('#scout-sanity').isVisible(),false,'a normal price raises no sanity warning');
    await page.locator('.modal-footer .btn.primary').click();await page.waitForTimeout(150);
-   assert.equal(await page.evaluate('scoutData.local.filter(o=>o.source==="voice").length'),2);
+   assert.equal(await page.evaluate('[...scoutData.pending,...(scoutData.pool?.observations||[])].filter(o=>o.source==="voice").length'),2);
    assert.equal(await page.evaluate('learned=JSON.parse(localStorage.getItem("bep-voice-price-learned")||"{}");learned["rau muong"]'),'rau-muong','label learned for next time');
    assert.deepEqual(errors,[]);await context.close();
   }
@@ -107,7 +115,8 @@ async function main(){
    await page.locator('[data-vp="confirm"]').first().click();await page.waitForSelector('#scout-obs-form');
    assert.equal(await page.locator('#scout-sanity').isVisible(),true,'unusual spoken price → sanity warning');assert.match(await page.locator('#scout-sanity').innerText(),/khác thường/);
    await page.locator('[data-action="close-modal"]').first().click();
-   const html=await page.evaluate(`scoutWantedRow({item:scoutItem('rau-muong'),missing:['woolworths','coles'],count:2,none:true})`);
+   // v1.7.11: signed-in family with community prices on (guests no longer reach So Giá)
+   const html=await page.evaluate(`scoutCommunity.status={enabled:true,signedIn:true,publicRead:true,states:['NSW'],eligibility:{ok:true,reasons:[]},viewer:false};scoutWantedRow({item:scoutItem('rau-muong'),missing:['woolworths','coles'],count:2,none:true})`);
    assert.match(html,/data-scout="voice" data-want="rau-muong"/,'wanted rows have a voice button');
    await page.evaluate(`document.body.insertAdjacentHTML('beforeend','<ul id="qa-want">'+${JSON.stringify(html)}+'</ul>')`);
    await page.locator('#qa-want [data-scout="voice"]').click();await page.waitForSelector('#vp-text');

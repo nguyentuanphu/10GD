@@ -129,10 +129,11 @@ const UA_STORE:Record<string,string>={woolworths:'#4caf6e',coles:'#e8433a',aldi:
 function uiArt(name:string,cls=''){if(name.startsWith('store:')){const c=UA_STORE[name.slice(6)]||UA_STORE.other;return uaSvg(`${uaCirc(24,24,16,c)}<path d="M17 21c4-5 10-5 14 0" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none" opacity=".75"/>`,cls)}const b=UI_ART[name];return b?uaSvg(b,cls):''}
 (globalThis as any).uiArt=uiArt;
 // v1.7.11 (owner, 7 Nov 2026: “Thiết kế các nút phải có emoji artwork, nếu nút dài quá có thể thu gọn chữ lại hoặc đổi tên phù hợp
-// ngữ cảnh”; pop-up: every button, chip and tab; long labels get a short name for the situation). One drawing per meaning, added to
-// every button, chip and tab that has no picture yet; leading/trailing text symbols (+ ✧ ↶ ▧ ↗ ▾ …) and phone emoji are dropped
-// because the drawing carries them; long labels get a short name and keep the full wording for screen readers (aria-label).
-// Things that already are pictures (dish and ingredient rows, colour swatches) and the date tiles keep their own look.
+// ngữ cảnh”; then “Nhiều emoji quá, giảm bớt thôi” — pop-up: drawings on the main buttons only, keep the short names).
+// A drawing goes on main action buttons (.primary and the few main actions in BTN_MAIN: plan the week, add a dish, cooked, cook mode…)
+// and on icon-only buttons, where the drawing replaces a text symbol. Chips, tabs, disclosures and secondary buttons are words only.
+// Sheet X / Đóng / Lưu (decorateSheet in app.ts), the bottom navigation and share buttons have their own drawings.
+// Every button: long labels get a short name for the situation (full wording kept for screen readers).
 const BTN_BY_DATA:Record<string,Record<string,string>>={
  action:{'reminders':'bell','add-extra':'add','add-stock':'add','add-to-meal':'meal-plan','check-pantry':'fridge','delete-recipe-dialog':'trash','duplicate-week':'repeat','edit-stock':'edit','export':'download','import':'upload','pantry-peek':'fridge','start-cooking':'cook-mode','use-ingredient':'search','week-now':'calendar','week-prev':'arrow-left','week-next':'arrow-right','skip-row':'skip','skip-ingredient':'skip','store-purchases':'fridge','copy-share':'paste','purchase-quantity':'unit','calendar-month':'calendar','add-member':'add','edit-member':'edit','delete-stock':'trash','recipe-detail':'book'},
  fm:{'edit-meal':'add','cook-meal':'cooked-pot','remove-dish':'trash','clear-meal':'trash','generate':'plan-week','new':'add','quick-add-dish':'add','use-pantry':'fridge','filter-sheet':'filter','all':'chip-all','own':'whole-family','samples':'book','edit-recipe':'edit','lock':'calendar','load-more':'more','regenerate':'repeat','apply':'save-check','cook-batch':'cooked-pot','undo-batch':'cooked-pot'},
@@ -160,16 +161,23 @@ function buttonArtName(el:Element):string|null{const e=el as HTMLElement;
  const href=e.getAttribute('href')||'';const BY_HREF:Record<string,string>={'#insights':'idea','#products':'money','#shopping':'cart','#recipes':'book','#today':'calendar','#planner':'plan-week','#pantry':'fridge','#expenses':'money','/login':'account'};if(BY_HREF[href])return BY_HREF[href];
  const t=(e.textContent||e.getAttribute('aria-label')||'').replace(/\s+/g,' ').replace(BTN_SYMBOLS,'').trim().toLowerCase();if(BTN_CHIP[t])return BTN_CHIP[t];
  for(const[re,name]of BTN_BY_TEXT)if(re.test(t))return name;return'other'}
+const BTN_MAIN:Record<string,string[]>={fm:['generate','edit-meal','quick-add-dish','new','cook-meal','cook-batch','undo-batch'],action:['start-cooking','add-to-meal','add-extra','add-stock','store-purchases'],product:['new']};
+// the app's own old emoji on buttons (leading only, so family-written names are never touched)
+const BTN_EMOJI=/^[\s🔄🏷️📍📱🟢⚪👍👎🍲\u{FE0F}]+/u;
+function isMainButton(el:HTMLElement):boolean{if(el.matches('.chip,a.chip,[role="tab"],summary'))return false;if(el.matches('.primary'))return true;
+ for(const[attr,keys]of Object.entries(BTN_MAIN)){const v=(el.dataset as any)[attr];if(v!==undefined&&keys.includes(v))return true}return false}
 function decorateButtons(root:ParentNode=document){if(typeof document==='undefined')return;
  for(const el of root.querySelectorAll<HTMLElement>('button:not([data-btn-art]),a.btn:not([data-btn-art]),a.chip:not([data-btn-art]),[role="tab"]:not([data-btn-art]),summary:not([data-btn-art]),.chip:not([data-btn-art])')){
-  if(el.closest('.ladybug,#lb-root,svg'))continue;const name=buttonArtName(el);if(name==='other')continue;el.dataset.btnArt=name||'own';if(!name||!UI_ART[name])continue;
-  // drop text symbols / phone emoji the drawing replaces; shorten long labels (full wording stays for screen readers)
+  if(el.closest('.ladybug,#lb-root,svg'))continue;
   const tw=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);const texts:Text[]=[];let n:Node|null;while((n=tw.nextNode()))if((n as Text).nodeValue?.trim())texts.push(n as Text);
-  const full=(el.textContent||'').replace(/\s+/g,' ').trim();
-  if(texts[0])texts[0].nodeValue=texts[0].nodeValue!.replace(/^[\s+✧↶↷▧▤▦↓↑⇅⇵✗✓↗→←‹›×≈•·🔄🏷️📍📱🟢⚪👍👎🍲☀☾]+/u,'');const last=texts[texts.length-1];if(last)last.nodeValue=last.nodeValue!.replace(/[\s▾▴↗→]+$/u,'');
-  if(texts.length===1){const v=texts[0].nodeValue!.trim();for(const[re,short]of BTN_SHORT)if(re.test(v)){texts[0].nodeValue=v.replace(re,short);if(!el.hasAttribute('aria-label'))el.setAttribute('aria-label',full.replace(/^[\s+✧↶▧▤⇅↗]+/u,''));el.title=el.title||full;break}}
-  if(!(el.textContent||'').trim()&&!el.hasAttribute('aria-label'))el.setAttribute('aria-label',full||name);
-  el.insertAdjacentHTML('afterbegin',uiArt(name,'btn-art'));}}
+  const full=(el.textContent||'').replace(/\s+/g,' ').trim();const name=buttonArtName(el);const known=!!name&&name!=='other'&&!!UI_ART[name];
+  const iconOnly=known&&!full.replace(BTN_SYMBOLS,'').replace(BTN_EMOJI,'').trim()&&!el.matches('.chip,a.chip,[role="tab"],summary');
+  const draw=known&&(iconOnly||isMainButton(el));el.dataset.btnArt=draw?name!:(name===null?'own':'words');
+  if(texts[0])texts[0].nodeValue=texts[0].nodeValue!.replace(BTN_EMOJI,'');
+  if(draw){if(texts[0])texts[0].nodeValue=texts[0].nodeValue!.replace(/^[\s+✧↶↷▧▤▦↓↑⇅⇵✗✓↗→←‹›×≈•·☀☾]+/u,'');const last=texts[texts.length-1];if(last)last.nodeValue=last.nodeValue!.replace(/[\s▾▴↗→]+$/u,'')}
+  if(texts.length===1){const v=texts[0].nodeValue!.trim();for(const[re,short]of BTN_SHORT)if(re.test(v)){texts[0].nodeValue=v.replace(re,short);if(!el.hasAttribute('aria-label'))el.setAttribute('aria-label',full.replace(/^[\s+✧↶▧▤⇅↗🔄🏷️📍📱🟢⚪👍👎🍲\u{FE0F}]+/u,''));el.title=el.title||full;break}}
+  if(!(el.textContent||'').trim()&&!el.hasAttribute('aria-label'))el.setAttribute('aria-label',full||name||'');
+  if(draw)el.insertAdjacentHTML('afterbegin',uiArt(name!,'btn-art'));}}
 (globalThis as any).decorateButtons=decorateButtons;(globalThis as any).buttonArtName=buttonArtName;
 if(typeof document!=='undefined'){let queued=false;const run=()=>{queued=false;try{decorateButtons()}catch(e){console.warn('button art',e)}};
  new MutationObserver(()=>{if(!queued){queued=true;queueMicrotask(run)}}).observe(document.body,{childList:true,subtree:true});run()}

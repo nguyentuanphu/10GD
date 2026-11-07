@@ -425,7 +425,7 @@ const scoutCommunityEligible=()=>scoutCommunityOn()&&scoutCommunity.status.eligi
 const scoutRewardRule=k=>scoutData.rewards?.rules?.[k]??scoutCommunity.status?.rewards?.[k]??({confirmed:10,specialBonus:5,corroborate:3,gapBonus:5,penalty:20,dailyCap:100}[k]);
 async function communityApi(op,options={}){if(!scoutOnline())throw Error(scoutT('Đang offline.','Offline.'));const r=await fetch(COMMUNITY_API+'?op='+op,{credentials:'same-origin',cache:'no-store',...options,headers:{...(typeof options.body==='string'?{'Content-Type':'application/json'}:{}),...options.headers}});const data=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(Error((appLanguage==='en'?data.errorEn:data.error)||data.error||('HTTP '+r.status)),{status:r.status,code:data.code||null,data});return data}
 async function scoutCommunityRefresh(){
- if(!scoutOnline()||scoutCommunity.loading)return;
+ if(!scoutAccount()||!scoutOnline()||scoutCommunity.loading)return;/* v1.7.11: So Giá, community prices included, needs an account */
  scoutCommunity.loading=true;scoutCommunity.checkedAt=Date.now();
  try{const st=await communityApi('status');scoutCommunity.status=st;scoutData.communityStatus=st;
   if(st.enabled&&scoutData.state&&(st.states||[]).includes(scoutData.state)){const data=await communityApi('prices&state='+encodeURIComponent(scoutData.state));scoutData.community={at:Date.now(),state:data.state,items:data.items||[],shopPrices:data.shopPrices||[],wanted:data.wanted?.counts||{},products:await communityApi('products').then(x=>x.products||[]).catch(()=>scoutData.community?.products||[]),householdId:scoutAccount()?globalThis.BEP_SESSION?.household?.id||null:null}}
