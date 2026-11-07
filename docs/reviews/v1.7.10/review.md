@@ -111,3 +111,12 @@ Scope, from Henry's choices in the question dialog on 7 Nov 2026:
 
 - **Failure:** “a photo that cannot load is removed” (1 ≠ 0). Product photos load lazily; after buttons became ≥ 44 px the rice row sat below the screen, so its broken photo was never tried. The app was right (the photo is removed when the row comes on screen); the check now scrolls the row on screen and waits for the photo to be removed. The check itself is unchanged.
 - **Found while fixing:** when the family account starts up, the shopping list can draw before the picture file loads, and the new share button then stopped startup (“shareInner is not defined”). The share label now lives with the screen code and adds its picture once the picture file is there. `online-prices:browser` and `authenticated-startup` pass locally.
+
+### Row 12 — put the shopping away: a place for each item
+
+- **Henry (7 Nov 2026, iPhone screenshot of *Cất đồ đã mua vào tủ*):** “Mua đồ xong bị mặc định cất là ngăn mát, phải cho lựa chọn khác nữa, vì bỏ vào tủ đông hay tủ khô tuỳ vào món.”
+- **Before:** one *Nơi cất mặc định* drop-down for everything (dry goods went to the shelf by themselves).
+- **Now:** every bought item has its own three choices — *Ngăn mát / Ngăn đông / Tủ khô* (≥ 44 px each). Pre-picked: where the family put that item last time; otherwise dry goods on the shelf (eggs, tofu, dairy and cooked beans stay cold) and the rest in the fridge. *Đặt tất cả* sets one place for every item at once. The choices are remembered per ingredient for next time (family data, synced like other preferences).
+- **Data:** only where new pantry entries go; nothing already in the pantry changes. Older callers without per-item places behave exactly as before.
+- **Tests:** `units-catalog` (unit) — suggestions, each item stored where chosen, an unchosen item gets its suggestion, the choice is remembered. `v176-fixes:browser` at 320 / 375 / 820 / 1280, VI and EN — one row per item, no single drop-down, ≥ 44 px, *Đặt tất cả: Ngăn đông*, one item changed to the shelf, pantry entries land in those places, remembered next time.
+- **Evidence:** `docs/reviews/v1.7.8/{vi,en}-{size}-put-away.png` (Chromium simulation).

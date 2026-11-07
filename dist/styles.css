@@ -2110,3 +2110,15 @@ html[data-festival="datnung"]:not([data-theme="dark"]){--green2:#9a4524}
 .share-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px}
 .share-btn .share-art{width:1.5em;height:1.5em;vertical-align:middle}
 .btn.small.share-btn .share-art{width:1.3em;height:1.3em}
+/* v1.7.10 put-away sheet: a place for each bought item */
+.store-all{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 10px}
+.store-all .chip{min-height:44px}
+.store-list{display:grid;gap:6px}
+.store-row{border:0;border-top:1px solid var(--line);margin:0;padding:8px 0 2px;display:grid;gap:6px}
+.store-name{font-weight:600;padding:0;float:left;width:100%}
+.store-choice{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;clear:both}
+.store-opt{position:relative;display:flex}
+.store-opt input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.store-opt span{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;min-height:44px;padding:4px 6px;border:1px solid var(--line);border-radius:10px;line-height:1.2}
+.store-opt input:checked+span{border:2px solid var(--green);color:var(--green);font-weight:600;background:color-mix(in srgb,var(--green) 9%,transparent)}
+.store-opt input:focus-visible+span{outline:3px solid var(--green);outline-offset:2px}

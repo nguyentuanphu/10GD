@@ -60,6 +60,21 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   const sheet=page.locator('#modal-root .modal');await sheet.waitFor();assert.match(await sheet.locator('h2,h3').first().innerText(),lang==='vi'?/Chia sẻ/:/Share/);
   assert.match((await sheet.locator('a.share-btn').first().getAttribute('href'))!,/^sms:[?&]body=./,`${label}: text-message link carries the week`);assert.equal(await sheet.locator('a.share-btn').count(),2);assert.equal(await sheet.locator('[data-action="copy-share"]').count(),1);
   await textOk('share sheet');await shot('share-sheet');await page.evaluate(`closeModal();view='today';location.hash='today';render()`);await page.locator('#main h1').waitFor()}
+ // v1.7.10 (owner, 7 Nov 2026: “mua đồ xong bị mặc định cất là ngăn mát… tủ đông hay tủ khô tuỳ vào món”): a place for each item
+ {const ids:string[]=await page.evaluate(`(()=>{const[st,en]=shopDates(),w=currentWeek();const rows=shopping(state,w,st,en).filter(r=>shoppingHasAmount(r)&&!r.skip).slice(0,4);for(const r of rows)setShoppingBought(w,st,en,r,true);save();closeModal();view='shopping';location.hash='shopping';render();return rows.map(r=>r.id)})()`);
+  assert.ok(ids.length>=3,`${label}: items ticked as bought`);
+  const open=page.locator('#main [data-action="store-purchases"]').first();if(!(await open.isVisible())){const d=page.locator('#main details:has([data-action="store-purchases"]) > summary').first();if(await d.count())await d.click()}
+  await page.locator('#main [data-action="store-purchases"]').first().click();const sheet=page.locator('#modal-root .modal');await sheet.locator('.store-row').first().waitFor();
+  assert.equal(await sheet.locator('#store-place').count(),0,`${label}: no single “usual place” any more`);assert.equal(await sheet.locator('.store-row').count(),ids.length,`${label}: one row per bought item`);
+  for(const o of await sheet.locator('.store-opt span').all())assert.ok((await o.boundingBox())!.height>=44,`${label}: place choice ≥ 44 px`);
+  assert.equal(await sheet.locator('.store-row').first().locator('input:checked').count(),1,`${label}: each item has a place picked`);
+  await sheet.locator('[data-store-all="freezer"]').click();assert.equal(await sheet.locator('input[value="freezer"]:checked').count(),ids.length,`${label}: “Đặt tất cả: Ngăn đông”`);
+  await sheet.locator(`.store-row:nth-child(2) .store-opt:has(input[value="dry"])`).click();await textOk('put-away sheet');await shot('put-away');
+  const before:number=await page.evaluate('state.pantry.length');await sheet.locator('[data-action="submit-form"][data-id="store-form"]').click();await page.waitForTimeout(200);
+  const placed:any=await page.evaluate(`state.pantry.slice(${before}).map(p=>[p.ingredient,p.place])`);const at=(id:string)=>placed.find((p:any)=>p[0]===id)?.[1];
+  assert.equal(at(ids[0]),'freezer',`${label}: put in the freezer`);assert.equal(at(ids[1]),'dry',`${label}: changed to the shelf`);
+  assert.equal(await page.evaluate(`suggestStorePlace(state,${JSON.stringify(ids[0])})`),'freezer',`${label}: remembered for next time`);
+  await page.evaluate(`(()=>{state.pantry=state.pantry.slice(0,${before});delete state.preferences.storePlaces;save();closeModal();view='today';location.hash='today';render()})()`);await page.locator('#main h1').waitFor()}
  // 1. Today: the calendar says Ba Phú is away for lunch → “Who is eating?” says Away too (it said At home)
  await page.locator('[data-action="attendance-tab"][data-type="lunch"]').click();
  const phu=page.locator('select[data-change="attendance"][data-id="m-phu"]');

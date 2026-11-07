@@ -22,6 +22,14 @@ s.purchaseUnitPreferences={spinach:{unit:'bó',amount:1,basePerUnit:250,pricePer
 row=shopping(s,w,start,end).find(r=>r.id==='spinach');check(row.purchase.unit==='bó'&&row.purchase.amount===Math.ceil(row.suggested/250),'remembered known bunch size rounds automatic purchase to whole bunches');
 check(row.cost===row.purchase.amount*3&&row.qty===row.purchase.amount*250,'unit price and explicit gram estimate remain separate');
 setBuyingUnits(w,start,end,'spinach',{unit:'bó',amount:2,basePerUnit:250,pricePerUnit:3,note:'bó nhỏ'});row=shopping(s,w,start,end).find(r=>r.id==='spinach');setShoppingBought(w,start,end,row,true);storeShoppingPurchases(s,w,start,end,'fridge');const bunch=s.pantry.find(p=>p.purchase?.unit==='bó');check(bunch.qty===500&&bunch.purchase.amount===2,'known conversion stores both bunch count and estimate');
+// v1.7.10 (owner, 7 Nov 2026): each bought item has its own place (fridge / freezer / shelf); the family's last choice is remembered
+{check(suggestStorePlace(s,'pork')==='fridge'&&suggestStorePlace(s,'fishSauce')==='dry'&&suggestStorePlace(s,'egg')==='fridge','suggested places: fresh → fridge, dry goods → shelf, eggs stay cold');
+ const rows=shopping(s,w,start,end).filter(r=>shoppingHasAmount(r)&&!r.bought&&!r.skip).slice(0,3);check(rows.length===3,'three items to put away');for(const r of rows)setShoppingBought(w,start,end,r,true);
+ const before=s.pantry.length,per={};per[rows[0].id]='freezer';per[rows[1].id]='dry';
+ check(storeShoppingPurchases(s,w,start,end,'fridge',per)===3,'three items put away');const added=s.pantry.slice(before);const at=id=>added.find(p=>p.ingredient===id).place;
+ check(at(rows[0].id)==='freezer'&&at(rows[1].id)==='dry','each item goes where it was put');check(at(rows[2].id)===suggestStorePlace(s,rows[2].id),'an item left alone gets its suggested place');
+ check(s.preferences.storePlaces[rows[0].id]==='freezer'&&suggestStorePlace(s,rows[0].id)==='freezer','the freezer choice is remembered for next time');
+ check(!(rows[2].id in s.preferences.storePlaces),'nothing is remembered for an item that was not chosen')}
 const vegMeal=createMeal(s,'r28');vegMeal.servings=2;consumeMeal(s,vegMeal);check(bunch.qty===250&&bunch.purchase.amount===1,'consumption updates remaining count from explicit conversion');undoCook(s,vegMeal);check(bunch.qty===500&&bunch.purchase.amount===2,'undo restores count and estimate');
 setBuyingUnits(w,start,end,'beef',{unit:'miếng',amount:1,basePerUnit:300,pricePerUnit:9,note:'thịt nạc'});const next=ensureWeek(s,addDays(start,7));check(!next.buyingUnits,'week-specific quantities do not leak to next week');
 check(validImport(JSON.parse(JSON.stringify(s))),'sale units and pantry counts survive backup validation');
