@@ -8,6 +8,10 @@ const UA_O='#3b2a4f',UA_W=`stroke="${UA_O}" stroke-width="2.6" stroke-linejoin="
 const uaSvg=(body:string,cls='')=>`<svg class="ui-art ${cls}" viewBox="0 0 48 48" aria-hidden="true" focusable="false">${body}</svg>`;
 const uaCirc=(x:number,y:number,r:number,f:string)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" ${UA_W}/>`;
 const UI_ART:Record<string,string>={
+ // v1.7.10 theme toggle (replaces ☀️ / 🌙 / 🌤️ emoji): a sun, a crescent moon, and "auto" = half sun, half moon
+ 'theme-light':`<g ${UA_W} stroke-width="2.6"><path d="M24 5v6M24 37v6M5 24h6M37 24h6M10.6 10.6l4.2 4.2M33.2 33.2l4.2 4.2M10.6 37.4l4.2-4.2M33.2 14.8l4.2-4.2" fill="none"/></g><circle cx="24" cy="24" r="9" fill="#f6c34a" ${UA_W}/>`,
+ 'theme-dark':`<path d="M30 7a17 17 0 1 0 11 27 14 14 0 0 1-11-27z" fill="#8f86c9" ${UA_W}/><circle cx="16" cy="21" r="2" fill="#c9c3ee"/><circle cx="22" cy="31" r="1.6" fill="#c9c3ee"/>`,
+ 'theme-auto':`<path d="M24 9a15 15 0 0 0 0 30z" fill="#f6c34a" ${UA_W}/><path d="M24 9a15 15 0 0 1 0 30 11 11 0 0 0 0-30z" fill="#8f86c9" ${UA_W}/><path d="M9 6l2 3M5 13l3 1M14 3l1 3" ${UA_W} fill="none"/>`,
  // shopping trolley: green basket, two wheels
  cart:`<path d="M4 8h6l5 22h22l5-16H13" fill="none" ${UA_W}/><path d="M13 14h29l-5 16H15z" fill="#7cc79a" ${UA_W}/><path d="M20 18v8M27 18v8M34 18v8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>${uaCirc(18,38,4,'#fff6d6')}${uaCirc(34,38,4,'#fff6d6')}`,
  // real deal: flame (flickers)

@@ -52,6 +52,16 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   for(const b of await wb.locator('.who-busy-row').all())assert.ok((await b.boundingBox())!.height>=44,`${label}: rows ≥ 44 px`);
   await textOk('who-busy');await shot('who-busy');
   await page.evaluate(`state.availability=JSON.parse(${JSON.stringify(saved)});save();render()`)}
+ // v1.7.10 (Henry, 7 Nov 2026): eight colour themes in Other settings → Appearance, light and dark, this device only; the
+ // light / dark button in the top bar is our own drawing, no emoji
+ {await page.evaluate(`otherSettingsModal('appearance')`);const sw=page.locator('#modal-root [data-color-theme]');await sw.first().waitFor();assert.equal(await sw.count(),12,`${label}: default + 8 colours + 3 seasonal`);
+  for(const b of await sw.all())assert.ok((await b.boundingBox())!.height>=44,`${label}: swatch ≥ 44 px`);
+  const before=await page.evaluate(`getComputedStyle(document.documentElement).getPropertyValue('--green').trim()`);await page.locator('#modal-root [data-color-theme="khoaimon"]').scrollIntoViewIfNeeded();await page.locator('#modal-root [data-color-theme="khoaimon"]').click();
+  assert.equal(await page.evaluate(`document.documentElement.dataset.festival`),'khoaimon');assert.equal(await page.locator('#modal-root [data-color-theme="khoaimon"]').getAttribute('aria-checked'),'true');
+  assert.notEqual(await page.evaluate(`getComputedStyle(document.documentElement).getPropertyValue('--green').trim()`),before,`${label}: colours change at once`);await textOk('appearance');if(size==='mobile')await shot('appearance-themes');
+  await page.evaluate(`localStorage.setItem('bep-theme-mode','dark');applyThemePreferences()`);assert.ok(['#a98bd0'].includes(await page.evaluate(`getComputedStyle(document.documentElement).getPropertyValue('--green').trim()`)),`${label}: dark version`);
+  const tg=page.locator('#theme-quick-toggle');if(await tg.count()){assert.equal(await tg.locator('svg.ui-art').count(),1,`${label}: drawn toggle`);assert.doesNotMatch(await tg.innerText(),/\p{Extended_Pictographic}/u,`${label}: no emoji`)}
+  await page.evaluate(`localStorage.setItem('bep-festival-theme','default');localStorage.setItem('bep-theme-mode','light');applyThemePreferences();closeModal()`)}
  // 2. More tools: every row in the chosen language, on one line (owner: “Chi tiêu” in English mode)
  if(size==='narrow'||size==='mobile'){await page.locator('[data-ui-more]').first().click();const more=page.locator('.more-tools');await more.waitFor();
   const rows=await more.locator('.more-label').allInnerTexts();
