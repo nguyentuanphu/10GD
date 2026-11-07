@@ -154,5 +154,39 @@ check('line quantities come only from printed sizes / weights / counts',()=>{
  const c=goods(R.parseReceipt(RECEIPTS['coles-15-victoria-park'].text)).find((i:any)=>/FISH CAKES/.test(i.name));deq(R.lineQuantity(c),{qty:700,unit:'g'});
  assert.equal(R.lineQuantity(goods(R.parseReceipt(RECEIPTS['ww-9-frenchs-forest'].text)).find((i:any)=>/Dorsogna/.test(i.name))),null,'no size printed → unknown');
 });
+// v1.7.10 (owner, 7 Nov 2026: four receipts photographed on a speckled stone bench “không scan được”)
+{const {BENCH_RECEIPTS:B}=require('./fixtures/bench-receipts.cjs');
+ const names=(r:any)=>goods(r).map((i:any)=>i.name);
+ const noJunk=(r:any,key:string)=>{for(const nm of names(r))assert.ok(!/SUB ?TOTAL|^TOTAL|BALANCE|MASTERCARD|CASH|^\W*R?MAL$|^gull|EG \/ BUNCH/i.test(nm),`${key}: not a product: ${nm}`)};
+ // nothing invented: every price kept is printed in the text
+ const printed=(r:any,t:string,key:string)=>{for(const i of goods(r))if(i.price!=null)assert.ok(t.includes(i.price.toFixed(2))||t.includes('$'+i.price.toFixed(2).replace(/\.?0+$/,'')),`${key}: price ${i.price} is in the text`)};
+ check('bench photo: HP Meats butcher — every weighed line, printed total, rounding, store',()=>{const t=B['hp-meats-bench'],r=R.parseReceipt(t);
+  assert.equal(goods(r).length,9);assert.equal(r.printedTotal,133.75);assert.match(r.store,/^HP Meats/);noJunk(r,'hp');printed(r,t,'hp');
+  deq(goods(r).filter((i:any)=>i.weight).map((i:any)=>i.weight.qty),[0.534,1.374,0.572,0.982,1.442,0.884,1.828,0.948],'“@” read as 0 / 8 / § and “1.442g” still give the weights');
+  assert.ok(r.items.some((i:any)=>i.kind==='rounding'&&i.price===-0.02));
+  assert.ok(r.warnings.some((w:any)=>w.code==='short'),'misread digits leave an honest “short by” note, nothing is adjusted')});
+ check('bench photo: Cuong Thien A — glued “2 @ $2.20” lines, wrapped names, store and suburb',()=>{const t=B['cuong-thien-bench-a'],r=R.parseReceipt(t);
+  assert.equal(goods(r).length,9);assert.equal(r.printedTotal,80.83);assert.equal(r.store,'Cuong Thien Marrickville');noJunk(r,'ct-a');printed(r,t,'ct-a');
+  const by=(re:RegExp)=>goods(r).find((i:any)=>re.test(i.name));
+  deq(by(/CHOY SUM/).multi,{count:2,each:2.2},'“2082.2” = 2 @ $2.20 because 2 × 2.20 = $4.40');deq(by(/MORNING GLORY/).multi,{count:2,each:2.5},'“2092.50” = 2 @ $2.50');
+  assert.equal(by(/ORANGE/).weight.qty,0.86);assert.equal(by(/^18 XINH-XINH/).price,10,'item numbers stay');assert.equal(by(/^SUNNY FROZEN/).price,22.5,'speck token removed')});
+ check('bench photo: Cuong Thien B — 18 lines, count lines behind specks, weighed veg after wrapped names',()=>{const t=B['cuong-thien-bench-b'],r=R.parseReceipt(t);
+  assert.equal(goods(r).length,18);assert.equal(r.printedTotal,76.3,'“$76 30” read as $76.30');assert.equal(r.store,'Cuong Thien Marrickville');noJunk(r,'ct-b');printed(r,t,'ct-b');
+  const by=(re:RegExp)=>goods(r).filter((i:any)=>re.test(i.name));
+  deq(by(/BUK CHOY/)[1].multi,{count:2,each:1.8},'“204$1.80” = 2 @ $1.80');assert.equal(by(/MELON HAIRY/)[0].weight.qty,1);assert.equal(by(/CUCUMBER/)[0].weight.qty,0.85);
+  deq(by(/MILIKET/)[0].multi,{count:6,each:1.2},'“6 @ $1.20”');deq(by(/BUN TUOT/)[0].multi,{count:2,each:3.15},'“Ene. 2 @ $3.15”')});
+ // a count line is only read from a glued number when count × price equals the item just read
+ check('glued count lines need the item price to agree',()=>{const r=R.parseReceipt('TAX INVOICE\nCHOY SUM $4.40\n2082.20\nTOTAL $4.40');deq(goods(r)[0].multi,{count:2,each:2.2});
+  const x=R.parseReceipt('TAX INVOICE\nCHOY SUM $4.40\n2083.20\nTOTAL $4.40');assert.ok(!goods(x)[0].multi,'2 × 3.20 ≠ 4.40 → not a count line')});
+ check('paper found by texture on a light speckled bench (synthetic)',()=>{
+  const w=1200,h=1600,g=new Float32Array(w*h);let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  for(let i=0;i<g.length;i++)g[i]=196+rnd()*10;// bench nearly as bright as the paper
+  for(let k=0;k<70000;k++){const x=(rnd()*(w-3))|0,y=(rnd()*(h-3))|0;for(let dy=0;dy<3;dy++)for(let dx=0;dx<3;dx++)g[(y+dy)*w+x+dx]=110+rnd()*40}// flecks
+  const L=380,Rr=840;for(let y=0;y<h;y++)for(let x=L;x<Rr;x++)g[y*w+x]=214+rnd()*6;// paper, only a little brighter
+  for(let y=60;y<h-60;y+=46)for(let x=L+40;x<Rr-40;x++)if(((x/9)|0)%3!==2)for(let dy=0;dy<14;dy++)g[(y+dy)*w+x]=60;// text lines
+  const t=R.blankExtents(g,w,h);assert.ok(t,'paper found');const rows=t.rows.filter(Boolean);
+  const l=Math.min(...rows.map((r:any)=>r[0])),r=Math.max(...rows.map((r:any)=>r[1]));assert.ok(Math.abs(l-L)<45&&Math.abs(r-Rr)<45,`edges ${l}–${r} ≈ ${L}–${Rr}`);
+  assert.equal(R.blankExtents(new Float32Array(w*h).fill(235),w,h),null,'a blank photo has no narrower paper')});
+}
 console.log(`receipt parser tests passed (${n})`);
 })().catch(e=>{console.error(e);process.exit(1)});

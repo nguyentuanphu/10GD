@@ -50,7 +50,7 @@ for(let i=0;i<5;i++){const d=w.days[addDays(start,i)];assert.equal(d.lunch.recip
 assert.ok(!w.days[addDays(start,5)].lunch.recipes.some(r=>r.category==='lunchbox'),'no lunch box at the weekend');
 
 // ---- data shape: edition 6 accepts the new meal, dish types and counted units; catalogue tombstones keep edition 5
-assert.equal(APP_EDITION,7/* v1.7.7: Bữa phụ sáng (snackAm) — older apps must update before writing */);assert.equal(CATALOG_EDITION,6/* v1.7.5: Vietnamese references halved */);
+assert.equal(APP_EDITION,7/* v1.7.7: Bữa phụ sáng (snackAm) — older apps must update before writing */);assert.equal(CATALOG_EDITION,7/* v1.7.10: template-built / invented references retired */);
 assert.equal(validFamilyState(s2),true,'snack meals and new dish types are valid');
 const old=defaults();for(const w of Object.values(old.weeks||{}))for(const d of Object.values(w.days))delete d.snack;assert.equal(validFamilyState(old),true,'weeks saved before v1.7.5 (no snack) stay valid');
 for(const unit of ['tép','đòn','muỗng canh','g'])assert.equal(hydrateFamilyIngredients({ingredientCatalog:{'family-ing-a':{name:'Tỏi',unit,group:'veg'}}}),true,unit);
@@ -60,8 +60,8 @@ console.log('PASS v1.7.5 amounts, fractions, meal/dish types, Bữa phụ, schoo
 // ---- owner, 5 Nov 2026: Vietnamese reference recipes halved (740 → 475). An existing family loses a retired recipe
 // only when it never touched it; edited, favourite, photographed, planned or reacted-to copies stay.
 vm.runInContext(`
-{const all=[...RECIPES,...RETIRED_REFERENCE_RECIPES];assert.equal(RECIPES.length,475);assert.equal(RETIRED_REFERENCE_RECIPES.length,265);
- assert.ok(RETIRED_REFERENCE_RECIPES.every(r=>!/^(r|n)\\d/.test(r.id)&&!r.catalogEdition),'only expanded Vietnamese references retire; the 54 originals and Western/plant stay');
+{const all=[...RECIPES,...RETIRED_REFERENCE_RECIPES];assert.equal(RECIPES.length,125);assert.equal(RETIRED_REFERENCE_RECIPES.length,615);
+ assert.ok(RETIRED_REFERENCE_RECIPES.every(r=>!/^r\\d/.test(r.id)),'v1.7.10: the 30 original Vietnamese home dishes never retire');
  const ids=[...RETIRED_REFERENCE_IDS].slice(0,6),copy=id=>clone(all.find(r=>r.id===id));
  const s=clone(defaults());s.seedVersion=5;s.recipes.push(...ids.map(copy));
  s.recipes.find(r=>r.id===ids[0]).favorite=true;                  // favourite
@@ -70,11 +70,11 @@ vm.runInContext(`
  const wk=Object.keys(s.weeks||{})[0]||'2026-11-02';s.weeks??={};s.weeks[wk]??={days:{}};s.weeks[wk].days??={};s.weeks[wk].days['2026-11-03']={dinner:{recipes:[copy(ids[3])]}}; // planned
  s.preferences.reactions={[ids[4]]:'like'};                        // reacted to (any mention of the id)
  const before=s.recipes.length;upgradeReferenceCatalog(s);
- assert.equal(s.seedVersion,6);assert.equal(before-s.recipes.length,1,'only the untouched one leaves');
+ assert.equal(s.seedVersion,7);assert.equal(before-s.recipes.length,1,'only the untouched one leaves');
  for(const id of ids.slice(0,5))assert.ok(s.recipes.some(r=>r.id===id),'kept '+id);assert.ok(!s.recipes.some(r=>r.id===ids[5]),'untouched retired recipe removed');
  assert.ok(s.deletedRecipeIds.includes(ids[5]),'tombstoned so an older copy cannot bring it back');assert.ok(!s.deletedRecipeIds.includes(ids[0]));
  assert.equal(upgradeReferenceCatalog(s),0,'idempotent');
  // a family's own recipes are never touched
  const own={id:'fam-x',name:'Món nhà',category:'main',protein:'pork',time:20,servings:4,ingredients:[],prep:'',steps:['Nấu'],custom:true,origin:'family',favorite:false};const t=clone(defaults());t.seedVersion=5;t.recipes.push(own);upgradeReferenceCatalog(t);assert.ok(t.recipes.some(r=>r.id==='fam-x'));assert.ok(validImport(t),'upgraded state is valid');}
-console.log('PASS v1.7.5 library halved: 475 offered, untouched retired recipes leave (tombstoned), favourite / edited / photo / planned / mentioned ones stay, family recipes untouched');
+console.log('PASS v1.7.10 library: 125 recognised recipes offered, untouched retired recipes leave (tombstoned), favourite / edited / photo / planned / mentioned ones stay, family recipes untouched');
 `,c);

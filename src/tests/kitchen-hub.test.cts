@@ -143,7 +143,7 @@ async function main() {
       for (const desc of await page.$$eval('.kitchen-hub .kitchen-section > .kitchen-desc', nodes => nodes.map(n => n.textContent!.trim()))) assert.ok(desc.length > 10 && desc.length <= 60, 'one short description line per card: ' + desc);
       assert.equal(await page.locator('.kitchen-hub .kitchen-section > .kitchen-desc').count(), 4);
       // Moved out of My kitchen: appearance, currency, data & backup (Other settings) and account & security (avatar).
-      assert.equal(await page.locator('.kitchen-hub :is(#kitchen-appearance, #kitchen-currency, #kitchen-data, #kitchen-account, #theme-mode-select, #festival-theme-select, #account-email, [data-personal=currency], [data-action=export], [data-action=import], [data-personal=sign-out], [data-personal=device-only], .kitchen-jump)').count(), 0, 'removed sections are not in My kitchen');
+      assert.equal(await page.locator('.kitchen-hub :is(#kitchen-appearance, #kitchen-currency, #kitchen-data, #kitchen-account, #theme-mode-select, .theme-swatch-grid, #account-email, [data-personal=currency], [data-action=export], [data-action=import], [data-personal=sign-out], [data-personal=device-only], .kitchen-jump)').count(), 0, 'removed sections are not in My kitchen');
       assert.equal(await page.locator('.kitchen-hub :is([data-personal=other-settings], [data-personal=account-security])').count(), 0, 'My kitchen does not link to the other sheets');
       assert.equal(await page.locator('.kitchen-hub [data-personal=invite]').count(), 1, 'one invite button in My kitchen');
       assert.equal(await page.locator('.kitchen-hub #account-join').count(), 1, 'one join form');
@@ -166,7 +166,7 @@ async function main() {
       assert.equal(await page.locator('.other-settings #settings-other-title').innerText(), 'Cài đặt khác');
       assert.ok(await page.evaluate(() => !!(document.querySelector('#settings-account')!.compareDocumentPosition(document.querySelector('#settings-other-title')!) & Node.DOCUMENT_POSITION_FOLLOWING)), 'Other settings sits under the account part');
       assert.deepEqual(await page.$$eval('.other-settings .kitchen-section', nodes => nodes.map(n => n.id).filter(id => id.startsWith('settings-') && id !== 'settings-account')), ['settings-appearance', 'settings-currency', 'settings-voice', 'settings-offline-ready', 'settings-offline-downloads', 'settings-data', 'settings-usage']);
-      for (const sel of ['#theme-mode-select', '#festival-theme-select', '[data-personal=currency]', '[data-action=export]', '[data-action=import]']) assert.equal(await page.locator('.other-settings ' + sel).count(), 1, sel + ' in Other settings');
+      for (const sel of ['#theme-mode-select', '.theme-swatch-grid', '[data-personal=currency]', '[data-action=export]', '[data-action=import]']) assert.equal(await page.locator('.other-settings ' + sel).count(), 1, sel + ' in Other settings');
       assert.equal(await page.locator('.other-settings :is([data-personal=invite], #members-form, #settings-form)').count(), 0, 'nothing from My kitchen');
       await page.locator('#theme-mode-select').selectOption('dark');
       assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark', 'theme select still applies');

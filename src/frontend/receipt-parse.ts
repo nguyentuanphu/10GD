@@ -153,6 +153,7 @@ function tidy(line){
  let s=String(line).replace(/[\u00a0\t]+/g,' ').replace(/[“”]/g,'"').replace(/[‘’`´]/g,"'");
  s=s.replace(/(\d)\s?[°·•](\d{2})(?!\d)/g,'$1.$2').replace(/(\d)\.\s(\d{2})(?!\d)/g,'$1.$2');
  s=s.replace(/(\d[.,]\d)[)\]](?=\s?\/)/g,'$10').replace(/(\d)\.\s(\d{3})\s*kg/gi,'$1.$2 kg');
+ s=s.replace(/(\$\s?\d{1,4})\s(\d{2})(?![\d.,])/g,'$1.$2');// v1.7.10: “$76 30” (dot lost)
  s=s.replace(/^[\s|¦!\[\]{}~_'".,:;]+/,'').replace(/[\s|¦\[\]{}~_]+$/,'');
  return s.replace(/\s+/g,' ').trim();
 }
@@ -193,6 +194,9 @@ function cleanLabel(label,retailer){
  }
  if(!code)s=s.replace(/^[^A-Za-z0-9À-ỹ>*#^%]+/,'').replace(/^(?:[a-z]{1,2}|[A-Z][a-z]?)\s+(?=[A-Z0-9^#*%>][A-Za-z0-9])/,m=>/^(ea|Mt|St|Dr|Mr|No)\s$/.test(m)?m:'');
  s=s.replace(/^(?:[>*»«~=+#^%]+\s*)+/,'').replace(/^[xX×](?=\d)/,'');
+ // v1.7.10: specks next to the paper read as a short token before an upper-case product name (“A% 18 XINH-XINH”, “S54 BEEF ASADO”,
+ // “'X SUNNY”). Only tokens with a stray symbol or a letter glued to digits go; item numbers (“06.”, “18”) and real codes (“BL”) stay.
+ if(!code)for(let k=0;k<2;k++){const m=s.match(/^(\S{1,3})\s+(?=[A-Z0-9][A-Z0-9.'-]*\s+[A-Z]{2})/);if(!m)break;const t=m[1];if(/[^A-Za-z0-9.]/.test(t)||/^[A-Za-z]\d+$|^\d+[A-Za-z]$/.test(t)){s=s.slice(m[0].length);continue}break}
  s=s.replace(/\s+[^\sA-Za-z0-9]{1,2}$/,'').replace(/[\s:;,'"`|\\$]+$/,'').replace(/\s+/g,' ').trim();
  return{label:s,code};
 }
@@ -250,13 +254,22 @@ function findStore(lines,head,retailer){
  else if(rid==='woolworths-uk'){for(const l of head){const m=l.match(/^([A-Za-z][A-Za-z ]{2,30}),\s*[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/);if(m){suburb=m[1].trim();break}}}
  suburb=suburb.replace(/\s+/g,' ').trim();
  let store=retailer?.name?(retailer.name.replace(/ UK$/,'')+(suburb?' '+suburb:'')):'';
+ // v1.7.10: local shops print the company (“HP MEATS PTY LTD”, “CUONG THIEN PTY LTD”) and “MARRICKVILLE NSW 2204”
+ if(!store){const co=head.map(l=>l.match(/([A-Z][A-Z0-9&'.-]*(?:\s+[A-Z0-9&'.-]+){0,4}?)\s+P[TI]Y\.?\s*L[TI][DP]\b/)).find(Boolean);
+  if(co){const name=co[1].replace(/^(?:[A-Z]\s+|[^A-Z]+)/,'').trim();const sub=lines.slice(0,14).map(l=>l.match(new RegExp(`([A-Z][A-Z' ]{2,28}?)\\s+(${STATES})\\s+\\d{4}\\b`))).find(Boolean);
+   if(name.length>=2){store=name.split(/\s+/).map(w=>w.length<=2?w:titleCase(w)).join(' ')+(sub&&!suburb?' '+titleCase(sub[1].trim()):'');if(sub&&!suburb)suburb=titleCase(sub[1].trim())}}}
  if(!store){const first=head.find(l=>/[A-Za-z]{3}/.test(l)&&l.length<50&&!/\d[.,]\d{2}/.test(l)&&!SKIP_RE.test(norm(l))&&!isSensitive(l));store=first?first.trim():''}
  return{store,suburb,storeNo};
 }
 
 // ---------------------------------------------------------------- main parser
-const WEIGHT_RE=/(\d+[.,]\s?\d{1,3})\s*kg\s*(?:net)?\s*[@©®€&]?\s*\$?\s?(\d+[.,]\d{2})\s*\$?\s*[/]\s*kg/i;
-const MULTI_RE=/^\W*(?:[qo]ty\s*)?(\d{1,3})\s*(?:[@©®§&]\s*\$?|\s[08Oo]\s+\$)\s?(\d+[.,]\d{2})\s*(?:each|ea\b\.?)?/i;
+// v1.7.10: “@” read as 0 / 8 / § and “1.442g” (k dropped) on photos of thermal receipts; “/kg” may be cut to “/k”
+const WEIGHT_RE=/(\d+[.,]\s?\d{3}(?=\s*k?g)|\d+[.,]\s?\d{1,2}(?=\s*kg))\s*k?g\s*(?:net)?\s*(?:[@©®€&§]|[08](?=\s))?\s*\$?\s?(\d+[.,]\d{2})\s*\$?\s*[/]\s*k/i;
+const MULTI_RE=/^\W*(?:[qo]ty\s*)?(\d{1,3})\s*(?:[@©®§&]\s*\$?|\s[08Oo]\s+\$)\s?(\d+[.,]\d{1,2})(?!\d)\s*(?:each|ea\b\.?)?/i;
+// v1.7.10: “2 @ $2.20” read glued as “2082.20” (@→0, $→8). Accepted only when count × each equals the item just read.
+const GLUED_MULTI_RE=/^\W*(?:\S{1,4}\s+)?(\d{1,2}[0@][0-9@$S§]{1,3}\d{0,2}[.,]\d{1,2})(?:\s+\S{1,3}){0,3}\W*$/;
+// “SHER 2 8 $3.00”, “Ene. 2 @ $3.15”: a count line behind a short speck token
+const JUNK_MULTI_RE=/^\W*\S{1,4}\s+(\d{1,2})\s*(?:[@©®§&]\s*\$?|\s[08Oo]\s+\$)\s?(\d+[.,]\d{1,2})(?!\d)/;
 function parseReceipt(text,opts={}){
  const raw=String(text||'').slice(0,40000);
  const lines=raw.split(/\r?\n/).map(tidy).filter(Boolean);
@@ -264,13 +277,18 @@ function parseReceipt(text,opts={}){
  const aldi=det.id==='aldi';
  const items=[],totals=[],head=[];const payAmounts=[];let section='head',pending=null,refund=false,multiple=false,printedCount=null,lastItem=null;
  const add=it=>{items.push(it);if(it.kind==='item')lastItem=it;return it};
+ // v1.7.10: the second half of a wrapped name (“/ NGAN”, “G / BUNCH”, “RMAL”, “EACH”, “PURPLE”, “/ 3 FOR”) is not a new product
+ const contPending=()=>{if(!pending||pending.head)return false;const t=cleanLabel(pending.text,det.id).label;const words=t.match(/[A-Za-z]{2,}/g)||[];return /^\W*\/|^(?:\S{1,3}\s+)?(?:N?O?R?MAL|NORMAL|EACH|BUNCH|BIG\s+BUNCH|NGAN|PURPLE|\d\s*FOR)\b/i.test(t)||words.length<=1&&t.length<=12};
+ const sameAs=(v,price)=>price!=null&&Math.abs(round(v)-price)<0.015;
  // An unpriced line that names a product with a printed size (torn / clipped receipt) stays as a line
  // without a price, so nothing is silently lost; the price is never guessed.
  const keepPending=()=>{if(!pending||aldi)return;const c=cleanLabel(pending.text,det.id),sz=extractSize(c.label);if((sz.size||sz.pack)&&/[A-Za-z]{4}/.test(c.label))add(makeItem(c.label,c.code,null,null,pending.text,true));pending=null};
  const aldiCoded=aldi?lines.filter(l=>/(^|\s)[>*»«=+]?\d{4,7}\s+\S.*\d[.,]\d{2}/.test(l)).length:0;
  const bodyStart=lines.findIndex(l=>/tax\s*invoice|^\W*\$\W*$|^\W*description\b/i.test(l));
  for(let i=0;i<lines.length;i++){
-  const line=lines[i],n=norm(line);
+  // v1.7.10: specks beside the paper can sit before SUB TOTAL / TOTAL / BALANCE / card lines (“2 TOTAL: $133.75”, “oir 2 MASTERCARD”);
+  // Woolworths' own item count (“11 SUBTOTAL”) stays
+  const line=/^\W*\d{1,3}\s+SUB\s*TOTAL\b/i.test(lines[i])?lines[i]:lines[i].replace(/^(?:\S{1,5}\s+){1,2}(?=(?:SUB\s*TOTAL|S[UB]?B\s*TOTAL|TOTAL|BALANCE|ROUNDING|CASH|CHANGE|MASTERCARD|VISA|EFTPOS|DEBIT|GST\s+INCLUDED|TOTAL\s+ITEMS)\b)/i,''),n=norm(line);
   if(section==='warranty')continue;
   if(/^\W*[wy]arrant(y|ies)\b/i.test(line)){section='warranty';pending=null;continue}
   if(section==='pay'&&totals.some(t=>t.p>=4)&&/tax\s*invoice/i.test(line)){multiple=true;break}
@@ -302,17 +320,24 @@ function parseReceipt(text,opts={}){
   const w=line.match(WEIGHT_RE);
   if(w){const kg=+w[1].replace(/\s/g,'').replace(',','.'),per=+w[2].replace(',','.'),p=priceOf(line.slice(w.index+w[0].length),aldi);
    let target=null;
-   if(pending&&section==='body'){const c=cleanLabel(pending.text,det.id);if(/[A-Za-z]{2}/.test(c.label))target=add(makeItem(c.label,c.code,p?p.price:null,p?.gst,pending.text,!p))}
+   if(pending&&contPending()&&lastItem&&lastItem.weight==null&&lastItem.price!=null){target=lastItem;target.raw+=' / '+pending.text}
+   else if(pending&&section==='body'){const c=cleanLabel(pending.text,det.id);if(/[A-Za-z]{2}/.test(c.label))target=add(makeItem(c.label,c.code,p?p.price:null,p?.gst,pending.text,!p))}
    else if(lastItem&&lastItem.weight==null&&!(!det.id&&p&&lastItem.price!=null&&Math.abs(lastItem.price-p.price)>0.015))target=lastItem;
     // v1.7.2 local grocer: "0.850kg @ 12.99/kg 11.04" with its own price is its own (generic) line
     else if(!det.id&&p&&section==='body'){target=add(makeItem('',null,p.price,p.gst,line,false));target.genericKey='w'}
    pending=null;
    if(target&&kg>0&&kg<50){target.weight={qty:kg,unit:'kg'};target.perKg=per;target.raw+=' / '+line;if(target.price==null&&p){target.price=p.price;target.priceMissing=false}target.qty=kg;target.unit='kg';target.size=null}
    continue}
-  const mm=line.match(MULTI_RE);
-  if(mm&&!/[a-z]{3}/i.test(line.replace(/each|[qo]ty|ea\b/ig,''))){const count=+mm[1],each=+mm[2].replace(',','.'),p=priceOf(line.slice(mm.index+mm[0].length),aldi);
+  {const gm=line.match(GLUED_MULTI_RE);if(gm&&lastItem&&lastItem.price!=null&&!lastItem.multi){const d=gm[1];let hit=null;
+    // “2082.20” = 2 @ $2.20, “204$1.80” = 2 @ $1.80: count = first 1–2 digits, price = a tail of the number; only a split whose
+    // count × price equals the item just read is used (nothing is guessed)
+    for(const cl of [1,2])for(let k=cl;k<d.length&&!hit;k++){const c=+d.slice(0,cl),m=d.slice(k).match(/^[0@48$S§]{0,3}?(\d{1,3}[.,]\d{1,2})$/);if(m&&c>=2&&sameAs(c*+m[1].replace(',','.'),lastItem.price))hit={count:c,each:+m[1].replace(',','.')}}
+    if(hit){lastItem.multi=hit;lastItem.raw+=' / '+line;if(pending)lastItem.raw+=' / '+pending.text;if(lastItem.size)lastItem.qty=round(lastItem.size.qty*hit.count,3);else if(lastItem.each||lastItem.qty==null){lastItem.qty=hit.count;lastItem.unit='each'}pending=null;continue}}}
+  const mm=line.match(MULTI_RE)||line.match(JUNK_MULTI_RE);
+  if(mm&&!/[a-z]{3}/i.test(line.replace(/^\W*\S{1,4}\s+(?=\d)/,'').replace(/each|[qo]ty|ea\b/ig,''))){const count=+mm[1],each=+mm[2].replace(',','.'),p=priceOf(line.slice(mm.index+mm[0].length),aldi);
    let target=null;
-   if(pending&&section==='body'){const c=cleanLabel(pending.text,det.id);if(/[A-Za-z]{2}/.test(c.label))target=add(makeItem(c.label,c.code,p?p.price:null,p?.gst,pending.text,!p))}
+   if(lastItem&&!lastItem.multi&&(sameAs(count*each,lastItem.price)||pending&&contPending()&&lastItem.price!=null)){target=lastItem;if(pending)target.raw+=' / '+pending.text}
+   else if(pending&&section==='body'){const c=cleanLabel(pending.text,det.id);if(/[A-Za-z]{2}/.test(c.label))target=add(makeItem(c.label,c.code,p?p.price:null,p?.gst,pending.text,!p))}
    else target=lastItem;
    pending=null;
    if(target&&count>=1&&count<100){target.multi={count,each};target.raw+=' / '+line;if(target.price==null&&p){target.price=p.price;target.priceMissing=false}
@@ -525,6 +550,42 @@ function paperExtents(g,sat,w,h){
  for(let gy=ys[0];gy<=ys[ys.length-1];gy++){const win=[];for(let k=gy-3;k<=gy+3;k++)if(keep[k])win.push(keep[k]);if(!win.length)continue;const L=med(win.map(r=>r[0]))*B,R=(med(win.map(r=>r[1]))+1)*B;for(let y=gy*B;y<Math.min(h,gy*B+B);y++)out[y]=[L,Math.min(w,R)]}
  return{rows:out,top:ys[0]*B,bottom:Math.min(h,(ys[ys.length-1]+1)*B),coverage:ys.length/gh,fullWidth:maxW>=gw-1};
 }
+// v1.7.10 (owner, 7 Nov 2026: four receipts photographed on a light speckled stone bench “không scan được”): when the bench
+// is nearly as bright as the paper, brightness cannot find the paper. Texture can: paper has completely blank patches (margins,
+// gaps between lines and words) while a speckled bench has a dark fleck in every small patch. Per horizontal band, columns
+// with blank patches form the paper; returns the same shape as paperExtents, or null when there is no clear narrower paper.
+function blankExtents(g,w,h){
+ const k=Math.min(1,600/w),sw=Math.max(1,Math.round(w*k)),sh=Math.max(1,Math.round(h*k)),s=new Float32Array(sw*sh);
+ for(let y=0;y<sh;y++){const yy=Math.min(h-1,Math.round(y/k))*w;for(let x=0;x<sw;x++)s[y*sw+x]=g[yy+Math.min(w-1,Math.round(x/k))]}
+ // local paper level: 15×15 maximum (separable)
+ const R=7,t=new Float32Array(sw*sh),m=new Float32Array(sw*sh);
+ for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){let v=0;for(let d=-R;d<=R;d++){const xx=x+d;if(xx>=0&&xx<sw){const q=s[y*sw+xx];if(q>v)v=q}}t[y*sw+x]=v}
+ for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){let v=0;for(let d=-R;d<=R;d++){const yy=y+d;if(yy>=0&&yy<sh){const q=t[yy*sw+x];if(q>v)v=q}}m[y*sw+x]=v}
+ const C=6,gw=Math.floor(sw/C),gh=Math.floor(sh/C);if(gw<20||gh<20)return null;const ink=new Uint8Array(gw*gh);
+ for(let cy=0;cy<gh;cy++)for(let cx=0;cx<gw;cx++){let any=0;for(let y=cy*C;y<cy*C+C&&!any;y++)for(let x=cx*C;x<cx*C+C;x++){const i=y*sw+x;if(s[i]<m[i]*0.8){any=1;break}}ink[cy*gw+cx]=any}
+ // blank share per column over a set of rows, smoothed over 5 columns
+ const prof=(y0,y1)=>{const col=new Float32Array(gw);for(let x=0;x<gw;x++){let n=0;for(let y=y0;y<y1;y++)n+=1-ink[y*gw+x];col[x]=n/Math.max(1,y1-y0)}const sm=new Float32Array(gw);for(let x=0;x<gw;x++){let a=0,n=0;for(let d=-2;d<=2;d++){const xx=x+d;if(xx>=0&&xx<gw){a+=col[xx];n++}}sm[x]=a/n}return sm};
+ // longest run of columns at or above `t`, closing gaps up to `gap` columns (dense text)
+ const longest=(sm,t,gap,lo=0,hi=gw-1)=>{let best=null,st=-1,last=-1;for(let x=lo;x<=hi+1;x++){const on=x<=hi&&sm[x]>=t;if(on){if(st<0||x-last>gap+1){if(st>=0&&(!best||last-st>best[1]-best[0]))best=[st,last];st=x}last=x}}if(st>=0&&(!best||last-st>best[1]-best[0]))best=[st,last];return best};
+ // 1. the paper over the whole photo
+ const G=longest(prof(0,gh),0.12,Math.round(gw*0.06));if(!G||G[1]-G[0]+1<gw*0.12)return null;
+ // 2. each band: the paper's edges, looked for only near the whole-photo paper (bends and tilt stay small)
+ const win=Math.round(gw*0.08),bands=Math.max(6,Math.round(gh/18)),runs=[];
+ for(let b=0;b<bands;b++){const y0=Math.floor(b*gh/bands),y1=Math.floor((b+1)*gh/bands),sm=prof(y0,y1),lo=Math.max(0,G[0]-win),hi=Math.min(gw-1,G[1]+win);
+  const r=longest(sm,0.08,Math.round((G[1]-G[0])*0.35),lo,hi);runs.push(r&&r[1]-r[0]+1>=(G[1]-G[0]+1)*0.5?{y0,y1,L:r[0],R:r[1]}:null)}
+ const ok=runs.filter(Boolean);if(ok.length<bands*0.4)return null;
+ // the bench must be clearly blank-free outside the paper, and the paper clearly narrower than the photo
+ const widest=Math.max(...ok.map(r=>r.R-r.L+1));if(widest>=gw*0.92)return null;
+ let outside=0,on=0;for(const r of ok)for(let y=r.y0;y<r.y1;y++)for(let x=0;x<gw;x++)if(x<r.L-2||x>r.R+2){on++;outside+=1-ink[y*gw+x]}
+ if(on&&outside/on>0.2)return null;
+ // top/bottom: first/last band with paper; edges smoothed by a 3-band median
+ const med=a=>a.slice().sort((x,y)=>x-y)[a.length>>1],first=runs.findIndex(Boolean),lastB=runs.length-1-[...runs].reverse().findIndex(Boolean);
+ const px=C/k,out=new Array(h).fill(null);
+ for(let b=first;b<=lastB;b++){const win=[runs[b-1],runs[b],runs[b+1]].filter(Boolean);if(!win.length)continue;const L=Math.max(0,Math.floor(med(win.map(r=>r.L))*px-px)),Rr=Math.min(w,Math.ceil((med(win.map(r=>r.R))+1)*px+px));
+  for(let y=Math.floor(runs[b]?runs[b].y0*px:b*gh/bands*px);y<Math.min(h,Math.ceil((b+1)*gh/bands*px));y++)out[y]=[L,Rr]}
+ const top=Math.floor(first*gh/bands*px),bottom=Math.min(h,Math.ceil((lastB+1)*gh/bands*px));
+ return{rows:out,top,bottom,coverage:(lastB-first+1)/bands,fullWidth:false,by:'texture'};
+}
 // Background estimate by block maximum (text is dark, paper bright), smoothed → divide.
 function flatten(g,w,h,block){
  const bw=Math.ceil(w/block),bh=Math.ceil(h/block),bg=new Float32Array(bw*bh);
@@ -591,7 +652,8 @@ function preprocess(img,{maxSide=4600,targetWidth=1500,bands=14,mode='gray'}={})
  let{width:w,height:h}=img;const info={input:[w,h]};
  const{g,sat}=toGray(img);
  // 1. paper crop
- const paper=paperExtents(g,sat,w,h);let x0=0,x1=w,y0=0,y1=h;
+ let paper=paperExtents(g,sat,w,h);let x0=0,x1=w,y0=0,y1=h;
+ if(!paper||paper.fullWidth||paper.coverage<=0.2){const t=blankExtents(g,w,h);if(t){paper=t;info.paperBy='texture'}}
  if(paper&&paper.coverage>0.2&&!paper.fullWidth){const ls=paper.rows.filter(Boolean);x0=Math.max(0,Math.min(...ls.map(r=>r[0])));x1=Math.min(w,Math.max(...ls.map(r=>r[1])));y0=paper.top;y1=paper.bottom;info.crop=[x0,y0,x1-x0,y1-y0]}
  const cw=x1-x0,ch=y1-y0;
  // 2. scale so the paper is ~targetWidth wide (upscales small text, downsizes huge photos)
@@ -670,6 +732,6 @@ async function recognize(file,{lang='eng',status=null,createWorker=null,original
  }finally{if(worker)try{await worker.terminate()}catch{}}
 }
 
-const api={genericLabel,GENERIC_WORDS,readScore,preferOther,RETAILERS,ABBREVIATIONS,EN_ALIASES,KNOWN_WORDS,addWords,detectRetailer,detectCurrency,expandAbbrev,splitGlued,isSnack,isNonFood,extractSize,repairNumber,plausible,tidy,cleanLabel,priceOf,clippedPrice,parseReceipt,warningsFor,warningText,looksLikeReceipt,differenceNote,redact,isSensitive,matchIngredient,memoryKeys,lineQuantity,fingerprint,receiptKey,sha256Hex,findDuplicate,sameStore,reconcile,findDate,preprocess,toGray,otsu,charAccuracy,prepareImage,recognize,norm,warpField};
+const api={genericLabel,GENERIC_WORDS,readScore,preferOther,RETAILERS,ABBREVIATIONS,EN_ALIASES,KNOWN_WORDS,addWords,detectRetailer,detectCurrency,expandAbbrev,splitGlued,isSnack,isNonFood,extractSize,repairNumber,plausible,tidy,cleanLabel,priceOf,clippedPrice,parseReceipt,warningsFor,warningText,looksLikeReceipt,differenceNote,redact,isSensitive,matchIngredient,memoryKeys,lineQuantity,fingerprint,receiptKey,sha256Hex,findDuplicate,sameStore,reconcile,findDate,preprocess,toGray,otsu,blankExtents,paperExtents,charAccuracy,prepareImage,recognize,norm,warpField};
 root.ReceiptParse=api;
 })(globalThis);
