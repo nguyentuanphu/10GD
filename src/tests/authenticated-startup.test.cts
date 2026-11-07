@@ -182,7 +182,7 @@ async function main() {
   assert.equal(await page.locator('[data-personal=voice]').count(),1,'only one Voice Input button on Today');
   await page.locator('[data-personal=settings]').click();assert.equal(await page.locator('#modal-root [data-personal=voice]').count(),0,'no duplicate voice button in My Kitchen modal');await page.keyboard.press('Escape');
   await page.evaluate(()=>{location.hash='planner'});await page.waitForTimeout(100);
-  assert.match(await page.locator('[data-fm=generate]').innerText(),/Lên thực đơn cả tuần|Auto-plan week/);
+  {const g=page.locator('[data-fm=generate]');assert.match(await g.innerText(),/Lên thực đơn|Auto-plan week/);assert.match(String(await g.getAttribute('aria-label')||await g.innerText()),/Lên thực đơn cả tuần|Auto-plan week/)}
   await page.locator('[data-fm=generate]').click();await page.locator('[data-fm=apply]').waitFor();await page.locator('[data-fm=apply]').click();await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
   assert.ok(await page.locator('.family-meal-card .family-dish').count()>5,'auto-plan week populated meals using library fallback');
   // v1.7.7: days fold; edit a meal of the open day (today / the selected day)

@@ -68,28 +68,35 @@ for(const [what,store] of [['guest data',{'guest/bep-gia-dinh-v1':OLD_DATA}],['l
 // 8. the manifest
 {const m=JSON.parse(fs.readFileSync(path.join(root,'dist/manifest.webmanifest'),'utf8'));assert.equal(m.name,'FamTray · Bếp Nhà');assert.equal(m.short_name,'FamTray');assert.equal(m.lang,'en');assert.match(m.description,/One table, the whole family/);n++}
 
-// 10. (owner decision, 7 Nov 2026) online prices: 5 tries without an account, then an account; phone reminders need an account
+// 10. (owner, 7 Nov 2026: “So giá bây giờ chỉ nên có tài khoản đi cho chắc”) So Giá is for signed-in families; phone reminders need an account
 for(const [l,size,viewport] of [['vi','mobile',{width:375,height:812}],['en','desktop',{width:1280,height:800}],['vi','narrow',{width:320,height:640}]] as [string,string,any][]){
- const {ctx,page,errors}=await open({locale:l==='vi'?'vi-VN':'en-AU',languages:[l==='vi'?'vi-VN':'en-AU'],viewport});let left=2;
- await page.route('https://kitchen.test/.netlify/functions/grocery**',async(route:any)=>{const u=new URL(route.request().url()),op=u.searchParams.get('op');
-  if(op==='photos')return route.fulfill({json:{items:{}}});
-  if(!route.request().headers()['x-bep-trial'])return route.fulfill({status:401,json:{error:'Sign in to family storage.'}});
-  if(left<=0)return route.fulfill({status:403,json:{error:'trial-used',trial:{left:0,limit:5}}});left--;return route.fulfill({json:{guest:true,householdId:null,cycleId:'c',observations:[],official:{observations:[]},trial:{left,limit:5}}})});
- await page.evaluate(()=>{localStorage.setItem('bep-trial-left','3');state.preferences.onboardingComplete=true;save();view='shopping';location.hash='shopping';render()});
- const note=page.locator('#main .scout-trial');await note.waitFor({timeout:8000});const label=`${l} ${size}`;
- assert.match(await note.innerText(),l==='vi'?/còn 3\/5 lượt/:/3 of 5 tries left/,label+': trial line');assert.ok(!/[\u{1F300}-\u{1FAFF}]/u.test(await note.innerText()),label+': no emoji');
- await page.locator('#main .scout-refresh').first().click();await page.waitForFunction(()=>localStorage.getItem('bep-trial-left')==='1'&&/1\/5|1 of 5/.test(document.querySelector('#main .scout-trial')?.textContent||''),null,{timeout:8000});
- assert.match(await page.locator('#main .scout-trial').innerText(),l==='vi'?/còn 1\/5/:/1 of 5/,label+': a refresh uses a try (server count)');
- await page.locator('#main .scout-refresh').first().click();await page.waitForFunction(()=>localStorage.getItem('bep-trial-left')==='0'&&!!document.querySelector('#main .scout-trial.used'),null,{timeout:8000});
- {const tt=await page.locator('#main .scout-trial').innerText();assert.match(tt,l==='vi'?/Đã dùng hết 5 lượt/:/used the 5 online-price tries/,label+': all tries used — '+tt)}
- await page.locator('#main .scout-refresh').first().click();const sheet=page.locator('#modal-root .modal');await sheet.waitFor();
- assert.match(await sheet.innerText(),l==='vi'?/Hết lượt thử giá online/:/No online-price tries left/);assert.equal(await sheet.locator('a[href="/login"]').count(),1,label+': create-account link');
- assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),label+': no sideways scroll');await page.screenshot({path:`${dir}/${l}-${size}-trial-used.png`});
- await page.evaluate(()=>closeModal());await page.locator('#main .scout-trial').scrollIntoViewIfNeeded();await page.screenshot({path:`${dir}/${l}-${size}-trial-line.png`});
+ const {ctx,page,errors}=await open({locale:l==='vi'?'vi-VN':'en-AU',languages:[l==='vi'?'vi-VN':'en-AU'],viewport});let calls=0;
+ await page.route('https://kitchen.test/.netlify/functions/grocery**',async(route:any)=>{const op=new URL(route.request().url()).searchParams.get('op');if(op==='photos')return route.fulfill({json:{items:{}}});calls++;return route.fulfill({status:401,json:{error:'Sign in to family storage.'}})});
+ await page.evaluate(()=>{localStorage.setItem('bep-scout-v1',localStorage.getItem('bep-scout-v1')||'');state.preferences.onboardingComplete=true;const w=currentWeek();w.days[sydneyDate()].dinner.recipes=[clone(state.recipes.find((x:any)=>x.id==='r1'))];save();view='shopping';location.hash='shopping';render()});
+ const card=page.locator('#main .scout-account-only');await card.waitFor({timeout:8000});const label=`${l} ${size}`;
+ assert.match(await card.innerText(),l==='vi'?/So Giá cần tài khoản/:/Price Check needs an account/,label+': account card');assert.equal(await card.locator('a[href="/login"]').count(),1,label+': create-account link');
+ assert.equal(await page.locator('#main .scout-refresh, #main [data-scout="online-find"], #main #scout-postcode').count(),0,label+': no So Giá controls without an account');
+ assert.equal(calls,0,label+': no price requests without an account');assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),label+': no sideways scroll');
+ for(const b of await card.locator('a').all())assert.ok((await b.boundingBox())!.height>=44,label+': ≥ 44 px');
+ await card.scrollIntoViewIfNeeded();await page.screenshot({path:`${dir}/${l}-${size}-scout-account.png`});
  await page.evaluate(()=>(globalThis as any).pushSettings());const push=page.locator('#modal-root .account-needed');await push.waitFor({timeout:8000});
  assert.match(await push.innerText(),l==='vi'?/cần tài khoản/:/need a free account/,label+': reminders need an account');assert.equal(await push.locator('a[href="/login"]').count(),1);
- for(const b of await page.locator('#modal-root .account-needed a, #main .scout-trial a').all())assert.ok((await b.boundingBox())!.height>=44,label+': ≥ 44 px');
  await page.screenshot({path:`${dir}/${l}-${size}-reminders-account.png`});assert.deepEqual(errors,[],label+': no page errors');n++;await ctx.close()}
+
+// 11. (owner, 7 Nov 2026; AGENTS.md rule 27) every button, chip, tab and disclosure has a drawing; long labels are shortened
+for(const l of ['vi','en']){const {ctx,page,errors}=await open({locale:l==='vi'?'vi-VN':'en-AU',languages:[l==='vi'?'vi-VN':'en-AU']});
+ await page.evaluate(`(()=>{state.preferences.onboardingComplete=true;const w=currentWeek();for(const d of Object.keys(w.days))w.days[d].dinner.recipes=[clone(state.recipes.find(x=>x.id==='r1'))];state.pantry.push({id:'q1',ingredient:'pork',qty:500,place:'fridge',expiry:''});save();render()})()`);
+ const bare:string[]=[],long:string[]=[];
+ const scan=async(where:string)=>{await page.waitForTimeout(400);const r:any=await page.evaluate(()=>{const out:any={bare:[],long:[]};const scope=document.querySelector('#modal-root .modal')||document.querySelector('#main');
+  for(const e of scope!.querySelectorAll<HTMLElement>('button, a.btn, a.chip, [role="tab"], .chip, summary')){const rc=e.getBoundingClientRect();if(!rc.width||!rc.height||getComputedStyle(e).visibility==='hidden')continue;
+   if(e.matches('[data-color-theme],.day,.plan-day-head,.theme-fold-summary,[data-fm="recipe-snapshot"]')||e.closest('.ladybug'))continue;
+   const t=(e.innerText||'').replace(/\s+/g,' ').trim();if(!e.querySelector('svg,img,.ingredient-art,.dish-art,.pp-wrap'))out.bare.push(t.slice(0,40)||e.outerHTML.slice(0,60));
+   const words=t.replace(/[\d()·/]+/g,'').trim();if(words.length>22&&rc.width<(e.parentElement?.getBoundingClientRect().width||9999)-4&&!e.matches('summary,.item-label,.shop-pantry-btn,.text-btn'))out.long.push(t.slice(0,50))}
+  return out});for(const b of r.bare)bare.push(where+': '+b);for(const x of r.long)long.push(where+': '+x)};
+ for(const v of ['today','planner','shopping','recipes','pantry','expenses','insights','products']){await page.evaluate(`closeModal();location.hash='${v}'`);await scan(v)}
+ for(const [name,js] of [['settings',"otherSettingsModal('')"],['recipe',"showRecipe('r1')"],['edit meal',"familyEditMeal(sydneyDate(),'dinner')"],['push',"pushSettings()"]] as [string,string][]){await page.evaluate(`closeModal();${js}`);await scan(name)}
+ assert.deepEqual(bare,[],l+': every button, chip and tab has a drawing '+JSON.stringify(bare));assert.deepEqual(long,[],l+': no long button labels '+JSON.stringify(long));
+ await page.evaluate(`closeModal();location.hash='planner'`);await page.waitForTimeout(400);await page.screenshot({path:`${dir}/${l}-mobile-button-art.png`});assert.deepEqual(errors,[]);n++;await ctx.close()}
 
 // 9. responsive evidence: header, welcome card and the switch at four sizes, VI and EN, online and offline; sign-in page
 const SIZES:any[]=[['narrow',{width:320,height:640}],['mobile',{width:375,height:812}],['tablet',{width:820,height:1100}],['desktop',{width:1280,height:800}]];
@@ -110,5 +117,5 @@ for(const [size,viewport] of SIZES)for(const l of ['vi','en'])for(const net of [
   for(const b of await s.page.locator('[data-set-lang]').all())assert.ok((await b.boundingBox())!.height>=44,label+': sign-in switch ≥ 44 px');
   await s.page.screenshot({path:`${dir}/${l}-${size}-signin.png`});await s.page.locator('#register-tab').click();await s.page.screenshot({path:`${dir}/${l}-${size}-signup.png`});n++;await s.ctx.close()}}
 await browser.close();
-console.log(`PASS v1.7.11 FamTray · Bếp Nhà: online-price trial (5 tries, then account) and reminders need an account; default language (vi phone, en phone, other phones, in-use devices stay Vietnamese, saved choice wins, VI │ EN switch, sign-in page), manifest, name/tagline at 320 / 375 / 820 / 1280 in VI and EN, online and offline (${n} checks)`);
+console.log(`PASS v1.7.11 FamTray · Bếp Nhà: So Giá and reminders need an account; drawings on every button; default language (vi phone, en phone, other phones, in-use devices stay Vietnamese, saved choice wins, VI │ EN switch, sign-in page), manifest, name/tagline at 320 / 375 / 820 / 1280 in VI and EN, online and offline (${n} checks)`);
 })().catch(e=>{console.error(e);process.exit(1)});

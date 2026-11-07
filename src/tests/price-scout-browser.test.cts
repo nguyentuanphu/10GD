@@ -32,7 +32,7 @@ const EXTRAS=[['Rau muống','500 g'],['Giấy vệ sinh','1 gói'],['Viên rử
 async function main(){
  mkdirSync(out,{recursive:true});
  const browser=await chromium.launch();const shots=[];
- async function open({viewport=sizes.mobile,lang='vi',theme='light',scout=null,account=false,offline=false,path='/#shopping',api=null}={}){
+ async function open({viewport=sizes.mobile,lang='vi',theme='light',scout=null,account=true,offline=false,path='/#shopping',api=null}={}){
   const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'block',reducedMotion:'reduce',colorScheme:theme});
   const scope=account?'account/qa-household/':'guest/';
   await context.addInitScript(({scope,lang,theme,scout,account})=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-theme-mode',theme);localStorage.setItem(scope+'bep-language',lang);if(account)localStorage.setItem('bep-account-present','yes');else localStorage.setItem('bep-local-locked','yes');if(scout)localStorage.setItem(scope+'bep-price-scout-v1',JSON.stringify(scout));else localStorage.removeItem(scope+'bep-price-scout-v1')},{scope,lang,theme,scout,account});
@@ -67,7 +67,9 @@ async function main(){
  const scrollTo=async(page,sel)=>{await page.evaluate(sel=>{const el=document.querySelector(sel);if(el){const y=el.getBoundingClientRect().top+scrollY-70;scrollTo(0,y)}},sel);await page.waitForTimeout(150)};
  const withData={version:1,open:true,fold176:true,postcode:'2166',state:'NSW',prefs:{communityOpen:true,wantOpen:true},local:SAMPLE,pending:[],pool:null};
  try{
-  // 1. Setup / empty state (no postcode yet)
+  // 0. (owner, 7 Nov 2026: “So giá bây giờ chỉ nên có tài khoản”) without an account So Giá is one card asking for an account — no postcode, no prices, no requests
+  for(const[size,viewport]of Object.entries(sizes)){const {page,context,errors,calls}=await open({viewport,account:false,scout:withData});await scrollTo(page,'.price-scout');const card=page.locator('.scout-account-only');assert.ok(await card.isVisible(),size+': account card');assert.equal(await page.locator('#scout-postcode, [data-scout="refresh"], .scout-row').count(),0,size+': no So Giá controls or saved prices without an account');assert.equal(await card.locator('a[href="/login"]').count(),1);assert.deepEqual(calls,[]);await check(page,'guest '+size);await shot(page,`guest-account-vi-light-${size}`);assert.deepEqual(errors,[]);await context.close()}
+  // 1. Setup / empty state (no postcode yet) — signed-in family
   for(const[size,viewport]of Object.entries(sizes)){const {page,context,errors}=await open({viewport});await scrollTo(page,'.price-scout');assert.ok(await page.locator('#scout-postcode').isVisible());await check(page,'setup '+size);await shot(page,`setup-vi-light-${size}`);assert.deepEqual(errors,[]);await context.close()}
   {const {page,context}=await open({lang:'en',theme:'dark'});await scrollTo(page,'.price-scout');await shot(page,'setup-en-dark-mobile');await context.close()}
   // 2. Unsupported postcode (Melbourne 3000; ACT 2600 is not NSW)

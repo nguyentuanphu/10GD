@@ -28,7 +28,7 @@ const SCOUT_PERSONA={learning:['🌱','Đang học thói quen','Learning your ha
 function scoutIngredientUnit(id){const u=INGREDIENTS[id]?.[1];return u==='ml'?'ml':u}
 function scoutReceiptObs(){return PS.receiptObservations(state.receipts||[],scoutCatalog(),{ingredientUnit:scoutIngredientUnit,state:scoutData.state||null})}
 function scoutObservations(){
- const own=scoutAccount()?[...(scoutData.pool?.observations||[]),...scoutData.pending]:scoutData.local;
+ const own=scoutAccount()?[...(scoutData.pool?.observations||[]),...scoutData.pending]:[];/* v1.7.11: no So Giá without an account (device prices kept, not shown) */
  const ids=new Set(),out=[];for(const o of [...own,...(scoutData.pool?.official?.observations||[]),...scoutReceiptObs()])if(o&&!ids.has(o.id)){ids.add(o.id);out.push(o)}
  return out;
 }
@@ -69,6 +69,7 @@ function scoutCaptureButtons(){if(scoutViewer())return`<p class="hint">${scoutT(
 function scoutPlanSummary(){const t=scoutLast?.result?.trips;if(!t)return'';const pick=['near','balanced','cheap'].includes(scoutData.prefs?.tripPlan)?scoutData.prefs.tripPlan:'balanced',p=t.plans?.[pick];if(!p)return'';
  return`<span class="scout-plan-sum"><b>${p.stores.map(x=>esc(scoutRetailer(x.retailer))).join(' + ')}</b> · ~${p.minutes} ${scoutT('phút','min')} · ${scoutMoney(p.total)}</span>`}
 function scoutPanel(){
+ if(!scoutAccount())return scoutAccountCard();
  // folded unless the family opened it; the short postcode form (first use) always shows
  const open=scoutData.open===true||!scoutData.state;
  const head=`<div class="scout-head"><button class="scout-toggle" data-scout="toggle" aria-expanded="${open}" aria-controls="scout-body"><span class="scout-title">🏷️ ${scoutT('So Giá','Price Check')}</span><span class="scout-sub">${scoutStatusLine()}</span><span class="scout-chevron" aria-hidden="true">${open?'▴':'▾'}</span></button><button class="btn soft scout-refresh" data-scout="refresh" ${scoutRefreshing?'disabled aria-busy="true"':''}>🔄 ${scoutT('Làm mới giá','Refresh prices')}</button></div>`;
@@ -79,7 +80,7 @@ function scoutPanel(){
  let body='';
  if(!scoutData.state){const check=scoutData.postcode?PS.postcodeState(scoutData.postcode):null;
   body=`<form id="scout-postcode-form" class="scout-postcode"><label for="scout-postcode">${scoutT('Mã bưu điện (postcode) của nhà mình','Your home postcode')}</label><div class="scout-row"><input class="input" id="scout-postcode" name="postcode" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="postal-code" value="${esc(scoutData.postcode||'')}" required><button class="btn primary">${scoutT('Lưu','Save')}</button></div><p class="hint">${scoutT('Dùng để so giá theo bang (hiện hỗ trợ NSW và QLD). Không gửi vị trí của bạn đi đâu.','Used to compare prices by state (NSW and QLD for now). Your location is not shared.')}</p>${check?.valid&&!check.supported?`<p class="callout scout-unsupported" role="status">🌏 ${esc(scoutT(check.message.vi,check.message.en))}</p>`:''}</form>`;
-  return`<section class="card price-scout" aria-label="${esc(scoutT('So Giá','Price Check'))}">${head}<div id="scout-body">${scoutTrialNote()}${body}</div></section>`}
+  return`<section class="card price-scout" aria-label="${esc(scoutT('So Giá','Price Check'))}">${head}<div id="scout-body">${body}</div></section>`}
  const {persona,result,observations,items}=scoutCompute();
  const own=observations.filter(o=>o.source!=='official');
  const p=SCOUT_PERSONA[persona.persona]||SCOUT_PERSONA.learning;
@@ -94,7 +95,7 @@ function scoutPanel(){
  if(!items.length)body+=`<p class="hint">${scoutT('Danh sách đi chợ đang trống nên chưa có gì để so.','Your shopping list is empty, so there is nothing to compare yet.')}</p>`;
  else body+=scoutCards(result,persona);
  body+=scoutRecent(own);
- return`<section class="card price-scout" aria-label="${esc(scoutT('So Giá','Price Check'))}">${head}<div id="scout-body">${scoutTrialNote()}${body}</div></section>`;
+ return`<section class="card price-scout" aria-label="${esc(scoutT('So Giá','Price Check'))}">${head}<div id="scout-body">${body}</div></section>`;
 }
 // v1.7.5 trip plans: Gần nhất / Cân bằng / Rẻ nhất — money AND minutes, items grouped by store (owner, 5 Nov)
 const SCOUT_PLAN_NAMES={near:['Gần nhất','Nearest'],balanced:['Cân bằng','Balanced'],cheap:['Đủ món','All items']};
@@ -189,7 +190,7 @@ function scoutGuessEn(it){const id=it.ingredient;if(id&&typeof INGREDIENT_EN!=='
  return out.reverse().join(' ').replace(/\s+/g,' ').trim().slice(0,50)}
 function scoutWantKey(it){return it.key.startsWith('ing:')?'i:'+it.key.slice(4):'x:'+String(it.label||'').toLowerCase().normalize('NFC').replace(/\s+/g,' ').trim().slice(0,60)}
 function scoutWantFor(it){const w=state.preferences?.onlineNames?.[scoutWantKey(it)];return w&&/^w-[a-z0-9-]{1,60}$/.test(w.itemId)?w:null}
-function scoutFindAllowed(){return scoutOnline()&&(scoutAccount()?!scoutViewer():scoutTrialLeft()>0)}
+function scoutFindAllowed(){return scoutAccount()&&!scoutViewer()&&scoutOnline()}
 function scoutFindMarkup(it,want){const data=`data-scout="online-find" data-key="${esc(scoutWantKey(it))}" data-label="${esc(it.label)}" data-ing="${esc(it.ingredient||'')}"`;
  return want?`<div class="online-find waiting">${scoutArt('cart','ol-cart')}<span>${scoutT('Đang chờ giá online cho','Waiting for online prices for')} <b>“${esc(want.query)}”</b> · ${scoutT('có sau lần cập nhật tới','after the next update')}</span><button type="button" class="text-btn" ${data}>${scoutT('Sửa','Edit')}</button></div>`
   :`<div class="online-find"><button type="button" class="btn small" ${data}>${scoutArt('cart','ol-cart')}${scoutT('Tìm giá online','Find online price')}</button></div>`}
@@ -198,7 +199,7 @@ function scoutFindSheet(b){const key=b.dataset.key,label=b.dataset.label,cur=sta
   `${cur?`<button class="btn" type="button" data-scout="online-find-clear" data-key="${esc(key)}">${scoutT('Bỏ tìm','Stop')}</button>`:''}<button class="btn primary" type="button" data-scout="online-find-save">${scoutT('Tìm giá','Look up')}</button>`);setTimeout(()=>document.getElementById('online-find-q')?.focus(),50)}
 async function scoutFindSave(){const f=document.getElementById('online-find-form'),q=document.getElementById('online-find-q')?.value||'',key=f?.dataset.key;if(!key)return;
  try{const r=await scoutApi('online-want',{method:'POST',headers:{'X-Requested-With':'fetch'},body:JSON.stringify({query:q})});state.preferences.onlineNames={...(state.preferences.onlineNames||{}),[key]:{itemId:r.itemId,query:r.query}};closeModal();save(scoutT(`Đã gửi “${r.query}”. Giá hiện sau lần cập nhật tới.`,`Sent “${r.query}”. Prices show after the next update.`));render()}
- catch(e){if(e?.trialUsed){closeModal();scoutTrialUsedSheet();render();return}toast(e.message,true)}}
+ catch(e){toast(e.message,true)}}
 // v1.7.9 (owner, 6 Nov 2026: "nhiều dòng chưa có giá"): a row whose own price is unknown but has an online price shows an
 // estimate from it — unit price × amount (per kg / 100 g / L / 100 mL / each), else packs × shelf price.
 // v1.7.10 (Henry's choice, 7 Nov 2026): items counted by the piece (quả / cái — eggs, lemons) get an estimate too:
@@ -280,16 +281,10 @@ function scoutCollect(form){
  const clean={id:o.id,itemId:o.itemId,label:o.label,retailer:o.retailer,branchId:o.branchId,storeBranchId:o.branchId,state:o.state,price:o.price,currency:'AUD',packQty:o.packQty,packUnit:o.packUnit,units:o.units,unitPrice:o.unitPrice,unitBasis:o.unitBasis,wasPrice:o.wasPrice,promo:o.promo,validUntil:o.validUntil,observedAt:o.observedAt,observedBy:o.observedBy,source:o.source,note:o.note};
  return PS.withProvenance(clean,{imageHash:o.imageHash||null,ocrPrice:o.ocrPrice??null,capturedAt:o.capturedAt||null,evidenceType:o.evidenceType||null});
 }
-// v1.7.11 (owner decision, 7 Nov 2026): without an account, online supermarket prices can be tried 5 times on a device, then an
-// account is needed. The server counts the tries; the device remembers its id and the last count it was told.
-const SCOUT_TRIAL_LIMIT=5;
-function scoutTrialId(){try{let id=localStorage.getItem('bep-trial-id');if(!id||!/^[A-Za-z0-9_-]{16,64}$/.test(id)){const b=new Uint8Array(18);crypto.getRandomValues(b);id=btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');localStorage.setItem('bep-trial-id',id)}return id}catch{return''}}
-function scoutTrialLeft(){try{const v=localStorage.getItem('bep-trial-left');return v===null?SCOUT_TRIAL_LIMIT:Math.max(0,Math.min(SCOUT_TRIAL_LIMIT,parseInt(v,10)||0))}catch{return SCOUT_TRIAL_LIMIT}}
-function scoutTrialSet(left){try{localStorage.setItem('bep-trial-left',String(Math.max(0,left|0)))}catch{}}
-function scoutTrialNote(){if(scoutAccount())return'';const left=scoutTrialLeft();
- return`<div class="scout-trial${left?'':' used'}" role="status">${scoutArt('cart','ol-cart')}<p>${left?scoutT(`Dùng thử giá online: còn <b>${left}/${SCOUT_TRIAL_LIMIT}</b> lượt. Mỗi lần “Làm mới giá” hoặc “Tìm giá online” dùng một lượt.`,`Online prices trial: <b>${left} of ${SCOUT_TRIAL_LIMIT}</b> tries left. Each “Refresh prices” or “Find online price” uses one.`):scoutT('Đã dùng hết 5 lượt thử giá online. Tạo tài khoản (miễn phí) để xem giá online tiếp.','You have used the 5 online-price tries. Create a free account to keep seeing online prices.')}</p><a class="btn small${left?'':' primary'}" href="/login">${scoutT('Tạo tài khoản','Create account')}</a></div>`}
-function scoutTrialUsedSheet(){modal(scoutT('Hết lượt thử giá online','No online-price tries left'),`<p>${scoutT('Máy này đã dùng hết 5 lượt thử giá online. Giá online tốn phí cho mỗi lần tra, nên cần tài khoản để dùng tiếp. Tạo tài khoản miễn phí, dùng một mình cũng được — mọi thứ trên máy này vẫn giữ nguyên.','This device has used its 5 online-price tries. Each lookup costs money, so an account is needed to keep going. Accounts are free and work for one person too — everything on this device stays as it is.')}</p>`,`<a class="btn primary" href="/login">${scoutT('Tạo tài khoản','Create account')}</a>`)}
-async function scoutApi(op,options={}){if(!scoutOnline())throw Error(scoutT('Đang offline.','Offline.'));const guest=!scoutAccount();const r=await fetch('/.netlify/functions/grocery?op='+op,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(guest?{'X-Bep-Trial':scoutTrialId()}:{}),...options.headers}});const data=await r.json().catch(()=>({}));if(guest&&data?.trial&&typeof data.trial.left==='number')scoutTrialSet(data.trial.left);if(!r.ok){if(data.error==='trial-used')scoutTrialSet(0);throw Object.assign(Error(data.error==='trial-used'?scoutT('Đã dùng hết 5 lượt thử giá online.','No online-price tries left.'):data.error||('HTTP '+r.status)),{status:r.status,trialUsed:data.error==='trial-used'})}return data}
+// v1.7.11 (owner, 7 Nov 2026: “So giá bây giờ chỉ nên có tài khoản đi cho chắc”): So Giá is for signed-in families only. Without an
+// account the panel is one short card asking for a free account; prices this device saved earlier are kept, just not shown.
+function scoutAccountCard(){return`<section class="card price-scout scout-account-only" aria-label="${esc(scoutT('So Giá','Price Check'))}"><div class="scout-account-card">${scoutArt('money','ol-cart')}<div><h3>${scoutT('So Giá cần tài khoản','Price Check needs an account')}</h3><p>${scoutT('So giá giữa các siêu thị và xem giá online cần tài khoản (miễn phí, dùng một mình cũng được). Giá đã ghi trên máy này vẫn được giữ.','Comparing supermarkets and seeing online prices need a free account (just you is fine). Prices saved on this device are kept.')}</p></div><a class="btn primary" href="/login">${scoutT('Tạo tài khoản','Create account')}</a></div></section>`}
+async function scoutApi(op,options={}){if(!scoutOnline())throw Error(scoutT('Đang offline.','Offline.'));const r=await fetch('/.netlify/functions/grocery?op='+op,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...options.headers}});const data=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(Error(data.error||('HTTP '+r.status)),{status:r.status});return data}
 async function scoutStore(o){
  if(!scoutAccount()){scoutData.local=[o,...scoutData.local.filter(x=>x.id!==o.id)].slice(0,2000);scoutSave();return'local'}
  scoutData.pending=[o,...scoutData.pending.filter(x=>x.id!==o.id)].slice(0,200);scoutSave();
@@ -309,13 +304,7 @@ var scoutAutoAt=0;
 function scoutAutoRefresh(){if(!scoutAccount()||!scoutOnline()||scoutRefreshing)return;if(Date.now()-(scoutData.pool?.at||0)<3*3600e3||Date.now()-scoutAutoAt<10*60e3)return;scoutAutoAt=Date.now();scoutRefresh({quiet:true})}
 async function scoutRefresh({quiet=false}={}){
  if(scoutRefreshing)return;
- if(!scoutAccount()){
-  if(!quiet&&scoutOnline()){if(!scoutTrialLeft()){scoutTrialUsedSheet();return}
-   scoutRefreshing=true;scoutRerender();let msg='';
-   try{const data=await scoutApi('prices'+(scoutData.state?'&state='+encodeURIComponent(scoutData.state):''));scoutData.pool={at:Date.now(),cycleId:data.cycleId,observations:[],official:data.official||null,guest:true};scoutSave();msg=scoutTrialLeft()?scoutT(`Đã tải giá online · còn ${scoutTrialLeft()}/${SCOUT_TRIAL_LIMIT} lượt thử.`,`Online prices loaded · ${scoutTrialLeft()} of ${SCOUT_TRIAL_LIMIT} tries left.`):scoutT('Đã tải giá online · đây là lượt thử cuối. Tạo tài khoản để xem tiếp.','Online prices loaded · that was the last try. Create an account to keep going.')}
-   catch(error){if(error?.trialUsed){scoutRefreshing=false;scoutRerender();scoutTrialUsedSheet();return}msg=scoutT('Chưa tải được giá online, đang dùng bản lưu trên máy.','Could not load online prices; using the copy on this device.')}
-   try{await scoutCommunityRefresh()}catch{}scoutRefreshing=false;toast(msg);scoutRerender();return}
-  if(scoutOnline()){scoutRefreshing=true;scoutRerender();try{await scoutCommunityRefresh()}catch{}scoutRefreshing=false}toast(scoutT('Đã làm mới từ dữ liệu trên thiết bị.','Refreshed from this device.'));scoutRerender();return}
+ if(!scoutAccount())return;
  if(!scoutOnline()){toast(scoutT('Đang offline: dùng bản giá đã lưu trên máy.','Offline: using the prices saved on this device.'));scoutRerender();return}
  scoutRefreshing=true;if(!quiet)scoutRerender();
  try{await scoutFlush().catch(()=>{});const data=await scoutApi('prices'+(scoutData.state?'&state='+encodeURIComponent(scoutData.state):''));if(data.householdId!==globalThis.BEP_SESSION.household.id)throw Error('Family changed');scoutData.pool={at:Date.now(),cycleId:data.cycleId,observations:data.observations||[],official:data.official||null};scoutSave();await scoutCommunityRefresh().catch(()=>{});if(!quiet)toast(scoutT('Đã cập nhật giá của gia đình.','Family prices updated.'))}

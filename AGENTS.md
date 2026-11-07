@@ -58,3 +58,7 @@ This is an agent workflow rule, not a claim that GitHub branch protection or hos
 
 25. In every sheet (pop-up), the dismiss X, *Đóng / Xong* and *Lưu* each show their own drawn picture from the shared art kit (X in a circle = dismiss, chevron down = close, green tick = save), so the family can tell them apart at a glance. *Đóng* and *Lưu* buttons are pill-shaped (fully rounded) and float at the bottom of the sheet, always visible without scrolling. Buttons in one sheet footer are the same size and side by side — on phones too, as small pills with the picture above the words — and wrap their words instead of dropping to another row; they never stack. Every change to a sheet keeps a browser check for this.
 26. Vietnamese and English text is written for the situation, not translated word for word: say what the button does or what just happened (“Bỏ đánh dấu đã nấu”, not “Hoàn tác bữa”). Family-authored text is never rewritten.
+
+## Every button has a drawing — owner instruction, 7 November 2026
+
+27. Every button, chip, tab and disclosure the family taps shows a drawing from the shared art kit (one drawing per meaning) next to its words; text symbols (+ ✧ ↶ ▾ ↗ …) and phone emoji on buttons are replaced by the drawing. Things that already are pictures (dish and ingredient rows, colour swatches) and the date tiles keep their own look. When a label is too long for its button, use a short name that fits the situation (“Chưa nấu”, “Bỏ qua”, “Lượng mua”) and keep the full wording for screen readers. A browser check fails on any button without a drawing.
