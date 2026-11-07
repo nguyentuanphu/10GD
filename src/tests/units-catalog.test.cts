@@ -22,6 +22,11 @@ s.purchaseUnitPreferences={spinach:{unit:'bó',amount:1,basePerUnit:250,pricePer
 row=shopping(s,w,start,end).find(r=>r.id==='spinach');check(row.purchase.unit==='bó'&&row.purchase.amount===Math.ceil(row.suggested/250),'remembered known bunch size rounds automatic purchase to whole bunches');
 check(row.cost===row.purchase.amount*3&&row.qty===row.purchase.amount*250,'unit price and explicit gram estimate remain separate');
 setBuyingUnits(w,start,end,'spinach',{unit:'bó',amount:2,basePerUnit:250,pricePerUnit:3,note:'bó nhỏ'});row=shopping(s,w,start,end).find(r=>r.id==='spinach');setShoppingBought(w,start,end,row,true);storeShoppingPurchases(s,w,start,end,'fridge');const bunch=s.pantry.find(p=>p.purchase?.unit==='bó');check(bunch.qty===500&&bunch.purchase.amount===2,'known conversion stores both bunch count and estimate');
+// v1.7.10 (owner, 7 Nov 2026: beef from the butcher went to the shelf): an item the family added gets a careful guess from its name
+{const g=n=>(guessFood(n)||{}).place;check(g('Sườn bò')==='fridge'&&g('Thịt bò gravy')==='fridge'&&g('Bò viên')==='fridge'&&g('Trứng gà')==='fridge'&&g('Đậu hũ')==='fridge','meat, eggs and tofu → fridge');
+ check(g('Tôm đông lạnh')==='freezer'&&g('Sunny frozen prawn cutlet')==='freezer','frozen → freezer');check(g('Mỳ trứng')==='dry'&&g('Xốt bò kho')==='dry'&&g('Nước mắm')==='dry'&&g('Gạo nếp')==='dry','noodles, sauces, rice → shelf');
+ check(g('Bún tươi')==='fridge'&&g('Rau muống')==='fridge','fresh noodles and greens → fridge');check(guessFood('Giấy bạc')===null,'no guess when the name says nothing');
+ const id='family-ing-qa-ribs';INGREDIENTS[id]=['Sườn bò','g','dry',0,'',null];check(suggestStorePlace(s,id)==='fridge','a family-added item called “Sườn bò” is suggested for the fridge, not the shelf');delete INGREDIENTS[id]}
 // v1.7.10 (owner, 7 Nov 2026): each bought item has its own place (fridge / freezer / shelf); the family's last choice is remembered
 {check(suggestStorePlace(s,'pork')==='fridge'&&suggestStorePlace(s,'fishSauce')==='dry'&&suggestStorePlace(s,'egg')==='fridge','suggested places: fresh → fridge, dry goods → shelf, eggs stay cold');
  const rows=shopping(s,w,start,end).filter(r=>shoppingHasAmount(r)&&!r.bought&&!r.skip).slice(0,3);check(rows.length===3,'three items to put away');for(const r of rows)setShoppingBought(w,start,end,r,true);

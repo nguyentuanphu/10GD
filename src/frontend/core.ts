@@ -85,6 +85,17 @@ function validCatalogMarkers(s){return (s.appEdition===undefined||Number.isInteg
 // so this client can read the state until it reloads into the newer code. Names/prices are not invented.
 const FUTURE_INGREDIENT_ID=/^[a-z][a-zA-Z0-9]{1,40}$/;
 function futureIngredientIds(s){const ids=new Set(),add=id=>{if(typeof id==='string'&&!Object.hasOwn(INGREDIENTS,id)&&FUTURE_INGREDIENT_ID.test(id))ids.add(id)},keys=o=>{if(o&&typeof o==='object'&&!Array.isArray(o))Object.keys(o).forEach(add)};const walk=(v,depth)=>{if(!v||typeof v!=='object'||depth>10)return;if(Array.isArray(v)){for(const x of v)walk(x,depth+1);return}for(const[k,x]of Object.entries(v)){if(k==='ingredients'&&Array.isArray(x))x.forEach(i=>add(i?.id));else if(k==='ingredient'||k==='match')add(x);else if(k==='excludedIngredients'&&Array.isArray(x))x.forEach(add);else if(['bought','skip','purchaseUnitPreferences','preferredStores','prices'].includes(k))keys(x);else if(['quantities','buyingUnits','unitBought','shopLocations'].includes(k)&&x&&typeof x==='object')Object.values(x).forEach(keys);walk(x,depth+1)}};walk(s,0);return[...ids]}
+// v1.7.10 (owner, 7 Nov 2026: beef from the butcher went to “Tủ khô” after choosing the fridge): an ingredient the family added
+// (or matched from a receipt) without a group used to count as a dry good. Its name now gives a careful first guess; the family can
+// always change it. null = no confident guess.
+function guessFood(name){const t=' '+String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d').toLowerCase().replace(/[^a-z0-9]+/g,' ')+' ';const has=(re)=>re.test(t);
+ if(has(/ (dong lanh|frozen|frz|iqf) /))return{group:has(/ (rau|cai|dau|ngo|bap|peas|corn|carrot|veg|vegetable)/)?'veg':'meat',place:'freezer'};
+ if(has(/ (bun tuoi|pho tuoi|mi tuoi|banh uot|fresh noodles?) /))return{group:'dry',place:'fridge'};
+ if(has(/ (nuoc mam|nuoc tuong|xi dau|dau an|dau hao|hat nem|gia vi|xot|sot|sauce|bot|flour|gao|nep|rice|mi|my|mien|bun kho|noodles?|pasta|duong|sugar|muoi|salt|tieu|pepper|hop|can|canned|oil|spice|tra|coffee|ca phe) /))return{group:'dry',place:'dry'};
+ if(has(/ (trung|sua|dau hu|dau phu|tofu|yogurt|yoghurt|pho mai|cheese|milk|eggs?|cream|butter) /))return{group:'dry',place:'fridge'};
+ if(has(/ (thit|suon|bo|heo|lon|ga|vit|ca|tom|muc|cua|ngheu|so|hau|oc|cha|gio|xuc xich|lap xuong|bacon|ham|beef|pork|chicken|duck|lamb|fish|prawns?|shrimp|squid|salmon|mince|steak|ribs?|sausages?|seafood|meat|drum|drumsticks?|wings?|belly|asado|gravy) /))return{group:'meat',place:'fridge'};
+ if(has(/ (rau|cai|hanh la|ngo|rau thom|xa lach|ca chua|dua leo|dua chuot|bi|nam|gia|bap cai|ca rot|lettuce|spinach|tomato(es)?|cucumbers?|mushrooms?|herbs?|coriander|choy|bok|melon|carrots?|broccoli|beans?|fruit|cam|tao|chuoi|orange|apple|banana) /))return{group:'veg',place:'fridge'};
+ return null}
 function registerFutureIngredients(s){const ids=futureIngredientIds(s).slice(0,300);for(const id of ids)INGREDIENTS[id]=[id,'g','other',0,'🌿',null];return ids}
 function mergeDeletedRecipeIds(s,extra){if(!s||!Array.isArray(extra)||!extra.length)return;const all=new Set([...(Array.isArray(s.deletedRecipeIds)?s.deletedRecipeIds:[]),...extra.filter(id=>typeof id==='string'&&id.length<=100)]);s.deletedRecipeIds=[...all].slice(-5000)}
 // At the current edition every reference recipe was added once, so a missing reference id is a deliberate deletion.

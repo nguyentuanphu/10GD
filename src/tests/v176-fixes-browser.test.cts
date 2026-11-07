@@ -77,6 +77,11 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   assert.equal(at(ids[0]),'freezer',`${label}: put in the freezer`);assert.equal(at(ids[1]),'dry',`${label}: changed to the shelf`);
   assert.equal(await page.evaluate(`suggestStorePlace(state,${JSON.stringify(ids[0])})`),'freezer',`${label}: remembered for next time`);
   await page.evaluate(`(()=>{state.pantry=state.pantry.slice(0,${before});delete state.preferences.storePlaces;save();closeModal();view='today';location.hash='today';render()})()`);await page.locator('#main h1').waitFor()}
+ // v1.7.10 (owner, 7 Nov 2026: “Hoàn tác bữa là gì đọc không hiểu… dịch theo ngữ cảnh”): after “Đã nấu” the button says what it does
+ {const cook=page.locator('#main [data-fm="cook-meal"]').first();if(await cook.count()){await cook.scrollIntoViewIfNeeded();await cook.click();await page.waitForTimeout(150);
+   const t=(await page.locator('#main [data-fm="cook-meal"]').first().innerText()).trim();assert.equal(t,lang==='vi'?'Bỏ đánh dấu đã nấu':'Mark as not cooked',`${label}: cooked meal button wording`);
+   assert.ok(!/Hoàn tác bữa|Undo meal/.test(await page.locator('#main').innerText()),`${label}: no “Hoàn tác bữa”`);await textOk('cooked meal');await shot('cooked-meal');
+   await page.locator('#main [data-fm="cook-meal"]').first().click();await page.waitForTimeout(150)}}
  // 1. Today: the calendar says Ba Phú is away for lunch → “Who is eating?” says Away too (it said At home)
  await page.locator('[data-action="attendance-tab"][data-type="lunch"]').click();
  const phu=page.locator('select[data-change="attendance"][data-id="m-phu"]');
