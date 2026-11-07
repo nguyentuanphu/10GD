@@ -6,7 +6,7 @@ Scope, from Henry's choices in the question dialog on 7 Nov 2026:
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | English for the reference recipes' prep and steps. Today the Vietnamese shows in English mode. Family-authored recipes are never rewritten (rule 6). | planned |
+| 1 | English for the reference recipes' prep and steps. Today the Vietnamese shows in English mode. Family-authored recipes are never rewritten (rule 6). | done (see below) |
 | 2 | Online price estimate (“≈ $X theo giá online”) for items counted by the piece (eggs, lemons …). | done: rows in *quả / cái* use a per-each unit price × count, or whole packs of N pieces × the pack price (e.g. 14 eggs with packs of 12 at $7 = 2 packs, $14). A pack in grams never estimates a count, so nothing is guessed across units. Test: `v176-fixes:browser`. |
 | 3 | Henry, 7 Nov: “Thêm 5–6 loại themes” — display themes (he chose **Biển, Lá sen, Gỗ ấm, Đất nung, Khoai môn, Hoa đào, Đêm xanh, Nắng vàng**, picked in Settings + the top-bar button, **each device on its own**) | done |
 
@@ -24,3 +24,11 @@ Scope, from Henry's choices in the question dialog on 7 Nov 2026:
 ### Test fix
 
 - `online-prices:browser`: before checking that *So Giá* sits above the list, the check now waits for the list to draw. On 7 Nov it failed locally on the v1.7.9 code too: the page re-draws once after the prices load, and the check landed in between (tablet in one run, desktop in another). No check removed.
+
+### Row 1 — reference recipes in English
+
+- **What:** all 731 distinct prep and step sentences of the 475 reference recipes are translated into English. The translation is faithful to the existing text: same dishes, amounts, times and temperatures (e.g. 71°C / 75°C / 63°C checks). No dish, ingredient or quantity was added or changed (Henry: “các món ăn với công thức là món ăn thật chứ không phải tự dựng bừa”).
+- **How it ships:** the table (`RECIPE_TEXT_EN`) is in the lazy recipe data, so startup is unchanged (lite precache 817 KB). `translateRecipeViToEn` looks up exact sentences, so it works whichever file loads first.
+- **Family recipes:** never translated (`data-user-content`). In English mode their sheet says *Family recipes are shown as your family wrote them.* The old note *Recipe names and cooking instructions remain in their original language* is gone.
+- **Tests:** `language:browser` (EN) fails if any reference recipe's prep or step has no English. It opens a reference recipe and checks the steps show in English, and it checks that a family recipe stays in Vietnamese.
+- **Evidence:** `docs/reviews/v1.7.10/recipe-bolognese-en-375.png`.

@@ -55,6 +55,17 @@ for(const WIDTH of [375,1280])for(const lang of ['vi','en']){
  // account menu + settings
  try{await go('today');await page.locator('.top-avatar.account-avatar').filter({visible:true}).first().click();await page.waitForTimeout(300);await collect('account menu');await page.locator('#account-menu [data-personal="account-security"]').first().click();await page.waitForTimeout(600);await collect('settings');
   const cards=await page.locator('#modal-root details, #modal-root [data-settings-card], #modal-root .settings-card summary').count();for(let i=0;i<cards;i++){try{await page.locator('#modal-root .settings-card summary, #modal-root details > summary').nth(i).click({timeout:1000});await page.waitForTimeout(150)}catch{}}await collect('settings (all cards open)')}catch(e){}
+ // v1.7.10 (Henry, 7 Nov 2026): every reference recipe's prep and steps have English (a faithful translation, no new dishes);
+ // a family-authored recipe is never translated
+ if(lang==='en'&&WIDTH===375){await page.waitForFunction(()=>typeof (globalThis as any).RECIPE_TEXT_EN!=='undefined'||(0,eval)('typeof RECIPE_TEXT_EN')!=='undefined',null,{timeout:15000});
+  const miss=await page.evaluate(()=>{const g=(0,eval),st=g('state'),re=/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/;const out:string[]=[];for(const r of st.recipes.filter((r:any)=>!r.custom&&r.origin!=='family'))for(const t of [r.prep,...(r.steps||[])].filter(Boolean))if(re.test(g('englishUI')(t)))out.push(r.name+': '+t);return out});
+  for(const m of miss)failures.push(`en recipe text without English: ${m.slice(0,120)}`);
+  const lib=await page.evaluate(()=>{const st=(0,eval)('state');const r=st.recipes.find((r:any)=>!r.custom&&r.origin!=='family'&&r.steps?.length);(0,eval)('showRecipe')(r.id);return r.id});await page.waitForTimeout(400);
+  const txt=await page.evaluate(()=>(document.querySelector('#modal-root .modal') as HTMLElement)?.innerText||'');assert.ok(txt.length>50,'recipe sheet opened '+lib);
+  const stepsText=await page.evaluate(()=>[...document.querySelectorAll('#modal-root .steps-text, #modal-root .recipe-prep, #modal-root ol li')].map(e=>(e as HTMLElement).innerText).join('\n'));assert.doesNotMatch(stepsText,/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/,'reference recipe steps shown in English');
+  await page.evaluate(()=>{const g=(0,eval);g('closeModal()');const st=g('state');st.recipes.push({id:'qa-own',name:'Canh chua nhà làm',category:'soup',protein:'fish',time:30,servings:4,yield:4,purposes:[],ingredients:[],missingIngredients:[],prep:'Nhặt rau, rửa sạch và để ráo; đập dập tỏi.',steps:['Đun nước với dứa và cà chua cho ra vị chua tự nhiên.'],custom:true,origin:'family',favorite:false});g('showRecipe')('qa-own')});await page.waitForTimeout(300);
+  assert.match(await page.evaluate(()=>(document.querySelector('#modal-root .modal') as HTMLElement)?.innerText||''),/Đun nước với dứa và cà chua/,'a family recipe stays as the family wrote it');
+  await page.evaluate(()=>{const g=(0,eval);g('closeModal()');const st=g('state');st.recipes=st.recipes.filter((r:any)=>r.id!=='qa-own')})}
  // v1.7.9 system check: short messages (toast / save) are not on screen long enough for the walk above. Every plain
  // Vietnamese message in the app's code must come out in English in English mode.
  if(lang==='en'&&WIDTH===375){const VIc=/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/;const msgs=new Set<string>();
