@@ -86,3 +86,28 @@ Scope, from Henry's choices in the question dialog on 7 Nov 2026:
 - **No jump, stronger:** the keep-place rule (row 6) now also holds the tapped control for half a second while late parts of the screen redraw. It stops at once if the person scrolls or the app scrolls on purpose.
 - **Tests:** `v176-fixes:browser` turns both snacks on and checks the five tabs in order, ≥ 44 px, and that tapping three of them does not move the page, at 320 / 375 / 820 / 1280 in VI and EN.
 - **Evidence:** `docs/reviews/v1.7.8/{vi,en}-{size}-snack-tabs.png` (Chromium simulation).
+
+### Row 10 — receipts photographed on a light speckled bench
+
+- **Henry (7 Nov 2026, giờ Sydney):** four receipts (HP Meats, two Cuong Thien, Woolworths Metro) — “Không scan được”, with the text the app read. Three of the four came back as mostly junk (“Rl nh she Rl BEEF BALL…”), no total, no store.
+- **Cause:** the receipts lay on a light stone bench nearly as bright as the paper. The paper finder works on brightness, so it took the whole photo as paper; after shadow flattening the bench's flecks looked like text and were read on both sides of every line.
+- **Fix 1 — find the paper by texture** (`blankExtents`): paper has completely blank patches (margins, gaps between lines); a speckled bench has a fleck in every small patch. Used only when the brightness finder cannot find a narrower paper. On Henry's photos it now crops all three bench receipts (the Woolworths photo is all paper and is unchanged).
+- **Fix 2 — reading the lines:** speck tokens before SUB TOTAL / TOTAL / BALANCE / card lines; weight lines where “@” is read as 0 / 8 / § or “kg” as “g”; count lines glued together by the OCR (“2082.20” = 2 @ $2.20, “204$1.80” = 2 @ $1.80), accepted **only** when count × price equals the line just read; count lines behind a speck (“Ene. 2 @ $3.15”); the second half of a wrapped name (“/ NGAN”, “RMAL”, “EACH”) stays with its product; “$76 30” = $76.30; local shops' “… PTY LTD” + “MARRICKVILLE NSW 2204” give the store (“HP Meats”, “Cuong Thien Marrickville”). Woolworths' own “11 SUBTOTAL” count is kept.
+- **Result on Henry's photos (local only, on-device OCR):** HP Meats 9/9 lines with all 8 weights and the printed total $133.75; Cuong Thien A 9/9 lines, total $80.83; Cuong Thien B 18/18 lines, total $76.30; Woolworths 1/1, $5.50.
+- **Not fixed, by design:** single digits the OCR misreads (e.g. $13.85 for $13.35, $0.21 for $30.21) stay as read and the sheet says “Thiếu $X — có thể đọc sót một dòng” so the family checks. A tried “weight × price per kg” correction was removed because the OCR also misreads weights and per-kg prices — it fixed as many as it broke. Nothing is guessed.
+- **Privacy:** the photos are not committed. The test fixture `src/tests/fixtures/bench-receipts.cts` holds only the OCR text, cashier names removed.
+- **Tests:** `receipt-parse` (unit, in `npm test`) — the three bench receipts (line counts, weights, count lines, totals, store, every kept price printed in the text), glued count lines must agree with the item price, and a synthetic speckled bench where the paper is found by texture (and a blank photo is not cropped). `receipt-ocr:browser` and `generic-receipts:browser` unchanged and passing.
+
+### Row 11 — one look for sharing to someone
+
+- **Henry (7 Nov 2026):** “Chia sẻ và sao chép tuần, they are also for sharing to another person so ensure you design same word with icon etc the same so they know it's sharing to sms or messenger.”
+- **What:** every button that sends something to another person now has the same drawn picture (a chat bubble with an arrow going out, rule 19 style) and starts with **Chia sẻ** / **Share**: *Chia sẻ hôm nay* (Hôm nay), *Chia sẻ tuần* (Thực đơn — was “Sao chép tuần”), *Chia sẻ danh sách* (Đi chợ, top and bottom — the bottom pair “↗ Chia sẻ / Messenger” + “▢ Sao chép danh sách” is now one button), *Chia sẻ* on family alerts and on shopping requests.
+- **Behaviour:** all of them open the phone's share sheet (Tin nhắn, Messenger, Zalo, Copy…). Where the browser has no share sheet (most computers), one **Chia sẻ** sheet offers *Tin nhắn (SMS)*, *Messenger* and *Sao chép*. The app never sends anything by itself.
+- **Not changed:** “Chia sẻ với cộng đồng” / “Chia sẻ lên cộng đồng” (sharing prices or recipes to the community, not to a person) keep their own look so the two are not confused. The shared message text itself is unchanged.
+- **Tests:** `v176-fixes:browser` at 320 / 375 / 820 / 1280, VI and EN: each share button has the share picture, starts with “Chia sẻ” / “Share”, no emoji, ≥ 44 px, opens the share sheet with the text; no copy-only buttons remain; without a share sheet the Chia sẻ sheet has the SMS link carrying the text, Messenger and Copy.
+- **Evidence:** `docs/reviews/v1.7.8/{vi,en}-{size}-share-sheet.png` (Chromium simulation).
+
+### CI fix — `online-prices:browser` (runs 305–308)
+
+- **Failure:** “a photo that cannot load is removed” (1 ≠ 0). Product photos load lazily; after buttons became ≥ 44 px the rice row sat below the screen, so its broken photo was never tried. The app was right (the photo is removed when the row comes on screen); the check now scrolls the row on screen and waits for the photo to be removed. The check itself is unchanged.
+- **Found while fixing:** when the family account starts up, the shopping list can draw before the picture file loads, and the new share button then stopped startup (“shareInner is not defined”). The share label now lives with the screen code and adds its picture once the picture file is there. `online-prices:browser` and `authenticated-startup` pass locally.

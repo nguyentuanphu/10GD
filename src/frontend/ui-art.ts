@@ -8,6 +8,9 @@ const UA_O='#3b2a4f',UA_W=`stroke="${UA_O}" stroke-width="2.6" stroke-linejoin="
 const uaSvg=(body:string,cls='')=>`<svg class="ui-art ${cls}" viewBox="0 0 48 48" aria-hidden="true" focusable="false">${body}</svg>`;
 const uaCirc=(x:number,y:number,r:number,f:string)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" ${UA_W}/>`;
 const UI_ART:Record<string,string>={
+ // v1.7.10 (owner, 7 Nov 2026): every button that sends something to another person (Messages, Messenger, Zalo…) wears this one
+ // picture — a chat bubble with an arrow going out — next to the same word “Chia sẻ”
+ 'share-msg':`<path d="M8 12h22a4 4 0 0 1 4 4v12a4 4 0 0 1-4 4H18l-7 6v-6H8a4 4 0 0 1-4-4V16a4 4 0 0 1 4-4z" fill="#8fd0b0" ${UA_W}/><circle cx="13" cy="22" r="2" fill="#3b2a4f"/><circle cx="19" cy="22" r="2" fill="#3b2a4f"/><circle cx="25" cy="22" r="2" fill="#3b2a4f"/>${uaCirc(36,13,9,'#f6c34a')}<path d="M32 17l8-8M34 9h6v6" ${UA_W} fill="none"/>`,
  // v1.7.10 theme toggle (replaces ☀️ / 🌙 / 🌤️ emoji): a sun, a crescent moon, and "auto" = half sun, half moon
  'theme-light':`<g ${UA_W} stroke-width="2.6"><path d="M24 5v6M24 37v6M5 24h6M37 24h6M10.6 10.6l4.2 4.2M33.2 33.2l4.2 4.2M10.6 37.4l4.2-4.2M33.2 14.8l4.2-4.2" fill="none"/></g><circle cx="24" cy="24" r="9" fill="#f6c34a" ${UA_W}/>`,
  'theme-dark':`<path d="M30 7a17 17 0 1 0 11 27 14 14 0 0 1-11-27z" fill="#8f86c9" ${UA_W}/><circle cx="16" cy="21" r="2" fill="#c9c3ee"/><circle cx="22" cy="31" r="1.6" fill="#c9c3ee"/>`,

@@ -45,6 +45,21 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   for(const i of [3,1,4]){const y0=(await tabs.nth(i).boundingBox())!.y;assert.ok(y0>0&&y0+44<page.viewportSize()!.height,`${label}: tab on screen before the tap`);await tabs.nth(i).click();await page.waitForTimeout(120);const y1=(await tabs.nth(i).boundingBox())!.y;assert.ok(Math.abs(y1-y0)<3,`${label}: snack tab ${i} stays put (${y0} → ${y1})`)}
   assert.equal(await tabs.nth(4).getAttribute('class'),'active');await textOk('snack tabs');await shot('snack-tabs');
   await page.evaluate(`(()=>{const d=currentWeek().days[sydneyDate()];for(const t of ['snackAm','snack'])if(d[t])d[t].on=false;save();render()})()`)}
+ // v1.7.10 (owner, 7 Nov 2026: “chia sẻ và sao chép tuần … same word with icon so they know it’s sharing to sms or messenger”):
+ // every send-to-someone button has the one share picture and starts with “Chia sẻ” / “Share”; the week is shared, not only copied
+ {const EMO=/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/u,word=lang==='vi'?/^Chia sẻ/:/^Share/;
+  await page.evaluate(`navigator.__sent=[];Object.defineProperty(navigator,'share',{configurable:true,value:async d=>{navigator.__sent.push(d)}})`);
+  for(const [v,sel,want] of [['today','[data-fm="share-day"]','share-day'],['planner','[data-action="share-week"]','share-week'],['shopping','[data-action="share-shopping"]','share-shopping']] as [string,string,string][]){
+   await page.evaluate(`closeModal();view='${v}';location.hash='${v}';render()`);const b=page.locator('#main '+sel).first();await b.waitFor();await b.scrollIntoViewIfNeeded();
+   assert.equal(await b.locator('svg.share-art[aria-hidden="true"]').count(),1,`${label} ${v}: share picture`);const t=(await b.innerText()).trim();assert.match(t,word,`${label} ${v}: “${t}”`);assert.ok(!EMO.test(t),`${label} ${v}: no emoji`);
+   assert.ok((await b.boundingBox())!.height>=44,`${label} ${v}: ≥ 44 px`);await b.click();await page.waitForTimeout(150);
+   const sent:any=await page.evaluate(`navigator.__sent.pop()`);assert.ok(sent&&sent.text&&sent.text.length>10,`${label} ${v}: opens the phone's share sheet with the text`)}
+  assert.equal(await page.locator('#main [data-action="copy-week"],#main [data-action="copy-shopping"]').count(),0,`${label}: no separate copy-only buttons`);
+  // without a share sheet (desktop browsers): one “Chia sẻ” sheet with text message, Messenger and copy
+  await page.evaluate(`Object.defineProperty(navigator,'share',{configurable:true,value:undefined});closeModal();view='planner';render()`);await page.locator('#main [data-action="share-week"]').click();
+  const sheet=page.locator('#modal-root .modal');await sheet.waitFor();assert.match(await sheet.locator('h2,h3').first().innerText(),lang==='vi'?/Chia sẻ/:/Share/);
+  assert.match((await sheet.locator('a.share-btn').first().getAttribute('href'))!,/^sms:[?&]body=./,`${label}: text-message link carries the week`);assert.equal(await sheet.locator('a.share-btn').count(),2);assert.equal(await sheet.locator('[data-action="copy-share"]').count(),1);
+  await textOk('share sheet');await shot('share-sheet');await page.evaluate(`closeModal();view='today';location.hash='today';render()`);await page.locator('#main h1').waitFor()}
  // 1. Today: the calendar says Ba Phú is away for lunch → “Who is eating?” says Away too (it said At home)
  await page.locator('[data-action="attendance-tab"][data-type="lunch"]').click();
  const phu=page.locator('select[data-change="attendance"][data-id="m-phu"]');

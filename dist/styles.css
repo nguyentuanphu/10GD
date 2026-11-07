@@ -2105,3 +2105,8 @@ html[data-festival="datnung"]:not([data-theme="dark"]){--green2:#9a4524}
  .attendance .tabbar:has(>button:nth-child(4))>button{border:1px solid var(--line);border-radius:10px;text-align:center;padding:8px 6px;line-height:1.2}
  .attendance .tabbar:has(>button:nth-child(4))>button.active{border:2px solid var(--green);color:var(--green);font-weight:600;background:color-mix(in srgb,var(--green) 9%,transparent)}
 }
+/* v1.7.10 (owner, 7 Nov 2026: “chia sẻ và sao chép tuần … same word with icon”): every send-to-someone button = the share
+   picture + “Chia sẻ …”, ≥ 44 px, the picture decorative */
+.share-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px}
+.share-btn .share-art{width:1.5em;height:1.5em;vertical-align:middle}
+.btn.small.share-btn .share-art{width:1.3em;height:1.3em}
