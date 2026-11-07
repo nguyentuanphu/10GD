@@ -316,7 +316,8 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  assert.deepEqual(await page.evaluate(`['/#planner?d=2026-11-07','/#today','/#pantry','/#planner?d=bad','https://x.test/#today','/#studio','/#today?d=2026-11-07&x=1'].map(pushOpenHash)`),['planner?d=2026-11-07','today','pantry',null,null,null,null]);
  {const d=await page.evaluate(`addDays(sydneyDate(),1)`);await page.evaluate(`location.hash='planner?d=${d}'`);await page.waitForTimeout(400);
   assert.equal(await page.evaluate('view'),'planner');assert.equal(await page.evaluate('selectedDate'),d);assert.equal(await page.locator(`#main details.plan-day[data-plan-day="${d}"]`).evaluate((e:any)=>e.open),true,`${label}: the linked day is open`);
-  await page.evaluate(`location.hash='shopping'`);await page.waitForTimeout(200)}
+  await page.evaluate(`location.hash='shopping'`);await page.waitForTimeout(200);
+  /* back to this week (as "Tuần này" does): on a Sunday tomorrow's link opened next week, whose list is still empty */await page.evaluate(`weekStart=planStartOf(state,sydneyDate());selectedDate=sydneyDate();render()`)}
  // v1.7.9 (owner: "không có số lượng và đơn vị… chỗ màu nâu là gì?"): extra items ask amount and unit separately; the empty
  // pantry note stays hidden
  {await page.evaluate(`view='shopping';render();scrollTo(0,0)`);await page.evaluate(`document.querySelector('[data-action="add-extra"]').click()`);await page.locator('#extra-amount').waitFor();

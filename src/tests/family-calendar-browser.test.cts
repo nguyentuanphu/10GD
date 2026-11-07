@@ -102,7 +102,7 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  await tap(en.locator('.who-busy-row.away').first());await page.locator('#availability-form.family-view .calendar-daylist').waitFor();assert.equal(await G(page,'availabilityFocus'),D);assert.equal(await page.locator('#calendar-member').inputValue(),'');
  await page.evaluate(()=>(0,eval)('closeModal')());
  // Schedule note on Today's attendance for that dinner uses the clearer wording.
- await page.evaluate((d:string)=>{const ev=(0,eval);ev(`selectedDate='${d}';attendanceType='dinner'`);(0,eval)('render')()},D);
+ await page.evaluate((d:string)=>{const ev=(0,eval);ev(`selectedDate='${d}';weekStart=planStartOf(state,'${d}');attendanceType='dinner'`)/* the day and its plan week together, as the app's own day links do (on a Sunday, tomorrow is in next week) */;(0,eval)('render')()},D);
  const note=page.locator('#main .attendance .schedule-note').first();await note.waitFor();const nt=await note.innerText();assert.match(nt,/Bố: Busy · still cooking their portion/);assert.match(nt,/Bé nhỏ: Away 18:00–21:00 · no portion/);
  // Offline (account-free device): saving still works and nothing errors.
  await context.setOffline(true);await page.evaluate(()=>{const ev=(0,eval);ev(`availabilityMember='ti';availabilitySelected=new Set([selectedDate]);availabilityMonth=selectedDate.slice(0,7)`);(0,eval)('availabilityModal')()});
