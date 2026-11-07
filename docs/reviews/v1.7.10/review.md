@@ -58,3 +58,23 @@ Scope, from Henry's choices in the question dialog on 7 Nov 2026:
 - **Rule:** AGENTS.md rule 24 records it for every future release.
 - **Tests:** `v176-fixes:browser` taps Bữa trưa → Bữa sáng → Bữa trưa at 320 / 375 / 820 / 1280 in VI and EN and fails if the tab moves 3 px or more.
 - **Evidence:** `docs/reviews/v1.7.8/{vi,en}-{size}-meal-tab-still.png` (Chromium simulation, not physical phones).
+
+### Row 7 — colour picker folds away
+
+- **Henry (7 Nov 2026):** “Chỗ màu giao diện này nên cho collapsable để save space.”
+- **What:** *Màu giao diện* is now one row (≥ 44 px) showing the current colour's dot and name; tap it (or Enter/Space) to open the 13 swatches. Picking a colour keeps the list open and updates the row at once. The arrow does not animate under reduced motion.
+- *Sáng / tối* now reads *Tự động / Luôn sáng / Luôn tối*; the hours (18:30–06:00) moved to a hint under it, because the long option was cut off at large text on phones.
+- **Tests:** `v176-fixes:browser` checks it starts folded, swatches are hidden, the row is ≥ 44 px, it opens and closes with the keyboard, stays open after a tap and names the new colour.
+
+### Row 8 — text-size audit (new suite `test:text-size:browser`)
+
+- **Henry (7 Nov 2026):** “Bạn đã audit khi size chữ thay đổi thì có bị tràn, rớt etc chưa?” — Before this release, only *Hôm nay* at *Rất lớn* was checked.
+- **New suite, in `test:all`:** 8 screens (Hôm nay, Thực đơn, Đi chợ, Kho món ăn, Thói quen ăn uống, a recipe sheet, Giao diện with colours open, Cài đặt) × 3 text sizes (Vừa / Lớn / Rất lớn) × 4 widths (320 / 375 / 820 / 1280) × VI and EN = 192 screens. Fails on sideways scroll, any text cut by its box or “…”, a drop-down whose choice does not fit, labels sticking out of buttons, words broken in half, one-word-per-line columns, and buttons under 44 px. All problems are listed together.
+- **First run found 285 problems; all fixed:**
+  - 320 px phone at *Rất lớn*: the top bar pushed the account button 11 px off screen → the app name keeps its normal size there.
+  - Tablet: side-menu labels (*Thói quen ăn uống*, *Sản phẩm & giá*, *Hướng dẫn sử dụng*, *Products & prices*) and the app name ran out of the menu → they wrap to two lines. The top-bar page name was cut with “…” → the top bar no longer repeats the app name (the side menu shows it) and a long page name wraps.
+  - *Ai nấu? / Ai đi chợ?* on phones: “Chưa phân công” was cut in its box → the two stack.
+  - Buttons 31–43 px tall (*Kết nối gia đình*, *Chia sẻ hôm nay*, *Mở Thực đơn →*, *Lưu sở thích*, *Công cụ*…) → every button in the page and in sheets is at least 44 px.
+- **Evidence:** `docs/reviews/v1.7.10/text-size/{vi,en}-{mobile,tablet,desktop}-xlarge-{today,shopping,recipe-sheet,appearance}.png` (Chromium simulation, not physical devices).
+- **Not covered:** the browser's own zoom / iOS system text size (the app's own *Cỡ chữ* setting is what was tested); screens other than the eight above are covered by their own suites at the default size.
+- **Seen, not changed here:** the side menu still uses a few text symbols as icons (◷ ▤ ▧ ◴ ⌂). Rule 21 replaces them screen by screen in a later release.
