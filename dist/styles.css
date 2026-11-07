@@ -2164,7 +2164,11 @@ html[data-theme="dark"] #modal-root .modal:has(.recipe-detail-hero)>.modal-foote
 /* all buttons in a floating sheet footer share the pill shape, so the row looks like one set */
 #modal-root .modal>.modal-footer.floating-footer>.btn,#modal-root .modal>.modal-footer.floating-footer>a.btn{border-radius:999px!important;box-shadow:0 6px 16px rgba(40,50,40,.14)}
 #cook-bubble{width:min(92vw,360px);box-sizing:border-box}
-@media (max-width:430px){#modal-root .modal>.modal-footer.floating-footer:has(>:nth-child(3)){grid-auto-flow:row;grid-template-columns:minmax(0,1fr);gap:8px}#modal-root .modal>.modal-footer.floating-footer:has(>:nth-child(3))>.btn{min-height:46px}}
+/* v1.7.10 (owner, 7 Nov 2026: “3 nút này tôi không muốn nó xếp chồng lên, 3 nút nhỏ side by side sẽ ok hơn”): on phones three
+   sheet buttons stay side by side as small equal pills — picture above the words, slightly smaller words that wrap whole */
+@media (max-width:430px){#modal-root .modal>.modal-footer.floating-footer:has(>:nth-child(3)){gap:6px;padding-left:10px;padding-right:10px}
+ #modal-root .modal>.modal-footer.floating-footer:has(>:nth-child(3))>.btn{flex-direction:column;gap:2px;min-height:52px;padding:6px 4px;font-size:min(max(calc(13px * var(--fs-mul,1)),12px),15px);line-height:1.15;hyphens:none}
+ #modal-root .modal>.modal-footer.floating-footer:has(>:nth-child(3))>.btn .sheet-art,#modal-root .modal>.modal-footer.floating-footer:has(>:nth-child(3))>.btn .share-art{width:1.3em;height:1.3em}}
 /* CI text-size: at “Rất lớn” on phones the grouping and store drop-downs stack so “Tất cả cửa hàng” is not cut */
 @media (max-width:560px){html[data-text-size="xlarge"] #main.cl .shopping-store-tools{grid-template-columns:minmax(0,1fr)}}
 /* the floating footer never covers the field being filled: anything scrolled or focused into view stops above it */
