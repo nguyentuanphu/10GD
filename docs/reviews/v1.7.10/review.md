@@ -32,3 +32,29 @@ Scope, from Henry's choices in the question dialog on 7 Nov 2026:
 - **Family recipes:** never translated (`data-user-content`). In English mode their sheet says *Family recipes are shown as your family wrote them.* The old note *Recipe names and cooking instructions remain in their original language* is gone.
 - **Tests:** `language:browser` (EN) fails if any reference recipe's prep or step has no English. It opens a reference recipe and checks the steps show in English, and it checks that a family recipe stays in Vietnamese.
 - **Evidence:** `docs/reviews/v1.7.10/recipe-bolognese-en-375.png`.
+
+### Row 4 — recipe library audit: only real dishes stay
+
+- **Henry (7 Nov 2026, giờ Sydney):** “Các món ăn trong kho… phải kiểm tra kỹ nguồn là món ăn và công thức thật chứ không phải là những món ăn tự dựng bậy lên.” Decision by pop-up: *Chỉ giữ món thật có nguồn*, folded into v1.7.10.
+- **What the audit found:** 209 of the `family-v3` reference recipes were template combinations (same steps, swapped protein/vegetable), 243 recipes shared template step text, and the seed-salad and many plant bowls were invented mixes. None had a source.
+- **Change:** 350 reference recipes retired (`RETIRED_REFERENCE_IDS`), 125 kept: 45 Western (Ý 25, Âu 18, Healthy 2), 17 plant (vegetarian 10, dressings 7, vegan 13 overall), the rest Vietnamese home dishes. `CATALOG_EDITION` 7.
+- **Family data is safe (rule 6):** an existing family keeps any retired recipe it favourited, edited, photographed, planned or mentioned in a note; only untouched library samples leave. Family-authored recipes are never touched.
+- **UI:** the *Salad hạt* filter chip is gone (no recipes left behind it); counts show 125.
+- **Still open in this release:** adding a *Nguồn tham khảo* (source) line to each kept recipe after checking it against a published recipe. Amounts that differ from the source follow the source; missing amounts are never invented.
+- **Tests updated to the 125-recipe catalogue, keeping every quality check:** western-catalog, plant-catalog, units-catalog, artwork (+browser), catalog-fixes, catalog-filters (+browser), v175-recipes, offline-downloads (+browser), catalog-browser, library-guide.
+
+### Row 5 — colours change by themselves (Tự đổi mỗi ngày)
+
+- **Henry (7 Nov 2026):** “Cho thêm auto option để màu tự chuyển giữa các theme.”
+- **What:** a 13th swatch, *Tự đổi mỗi ngày / Changes every day* (rainbow dot), first in the list. When chosen, the colours move through Bếp xanh and the eight colours, one per Sydney day, and stay the same all day (no flicker while cooking). Light / dark still follows *Sáng / tối*. Saved on this device only.
+- **Tests:** `v176-fixes:browser` checks 13 swatches ≥ 44 px and that the auto choice gives different colours on 7 and 8 Nov 2026 (`autoColorTheme`).
+- **Evidence:** `docs/reviews/v1.7.8/{vi,en}-*-appearance-themes.png` (Chromium simulation).
+
+### Row 6 — tapping a button does not move the page (new rule 24)
+
+- **Henry (7 Nov 2026):** “Khi ấn nút bữa sáng bữa trưa bữa tối thì web nó nhảy. Cho thêm rules là ấn nút là không được nhảy lên xuống.”
+- **Cause:** a tap redraws the screen; content above the tabs changes height, so the tapped tabs moved.
+- **Fix:** after a button / tab / chip redraws the same screen, the app scrolls back by exactly the distance the tapped control moved, so it stays under the finger. Real navigation (new screen, hash change, opening a sheet) is left alone.
+- **Rule:** AGENTS.md rule 24 records it for every future release.
+- **Tests:** `v176-fixes:browser` taps Bữa trưa → Bữa sáng → Bữa trưa at 320 / 375 / 820 / 1280 in VI and EN and fails if the tab moves 3 px or more.
+- **Evidence:** `docs/reviews/v1.7.8/{vi,en}-{size}-meal-tab-still.png` (Chromium simulation, not physical phones).

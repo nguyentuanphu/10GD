@@ -2068,3 +2068,4 @@ html[data-festival="khoaimon"]:not([data-theme="dark"]){--green2:#715394}
 html[data-festival="hoadao"]:not([data-theme="dark"]){--green2:#9a3d61}
 html[data-festival="nangvang"]:not([data-theme="dark"]){--green2:#755410}
 html[data-festival="datnung"]:not([data-theme="dark"]){--green2:#9a4524}
+.theme-swatch-dot.auto{background:conic-gradient(#1f6f78,#3f7d4e,#7a5230,#b5562f,#6b4f8a,#c2557a,#2c4a7a,#b7861d,#1f6f78)}

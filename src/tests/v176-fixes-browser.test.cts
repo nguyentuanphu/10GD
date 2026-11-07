@@ -30,6 +30,10 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   for(const d of Object.keys(w.days).slice(0,3))w.days[d].dinner.recipes=[clone(state.recipes.find(x=>x.id==='r1')),clone(state.recipes.find(x=>x.id==='r16'))];
   const today=sydneyDate();selectedDate=today;state.availability={'m-phu':{[today]:{lunch:{status:'away',deduct:true,remind:false,note:''}}}};state.packSchedule={members:{'m-chi':[1,2,3,4,5]}};
   save();closeModal();view='today';render()})()`);
+ // v1.7.10 (owner, 7 Nov 2026: “ấn nút bữa sáng / trưa / tối thì web nó nhảy… ấn nút là không được nhảy”): tapping a meal tab keeps
+ // the tabs exactly where they were on screen
+ {const tabs=page.locator('#main [data-action="attendance-tab"]');if(await tabs.count()>1){await tabs.first().scrollIntoViewIfNeeded();await page.evaluate(()=>scrollBy(0,-200));
+  for(const i of [1,0,1]){const t=tabs.nth(i),y0=(await t.boundingBox())!.y;await t.click();await page.waitForTimeout(120);const y1=(await page.locator(`#main [data-action="attendance-tab"]`).nth(i).boundingBox())!.y;assert.ok(Math.abs(y1-y0)<3,`${label}: meal tab stays put (${y0} → ${y1})`)}}await shot('meal-tab-still')}
  // 1. Today: the calendar says Ba Phú is away for lunch → “Who is eating?” says Away too (it said At home)
  await page.locator('[data-action="attendance-tab"][data-type="lunch"]').click();
  const phu=page.locator('select[data-change="attendance"][data-id="m-phu"]');
@@ -56,13 +60,16 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  if(size==='mobile'&&lang==='vi')assert.deepEqual(await page.evaluate(`[scoutOnlineEstimate({qty:6,unit:'quả'},{unitBasis:'per_each',unitPrice:.5}),scoutOnlineEstimate({qty:14,unit:'quả'},{packQty:12,packUnit:'each',price:7}),scoutOnlineEstimate({qty:2,unit:'cái'},{packQty:3,packUnit:'ea',price:2}),scoutOnlineEstimate({qty:500,unit:'g'},{unitBasis:'per_kg',unitPrice:10}),scoutOnlineEstimate({qty:3,unit:'quả'},{packQty:500,packUnit:'g',price:4})]`),[3,14,2,5,null],'per-piece estimates: per each, whole packs, and no guess across units');
  // v1.7.10 (Henry, 7 Nov 2026): eight colour themes in Other settings → Appearance, light and dark, this device only; the
  // light / dark button in the top bar is our own drawing, no emoji
- {await page.evaluate(`otherSettingsModal('appearance')`);const sw=page.locator('#modal-root [data-color-theme]');await sw.first().waitFor();assert.equal(await sw.count(),12,`${label}: default + 8 colours + 3 seasonal`);
+ {await page.evaluate(`otherSettingsModal('appearance')`);const sw=page.locator('#modal-root [data-color-theme]');await sw.first().waitFor();assert.equal(await sw.count(),13,`${label}: auto + default + 8 colours + 3 seasonal`);
   for(const b of await sw.all())assert.ok((await b.boundingBox())!.height>=44,`${label}: swatch ≥ 44 px`);
   const before=await page.evaluate(`getComputedStyle(document.documentElement).getPropertyValue('--green').trim()`);await page.locator('#modal-root [data-color-theme="khoaimon"]').scrollIntoViewIfNeeded();await page.locator('#modal-root [data-color-theme="khoaimon"]').click();
   assert.equal(await page.evaluate(`document.documentElement.dataset.festival`),'khoaimon');assert.equal(await page.locator('#modal-root [data-color-theme="khoaimon"]').getAttribute('aria-checked'),'true');
   assert.notEqual(await page.evaluate(`getComputedStyle(document.documentElement).getPropertyValue('--green').trim()`),before,`${label}: colours change at once`);await textOk('appearance');if(size==='mobile')await shot('appearance-themes');
   await page.evaluate(`localStorage.setItem('bep-theme-mode','dark');applyThemePreferences()`);assert.ok(['#a98bd0'].includes(await page.evaluate(`getComputedStyle(document.documentElement).getPropertyValue('--green').trim()`)),`${label}: dark version`);
   const tg=page.locator('#theme-quick-toggle');if(await tg.count()){assert.equal(await tg.locator('svg.ui-art').count(),1,`${label}: drawn toggle`);assert.doesNotMatch(await tg.innerText(),/\p{Extended_Pictographic}/u,`${label}: no emoji`)}
+  // v1.7.10 (owner: “auto option để màu tự chuyển giữa các theme”): one colour per day, the next one the next day
+  await page.evaluate(`localStorage.setItem('bep-theme-mode','light');applyThemePreferences()`);await page.locator('#modal-root [data-color-theme="auto"]').click();
+  {const r:any=await page.evaluate(`({now:document.documentElement.dataset.festival||'default',want:autoColorTheme(),a:autoColorTheme('2026-11-07'),b:autoColorTheme('2026-11-08'),cycle:AUTO_THEME_CYCLE})`);assert.equal(r.now,r.want,`${label}: today's colour applied`);assert.notEqual(r.a,r.b,`${label}: the next day has another colour`);assert.ok(r.cycle.includes(r.a)&&r.cycle.includes(r.b));assert.equal(await page.locator('#modal-root [data-color-theme="auto"]').getAttribute('aria-checked'),'true')}
   await page.evaluate(`localStorage.setItem('bep-festival-theme','default');localStorage.setItem('bep-theme-mode','light');applyThemePreferences();closeModal()`)}
  // 2. More tools: every row in the chosen language, on one line (owner: “Chi tiêu” in English mode)
  if(size==='narrow'||size==='mobile'){await page.locator('[data-ui-more]').first().click();const more=page.locator('.more-tools');await more.waitFor();

@@ -17,7 +17,7 @@ function familyRecipePool(scope=familyLibraryMode){const q=familyRecipeSearch.tr
 // badge, page size 10/20/50/100 remembered per device with "Xem thêm" (load more), and compact image+name cards that
 // expand inline (accordion); tapping the image opens the full recipe. Counts reuse recipeMatchesLibraryFilters/Tag.
 function familyRecipeRows(scope=familyLibraryMode,pool=familyRecipePool(scope)){return pool.filter(r=>recipeMatchesLibraryFilters(r,{category:familyRecipeCat,tag:familyRecipeTag})&&recipeMatchesLibraryTag(r,familyRecipeDiet))}
-const FAMILY_TAG_CHIPS=[['western','🍝 Món Âu & Ý','🍝 Western & Italian'],['healthy','🥗 Healthy · Thanh đạm','🥗 Healthy'],['vegetarian','Vegetarian','Vegetarian'],['vegan','Thuần chay','Vegan'],['seed-salad','Salad hạt','Seed & grain salads'],['dressing','Dressing','Dressings']],FAMILY_KIND_TAGS=['western','seed-salad','dressing'],FAMILY_DIET_TAGS=['healthy','vegetarian','vegan'],FAMILY_PAGE_SIZES=[10,20,50,100];
+const FAMILY_TAG_CHIPS=[['western','🍝 Món Âu & Ý','🍝 Western & Italian'],['healthy','🥗 Healthy · Thanh đạm','🥗 Healthy'],['vegetarian','Vegetarian','Vegetarian'],['vegan','Thuần chay','Vegan'],['seed-salad','Salad hạt','Seed & grain salads'],['dressing','Dressing','Dressings']],FAMILY_KIND_TAGS=['western','dressing'],FAMILY_DIET_TAGS=['healthy','vegetarian','vegan'],FAMILY_PAGE_SIZES=[10,20,50,100];
 function familyFilterActive(){return familyRecipeCat!=='all'||familyRecipeTag!=='all'||familyRecipeDiet!=='all'||familyRecipeTime!=='all'}
 function familySheetFilterCount(){return Number(familyRecipeDiet!=='all')+Number(familyRecipeTime!=='all')}
 function familyTimeLabel(){return tr('≤20 phút','≤20 min')}

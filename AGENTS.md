@@ -49,3 +49,7 @@ This is an agent workflow rule, not a claim that GitHub branch protection or hos
 ## Agent does the preparation — owner instruction, 6 November 2026
 
 23. Henry only says **DEPLOY**. Everything before it is the agent's job without asking: create the release branch, implement and test, keep the release record and evidence, push, open the pull request to `main` as soon as the release is ready for review (not a draft), watch CI, fix real failures, and tell Henry — in Sydney time, with the PR and CI links — when the exact PR head is green and ready. Opening or updating a PR is not a deploy; rules 1–3, 15–16 and 18 still apply: nothing is merged into `main` or built on the hosting provider until Henry says DEPLOY for that release. Questions to Henry are only for real product decisions (plans under rule 4, data or privacy choices), asked with the pop-up question tool when available.
+
+## Buttons keep the page still — owner instruction, 7 November 2026
+
+24. Tapping a button, tab or chip must not make the page jump up or down. The tapped control stays where it was on screen after the view redraws (for example the Bữa sáng / Bữa trưa / Bữa tối tabs). Only real navigation (a new screen, opening a sheet, a link to a section) may move the page. Every change to buttons, tabs or redraws keeps a browser check that the tapped control does not move.
