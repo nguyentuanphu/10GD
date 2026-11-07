@@ -76,13 +76,26 @@ function validImport(s){if(!s||typeof s!=='object')return false;if(!validCatalog
 // stop and reload instead of overwriting data it cannot fully read.
 // APP_EDITION: data-shape edition (6 = v1.7.5: Bữa phụ meal, new dish types, counted units such as tép/đòn).
 // CATALOG_EDITION: reference-recipe catalogue edition (seedVersion); tombstones for deleted reference recipes depend on it.
-const APP_EDITION=7,CATALOG_EDITION=6;
+// v1.7.10: edition 7 retires the template-built / invented reference recipes (Henry, 7 Nov 2026). Older clients (APP_EDITION 7)
+// still accept a state at seedVersion 7 (stateEdition is not above their APP_EDITION).
+const APP_EDITION=7,CATALOG_EDITION=7;
 function stateEdition(s){return Math.max(Number.isInteger(s?.appEdition)?s.appEdition:0,Number.isInteger(s?.seedVersion)?s.seedVersion:0)}
 function validCatalogMarkers(s){return (s.appEdition===undefined||Number.isInteger(s.appEdition)&&s.appEdition>=1&&s.appEdition<=1000)&&(s.deletedRecipeIds===undefined||Array.isArray(s.deletedRecipeIds)&&s.deletedRecipeIds.length<=5000&&s.deletedRecipeIds.every(id=>typeof id==='string'&&id.length>0&&id.length<=100))}
 // Built-in ingredient ids introduced by a newer edition are kept as-is (never dropped) and given a neutral placeholder
 // so this client can read the state until it reloads into the newer code. Names/prices are not invented.
 const FUTURE_INGREDIENT_ID=/^[a-z][a-zA-Z0-9]{1,40}$/;
 function futureIngredientIds(s){const ids=new Set(),add=id=>{if(typeof id==='string'&&!Object.hasOwn(INGREDIENTS,id)&&FUTURE_INGREDIENT_ID.test(id))ids.add(id)},keys=o=>{if(o&&typeof o==='object'&&!Array.isArray(o))Object.keys(o).forEach(add)};const walk=(v,depth)=>{if(!v||typeof v!=='object'||depth>10)return;if(Array.isArray(v)){for(const x of v)walk(x,depth+1);return}for(const[k,x]of Object.entries(v)){if(k==='ingredients'&&Array.isArray(x))x.forEach(i=>add(i?.id));else if(k==='ingredient'||k==='match')add(x);else if(k==='excludedIngredients'&&Array.isArray(x))x.forEach(add);else if(['bought','skip','purchaseUnitPreferences','preferredStores','prices'].includes(k))keys(x);else if(['quantities','buyingUnits','unitBought','shopLocations'].includes(k)&&x&&typeof x==='object')Object.values(x).forEach(keys);walk(x,depth+1)}};walk(s,0);return[...ids]}
+// v1.7.10 (owner, 7 Nov 2026: beef from the butcher went to “Tủ khô” after choosing the fridge): an ingredient the family added
+// (or matched from a receipt) without a group used to count as a dry good. Its name now gives a careful first guess; the family can
+// always change it. null = no confident guess.
+function guessFood(name){const t=' '+String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d').toLowerCase().replace(/[^a-z0-9]+/g,' ')+' ';const has=(re)=>re.test(t);
+ if(has(/ (dong lanh|frozen|frz|iqf) /))return{group:has(/ (rau|cai|dau|ngo|bap|peas|corn|carrot|veg|vegetable)/)?'veg':'meat',place:'freezer'};
+ if(has(/ (bun tuoi|pho tuoi|mi tuoi|banh uot|fresh noodles?) /))return{group:'dry',place:'fridge'};
+ if(has(/ (nuoc mam|nuoc tuong|xi dau|dau an|dau hao|hat nem|gia vi|xot|sot|sauce|bot|flour|gao|nep|rice|mi|my|mien|bun kho|noodles?|pasta|duong|sugar|muoi|salt|tieu|pepper|hop|can|canned|oil|spice|tra|coffee|ca phe) /))return{group:'dry',place:'dry'};
+ if(has(/ (trung|sua|dau hu|dau phu|tofu|yogurt|yoghurt|pho mai|cheese|milk|eggs?|cream|butter) /))return{group:'dry',place:'fridge'};
+ if(has(/ (thit|suon|bo|heo|lon|ga|vit|ca|tom|muc|cua|ngheu|so|hau|oc|cha|gio|xuc xich|lap xuong|bacon|ham|beef|pork|chicken|duck|lamb|fish|prawns?|shrimp|squid|salmon|mince|steak|ribs?|sausages?|seafood|meat|drum|drumsticks?|wings?|belly|asado|gravy) /))return{group:'meat',place:'fridge'};
+ if(has(/ (rau|cai|hanh la|ngo|rau thom|xa lach|ca chua|dua leo|dua chuot|bi|nam|gia|bap cai|ca rot|lettuce|spinach|tomato(es)?|cucumbers?|mushrooms?|herbs?|coriander|choy|bok|melon|carrots?|broccoli|beans?|fruit|cam|tao|chuoi|orange|apple|banana) /))return{group:'veg',place:'fridge'};
+ return null}
 function registerFutureIngredients(s){const ids=futureIngredientIds(s).slice(0,300);for(const id of ids)INGREDIENTS[id]=[id,'g','other',0,'🌿',null];return ids}
 function mergeDeletedRecipeIds(s,extra){if(!s||!Array.isArray(extra)||!extra.length)return;const all=new Set([...(Array.isArray(s.deletedRecipeIds)?s.deletedRecipeIds:[]),...extra.filter(id=>typeof id==='string'&&id.length<=100)]);s.deletedRecipeIds=[...all].slice(-5000)}
 // At the current edition every reference recipe was added once, so a missing reference id is a deliberate deletion.
@@ -97,7 +110,7 @@ function retireReferenceRecipes(s){if(!s||!Array.isArray(s.recipes)||typeof RETI
  const removed=[],keep=[];for(const r of s.recipes){if(r&&RETIRED_REFERENCE_IDS.has(r.id)&&!r.custom&&!r.favorite&&!r.photo&&r.origin!=='family'&&!used.has(r.id))removed.push(r.id);else keep.push(r)}
  if(removed.length){s.recipes=keep;mergeDeletedRecipeIds(s,removed)}return removed.length}
 // Add the reference collection once; preserve authored edits, menus and deliberate deletions (tombstones) afterwards.
-function upgradeReferenceCatalog(s,knownDeleted){if(!s||!Array.isArray(s.recipes))return 0;mergeDeletedRecipeIds(s,knownDeleted);if(typeof repairArtworkReferenceState==='function')repairArtworkReferenceState(s);const version=s.seedVersion||1;let added=0;if(version<5){const ids=new Set(s.recipes.map(r=>r.id)),gone=new Set(s.deletedRecipeIds||[]);for(const[edition,recipes]of [[4,WESTERN_HEALTHY_RECIPES],[5,PLANT_RECIPES]])if(version<edition)for(const r of recipes)if(!ids.has(r.id)&&!gone.has(r.id)){s.recipes.push(clone(r));ids.add(r.id);added++}s.seedVersion=5}if((s.seedVersion||1)<6&&typeof RETIRED_REFERENCE_IDS!=='undefined'){retireReferenceRecipes(s);s.seedVersion=6}recordDeletedReferenceRecipes(s);if(!(s.appEdition>=APP_EDITION))s.appEdition=APP_EDITION;return added}
+function upgradeReferenceCatalog(s,knownDeleted){if(!s||!Array.isArray(s.recipes))return 0;mergeDeletedRecipeIds(s,knownDeleted);if(typeof repairArtworkReferenceState==='function')repairArtworkReferenceState(s);const version=s.seedVersion||1;let added=0;if(version<5){const ids=new Set(s.recipes.map(r=>r.id)),gone=new Set(s.deletedRecipeIds||[]);for(const[edition,recipes]of [[4,WESTERN_HEALTHY_RECIPES],[5,PLANT_RECIPES]])if(version<edition)for(const r of recipes)if(!ids.has(r.id)&&!gone.has(r.id)){s.recipes.push(clone(r));ids.add(r.id);added++}s.seedVersion=5}if((s.seedVersion||1)<CATALOG_EDITION&&typeof RETIRED_REFERENCE_IDS!=='undefined'){retireReferenceRecipes(s);s.seedVersion=CATALOG_EDITION}recordDeletedReferenceRecipes(s);if(!(s.appEdition>=APP_EDITION))s.appEdition=APP_EDITION;return added}
 
 // The menu week starting at `start`: the stored week itself when it starts on Monday; otherwise a view whose `days` are the
 // 7 stored day objects (edits change the stored days) and whose other fields (extras, bought marks…) are those of the week

@@ -68,6 +68,8 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
    // product photos (owner, 5 Nov): the confirmed product's photo over our drawing; a missing photo falls back to the drawing
    await page.evaluate(()=>{(globalThis as any).ppRefresh(true)});await page.waitForFunction(()=>!!document.querySelector('.shop-row .pp-img'),null,{timeout:8000}).catch(()=>{});await page.evaluate(()=>render());await page.waitForTimeout(400);
    {await rowOf(page,'Sữa tươi').scrollIntoViewIfNeeded();const milkPhoto=await rowOf(page,'Sữa tươi').locator('.pp-img').evaluate((i:any)=>i.complete&&i.naturalWidth>0?true:new Promise(res=>{i.addEventListener('load',()=>res(i.naturalWidth>0));i.addEventListener('error',()=>res(false));setTimeout(()=>res(false),5000)}));assert.ok(milkPhoto,'milk shows the supermarket photo');
+    /* photos load lazily: bring the rice row on screen so its broken photo is actually tried, then wait for it to be removed */
+    {const rice=page.locator('.shop-row',{hasText:'Gạo thơm jasmine'}).first();await rice.scrollIntoViewIfNeeded();await rice.locator('.pp-img').waitFor({state:'detached',timeout:8000}).catch(()=>{});}
     assert.equal(await page.locator('.shop-row',{hasText:'Gạo thơm jasmine'}).first().locator('.pp-img').count(),0,'a photo that cannot load is removed');assert.ok(await page.locator('.shop-row',{hasText:'Gạo thơm jasmine'}).first().locator('.ingredient-art').count()>0,'…and the drawing shows');
     assert.ok(!/\p{Extended_Pictographic}/u.test(await rowOf(page,'Sữa tươi').locator('.item-label').innerText()),'no emoji');}
    const milk=await rowOf(page,'Sữa tươi').locator('.online-line').innerText();assert.match(milk,/Coles\s*\$2\.60/);assert.match(milk,/KM thật −16%/);assert.doesNotMatch(milk,/\/L|so 2 nơi|thường/,'one short line: details live in the history sheet');
@@ -121,6 +123,8 @@ const EXTRAS=[['Sữa tươi','2 L'],['Gạo thơm jasmine','5 kg'],['Tôm','500
   // chosen trip plan, the list keeps its online price lines, and opening it is remembered.
   for(const size of ['mobile','tablet','desktop']){const {page,context,errors}=await open(size,'vi','light',{version:1,open:true,postcode:'2166',state:'NSW',prefs:{},local:[],pending:[],pool:null});
    assert.equal(await page.locator('.price-scout #scout-body').count(),0,size+': So Giá starts folded');
+   // wait until the list has drawn: the page re-draws once after the prices load, and an earlier check could land in between
+   await page.waitForFunction(()=>!!document.querySelector('#main .price-scout')&&!!document.querySelector('#main .shopping-layout'),null,{timeout:10000});
    assert.ok(await page.evaluate(()=>{const a=document.querySelector('#main .price-scout'),b=document.querySelector('#main .shopping-layout');return!!a&&!!b&&!!(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)}),size+': So Giá is above the list');
    assert.match(await page.locator('.price-scout .scout-plan-sum').innerText(),/phút/,size+': folded header shows the chosen trip plan');
    assert.ok(await page.locator('.shop-row .online-line').count()>0,size+': list keeps online prices while folded');

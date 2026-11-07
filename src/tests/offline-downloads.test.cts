@@ -24,11 +24,11 @@ const read=(f:string)=>fs.readFileSync('dist/'+f,'utf8');
  // Catalog arrives: the reference recipes are added once and the state is complete; family deletions are respected.
  vm.runInContext(read('recipe-catalog-data.js'),c);assert.equal(vm.runInContext('catalogLoaded()',c),true);
  fresh.deletedRecipeIds=['family-v3-1'];const added=vm.runInContext('upgradeReferenceCatalog',c)(fresh);
- assert.equal(fresh.seedVersion,6/* v1.7.5 catalogue edition */);assert.ok(added>400/* v1.7.5: 475-recipe catalogue */,'added '+added);assert.ok(!fresh.recipes.some((r:any)=>r.id==='family-v3-1'),'deleted reference recipe stays deleted');
+ assert.equal(fresh.seedVersion,7/* v1.7.10 catalogue edition */);assert.ok(added>=60/* v1.7.10: the recognised Western + plant recipes join a pre-catalogue state */,'added '+added);assert.ok(!fresh.recipes.some((r:any)=>r.id==='family-v3-1'),'deleted reference recipe stays deleted');
  assert.equal(fresh.recipes.length,vm.runInContext('RECIPES.length',c)-1);
  await vm.runInContext('syncFamilyState()',c);assert.equal(synced,1,'complete state syncs');
  // After the catalog: a fresh household is complete at once.
- assert.equal(vm.runInContext('newHouseholdState()',c).seedVersion,6/* v1.7.5 catalogue edition */);
+ assert.equal(vm.runInContext('newHouseholdState()',c).seedVersion,7/* v1.7.10 catalogue edition */);
  console.log('PASS lazy catalog: helpers without data, pre-catalog households marked and never synced, upgrade adds '+added+' reference recipes once, family recipes and deletions kept');
 }
 // ---------- 2. Downloads manager: Wi-Fi gating, resumable downloads, remove, storage ----------

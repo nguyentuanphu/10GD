@@ -11,7 +11,7 @@ assert.doesNotMatch(ctx.ingredientArtwork('family-unknown'),/ingredient-sheet/);
 assert.doesNotMatch(ctx.foodArt({name:'<img src=x>',custom:true,ingredients:[]}),/<img/);
 console.log('PASS artwork coverage, ingredient integrity, pasta form, changed/custom recipes and unknown ingredients');
 
-const cells=ctx.data.recipes.map(r=>ctx.dishArtworkCell(r));/* v1.7.5: 475 recipes after the owner halved the Vietnamese ones */assert.equal(cells.filter(n=>n!==null).length,475);assert.equal(new Set(cells).size,475);for(const cell of cells)assert.ok(fs.existsSync('dist/artwork/dishes-v'+(Math.floor(cell/16)+1)+'.webp'));
+const cells=ctx.data.recipes.map(r=>ctx.dishArtworkCell(r));/* v1.7.10: 125 recognised recipes */assert.equal(cells.filter(n=>n!==null).length,125);assert.equal(new Set(cells).size,125);for(const cell of cells)assert.ok(fs.existsSync('dist/artwork/dishes-v'+(Math.floor(cell/16)+1)+'.webp'));
 assert.equal(ctx.dishArtworkCell({...original,prep:'Different cooking method'}),null);assert.equal(ctx.ingredientArtwork('Rau muống'),ctx.ingredientArtwork('waterSpinach'));
 
 assert.equal(new Set(Object.keys(ctx.data.ingredients).map(id=>ctx.resolveIngredientArtCell(id))).size,106);for(const r of ctx.data.recipes)assert.ok(fs.existsSync("dist/"+ctx.dishArtPath(r)),r.id+" missing final artwork");
