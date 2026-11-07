@@ -101,13 +101,15 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   assert.notEqual(await save.locator('svg').innerHTML(),await page.evaluate(`uiArt('close-down')`).then((h:any)=>h.replace(/^<svg[^>]*>|<\/svg>$/g,'')),`${label}: Lưu and Đóng pictures differ`);
   await page.evaluate(`closeModal();view='today';location.hash='today';render()`);await page.locator('#main h1').waitFor()}
  // v1.7.10 (owner, 7 Nov 2026: “Hoàn tác bữa là gì đọc không hiểu… dịch theo ngữ cảnh”): after “Đã nấu” the button says what it does
- {const cook=page.locator('#main [data-fm="cook-meal"]').first();if(await cook.count()){await cook.scrollIntoViewIfNeeded();await cook.click();await page.waitForTimeout(150);
+ {await page.evaluate(`(()=>{const d=currentWeek().days[sydneyDate()];d.dinner.recipes=[clone(state.recipes.find(x=>x.id==='r1'))];d.dinner.cooked=false;d.dinner.consumed=[];state.pantry.push({id:'qa-lot',ingredient:state.recipes.find(x=>x.id==='r1').ingredients[0].id,qty:5000,place:'fridge',expiry:''});save();closeModal();view='today';location.hash='today';render()})()`);
+  const cook=page.locator('#main [data-fm="cook-meal"]').first();assert.ok(await cook.count(),`${label}: today's dinner has a cooked button`);{await cook.scrollIntoViewIfNeeded();await cook.click();await page.waitForTimeout(150);
    const t=(await page.locator('#main [data-fm="cook-meal"]').first().innerText()).trim();assert.equal(t,lang==='vi'?'Bỏ đánh dấu đã nấu':'Mark as not cooked',`${label}: cooked meal button wording`);
    /* v1.7.10 (owner: “hiện lên pop up nhỏ kiểu bubble báo là bữa ăn đã nấu và đã trừ vào kho đồ”): a short bubble, real ingredient names, no codes */
    {const bub=page.locator('#cook-bubble.visible');await bub.waitFor({timeout:3000});const bt=(await bub.innerText()).replace(/\s+/g,' ');assert.match(bt,lang==='vi'?/^Đã nấu .+ (Đã trừ \d+ nguyên liệu khỏi tủ|Tủ chưa có đồ cho bữa này)/:/ cooked (Took \d+ ingredients? out of the pantry|Nothing for this meal)/,`${label}: cooked bubble “${bt}”`);
     assert.ok(!/[a-z][A-Z]/.test(bt.replace(/Weekends feast/,'')),`${label}: no internal ingredient codes in the bubble`);assert.equal(await bub.locator('svg.bubble-art[aria-hidden="true"]').count(),1);await shot('cooked-bubble')}
    assert.ok(!/Hoàn tác bữa|Undo meal/.test(await page.locator('#main').innerText()),`${label}: no “Hoàn tác bữa”`);await textOk('cooked meal');await shot('cooked-meal');
-   await page.locator('#main [data-fm="cook-meal"]').first().click();await page.waitForTimeout(150)}}
+   await page.locator('#main [data-fm="cook-meal"]').first().click();await page.waitForTimeout(150)}
+  /* leave the day as it was for the checks that follow */await page.evaluate(`(()=>{state.pantry=state.pantry.filter(p=>p.id!=='qa-lot');const d=currentWeek().days[sydneyDate()];d.dinner.recipes=[];d.dinner.cooked=false;d.dinner.consumed=[];save();render()})()`)}
  // 1. Today: the calendar says Ba Phú is away for lunch → “Who is eating?” says Away too (it said At home)
  await page.locator('[data-action="attendance-tab"][data-type="lunch"]').click();
  const phu=page.locator('select[data-change="attendance"][data-id="m-phu"]');
