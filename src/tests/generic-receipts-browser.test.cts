@@ -115,8 +115,10 @@ const fakeVoice=()=>{class FakeRec{constructor(){this.lang='vi-VN';this.continuo
    await page.locator('.reconcile-modal .btn[data-action="close-modal"]').click();
    assert.equal(calls.filter(c=>c.op==='contribute'||c.op==='confirm').length,0,'nothing is shared automatically');
    // spending: "Đồ khác (chưa rõ)" card
-   await page.evaluate(()=>{view='expenses';render()});const card=page.locator('.rm-unknown-card');await card.waitFor();assert.match(await card.innerText(),/ĐỒ KHÁC \(CHƯA RÕ\)[\s\S]*\$2\.10/);
-   await shot(page,'mobile-spending-unknown-vi-light','.stat-grid');
+   // v1.7.16: the synthetic receipt is dated 02/11/2026; open the spending of that receipt's week (after that week ended the
+   // card was looked for in the current week and the suite failed from 9 Nov, on main as well)
+   await page.evaluate(()=>{const r=state.receipts.find((x:any)=>x.store==='TAN VIET GROCERY CABRAMATTA'&&x.id!=='qa-hist');(globalThis as any).__qaWeek=weekStart;weekStart=planStartOf(state,r.date);view='expenses';render()});const card=page.locator('.rm-unknown-card');await card.waitFor();assert.match(await card.innerText(),/ĐỒ KHÁC \(CHƯA RÕ\)[\s\S]*\$2\.10/);
+   await shot(page,'mobile-spending-unknown-vi-light','.stat-grid');await page.evaluate(()=>{weekStart=(globalThis as any).__qaWeek;render()})/* back to this week's basket */;
    // per-store learning used next time; "Quên" forgets
    await parse(page);const s2=page.locator('#rm-panel [data-rm="accept"][data-i="1"]').first();assert.match(await s2.innerText(),/Đã ghép trước đây ở cửa hàng này/);
    await page.locator('#rm-panel .rm-learned summary').click();const nLearned=await page.locator('#rm-panel [data-rm="forget"]').count();assert.equal(nLearned,4);
