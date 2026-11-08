@@ -1107,7 +1107,7 @@ html.lb-open{overflow:hidden}
 .lb-backdrop{position:absolute;inset:0;background:#19352c66}
 .lb-sheet{position:relative;width:min(560px,100%);max-height:min(92dvh,860px);display:flex;flex-direction:column;background:var(--paper);color:var(--text);border-radius:16px 16px 0 0;box-shadow:0 -10px 50px #142f3a44;padding-bottom:env(safe-area-inset-bottom,0px);font-size:max(calc(14px * var(--fs-mul,1)),var(--fs-floor,0px))}
 @media (min-width:761px){.lb-layer{align-items:center;padding:20px}.lb-sheet{border-radius:16px}}
-@media (prefers-reduced-motion:no-preference){.lb-sheet{animation:lb-up .18s ease-out}}
+@media (prefers-reduced-motion:no-preference){.lb-sheet.lb-enter{animation:lb-up .18s ease-out}}
 @keyframes lb-up{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
 .lb-head{display:flex;align-items:center;gap:10px;padding:12px 12px 6px 16px}
 .lb-head h2{margin:0;font-size:max(calc(18px * var(--fs-mul,1)),var(--fs-floor,0px));flex:1}
@@ -2482,3 +2482,72 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 .scan-alt{display:grid;gap:8px}
 .scan-alt .btn,.scan-alt input{min-height:44px}
 .step-timer{min-height:44px;margin:0 2px;font-weight:800}
+/* v1.7.16 (owner, 8 Nov 2026: “Nút bắt đầu đi chợ làm to ra và có viền màu flashing chạy viền ngoài”): a bigger “Bắt đầu đi chợ”
+   with a colour ring running around its edge. The ring stays still under reduced motion and on browsers without @property. */
+@property --shop-ring{syntax:'<angle>';inherits:false;initial-value:0deg}
+.shop-mode-start{padding:5px 4px 0}
+#main .shop-mode-start .btn{position:relative;gap:10px;min-height:60px;padding:0 28px;font-size:1.12em;font-weight:700;border-radius:999px;box-shadow:0 6px 18px #174e3c30}
+.shop-mode-start .btn::before{content:'';position:absolute;inset:-5px;padding:3px;border-radius:999px;pointer-events:none;background:conic-gradient(from var(--shop-ring),#f6c34a,#ff8a5a,#e85d9a,#8f86c9,#5fb3e8,#5fd36a,#f6c34a);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:shop-ring 2.4s linear infinite}
+.shop-mode-start .btn:focus-visible{outline:3px solid var(--orange);outline-offset:7px}
+@keyframes shop-ring{to{--shop-ring:360deg}}
+@media (max-width:520px){#main .shop-mode-start .btn{flex:1 1 100%;justify-content:center}.shop-mode-start small{flex:1 1 100%;text-align:center}}
+@media (prefers-reduced-motion:reduce){.shop-mode-start .btn::before{animation:none}}
+/* v1.7.16 (owner, 8 Nov 2026: “Hình đơn vị bị chèn… chưa đối ứng không có lựa chọn search hoặc thêm”): a wider unit column so
+   “Chưa rõ” fits, and the receipt line's match box to type in (suggestions listed under it, in the flow so they are never clipped). */
+.receipt-table .receipt-table-head,.receipt-table .receipt-line{grid-template-columns:minmax(0,1fr) 76px 116px 92px 44px}
+@media (max-width:560px){.receipt-table .receipt-table-head,.receipt-table .receipt-line{grid-template-columns:60px 108px minmax(0,1fr) 44px}}
+.rm-pick{display:grid;gap:4px;min-width:0}
+.rm-pick .rm-search{min-height:44px;width:100%;min-width:0}
+.rm-list{display:grid;gap:2px;max-height:264px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--white);padding:4px}
+.rm-list[hidden]{display:none!important}
+.rm-opt{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-height:44px;width:100%;padding:8px 10px;border:0;border-radius:9px;background:transparent;color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.rm-opt small{color:var(--muted);font-size:.78em;text-align:right;flex:none;max-width:45%}
+.rm-opt:hover,.rm-opt:focus-visible{background:var(--mint);outline:none}
+.rm-opt.rm-new{color:var(--green);font-weight:700}
+.rm-empty{margin:6px 8px;color:var(--muted);font-size:.9em}
+html[data-theme="dark"] .rm-list{background:var(--surface,#18221d)}
+html[data-theme="dark"] .rm-opt:hover,html[data-theme="dark"] .rm-opt:focus-visible{background:var(--surface-3,#26372e)}
+html[data-theme="dark"] .rm-opt.rm-new{color:#8fd6b0}
+/* v1.7.16 (owner, 8 Nov 2026: “Phần bar ở dưới này nên làm chế độ trượt qua lại được”): on phones the bottom bar slides sideways
+   with every section; four fit on screen, a fade on the edge shows there is more, short names fit. */
+.nav-short{display:none}
+@media (max-width:760px){
+ .sidebar nav#nav{overflow-x:auto;overflow-y:hidden;justify-content:flex-start;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+ .sidebar nav#nav::-webkit-scrollbar{display:none}
+ .sidebar nav#nav a:nth-of-type(n+4){display:flex}
+ .sidebar nav#nav>a,.sidebar nav#nav>.mobile-more{flex:0 0 auto;min-width:max(25%,74px);padding-left:8px;padding-right:8px;scroll-snap-align:start}
+ .sidebar nav#nav>a>span:not(.nav-icon):not(.nav-short),.sidebar nav#nav>a>b,.sidebar nav#nav>a>small,.sidebar nav#nav>a>.badge{display:none}
+ .sidebar nav#nav>a>.nav-short{display:block;white-space:nowrap}
+ .sidebar nav#nav>a .nav-icon svg{width:25px;height:25px;display:block}
+ .sidebar nav#nav.nav-more-right{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 34px),transparent)}
+ .sidebar nav#nav.nav-more-left{-webkit-mask-image:linear-gradient(to right,transparent,#000 34px);mask-image:linear-gradient(to right,transparent,#000 34px)}
+ .sidebar nav#nav.nav-more-left.nav-more-right{-webkit-mask-image:linear-gradient(to right,transparent,#000 34px,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(to right,transparent,#000 34px,#000 calc(100% - 34px),transparent)}
+}
+
+/* v1.7.16: the feedback sheet keeps one height, so its tabs and chips never move when tapped (rule 24) */
+.lb-sheet{height:min(92dvh,860px)}.lb-sheet .lb-body{flex:1 1 auto;min-height:0}
+/* v1.7.16 “Tự chạy thử” (self-test) in the ladybug: the scenario list, the running bar at the top and the ring around each tap */
+.ap-entry{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:10px 16px 0}.ap-entry .btn{min-height:44px}.ap-entry small{color:var(--muted)}
+.ap-layer{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:flex-end;justify-content:center}
+.ap-backdrop{position:absolute;inset:0;background:#0f201a66}
+.ap-sheet{position:relative;width:min(620px,100%);height:min(90dvh,860px);display:flex;flex-direction:column;background:var(--paper);color:var(--text);border-radius:16px 16px 0 0;box-shadow:0 -10px 50px #142f3a44;padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (min-width:761px){.ap-layer{align-items:center}.ap-sheet{border-radius:16px}}
+.ap-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px 8px}.ap-head h2{margin:0;font-size:1.25em}
+.ap-x{min-width:44px;min-height:44px;border:0;background:none;display:grid;place-items:center;padding:0;cursor:pointer}.ap-x svg{width:34px;height:34px}
+.ap-body{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 16px 12px}
+.ap-intro{color:var(--muted);margin:0 0 10px}.ap-sum{font-weight:700;margin:0 0 8px}
+.ap-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ap-item{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px 10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white)}
+.ap-txt{display:grid;gap:2px;min-width:0}.ap-txt small{color:var(--muted);overflow-wrap:anywhere}.ap-txt .ap-err{color:#b3261e}
+.ap-st{font-size:.82em;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--mint);color:var(--muted);white-space:nowrap}.ap-st.ok{background:#dcefe3;color:#1f6b45}.ap-st.bad{background:#f8dcd8;color:#a2261c}
+.ap-watch{min-height:44px}
+.ap-foot{padding:10px 16px 14px;border-top:1px solid var(--line)}.ap-foot .btn{width:100%;min-height:52px;border-radius:999px;justify-content:center;gap:8px}
+.ap-bar{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:2147483001;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:14px;background:#173b2ff0;color:#fff;box-shadow:0 8px 30px #0006}
+.ap-bar-txt{display:grid;min-width:0;flex:1}.ap-bar-txt b,.ap-bar-txt span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ap-bar-txt span{font-size:.88em;opacity:.9}
+.ap-stop{min-height:44px;background:#fff;color:#173b2f;border:0}
+.ap-ring{position:fixed;z-index:2147483002;pointer-events:none;border:3px solid #f6c34a;border-radius:12px;box-shadow:0 0 0 4px #f6c34a55;transition:all .2s ease}
+@media (prefers-reduced-motion:reduce){.ap-ring{transition:none}}
+html[data-theme="dark"] .ap-item{background:var(--surface,#18221d)}html[data-theme="dark"] .ap-st.ok{background:#1f3b2c;color:#9fe0b8}html[data-theme="dark"] .ap-st.bad{background:#4a2420;color:#ffb4a9}html[data-theme="dark"] .ap-txt .ap-err{color:#ffb4a9}
+.ap-foot .btn.primary,.ap-foot .btn.primary span{color:#fff}
+.ap-mode{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 6px}.ap-mode-l{font-weight:700;margin-right:2px}.ap-mode .chip{min-height:44px}
+.ap-mode-note{color:var(--muted);font-size:.9em;margin:0 0 10px}

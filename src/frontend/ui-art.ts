@@ -84,6 +84,8 @@ const UI_ART:Record<string,string>={
  'filter':`<path d="M8 10h32L28 25v12l-8 4V25z" fill="#d8ecf7" ${UA_W}/>`,
  // v1.7.10 (owner, 7 Nov 2026: “các nút X tắt, đóng, lưu phải thiết kế kiểu riêng biệt bằng artwork”): one picture per meaning —
  // X = dismiss (red-brown cross in a circle), Đóng / Xong = put the sheet away (a chevron down), Lưu = keep it (a green tick)
+ // v1.7.16: “Tự chạy thử” (the app tries itself) — a play triangle in a green circle
+ 'play':`${uaCirc(24,24,19,'#cfeedd')}<path d="M19 14l15 10-15 10z" fill="#ffffff" ${UA_W}/>`,
  'close-x':`${uaCirc(24,24,17,'#f3dcd5')}<path d="M17 17l14 14M31 17L17 31" ${UA_W} stroke-width="4" fill="none"/>`,
  'close-down':`${uaCirc(24,24,17,'#e7eadf')}<path d="M15 20l9 9 9-9" ${UA_W} stroke-width="4" fill="none"/>`,
  'save-check':`${uaCirc(24,24,17,'#8fd0b0')}<path d="M15 25l6 6 12-13" ${UA_W} stroke-width="4" fill="none"/>`,

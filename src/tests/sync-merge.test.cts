@@ -106,4 +106,13 @@ test('push loop: bounded retries when another device keeps writing; would_drop �
  const out2=await syncPushLoop({...deps,base:()=>{bases.push('base');return clone(b)},put:async body=>{calls++;if(calls===1)return{status:409,data:{reason:'would_drop',state:stored,etag:'s1'}};if(!body.state.pantry.some(p=>p.id==='p-other'))return{status:409,data:{reason:'would_drop',state:stored,etag:'s1'}};return{status:200,data:{etag:'s2'}}}});
  if(!out2.ok||calls!==2)throw Error('would_drop retry '+JSON.stringify(out2));
  const out3=await syncPushLoop({...deps,blocked:r=>r.state.appEdition>APP_EDITION,put:async()=>({status:409,data:{state:{...clone(b),appEdition:APP_EDITION+1},etag:'x'}})});if(out3.ok||out3.reason!=='blocked')throw Error('newer edition is the one blocking case')})()`)});
+// v1.7.16 (owner, 8 Nov 2026: “vào xoá mà nó vẫn báo là có khách”): a meal's guest groups merge as one value, so guests removed on
+// one device are not brought back by a change to the same group on another device (the newer meal wins)
+test('meal guests: removed on one device while changed on another → the newer change wins, no resurrection',()=>run(`(()=>{const b=mk(),d='2026-11-03';
+ const g={name:'Tesr',adults:1,kids:0,invite:{id:'inv-tesr0001',token:'k7m4p9',deadline:'2026-11-09T10:00:00Z',expiresAt:'2026-11-12T12:00:00Z'}};
+ const base=edit(b,s=>{s.weeks['2026-11-02'].days[d].dinner.guests=[clone(g)]},500,'dad');
+ const A=edit(base,s=>{delete s.weeks['2026-11-02'].days[d].dinner.guests},2000,'dad'),B=edit(base,s=>{s.weeks['2026-11-02'].days[d].dinner.guests[0].rsvp={status:'maybe',at:'2026-11-08T09:00:00Z'}},1000,'mum');
+ for(const m of [mergeFamilyStates(base,A,B).state,mergeFamilyStates(base,B,A).state]){const x=m.weeks['2026-11-02'].days[d].dinner;if(x.guests&&x.guests.length)throw Error('removed guests came back '+JSON.stringify(x.guests))}
+ const C=edit(base,s=>{s.weeks['2026-11-02'].days[d].dinner.guests[0].adults=3},3000,'mum');
+ const m2=mergeFamilyStates(base,A,C).state.weeks['2026-11-02'].days[d].dinner;if(!m2.guests||m2.guests.length!==1||m2.guests[0].adults!==3)throw Error('a newer edit keeps the group whole '+JSON.stringify(m2.guests))})()`));
 (async()=>{for(const[name,fn] of tests){try{await fn();passed++}catch(e){console.error('FAIL',name);throw e}}console.log(`PASS sync-merge: ${passed} tests (three-way merge per collection/field, deletes vs edits, recipe revisions, tombstones, reactions, stamping, push loop)`)})().catch(e=>{console.error(e);process.exit(1)});

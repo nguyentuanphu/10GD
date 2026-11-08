@@ -61,7 +61,7 @@ function suggestionsFor(d,bk){
 
 // ------------------------------------------------------------ apply a match (with undo)
 function snapshot(){collectReceipt();const d=receiptDraft;rm.undo.push(JSON.parse(JSON.stringify(d.items)));if(rm.undo.length>30)rm.undo.shift()}
-function setSelect(index,value){const el=document.querySelector(`.receipt-line[data-index="${index}"] .receipt-match`);if(el){el.value=value;if(el.value!==value&&value)el.insertAdjacentHTML('beforeend',`<option value="${esc(value)}" selected>${esc(value)}</option>`)}}
+function setSelect(index,value){const el=document.querySelector(`.receipt-line[data-index="${index}"] .receipt-match`);if(el){el.value=value;if(el.value!==value&&value)el.insertAdjacentHTML('beforeend',`<option value="${esc(value)}" selected>${esc(value)}</option>`);el.dispatchEvent(new Event('change',{bubbles:true}))}}
 function applyTargets(index,keys,{record=true}={}){
  const d=receiptDraft,it=d?.items[index];if(!it)return false;if(record)snapshot();
  const bk=basket(),info=[...new Set(keys)].map(k=>targetInfo(k,bk)).filter(Boolean);it.extra=it.extra||{};

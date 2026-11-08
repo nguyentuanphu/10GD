@@ -102,13 +102,18 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
   await page.evaluate(`closeModal();view='today';location.hash='today';render()`);await page.locator('#main h1').waitFor()}
  // v1.7.10 (owner, 7 Nov 2026: “Hoàn tác bữa là gì đọc không hiểu… dịch theo ngữ cảnh”): after “Đã nấu” the button says what it does
  {await page.evaluate(`(()=>{const d=currentWeek().days[sydneyDate()];d.dinner.recipes=[clone(state.recipes.find(x=>x.id==='r1'))];d.dinner.cooked=false;d.dinner.consumed=[];state.pantry.push({id:'qa-lot',ingredient:state.recipes.find(x=>x.id==='r1').ingredients[0].id,qty:5000,place:'fridge',expiry:''});save();closeModal();view='today';location.hash='today';render()})()`);
-  const cook=page.locator('#main [data-fm="cook-meal"]').first();assert.ok(await cook.count(),`${label}: today's dinner has a cooked button`);{await cook.scrollIntoViewIfNeeded();await cook.click();await page.waitForTimeout(150);
-   const cookBtn=page.locator('#main [data-fm="cook-meal"]').first();assert.equal(await cookBtn.getAttribute('aria-label'),lang==='vi'?'Bỏ đánh dấu đã nấu':'Mark as not cooked',`${label}: full wording kept for screen readers`);const t=(await cookBtn.innerText()).trim();assert.equal(t,lang==='vi'?'Chưa nấu':'Not cooked',`${label}: cooked meal button wording`);
+  // v1.7.16: today's dinner by its date and meal — before dawn breakfast and lunch are still ahead, so “the first cooked button”
+  // was breakfast (CI at 04:36 Sydney time)
+  const dinnerSel=`#main [data-fm="cook-meal"][data-date="${await page.evaluate('sydneyDate()')}"][data-type="dinner"]`;
+  const cook=page.locator(dinnerSel).first();assert.ok(await cook.count(),`${label}: today's dinner has a cooked button`);{await cook.scrollIntoViewIfNeeded();await cook.click();await page.waitForTimeout(150);
+   // the same dish may be on a later meal of the week's plan: then “Nấu luôn cho bữa sau?” asks first — cook this meal only
+   if(await page.locator('#modal-root .cook-ahead-list').count()){await page.locator('#modal-root [data-fm="cook-ahead"][data-only]').click();await page.waitForTimeout(150)}
+   const cookBtn=page.locator(dinnerSel).first();assert.equal(await cookBtn.getAttribute('aria-label'),lang==='vi'?'Bỏ đánh dấu đã nấu':'Mark as not cooked',`${label}: full wording kept for screen readers`);const t=(await cookBtn.innerText()).trim();assert.equal(t,lang==='vi'?'Chưa nấu':'Not cooked',`${label}: cooked meal button wording`);
    /* v1.7.10 (owner: “hiện lên pop up nhỏ kiểu bubble báo là bữa ăn đã nấu và đã trừ vào kho đồ”): a short bubble, real ingredient names, no codes */
    {const bub=page.locator('#cook-bubble.visible');await bub.waitFor({timeout:3000});const bt=(await bub.innerText()).replace(/\s+/g,' ');assert.match(bt,lang==='vi'?/^Đã nấu .+ (Đã trừ \d+ nguyên liệu khỏi tủ|Tủ chưa có đồ cho bữa này)/:/ cooked (Took \d+ ingredients? out of the pantry|Nothing for this meal)/,`${label}: cooked bubble “${bt}”`);
     assert.ok(!/[a-z][A-Z]/.test(bt.replace(/Weekends feast/,'')),`${label}: no internal ingredient codes in the bubble`);assert.equal(await bub.locator('svg.bubble-art[aria-hidden="true"]').count(),1);await shot('cooked-bubble')}
    assert.ok(!/Hoàn tác bữa|Undo meal/.test(await page.locator('#main').innerText()),`${label}: no “Hoàn tác bữa”`);await textOk('cooked meal');await shot('cooked-meal');
-   await page.locator('#main [data-fm="cook-meal"]').first().click();await page.waitForTimeout(150)}
+   await page.locator(dinnerSel).first().click();await page.waitForTimeout(150)}
   /* leave the day as it was for the checks that follow */await page.evaluate(`(()=>{state.pantry=state.pantry.filter(p=>p.id!=='qa-lot');const d=currentWeek().days[sydneyDate()];d.dinner.recipes=[];d.dinner.cooked=false;d.dinner.consumed=[];save();render()})()`)}
  // 1. Today: the calendar says Ba Phú is away for lunch → “Who is eating?” says Away too (it said At home)
  await page.locator('[data-action="attendance-tab"][data-type="lunch"]').click();
