@@ -2482,3 +2482,13 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 .scan-alt{display:grid;gap:8px}
 .scan-alt .btn,.scan-alt input{min-height:44px}
 .step-timer{min-height:44px;margin:0 2px;font-weight:800}
+/* v1.7.16 (owner, 8 Nov 2026: “Nút bắt đầu đi chợ làm to ra và có viền màu flashing chạy viền ngoài”): a bigger “Bắt đầu đi chợ”
+   with a colour ring running around its edge. The ring stays still under reduced motion and on browsers without @property. */
+@property --shop-ring{syntax:'<angle>';inherits:false;initial-value:0deg}
+.shop-mode-start{padding:5px 4px 0}
+#main .shop-mode-start .btn{position:relative;gap:10px;min-height:60px;padding:0 28px;font-size:1.12em;font-weight:700;border-radius:999px;box-shadow:0 6px 18px #174e3c30}
+.shop-mode-start .btn::before{content:'';position:absolute;inset:-5px;padding:3px;border-radius:999px;pointer-events:none;background:conic-gradient(from var(--shop-ring),#f6c34a,#ff8a5a,#e85d9a,#8f86c9,#5fb3e8,#5fd36a,#f6c34a);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:shop-ring 2.4s linear infinite}
+.shop-mode-start .btn:focus-visible{outline:3px solid var(--orange);outline-offset:7px}
+@keyframes shop-ring{to{--shop-ring:360deg}}
+@media (max-width:520px){#main .shop-mode-start .btn{flex:1 1 100%;justify-content:center}.shop-mode-start small{flex:1 1 100%;text-align:center}}
+@media (prefers-reduced-motion:reduce){.shop-mode-start .btn::before{animation:none}}

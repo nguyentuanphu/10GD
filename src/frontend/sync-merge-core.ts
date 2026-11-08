@@ -19,7 +19,8 @@
 const SYNC_META=new Set(['updatedAt','updatedBy']);
 const SYNC_RECIPE_CONTENT=['name','ingredients','steps','prep'];
 // Arrays that are whole values (recipe content, cooked-meal records, reaction histories, a meal's chosen dishes).
-const SYNC_ATOMIC=new Set(['ingredients','steps','consumed','h','why','missingIngredients']);
+// v1.7.16: a meal's guest groups are one value too, so a removal on one device is not undone by a change on another
+const SYNC_ATOMIC=new Set(['ingredients','steps','consumed','h','why','missingIngredients','guests']);
 const SYNC_TOMBSTONE_DAYS=120,SYNC_TOMBSTONE_MAX=4000,SYNC_REVISION_MAX=200;
 const syncIsObj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
 function syncEq(a,b){if(a===b)return true;if(typeof a!==typeof b||!a||!b||typeof a!=='object')return false;if(Array.isArray(a)){if(!Array.isArray(b)||a.length!==b.length)return false;for(let i=0;i<a.length;i++)if(!syncEq(a[i],b[i]))return false;return true}if(Array.isArray(b))return false;const ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;for(const k of ka){if(!Object.hasOwn(b,k)||!syncEq(a[k],b[k]))return false}return true}
@@ -69,6 +70,8 @@ function syncM(b,l,r,path,ctx,tl,tr,inKeyed){
  if(ctx.hasBase&&syncEq(b,l))return r;
  if(ctx.hasBase&&syncEq(b,r))return l;
  if(l===undefined||r===undefined){
+  // v1.7.16: removing all of a meal's guests is a change like any other — the newer meal wins (an older edit cannot bring them back)
+  if(ctx.hasBase&&b!==undefined&&!inKeyed&&path[path.length-1]==='guests'&&syncIsMealPath(path.slice(0,-1))&&tl!==tr)return tl>tr?l:r;
   const kept=l===undefined?r:l;
   // Without a base: a key present on one side only is kept (no silent loss). With a base: deleted vs edited → keep edited.
   if(ctx.hasBase&&b!==undefined&&(inKeyed||syncIsMealPath(path)))ctx.notes.push({type:'kept-edited',path:path.join('/'),name:typeof kept?.name==='string'?kept.name:undefined});
