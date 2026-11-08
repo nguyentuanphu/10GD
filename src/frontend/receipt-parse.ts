@@ -154,6 +154,7 @@ function tidy(line){
  s=s.replace(/(\d)\s?[°·•](\d{2})(?!\d)/g,'$1.$2').replace(/(\d)\.\s(\d{2})(?!\d)/g,'$1.$2');
  s=s.replace(/(\d[.,]\d)[)\]](?=\s?\/)/g,'$10').replace(/(\d)\.\s(\d{3})\s*kg/gi,'$1.$2 kg');
  s=s.replace(/(\$\s?\d{1,4})\s(\d{2})(?![\d.,])/g,'$1.$2');// v1.7.10: “$76 30” (dot lost)
+ s=s.replace(/(\d[.,]\s?\d{3})\s*k[o09q](?=\s*[@©®€&§])/gi,'$1kg');// v1.7.14: “0.884ko @ $3.99/kg” (g read as o)
  s=s.replace(/^[\s|¦!\[\]{}~_'".,:;]+/,'').replace(/[\s|¦\[\]{}~_]+$/,'');
  return s.replace(/\s+/g,' ').trim();
 }
@@ -202,7 +203,7 @@ function cleanLabel(label,retailer){
 }
 
 // ---------------------------------------------------------------- line classes
-const PAY_RE=/^(commonwealth bank|westpac|anz\b|nab\b|st george|bank of|eftpos|eft\b|customer copy|merchant copy|cardholder copy|terminal|term id|merch|reference|ref\b|card no|card\b|pan seq|psn\b|aid\b|tvr\b|tsi\b|atc\b|arqc|arpc|auth|approved|declined|mastercard|master card|debit|visa|amex|savings|cheque|credit \d|credit account|cash|change\b|tender|paid\b|payment|purchase\b|refund\b|total aud|account|acct|gst included|thank you|visit|trading hours|you saved|total savings|your savings|surname|signature|pin verified|contactless)/;
+const PAY_RE=/^(commonwealth bank|westpac|anz\b|nab\b|st george|bank of|eftpos|eft\b|customer copy|merchant copy|cardholder copy|terminal|term id|merch|reference|ref\b|card no|card\b|pan seq|psn\b|aid\b|tvr\b|tsi\b|atc\b|arqc|arpc|auth|approved|declined|mastercard|master card|debit|visa|amex|savings|cheque|credit \d|credit account|cash(?!ier)|change\b|tender|paid\b|payment|purchase\b|refund\b|total aud|account|acct|gst included|thank you|visit|trading hours|you saved|total savings|your savings|surname|signature|pin verified|contactless)/;
 const SKIP_RE=/^(abn\b|acn\b|vat\b|tax invoice|invoice|phone\b|ph\b|tel\b|description\b|served by|store manager|manager\b|register\b|cashier|operator|date\b|time\b|www\b|unit \d|cnr\b|a limited partnership|limited partnership|aldi stores|qty\b\s*$)/;
 const SENSITIVE_RE=/\b(card\s*(no|num(ber)?|#)|aid\b|tvr\b|tsi\b|atc\b|arqc|arpc|terminal|term(inal)?\s*id|merch(ant)?\s*(id|no)?\b|reference|ref\s*(no|#|:)|auth(ori[sz]ation)?\s*(code|no)?|pan\s*seq|account\s*(no|type)?|acct|stan\b|rrn\b|trans(action)?\s*(no|#|id|\d)|receipt\s*(no|#|:)|register\s*:|served\s*by|store\s*manager|manager\s*:|cashier|operator|signature|surname)/i;
 function isSensitive(line){const s=String(line);return SENSITIVE_RE.test(s)||/\d{10,}/.test(s)&&!/\d[.,]\d{2}\s*[A-Z]?\s*$/.test(s)||/\b[0-9A-F]{10,}\b/.test(s)||/\d{3,4}\/\d{3}\/\d{3}\/\d{3}/.test(s)||/^\W*[x*]\d{4}\b/.test(s)||/\b(TRANS|POS)\s*\d+/i.test(s)}
@@ -213,6 +214,7 @@ function classifyTotal(line){
  const n=norm(line);
  let m=n.match(/\bfor (-?\d{1,3}) [il1t]tems?\b/)||n.match(/\bfor (-?\d{1,3}) items?\b/);if(m&&/\d[.,]\d{2}/.test(line))return{p:4,count:+m[1]};
  m=n.match(/^(?:(-?\d{1,3}) )?sub ?-?total\b(.*)$/);if(m)return{p:/incl/.test(m[2])?3:2,count:m[1]!=null?+m[1]:null};
+ if(/^sub(?: \S{1,3})? ?$/.test(n.replace(/[\d.,$ -]+$/,'').trim())&&/\d[.,]\d{2}/.test(line))return{p:2,count:null};// v1.7.14: “SUB bi $60.83” (TOTAL misread)
  if(/^(i |l |)total\b/.test(n)&&!/\b(surcharge|savings?|discount|gst included|included|tax|vat)\b/.test(n))return /\baud\b/.test(n)?{p:1}:{p:4};
  if(/\bincl\.? ?gst\b/.test(n)&&/\d[.,]\d{2}/.test(line))return{p:3};
  if(/^(grand total|amount due|balance due|total due|tong cong|tong tien)\b/.test(n))return{p:4};
@@ -265,11 +267,11 @@ function findStore(lines,head,retailer){
 // ---------------------------------------------------------------- main parser
 // v1.7.10: “@” read as 0 / 8 / § and “1.442g” (k dropped) on photos of thermal receipts; “/kg” may be cut to “/k”
 const WEIGHT_RE=/(\d+[.,]\s?\d{3}(?=\s*k?g)|\d+[.,]\s?\d{1,2}(?=\s*kg))\s*k?g\s*(?:net)?\s*(?:[@©®€&§]|[08](?=\s))?\s*\$?\s?(\d+[.,]\d{2})\s*\$?\s*[/]\s*k/i;
-const MULTI_RE=/^\W*(?:[qo]ty\s*)?(\d{1,3})\s*(?:[@©®§&]\s*\$?|\s[08Oo]\s+\$)\s?(\d+[.,]\d{1,2})(?!\d)\s*(?:each|ea\b\.?)?/i;
+const MULTI_RE=/^\W*(?:[qo]ty\s*)?(\d{1,3})\s*(?:[@©®§&]\s*\$?|\s[068Oo]\s+\$)\s?(\d+[.,]\d{1,2})(?!\d)\s*(?:each|ea\b\.?)?/i;
 // v1.7.10: “2 @ $2.20” read glued as “2082.20” (@→0, $→8). Accepted only when count × each equals the item just read.
 const GLUED_MULTI_RE=/^\W*(?:\S{1,4}\s+)?(\d{1,2}[0@][0-9@$S§]{1,3}\d{0,2}[.,]\d{1,2})(?:\s+\S{1,3}){0,3}\W*$/;
 // “SHER 2 8 $3.00”, “Ene. 2 @ $3.15”: a count line behind a short speck token
-const JUNK_MULTI_RE=/^\W*\S{1,4}\s+(\d{1,2})\s*(?:[@©®§&]\s*\$?|\s[08Oo]\s+\$)\s?(\d+[.,]\d{1,2})(?!\d)/;
+const JUNK_MULTI_RE=/^\W*\S{1,4}\s+(\d{1,2})\s*(?:[@©®§&]\s*\$?|\s[068Oo]\s+\$)\s?(\d+[.,]\d{1,2})(?!\d)/;
 function parseReceipt(text,opts={}){
  const raw=String(text||'').slice(0,40000);
  const lines=raw.split(/\r?\n/).map(tidy).filter(Boolean);
@@ -306,6 +308,8 @@ function parseReceipt(text,opts={}){
   if(/^\W*round(ing)?\b/i.test(line)){const v=amountIn(line);if(v!=null&&Math.abs(v)>=0.005)add(adjust('rounding',line,v));continue}
   if(/you have saved|^\W*D\d{3}\b/i.test(line)&&det.id==='woolworths-uk'){const v=amountIn(line);if(v!=null&&lastItem){lastItem.discount=round((lastItem.discount||0)-Math.abs(v));lastItem.raw+=' / '+line}continue}
   if(/^\W*(credit|discount|less|promo|coupon|voucher|member\s*(discount|saving)|multi\s*buy|saving)\b/i.test(line)&&!/surcharge/i.test(line)&&/-\s?\$?\s?\d|\d[.,]\d{2}\s*-/.test(line)){const v=amountIn(line);if(v!=null){add(adjust('discount',line,-Math.abs(v)));continue}}
+  // v1.7.14: a bare amount right under the subtotal is the total whose word OCR lost (“: $80.83” under “SUB TOTAL”)
+  if(section==='sub'&&/^\W*\$?\s?\d{1,5}[.,]\d{2}\W*$/.test(line)){const v=amountIn(line);if(v!=null)totals.push({value:v,p:3,line:i,label:'TOTAL'});pending=null;continue}
   if(PAY_RE.test(n)){if(/^(purchase|refund|total aud|mastercard|master card|visa|eftpos|eft|debit|amex)\b/.test(n)){const v=amountIn(line);if(v!=null)payAmounts.push(v)}if(section!=='head'||i>bodyStart&&bodyStart>=0)section='pay';pending=null;continue}
   if(isSensitive(line)){pending=null;continue}
   if(/\bnet\b.*\b(gst|vat)\b|^\W*[ab]\s+\d+[.,]\d\s*%/i.test(line))continue;
@@ -327,12 +331,16 @@ function parseReceipt(text,opts={}){
     else if(!det.id&&p&&section==='body'){target=add(makeItem('',null,p.price,p.gst,line,false));target.genericKey='w'}
    pending=null;
    if(target&&kg>0&&kg<50){target.weight={qty:kg,unit:'kg'};target.perKg=per;target.raw+=' / '+line;if(target.price==null&&p){target.price=p.price;target.priceMissing=false}target.qty=kg;target.unit='kg';target.size=null}
+   // v1.7.14: “$65.71” for $5.71 (a speck read as a digit): when weight × price per kg says the price without its first digit, use that
+   if(target&&target.weight&&per>0&&target.price!=null){const exp=kg*per,ok=(v:number)=>Math.abs(v-exp)<=Math.max(0.12,exp*0.04);const s2=target.price.toFixed(2);if(!ok(target.price)&&s2.length>4&&ok(+s2.slice(1))){target.price=+s2.slice(1);target.priceFromWeight=true}}
    continue}
   {const gm=line.match(GLUED_MULTI_RE);if(gm&&lastItem&&lastItem.price!=null&&!lastItem.multi){const d=gm[1];let hit=null;
     // “2082.20” = 2 @ $2.20, “204$1.80” = 2 @ $1.80: count = first 1–2 digits, price = a tail of the number; only a split whose
     // count × price equals the item just read is used (nothing is guessed)
     for(const cl of [1,2])for(let k=cl;k<d.length&&!hit;k++){const c=+d.slice(0,cl),m=d.slice(k).match(/^[0@48$S§]{0,3}?(\d{1,3}[.,]\d{1,2})$/);if(m&&c>=2&&sameAs(c*+m[1].replace(',','.'),lastItem.price))hit={count:c,each:+m[1].replace(',','.')}}
     if(hit){lastItem.multi=hit;lastItem.raw+=' / '+line;if(pending)lastItem.raw+=' / '+pending.text;if(lastItem.size)lastItem.qty=round(lastItem.size.qty*hit.count,3);else if(lastItem.each||lastItem.qty==null){lastItem.qty=hit.count;lastItem.unit='each'}pending=null;continue}}}
+  // v1.7.14: “68 $1.20” = 6 @ $1.20 (the @ read as 8, the space kept) — only when count × price equals the item just read
+  {const g8=line.match(/^\W*(\d)[8@]\s+\$\s?(\d{1,3}[.,]\d{2})\W*$/);if(g8&&lastItem&&lastItem.price!=null&&!lastItem.multi&&+g8[1]>=2&&sameAs(+g8[1]*+g8[2].replace(',','.'),lastItem.price)){const count=+g8[1];lastItem.multi={count,each:+g8[2].replace(',','.')};lastItem.raw+=' / '+line;if(pending)lastItem.raw+=' / '+pending.text;if(lastItem.size)lastItem.qty=round(lastItem.size.qty*count,3);else if(lastItem.each||lastItem.qty==null){lastItem.qty=count;lastItem.unit='each'}pending=null;continue}}
   const mm=line.match(MULTI_RE)||line.match(JUNK_MULTI_RE);
   if(mm&&!/[a-z]{3}/i.test(line.replace(/^\W*\S{1,4}\s+(?=\d)/,'').replace(/each|[qo]ty|ea\b/ig,''))){const count=+mm[1],each=+mm[2].replace(',','.'),p=priceOf(line.slice(mm.index+mm[0].length),aldi);
    let target=null;

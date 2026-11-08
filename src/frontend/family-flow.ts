@@ -46,29 +46,28 @@ document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('[dat
  }}catch(err:any){toast(err.message,true)}});
 addEventListener('hashchange',()=>{if(shopMode&&view!=='shopping')document.body.classList.remove('shop-mode')});
 
-// ── 3. Today, compact (owner: “Hôm nay gọn lại”): the next meal to cook comes first, under the day strip — dishes, who eats,
-//       guests, “Đã nấu” — then urgent notes and the rest of the day's meals. The extras (greeting, ideas, use-it-up, Weekends feast)
-//       sit underneath as one-line rows, closed until tapped; one the family opens stays open for this visit. Nothing is removed.
+// ── 3. Today, compact (owner: “Hôm nay gọn lại”; v1.7.14: the meals stay in their usual order, none pulled out first) —
+//       under the day strip: urgent notes, greeting and use-it-up rows, notices, then the day's meals. The other extras (ideas,
+//       Weekends feast, leftovers) sit underneath as one-line rows, closed until tapped; one the family opens stays open. Nothing is removed.
 const flowOpenRows=new Set<string>();
 // notices for the day (guests, plan next week) sit under the urgent notes and the greeting rows, right above the meals
-function flowBeforeMeals(main:Element,html:string){const meals=main.querySelector(':scope > .next-meal')||main.querySelector(':scope > .dashboard-grid');if(meals){meals.insertAdjacentHTML('beforebegin',html);return}const at=main.querySelector(':scope > .flow-rows-top')||main.querySelector(':scope > .family-urgent')||main.querySelector('.day-actions')||main.querySelector('.calendar-shortcut');at?.insertAdjacentHTML('afterend',html)}
+function flowBeforeMeals(main:Element,html:string){const meals=main.querySelector(':scope > .dashboard-grid');if(meals){meals.insertAdjacentHTML('beforebegin',html);return}const at=main.querySelector(':scope > .flow-rows-top')||main.querySelector(':scope > .family-urgent')||main.querySelector('.day-actions')||main.querySelector('.calendar-shortcut');at?.insertAdjacentHTML('afterend',html)}
 function flowNextMealType(day:any){if(!day)return null;const types=MEAL_TYPES.filter((t:string)=>fmMealOn(day,t)&&day[t]?.recipes?.length);if(!types.length)return null;
  if(selectedDate!==sydneyDate())return types.find((t:string)=>!day[t].cooked)||null;
  const h=+new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Sydney',hour:'numeric',hourCycle:'h23'}).format(new Date()),until:Record<string,number>={breakfast:10,snackAm:11,lunch:14,snack:17,dinner:24};
  return types.find((t:string)=>!day[t].cooked&&h<until[t])||types.find((t:string)=>!day[t].cooked)||null}
 function flowFoldRow(el:Element,key:string,summary:string){if(el.tagName==='DETAILS'){const d=el as HTMLDetailsElement;d.dataset.flowRow=key;d.open=flowOpenRows.has(key);return d}
  const d=document.createElement('details');d.className='simple-disclosure flow-row';d.dataset.flowRow=key;d.open=flowOpenRows.has(key);d.innerHTML=`<summary>${summary}</summary>`;el.before(d);d.append(el);return d}
-function flowCompactToday(){const main=document.getElementById('main');if(view!=='today'||!main||!currentWeek().familyMode)return;const day=currentWeek().days[selectedDate];
+function flowCompactToday(){const main=document.getElementById('main');if(view!=='today'||!main||!currentWeek().familyMode)return;
  main.classList.add('today-compact');
  const anchor=main.querySelector('.day-actions')||main.querySelector('.calendar-shortcut')||main.querySelector('.day-strip');if(!anchor)return;
- const T=flowNextMealType(day),card=T?main.querySelector(`.dashboard-grid .family-meal-card[data-meal-date="${selectedDate}"][data-meal-type="${T}"]`):null;
- let next=main.querySelector('.next-meal');if(card){if(!next){next=document.createElement('section');next.className='next-meal'}next.innerHTML=`<p class="eyebrow next-meal-label">${flowT('Bữa tiếp theo','Next meal')}</p>`;next.append(card)}else{next?.remove();next=null}
+ /* owner, 8 Nov 2026 (v1.7.14): “các bữa vẫn nên hiện như thường, không nên đẩy bữa tiếp theo lên trước” — the day's meals stay
+    in their usual order in one place; nothing is pulled out as “Bữa tiếp theo” */
  /* owner, 8 Nov 2026 (v1.7.14: “nhiều bữa bị hiện lên trước alert, welcome và clear fridge”): under the day strip come the urgent
-    notes, then the greeting and “Giải phóng tủ lạnh” as one-line rows, and only then the meals — the next meal first */
+    notes, then the greeting and “Giải phóng tủ lạnh” as one-line rows, and only then the meals */
  let after:Element=anchor;const urgent=main.querySelector('.family-urgent');if(urgent){after.after(urgent);after=urgent}
  const top=document.createElement('div');top.className='flow-rows flow-rows-top';after.after(top);after=top;
  {const greet=main.querySelector('.home-greeting');if(greet)top.append(flowFoldRow(greet,'greeting',esc((greet.querySelector('h2,h3')?.textContent||flowT('Lời chào','Greeting')).trim())));const fr=main.querySelector('.fridge-rescue-card')?.closest('details');if(fr)top.append(flowFoldRow(fr,'fridge',''));if(!top.children.length){top.remove();after=urgent||anchor}}
- if(next){after.after(next);after=next}
  const grid=main.querySelector('.dashboard-grid');if(grid){after.after(grid);after=grid}
  const rest=document.createElement('div');rest.className='flow-rows';after.after(rest);
  const add=(el:Element|null,key:string,summary:string)=>{if(!el)return;rest.append(flowFoldRow(el,key,summary))};
@@ -96,7 +95,7 @@ function leftoversDecorate(){const main=document.getElementById('main');if(!main
  // “Còn dư?” on a cooked meal (not the weekend batch, which counts its own portions)
  for(const card of main.querySelectorAll('.family-meal-card[data-meal-type]') as any){const m=mealAt(state,card.dataset.mealDate,card.dataset.mealType);if(!m?.cooked||!m.recipes.some((r:any)=>!r.fromLeftover)||m.recipes.some((r:any)=>r.batchId)||card.querySelector('.leftover-ask'))continue;const btn=`<button class="btn small soft leftover-ask" type="button" data-flow="leftover-add" data-date="${esc(card.dataset.mealDate)}" data-type="${esc(card.dataset.mealType)}">${flowT('Còn dư?','Leftovers?')}</button>`;const acts=card.querySelector('header .meal-head-actions');if(acts)acts.insertAdjacentHTML('beforeend',btn);else card.querySelector('header')?.insertAdjacentHTML('afterend',`<div class="leftover-ask-row">${btn}</div>`)}
  const list=leftoversNow(state);if(!list.length)return;const next=flowNextMeal();
- if(view==='today'){const nm=main.querySelector('.next-meal');const first=list.find((x:any)=>!x.expired);if(nm&&first&&next&&!nm.querySelector('.leftover-offer'))nm.querySelector('.next-meal-label')?.insertAdjacentHTML('afterend',`<p class="leftover-offer"><span>${flowT('Có sẵn trong tủ:','Ready in the fridge:')} ${leftoverLabel(first)}</span><button class="btn small soft" type="button" data-flow="leftover-serve" data-id="${esc(first.id)}" data-date="${esc(next.date)}" data-type="${esc(next.type)}">${flowT('Dùng cho bữa này','Use for this meal')}</button></p>`);
+ if(view==='today'){const nm=next&&next.date===selectedDate?main.querySelector(`.dashboard-grid .family-meal-card[data-meal-date="${next.date}"][data-meal-type="${next.type}"]`):null;const first=list.find((x:any)=>!x.expired);if(nm&&first&&next&&!nm.querySelector('.leftover-offer'))nm.querySelector('header')?.insertAdjacentHTML('afterend',`<p class="leftover-offer"><span>${flowT('Có sẵn trong tủ:','Ready in the fridge:')} ${leftoverLabel(first)}</span><button class="btn small soft" type="button" data-flow="leftover-serve" data-id="${esc(first.id)}" data-date="${esc(next.date)}" data-type="${esc(next.type)}">${flowT('Dùng cho bữa này','Use for this meal')}</button></p>`);
   const rows=main.querySelector('.flow-rows')||(()=>{const d=document.createElement('div');d.className='flow-rows';main.append(d);return d})();if(!rows.querySelector('[data-flow-row="leftovers"]')){const det=document.createElement('details');det.className='simple-disclosure flow-row';det.dataset.flowRow='leftovers';det.open=flowOpenRows.has('leftovers')||list.some((x:any)=>x.expired);det.innerHTML=`<summary>${flowT(`Đồ ăn còn dư (${list.length})`,`Leftovers (${list.length})`)}</summary>${leftoverList(next)}`;rows.prepend(det)}}
  if(view==='pantry'&&!main.querySelector('.leftover-card')){const after=main.querySelector('.misplaced-callout')||afterTitle(main);after?.insertAdjacentHTML('afterend',`<section class="card leftover-card"><h2>${flowT('Đồ ăn đã nấu còn dư','Cooked leftovers')}</h2>${leftoverList(next)}</section>`)}}
 

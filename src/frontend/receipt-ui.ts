@@ -57,13 +57,17 @@ function draftFromParsed(parsed,text){
  return{items,meta:{retailer:parsed.retailer,storeNo:parsed.storeNo,time:parsed.time,printedCount:parsed.printedCount,countRead:parsed.countRead,printedTotal:parsed.printedTotal,refund:parsed.refund,warnings:parsed.warnings,txRaw:parsed.txRaw,store:parsed.store,date:parsed.date,currency:parsed.currency}};
 }
 // Apply a parse to the open draft. Raw text is kept only after payment / staff lines are removed.
+// v1.7.14 (owner, 8 Nov 2026: “ô text chỉ nên thể hiện các dòng là ingredients”): the text box shows only the lines that make the
+// items (name, weight / count lines, discounts) — no shop header, address, card or payment lines. Reading it again gives the same items.
+function receiptItemText(text,parsed){const raws=(parsed.items||[]).filter((i:any)=>i.kind==='item'||i.kind==='discount').map((i:any)=>String(i.raw||'').replace(/\s+/g,' '));if(!raws.length)return '';
+ return String(text||'').split(/\r?\n/).filter(l=>{const t=RP.tidy(l).replace(/\s+/g,' ').trim();return t.length>1&&!RP.isSensitive(t)&&raws.some((r:string)=>r.includes(t))}).map(l=>l.replace(/\s{3,}/g,'   ').trim()).join('\n')}
 function fillDraft(text,{keepStore=true}={}){
  const d=receiptDraft;if(!d)return null;
- const parsed=RP.parseReceipt(text);const built=draftFromParsed(parsed,text);
- d.raw=RP.redact(text);d.items=built.items;d.meta=built.meta;
+ const prevRetailer=keepStore&&!RP.detectRetailer(String(text||'')).id?d.extra?.retailer:null,parsed=RP.parseReceipt(text,prevRetailer?{retailer:prevRetailer}:{});const built=draftFromParsed(parsed,text);
+ d.raw=receiptItemText(text,parsed)||RP.redact(text);d.items=built.items;d.meta=built.meta;
  d.store=keepStore&&d.store?d.store:parsed.store||d.store||'';
  if(parsed.date)d.date=parsed.date;
- d.total=parsed.printedTotal!=null?parsed.printedTotal:null;
+ d.total=parsed.printedTotal!=null?parsed.printedTotal:keepStore&&d.total!=null?d.total:null;/* v1.7.14: the text box holds item lines only, so a re-read keeps the total already read */
  d.currency=parsed.currency==='AUD'?(d.currency&&d.currency!=='GBP'&&d.currency!=='EUR'?d.currency:currentCurrency(state)):parsed.currency;
  d.refund=!!parsed.refund;d.dupDecided=false;d.allowDuplicate=false;
  d.extra={retailer:parsed.retailer||null,refund:parsed.refund||undefined,printed:{time:parsed.time||null,count:parsed.printedCount??null,storeNo:parsed.storeNo||null},source:'ocr'};
@@ -172,9 +176,15 @@ function duplicateSheet(dup){
 // ------------------------------------------------------------ reconciliation (pure-ish, testable)
 function weekNeed(s,week,start,end){const rows=typeof shopping==='function'?shopping(s,week,start,end):[];const out={};for(const r of rows){if(r.skip)continue;const already=+(week.bought?.[r.id]||0);out[r.id]=Math.max(0,(+r.qty||0)-already)}return out}
 function receiptLines(rec){return(rec.items||[]).filter(i=>i.ingredient&&hasIng(i.ingredient)&&(!i.lineKind||i.lineKind==='item')).map(i=>({ingredient:i.ingredient,quantity:Number.isFinite(i.quantity)&&i.quantity>0?i.quantity:null,label:i.label,id:i.id}))}
+// v1.7.14 (owner, 8 Nov 2026: “nếu đã cho vào kho sau đó mới scan receipt thì sẽ báo là mua thêm”): what was ticked bought and put
+// away from the shopping list around the receipt's date is the same shopping — those lots are linked to the receipt, not added again
+const sydDay=(iso:string)=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso))}catch{return''}};
+function storedFromShopping(s,id,rec){const d=/^\d{4}-\d{2}-\d{2}$/.test(rec?.date||'')?rec.date:null;if(!d)return[];const near=(day:string)=>!!day&&day>=addDays(d,-1)&&day<=addDays(d,3);
+ const ticked=Object.values(s.weeks||{}).some((w:any)=>near(sydDay(w?.boughtAt?.[id]||'')));
+ return(s.pantry||[]).filter((p:any)=>p.ingredient===id&&!p.receiptId&&(p.storedOn?near(p.storedOn):ticked&&!p.boughtOn))}
 function reconcilePlan(s,rec,week,start,end){
  const need=weekNeed(s,week,start,end),lines=receiptLines(rec);
- const rows=RP.reconcile(lines.filter(l=>l.quantity),id=>need[id]??0).map(r=>({...r,onList:Object.hasOwn(need,r.ingredient)}));
+ const rows=RP.reconcile(lines.filter(l=>l.quantity),id=>need[id]??0).map(r=>{const row={...r,onList:Object.hasOwn(need,r.ingredient)};if(row.extra>0){const lots=storedFromShopping(s,r.ingredient,rec);if(lots.length){row.status='stored';row.extra=0;row.lots=lots.map((p:any)=>p.id)}}return row});
  return{rows,unknown:lines.filter(l=>!l.quantity)};
 }
 function placeFor(id,rec){const lab=(rec.items||[]).filter(i=>i.ingredient===id).map(i=>i.label).join(' ');if(/\b(frz|frozen|frzn)\b/i.test(lab))return'freezer';if(typeof suggestStorePlace==='function')return suggestStorePlace(state,id);return INGREDIENTS[id][2]==='dry'&&!['egg','tofu','milk','yogurt','cream','butter','parmesan','mozzarella','feta'].includes(id)?'dry':'fridge'}
@@ -185,15 +195,16 @@ function applyReconcile(s,rec,week,start,end,ticked){
  const undo={at:now,week:start,end,bought:{},boughtAt:{},pantryIds:[]};
  for(const r of plan.rows){if(ticked&&!ticked.includes(r.ingredient))continue;
   if(r.covered>0){week.bought??={};week.boughtAt??={};undo.bought[r.ingredient]=Object.hasOwn(week.bought,r.ingredient)?week.bought[r.ingredient]:null;undo.boughtAt[r.ingredient]=week.boughtAt[r.ingredient]??null;week.bought[r.ingredient]=Math.round(((+week.bought[r.ingredient]||0)+r.covered)*1000)/1000;week.boughtAt[r.ingredient]=now}
+  if(r.status==='stored'){undo.linked??=[];for(const lid of r.lots||[]){const p=s.pantry.find((x:any)=>x.id===lid);if(p&&!p.receiptId){p.receiptId=rec.id;p.boughtOn=rec.date;pantryTouch(p);undo.linked.push(lid)}}continue}
   if(r.extra>0){const p={id:uid(),ingredient:r.ingredient,qty:r.extra,place:placeFor(r.ingredient,rec),expiry:'',boughtOn:rec.date,receiptId:rec.id};pantryTouch(p);s.pantry.push(p);undo.pantryIds.push(p.id)}}
  rec.reconciled=undo;return undo;
 }
 function undoReconcile(s,rec){
  const u=rec.reconciled;if(!u)return false;const week=s.weeks?.[u.week];
  if(week){for(const[id,v]of Object.entries(u.bought)){if(v==null)delete week.bought[id];else week.bought[id]=v}for(const[id,v]of Object.entries(u.boughtAt||{})){if(!week.boughtAt)continue;if(v==null)delete week.boughtAt[id];else week.boughtAt[id]=v}}
- const ids=new Set(u.pantryIds);s.pantry=s.pantry.filter(p=>!ids.has(p.id));delete rec.reconciled;return true;
+ const ids=new Set(u.pantryIds);s.pantry=s.pantry.filter(p=>!ids.has(p.id));for(const lid of u.linked||[]){const p=s.pantry.find((x:any)=>x.id===lid);if(p&&p.receiptId===rec.id){delete p.receiptId;delete p.boughtOn}}delete rec.reconciled;return true;
 }
-function statusText(r){const u=baseUnit(r.ingredient);return r.status==='short'?T('Còn thiếu ','Still short ')+qtyText(r.short,u):r.status==='enough'?T('Đủ','Enough'):r.status==='enough-extra'?T('Đủ · dư ','Enough · extra ')+qtyText(r.extra,u)+T(' → cất kho',' → pantry'):T('Dư ','Extra ')+qtyText(r.extra,u)+T(' → cất kho',' → pantry')}
+function statusText(r){const u=baseUnit(r.ingredient);if(r.status==='stored')return T('Đã cất vào tủ lúc đi chợ · không cộng thêm','Already put away after shopping · not added again');return r.status==='short'?T('Còn thiếu ','Still short ')+qtyText(r.short,u):r.status==='enough'?T('Đủ','Enough'):r.status==='enough-extra'?T('Đủ · dư ','Enough · extra ')+qtyText(r.extra,u)+T(' → cất kho',' → pantry'):T('Dư ','Extra ')+qtyText(r.extra,u)+T(' → cất kho',' → pantry')}
 function boughtText(r){const u=baseUnit(r.ingredient);return r.same?`${r.parts.length} × ${qtyText(r.parts[0],u)} = ${qtyText(r.bought,u)}`:r.parts.length>1?r.parts.map(p=>qtyText(p,u)).join(' + ')+' = '+qtyText(r.bought,u):qtyText(r.bought,u)}
 function weekRange(){return[weekStart,addDays(weekStart,6)]}
 function reconcileSheet(id){
