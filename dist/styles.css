@@ -2457,3 +2457,19 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 .modal.guide-has-tabs .modal-content{flex:1 1 auto;overflow:auto}
 .guide-tour[hidden],.guide-features[hidden]{display:none!important}
 @media (max-width:360px){.topbar{padding-left:8px;padding-right:8px;gap:4px}.topbar .top-actions{gap:1px}}
+/* v1.7.15: Cài app — guide sheet, Today reminder, sidebar link */
+.install-steps{list-style:none;margin:8px 0;padding:0;display:grid;gap:10px}
+.install-step{display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--white)}
+.install-step b{display:block}.install-step small{display:block;color:var(--muted);overflow-wrap:anywhere}
+.install-pic,.install-art svg{width:48px;height:48px;display:block}
+.install-nudge{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:center}
+.install-nudge .install-pic{width:40px;height:40px}
+.install-nudge p{margin:0}
+.install-nudge .nudge-actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.install-nudge .nudge-actions .btn{min-height:44px}
+.install-side-link{display:flex;align-items:center;gap:8px;min-height:44px}
+/* v1.7.15: old browsers (html.legacy, set by legacy/polyfills.js) — spacing where flex “gap” is not supported */
+.legacy .chips>*,.legacy .toolbar>*,.legacy .day-actions>*,.legacy .top-actions>*,.legacy .nudge-actions>*,.legacy .guide-tabs>*,.legacy .modal footer>*,.legacy .receipt-entry-tools>*{margin:0 6px 6px 0}
+.legacy .legacy-note{margin:8px 0;padding:8px 12px;border-radius:10px;background:var(--mint);font-size:.9em}
+@media(max-width:440px){.network-status>span{display:none}.network-status{min-width:26px}}/* v1.7.15: the magnifier needs the room; the state stays in the icon and its label */
+.topbar .app-search{border:1px solid #dce3d7;background:#fffefa;border-radius:9px;padding:0}/* v1.7.15: the drawing stays clear on the dark theme too */

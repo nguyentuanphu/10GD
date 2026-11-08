@@ -112,3 +112,24 @@ writeFileSync('dist/build.json', JSON.stringify({version: appVersion, build: bui
 const worker=readFileSync('dist/sw.js','utf8');
 if(!worker.includes('__BEP_CATALOG_HASH__'))throw new Error('Service worker catalog placeholder is missing');
 writeFileSync('dist/sw.js',worker.replace(/__BEP_CATALOG_HASH__/g,catalogHash));
+
+// v1.7.15 (owner, 8 Nov 2026: “Làm app cho máy cũ hoạt động luôn được chứ”): an ES2017 copy of the app for old browsers (iPad Air 1 /
+// Safari 12 and others without ES2022 or Object.hasOwn). index.html picks it with a tiny ES5 check. Same pack hash, same order; the
+// loader reads /legacy/startup-scripts.json. Newer browsers never load anything from dist/legacy/.
+{
+ // TypeScript 7 has no JS API: the compiler is run once on a temporary copy of every file (types not checked, syntax only)
+ const {execFileSync}=require('node:child_process') as typeof import('node:child_process');
+ const tmp='.compiled/legacy-src',outDir='.compiled/legacy-out';rmSync(tmp,{recursive:true,force:true});rmSync(outDir,{recursive:true,force:true});mkdirSync(tmp,{recursive:true});
+ const pack=JSON.parse(readFileSync('dist/startup-scripts.json','utf8')) as {hash:string,scripts:{name:string,code:string}[]};
+ const files:[string,string][]=[...pack.scripts.map(s2=>['pack--'+s2.name,s2.code] as [string,string]),['bootstrap.js',readFileSync('dist/bootstrap.js','utf8')],['offline-access.js',readFileSync('dist/offline-access.js','utf8')]];
+ for(const [n,code] of files)writeFileSync(tmp+'/'+n,code);
+ const bin=process.platform==='win32'?'node_modules/.bin/tsc.cmd':'node_modules/.bin/tsc';
+ try{execFileSync(bin,['--ignoreConfig','--allowJs','--target','es2017','--noCheck','--skipLibCheck','--lib','es2022,dom','--removeComments','false','--outDir',outDir,...files.map(([n])=>tmp+'/'+n)],{stdio:'pipe'})}catch(e:any){if(!existsSync(outDir+'/bootstrap.js'))throw new Error('Legacy build failed: '+String(e.stdout||e.message).slice(0,400))}
+ const read=(n:string)=>readFileSync(outDir+'/'+n,'utf8').replace(/\/\/# sourceMappingURL=.*$/gm,'');
+ rmSync('dist/legacy',{recursive:true,force:true});mkdirSync('dist/legacy',{recursive:true});
+ writeFileSync('dist/legacy/startup-scripts.json',JSON.stringify({version:1,hash:pack.hash,scripts:pack.scripts.map(s2=>({name:s2.name,code:read('pack--'+s2.name)}))}));
+ const boot=read('bootstrap.js').split("'/startup-scripts.json").join("'/legacy/startup-scripts.json");
+ if(!boot.includes("'/legacy/startup-scripts.json"))throw new Error('Legacy loader: pack URL not found');
+ writeFileSync('dist/legacy/bootstrap.js',boot);writeFileSync('dist/legacy/offline-access.js',read('offline-access.js'));
+ writeFileSync('dist/legacy/polyfills.js',readFileSync('dist/legacy-polyfills.js','utf8').replace(/\/\/# sourceMappingURL=.*$/gm,''));
+}

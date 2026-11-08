@@ -9,6 +9,8 @@ import {chromium} from 'playwright';
 const origin='https://kitchen.test',out='docs/reviews/v1.7.15';mkdirSync(out,{recursive:true});
 const mime:any={'.js':'application/javascript','.css':'text/css','.html':'text/html','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.webmanifest':'application/manifest+json'};
 const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tablet:{width:820,height:1100},desktop:{width:1280,height:800}};
+const route0=async(r:any)=>{const u=new URL(r.request().url());if(u.pathname.startsWith('/.netlify/'))return r.fulfill({status:401,json:{error:'no'}});const f=resolve('dist',u.pathname==='/'?'index.html':u.pathname.slice(1));try{await r.fulfill({contentType:mime[extname(f)]||'application/octet-stream',body:readFileSync(f)})}catch{await r.fulfill({status:404,body:''})}};
+const groups0=async(page:any,q:string)=>{await page.locator('#app-search').click();const input=page.locator('#app-search-input');await input.fill(q);await page.waitForTimeout(200);return page.evaluate(`Object.fromEntries([...document.querySelectorAll('#search-results .search-group')].map(g=>[g.querySelector('h3').textContent.trim(),[...g.querySelectorAll('.search-hit-row b')].map(b=>b.textContent)]))`)};
 (async()=>{
  const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});
  try{
@@ -55,7 +57,52 @@ const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tab
    assert.ok(!feats.some((f:any)=>/thống kê sử dụng|thống kê giọng nói|usage statistics|voice statistics/i.test(f.title)),`${label}: the statistics switches are not listed`);
    assert.ok(await E('document.documentElement.scrollWidth<=innerWidth+1'),`${label}: guide fits`);await shot('guide-features');
    await page.locator(`#guide-panel-features .feature-item:has(b:text-is("${lang==='en'?'Pantry':'Tủ đồ'}")) .feature-open`).click();await page.waitForFunction(()=>location.hash==='#pantry'&&!document.querySelector('#modal-root .modal'));
+   // “Cài app” (owner: “Thêm option add to homescreen function, check my repo/tpn để làm theo”; pop-up: with a small reminder)
+   await E(`(()=>{localStorage.removeItem('bep-install-later');localStorage.removeItem('bep-installed');view='today';location.hash='today';render();scrollTo(0,0)})()`);await page.waitForTimeout(200);
+   const nudge=page.locator('#main .install-nudge');await nudge.waitFor();const nb=nudge.locator('[data-install="open"]');
+   assert.ok(await nb.evaluate((b:any)=>!!b.querySelector('svg.btn-art')&&b.getBoundingClientRect().height>=44),`${label}: “Cài app” drawn, ≥ 44 px`);assert.match(await nudge.innerText(),lang==='en'?/home screen/:/màn hình chính/);
+   const later=nudge.locator('[data-install="later"]');const ly=(await later.boundingBox())!.y;await later.click();await page.waitForTimeout(100);assert.equal(await nudge.count(),0,`${label}: “Để sau” hides it`);
+   await E('render()');await page.waitForTimeout(100);assert.equal(await page.locator('#main .install-nudge').count(),0,`${label}: and it stays hidden (14 days)`);void ly;
+   await E(`otherSettingsModal('')`);assert.equal(await page.locator('#modal-root #settings-install [data-install="open"]').count(),1,`${label}: in Account & settings`);await E('closeModal()');
+   if(size==='desktop'||size==='tablet')assert.equal(await page.locator('.side-bottom .install-side-link').count(),1,`${label}: in the sidebar`);
+   // the browser's own install prompt (Android / Chrome / Edge): one tap
+   await E(`(()=>{const e=new Event('beforeinstallprompt',{cancelable:true});e.prompt=async()=>{window.__qaPrompted=(window.__qaPrompted||0)+1};e.userChoice=Promise.resolve({outcome:'accepted'});dispatchEvent(e)})()`);
+   await E(`otherSettingsModal('')`);await page.locator('#modal-root #settings-install [data-install="open"]').click();await page.waitForFunction(()=>(window as any).__qaPrompted===1);
+   assert.ok(await E('installState().installed'),`${label}: installed after the prompt`);await E(`otherSettingsModal('')`);assert.equal(await page.locator('#modal-root #settings-install').count(),0,`${label}: nothing to install any more`);await E('closeModal()');
+   assert.equal(await page.locator('.side-bottom .install-side-link').count(),0,`${label}: sidebar link gone once installed`);
+   g=await groups0(page,lang==='en'?'add to home screen':'cai app');assert.ok(JSON.stringify(g).includes(lang==='en'?'Add to home screen':'Cài app vào màn hình chính'),`${label}: the search finds “Cài app” ${JSON.stringify(g)}`);await E('closeModal()');
    const ow=await E('document.documentElement.scrollWidth-innerWidth');assert.ok(ow<=1,`${label}: overflow ${ow}`);assert.deepEqual(errors,[],`${label}: page errors`);await context.close();console.log('✓',label)}
-  console.log('PASS v1.7.15: search at the top right of every screen (dishes, pantry, shopping, menu, receipts, guests, features; no statistics switches; offline) and the “Tính năng” tab in the guide');
+  // iPhone / iPad: Apple does not let a page install itself — a three-step picture guide (our drawings)
+  {const context=await browser.newContext({viewport:{width:390,height:844},userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',locale:'vi-VN',serviceWorkers:'block',timezoneId:'Australia/Sydney'});
+   await context.addInitScript(()=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-local-locked','yes')});const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+   await page.route(origin+'/**',route0);await page.goto(origin+'/#today',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>document.querySelector('#main h1'),null,{timeout:20000});
+   await page.evaluate('state.preferences.onboardingComplete=true;closeModal();openInstall()');const steps=page.locator('#modal-root .install-step');await steps.first().waitFor();
+   assert.equal(await steps.count(),3,'iPhone: three steps');assert.ok(await steps.evaluateAll((l:any[])=>l.every(x=>!!x.querySelector('.install-art svg'))),'iPhone: each step has its drawing');assert.match(await page.locator('#modal-root .install-steps').innerText(),/Chia sẻ[\s\S]*Thêm vào MH chính[\s\S]*Thêm/);
+   assert.ok(await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'iPhone guide fits');await page.screenshot({path:`${out}/install-guide-iphone-vi-390x844.png`});assert.deepEqual(errors,[]);await context.close();console.log('✓ iPhone install guide')}
+  // opened from the home screen: no install entry, no reminder
+  {const context=await browser.newContext({viewport:{width:375,height:812},locale:'vi-VN',serviceWorkers:'block',timezoneId:'Australia/Sydney'});
+   await context.addInitScript(()=>{if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-local-locked','yes')}const mm=window.matchMedia.bind(window);(window as any).matchMedia=(q:string)=>q.includes('standalone')?{matches:true,media:q,addEventListener(){},removeEventListener(){},addListener(){},removeListener(){}}:mm(q)});
+   const page=await context.newPage();await page.route(origin+'/**',route0);await page.goto(origin+'/#today',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>document.querySelector('#main h1'),null,{timeout:20000});
+   await page.evaluate('state.preferences.onboardingComplete=true;closeModal();render()');assert.equal(await page.locator('#main .install-nudge').count(),0,'standalone: no reminder');assert.equal(await page.evaluate('installState().installed'),true);await context.close();console.log('✓ installed (standalone): nothing offered')}
+  // the manifest gives the home-screen icon its shortcuts
+  {const m=JSON.parse(readFileSync('dist/manifest.webmanifest','utf8'));assert.deepEqual(m.shortcuts.map((x:any)=>x.url),['/#shopping','/#planner','/#expenses'],'home-screen shortcuts');console.log('✓ manifest shortcuts')}
+  // Old devices (owner: “Làm app cho máy cũ hoạt động luôn được chứ”; iPad Air 1 / Safari 12 cannot be run here): the ES2017 copy parses
+  // as ES2018 at most with no look-behind literal, and runs in Chromium with the newer pieces removed (no Object.hasOwn, .at, structuredClone,
+  // Promise.allSettled, replaceChildren, PointerEvent; look-behind patterns throw) — the check at the top of index.html picks it
+  {const acorn=require('acorn');const fs=require('node:fs');const p=JSON.parse(fs.readFileSync('dist/legacy/startup-scripts.json','utf8'));const files:[string,string][]=[...p.scripts.map((x:any)=>[x.name,x.code]),...['bootstrap.js','offline-access.js','polyfills.js'].map(f=>[f,fs.readFileSync('dist/legacy/'+f,'utf8')] as [string,string])];
+   for(const [n,code] of files){acorn.parse(code,{ecmaVersion:2018,sourceType:'script',allowReturnOutsideFunction:true});for(const t of acorn.tokenizer(code,{ecmaVersion:2018}))if(t.type.label==='regexp')assert.ok(!/\(\?<[=!]/.test(t.value.pattern),n+': no look-behind literal')}
+   assert.equal(p.hash,JSON.parse(fs.readFileSync('dist/startup-scripts.json','utf8')).hash,'same pack');console.log(`✓ old devices: ${files.length} files are ES2018 at most`);
+   const context=await browser.newContext({viewport:{width:1024,height:768},locale:'vi-VN',serviceWorkers:'block',reducedMotion:'reduce',colorScheme:'light',timezoneId:'Australia/Sydney'});
+   await context.addInitScript(()=>{if(!sessionStorage.getItem('qa-init')){sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-local-locked','yes')}const w:any=window;delete w.Object.hasOwn;delete w.Array.prototype.at;delete w.String.prototype.at;delete w.structuredClone;delete w.PointerEvent;delete w.Promise.allSettled;delete w.Element.prototype.replaceChildren;
+    const N=RegExp;const R:any=function(p:any,f?:any){if(typeof p==='string'&&p.indexOf('(?<')>=0)throw new SyntaxError('look-behind');return new N(p,f)};R.prototype=N.prototype;w.RegExp=R});
+   const page=await context.newPage(),errors:string[]=[],got:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',(r:any)=>got.push(new URL(r.url()).pathname));await page.route(origin+'/**',route0);
+   await page.goto(origin+'/#today',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>document.querySelector('#main h1'),null,{timeout:30000});
+   assert.ok(await page.evaluate('window.BEP_LEGACY===true&&document.documentElement.classList.contains("legacy")'),'old device: the ES2017 copy is used');assert.ok(got.includes('/legacy/startup-scripts.json')&&!got.includes('/startup-scripts.json'),'old device: only the legacy pack is loaded');
+   await page.evaluate(`(()=>{state.preferences.onboardingComplete=true;state.members=[['m-phu','Ba Phú',1],['m-mi','Mẹ Mi',1]].map(([id,name,weight])=>({id,name,weight,emoji:''}));familyGenerate(state,weekStart,{sourceMode:'library'});save();closeModal();render()})()`);
+   for(const v of ['today','planner','shopping','pantry','recipes','expenses']){await page.evaluate(`location.hash='${v}'`);await page.waitForTimeout(250);assert.ok(await page.evaluate(`document.querySelector('#main h1')&&document.querySelector('#main').innerText.length>200`),`old device: ${v} shows`)}
+   await page.locator('#app-search').click();await page.fill('#app-search-input','canh');await page.waitForTimeout(250);assert.ok(await page.evaluate(`document.querySelectorAll('#search-results .search-hit-row').length>0`),'old device: search works');await page.evaluate('closeModal()');
+   await page.evaluate('newReceipt()');await page.locator('#modal-root .legacy-note').waitFor();assert.equal(await page.locator('#modal-root [data-feature="receipt-camera"]').count(),0,'old device: no photo reading, a short note instead');
+   await page.waitForTimeout(300);await page.screenshot({path:`${out}/old-device-ipad-1024x768.png`});assert.deepEqual(errors,[],'old device: page errors');await context.close();console.log('✓ old devices: app runs with the newer pieces removed')}
+  console.log('PASS v1.7.15: search at the top right of every screen (dishes, pantry, shopping, menu, receipts, guests, features; no statistics switches; offline) and the “Tính năng” tab in the guide; “Cài app” (prompt, iPhone guide, reminder, settings, sidebar, search, hidden once installed, shortcuts); old devices (ES2017 copy, polyfills)');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

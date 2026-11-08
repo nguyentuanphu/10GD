@@ -1,4 +1,4 @@
-# v1.7.15 — search at the top right of every screen, and a “Tính năng” tab in the guide
+# v1.7.15 — search, a “Tính năng” tab, “Cài app” (add to home screen), and old devices
 
 **Owner, 8 Nov 2026 (Sydney time):** *“Làm một cái magnify glass trên góc phải của mỗi trang làm tìm kiếm những thứ mà người ta cần, theo bạn sẽ tìm kiếm được gì? Với cả trong how to use thì cần có 1 tab để cho người ta biết mình có features gì và nó là như thế nào.”*
 
@@ -31,6 +31,41 @@
 - The features: Hôm nay, Thực đơn tuần, Đi chợ, Tủ đồ, Món ăn, Hoá đơn, Chi tiêu, Thống kê & sở thích, So Giá, Có khách, Mời khách qua link, Lịch tháng, Nhắn khẩn, Giọng nói, Nhắc nhở, Thành viên & khẩu phần, Kết nối gia đình, Tiền tệ & giá, Giao diện, Sao lưu, Dùng khi mất mạng, Hướng dẫn, Điều khoản & quyền riêng tư.
 - The guide keeps one height, so switching tabs never moves the tabs (rule 24).
 
+## 3. “Cài app” — add to home screen (same approach as `nguyentuanphu/tpn`)
+- **Asked:** *“Thêm option add to homescreen function, check my repo/tpn để làm theo.”* Pop-up: as recommended, with a small reminder.
+- **Same approach as tpn's `js/install.ts`:**
+  - **Android / Chrome / Edge:** one tap opens the browser's own install prompt.
+  - **iPhone / iPad:** Apple does not let a page install itself, so a three-step picture guide: *Chia sẻ → Thêm vào MH chính → Thêm*. The pictures are new drawings in our kit (share box, plus square, menu dots, phone with +).
+  - **Other computers:** a two-step guide.
+- **Where:**
+  - a one-line reminder on Today with **Cài app** (drawn) and **Để sau** (hidden for 14 days);
+  - a row in the More sheet and a link in the sidebar;
+  - *Tài khoản & cài đặt*;
+  - the search (*“cài app”*, *“add to home screen”*).
+- **Once installed:** opened from the home screen, or after the browser's “installed” event, every entry and the reminder go away.
+- **Shortcuts:** long-pressing the home-screen icon offers **Đi chợ · Thực đơn · Hoá đơn** (manifest shortcuts).
+- **iPhone note:** the guide says that notifications on iPhone need the app opened from the home screen.
+- **Not done:** Studio does not count installs. That would add a feature to the usage list, which the privacy page names one by one.
+
+## 4. Old devices (iPad Air 1 / Safari 12 and other browsers without ES2022)
+- **Asked:** *“Làm app cho máy cũ hoạt động luôn được chứ.”* Pop-up: in v1.7.15; missing parts hidden with a short note.
+- **Why it failed:** the app is ES2022 and uses `Object.hasOwn` (23 files), `.at()`, `structuredClone`, regex look-behind and more. Safari 12 showed a blank page.
+- **The build now also writes `dist/legacy/`:**
+  - the same startup pack (same hash and order) translated to ES2017;
+  - the loader, which reads `/legacy/startup-scripts.json`;
+  - `polyfills.js` (plain ES5).
+- **Choosing the copy:** a tiny ES5 check at the top of `index.html` loads the legacy copy only when the browser lacks ES2022 syntax, `Object.hasOwn`, `.at()` or `structuredClone`. Newer browsers load exactly what they loaded before.
+- **What the polyfills fill in:**
+  - `Object.hasOwn`, `.at()`, `flat` / `flatMap`, `replaceAll`, `matchAll`, `structuredClone`, `Promise.allSettled`, `crypto.randomUUID`, `replaceChildren`, `toggleAttribute`;
+  - `matchMedia(...).addEventListener`;
+  - pointer events from touch / mouse (for the drag handles);
+  - regex look-behind: dropped on browsers that lack it. These patterns only mark word edges, so matches get slightly looser.
+- **Emoji detection:** `\p{Extended_Pictographic}` is now built with a fallback range, so an old browser does not stop on it.
+- **Hidden with a short note:** reading receipt photos (*“Máy này chưa đọc được ảnh hoá đơn. Bạn dán hoặc gõ các dòng hàng ở dưới.”*).
+- **Not available on such devices:** push notifications (iOS 16.4+), the on-device voice pack, and offline use (the service worker is ES2022). The app reports these as not supported, as before.
+- **Layout:** spacing fallbacks where flex `gap` is missing (chips, toolbars, the top bar, sheet footers). Some newer layouts (the receipt table, `:has()` rules) look plainer.
+- **Top bar:** the network label is hidden under 440 px (the icon and its spoken label stay), so the magnifier fits at 390 px. The magnifier sits on a light chip so the drawing stays clear on the dark theme.
+
 ## Tests
 - **New suite `test:v1715:browser`** (in `test:all`), at 375×812, 320×740, 820×1100 (VI) and 1280×800 (EN). It checks:
   - **The magnifier:** drawn, at the top right, ≥ 44 px, labelled, on Today, Menu, Shopping, Pantry and Recipes.
@@ -44,6 +79,15 @@
     - works offline.
   - **Guide tabs:** two tabs; tapping does not move the tab; ≥ 20 features, each with a drawing, a name, what it does and *Mở*; no statistics switch listed; *Mở* opens the screen.
   - No overflow, no page errors.
+- **Also in `test:v1715:browser`:**
+  - **Cài app:** reminder (drawn, ≥ 44 px), *Để sau* hides it; Account & settings; sidebar; the browser prompt (one tap) then nothing left to install; the search finds it.
+  - **iPhone:** a three-step guide with drawings that fits at 390 px.
+  - **Already installed:** opened from the home screen, nothing is offered.
+  - **Manifest:** the shortcuts.
+  - **Old devices:**
+    - all 63 legacy files parse as ES2018 at most, with no look-behind literal, and share the pack hash;
+    - in Chromium at 1024×768 with `Object.hasOwn`, `.at`, `structuredClone`, `Promise.allSettled`, `replaceChildren` and `PointerEvent` removed and look-behind throwing, the legacy copy loads (and only it);
+    - Today, Menu, Shopping, Pantry, Recipes and Spending show; search works; the receipt sheet shows the note; no page errors.
 - **Also run:**
   - `default-language` (rule 27, name at 320);
   - `browser` (account menu, top bar);
@@ -51,8 +95,9 @@
   - `artwork`, `emoji-art`, `ladybug`, `library-guide`, `scout-pair`, `authenticated-startup`.
 
 ## Evidence
-- `docs/reviews/v1.7.15/{search-results,guide-features}-{vi,en}-{size}.png`. Chromium viewport simulation, not physical devices.
+- `docs/reviews/v1.7.15/{search-results,guide-features}-{vi,en}-{size}.png`, `install-guide-iphone-vi-390x844.png`, `old-device-ipad-1024x768.png`. Chromium viewport simulation (with an iPhone user agent and with newer features removed), not physical devices.
 
 ## Limits
+- **Old devices:** no real iPad Air 1 or Safari 12 was available here. The legacy copy was checked by parsing it, and by running it in Chromium with the newer pieces removed. Henry's iPad Air should be tried after deploy.
 - The search covers what is on this device. A family member's changes appear after sync.
 - The menu is searched from 2 weeks back to 4 weeks ahead.
