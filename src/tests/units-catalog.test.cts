@@ -16,7 +16,7 @@ check(row.needed===needs,'sale unit does not change recipe requirements');
 setShoppingBought(w,start,end,row,true);check(shopping(s,w,start,end).find(r=>r.id==='chicken').bought,'unweighed pieces can be marked purchased');
 check(storeShoppingPurchases(s,w,start,end,'fridge')===1,'unweighed pieces can be stored');
 const lot=s.pantry.find(p=>p.purchase?.note==='đùi gà');/* v1.7.14 owner decision (8 Nov 2026, pop-up “Tự tính là đủ (ước tính)”; was: no mass at all, which kept the item on the list after putting it away): the count is kept and the lot covers what the list asked for, marked as an estimate */check(lot.purchase.amount===2&&lot.qtyEstimated===true&&Math.abs(lot.qty-row.missing)<1e-9,'pantry keeps the count and marks the mass as an estimate covering what the list asked for');
-const before=stock(s,'chicken');check(before===400,'unmeasured pantry pieces do not subtract gram demand');
+const before=stock(s,'chicken');/* v1.7.14 owner decision: the pieces count as the estimate made when they were put away */check(Math.abs(before-(400+lot.qty))<1e-9&&lot.qty>0,'unweighed pieces count as the estimate made when put away');
 const cooked=createMeal(s,'r2');consumeMeal(s,cooked);check(s.pantry.some(p=>p.id===lot.id&&p.purchase.amount===2),'cooking another meal does not discard unmeasured pantry pieces');undoCook(s,cooked);
 s.purchaseUnitPreferences={spinach:{unit:'bó',amount:1,basePerUnit:250,pricePerUnit:3,note:'bó nhỏ'}};
 row=shopping(s,w,start,end).find(r=>r.id==='spinach');check(row.purchase.unit==='bó'&&row.purchase.amount===Math.ceil(row.suggested/250),'remembered known bunch size rounds automatic purchase to whole bunches');
