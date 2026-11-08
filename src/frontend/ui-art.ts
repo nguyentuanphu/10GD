@@ -40,6 +40,14 @@ const UI_ART:Record<string,string>={
  'guide':`${uaCirc(24,24,17,'#fffefa')}<path d="M28 20l-6 3-2 8 6-3z" fill="#e8a25a" ${UA_W}/><path d="M24 7v4M24 37v4M7 24h4M37 24h4" ${UA_W} fill="none"/>`,
  'weather':`${uaCirc(18,18,8,'#f6c34a')}<path d="M16 38h18a6 6 0 0 0 0-12 9 9 0 0 0-17 2 5 5 0 0 0-1 10z" fill="#fffefa" ${UA_W}/>`,
  'urgent':`<path d="M24 7L4 40h40z" fill="#f3a3a0" ${UA_W}/><path d="M24 18v11" ${UA_W} stroke-width="4" fill="none"/>${uaCirc(24,34,2,'#3b2a4f')}`,
+ // v1.7.15 kitchen extras: a link with an arrow into a page (import a recipe), a barcode
+ 'link-in':`<rect x="20" y="16" width="22" height="26" rx="4" fill="#fffefa" ${UA_W}/><path d="M25 25h12M25 31h12M25 37h8" ${UA_W} fill="none" stroke-width="2.2"/><path d="M8 10a5 5 0 0 1 7 0l3 3a5 5 0 0 1 0 7" ${UA_W} fill="none"/><path d="M14 16l-4-4" ${UA_W} fill="none"/><path d="M6 22h11v-11" ${UA_W} fill="none" stroke-width="3"/>`,
+ 'barcode':`<rect x="6" y="10" width="36" height="28" rx="5" fill="#fffefa" ${UA_W}/><path d="M12 16v16M16 16v16M19 16v16M24 16v16M27 16v16M31 16v16M36 16v16" stroke="#3b2a4f" stroke-width="2.4" stroke-linecap="round"/><path d="M4 24h40" stroke="#e05d5d" stroke-width="2" stroke-linecap="round"/>`,
+ // v1.7.15 install guide: iOS share (box + up arrow), add (plus in a rounded square), menu (three dots), home screen + app
+ 'share-up':`<path d="M14 20h-2a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h24a3 3 0 0 0 3-3V23a3 3 0 0 0-3-3h-2" fill="#d8ecf7" ${UA_W}/><path d="M24 30V7M16 15l8-8 8 8" ${UA_W} stroke-width="3.2" fill="none"/>`,
+ 'plus-square':`<rect x="8" y="8" width="32" height="32" rx="9" fill="#e7eadf" ${UA_W}/><path d="M24 16v16M16 24h16" ${UA_W} stroke-width="3.4" fill="none"/>`,
+ 'dots-v':`${uaCirc(24,24,18,'#e7eadf')}${uaCirc(24,14,3,'#3b2a4f')}${uaCirc(24,24,3,'#3b2a4f')}${uaCirc(24,34,3,'#3b2a4f')}`,
+ 'home-add':`<rect x="12" y="4" width="24" height="40" rx="5" fill="#fffefa" ${UA_W}/><rect x="17" y="12" width="6" height="6" rx="1.6" fill="#8fd0b0" ${UA_W} stroke-width="1.8"/><rect x="25" y="12" width="6" height="6" rx="1.6" fill="#f6c34a" ${UA_W} stroke-width="1.8"/><rect x="17" y="21" width="6" height="6" rx="1.6" fill="#9cc9e8" ${UA_W} stroke-width="1.8"/>${uaCirc(34,34,8,'#2f7a5d')}<path d="M34 30v8M30 34h8" stroke="#fffefa" stroke-width="2.6" stroke-linecap="round"/>`,
  'download':`${uaCirc(24,24,19,'#d8ecf7')}<path d="M24 8v20M15 20l9 9 9-9" ${UA_W} stroke-width="3.4" fill="none"/><path d="M10 32v6h28v-6" ${UA_W} fill="none"/>`,
  'upload':`${uaCirc(24,24,19,'#d8ecf7')}<path d="M24 30V10M15 18l9-9 9 9" ${UA_W} stroke-width="3.4" fill="none"/><path d="M10 32v6h28v-6" ${UA_W} fill="none"/>`,
  'money':`<rect x="7" y="13" width="34" height="22" rx="4" fill="#8fd0b0" ${UA_W}/>${uaCirc(24,24,6,'#f6c34a')}`,
@@ -146,7 +154,7 @@ const BTN_BY_DATA:Record<string,Record<string,string>>={
  planning:{stores:'store'},pushAction:{'request-item':'request',subscribe:'bell',test:'bell',settings:'bell',unsubscribe:'skip'},
  product:{import:'upload',new:'add',receipt:'receipt'},offlineDownload:{'*':'download'},offlineFix:{'*':'download'},
  rci:{add:'add',up:'arrow-up',down:'arrow-down',paste:'paste',remove:'trash'},vlCheck:{'*':'mic'},planMeal:{'*':'meal-plan'},mealMore:{'*':'more'},
- rcrop:{read:'receipt'},mr:{'open-tastes':'taste',who:'whole-family',up:'thumb-up',down:'thumb-down',like:'thumb-up',dislike:'thumb-down'},qrDir:{up:'round-up',down:'round-down'},flow:{'shop-start':'cart','shop-done':'save-check','shop-exit':'arrow-left','plan-start':'plan-week','plan-next':'arrow-right','plan-preview':'meal-plan','leftover-save':'save-check'},guestStep:{'1':'add','-1':'minus'},
+ rcrop:{read:'receipt'},install:{open:'home-add'},kx:{'import-go':'link-in','scan-open':'barcode','scan-save':'save-check'},mr:{'open-tastes':'taste',who:'whole-family',up:'thumb-up',down:'thumb-down',like:'thumb-up',dislike:'thumb-down'},qrDir:{up:'round-up',down:'round-down'},flow:{'shop-start':'cart','shop-done':'save-check','shop-exit':'arrow-left','plan-start':'plan-week','plan-next':'arrow-right','plan-preview':'meal-plan','leftover-save':'save-check'},guestStep:{'1':'add','-1':'minus'},
  scout:{refresh:'repeat','online-find':'search',toggle:'money'},
 };
 const BTN_CHIP:Record<string,string>={all:'chip-all',main:'dish-main',side:'dish-veg',veg:'dish-veg',soup:'dish-soup',noodle:'dish-noodle',dessert:'dish-dessert',snack:'meal-snack',lunchbox:'dish-lunchbox',western:'tag-western',healthy:'tag-healthy',vegetarian:'tag-vegetarian',vegan:'tag-vegan',dressing:'tag-dressing',fridge:'fridge',freezer:'freezer',dry:'shelf',breakfast:'meal-breakfast',lunch:'meal-lunch',dinner:'meal-dinner',snackAm:'meal-snack-am'};

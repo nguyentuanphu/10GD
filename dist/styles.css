@@ -2434,3 +2434,51 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 .privacy-mini>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
 .privacy-mini .usage-toggle,.privacy-mini .vl-check{font-size:1em}
 .privacy-mini-section{background:transparent;border:0;box-shadow:none;padding:0 4px;margin:4px 0}
+/* v1.7.15: search (magnifier, top right) and the “Tính năng” tab in the guide */
+.app-search{min-width:44px;min-height:44px;display:inline-grid;place-items:center}
+.app-search .btn-art{width:26px;height:26px}
+.search-box input{width:100%;min-height:48px;font-size:17px;border-radius:999px;padding:0 18px;border:1px solid var(--line);background:var(--white);color:var(--text)}
+.search-results{margin-top:10px;display:grid;gap:12px}
+.search-group h3{font-size:.8em;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 4px}
+.search-group ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.search-hit-row{width:100%;min-height:48px;display:grid;gap:2px;text-align:left;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white);color:var(--text);font:inherit;cursor:pointer}
+.search-hit-row small{color:var(--muted);font-size:.85em;overflow-wrap:anywhere}
+.search-hit-row b{overflow-wrap:anywhere}
+.search-hit{outline:3px solid var(--orange);outline-offset:3px;border-radius:14px}
+.guide-tabs{display:flex;gap:8px;margin:0 0 10px}
+.guide-tabs .chip{min-height:44px}
+.feature-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.feature-item{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:14px;background:var(--white)}
+.feature-art svg{width:40px;height:40px;display:block}
+.feature-copy{display:grid;gap:2px;min-width:0}.feature-copy small{color:var(--muted);overflow-wrap:anywhere}
+.feature-open{min-height:44px}
+@media (prefers-reduced-motion:no-preference){.search-hit{transition:outline-color .3s}}
+.modal.guide-has-tabs{height:min(88vh,760px);max-height:min(88vh,760px)}
+.modal.guide-has-tabs .modal-content{flex:1 1 auto;overflow:auto}
+.guide-tour[hidden],.guide-features[hidden]{display:none!important}
+@media (max-width:360px){.topbar{padding-left:8px;padding-right:8px;gap:4px}.topbar .top-actions{gap:1px}}
+/* v1.7.15: Cài app — guide sheet, Today reminder, sidebar link */
+.install-steps{list-style:none;margin:8px 0;padding:0;display:grid;gap:10px}
+.install-step{display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--white)}
+.install-step b{display:block}.install-step small{display:block;color:var(--muted);overflow-wrap:anywhere}
+.install-pic,.install-art svg{width:48px;height:48px;display:block}
+.install-nudge{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:center}
+.install-nudge .install-pic{width:40px;height:40px}
+.install-nudge p{margin:0}
+.install-nudge .nudge-actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.install-nudge .nudge-actions .btn{min-height:44px}
+.install-side-link{display:flex;align-items:center;gap:8px;min-height:44px}
+/* v1.7.15: old browsers (html.legacy, set by legacy/polyfills.js) — spacing where flex “gap” is not supported */
+.legacy .chips>*,.legacy .toolbar>*,.legacy .day-actions>*,.legacy .top-actions>*,.legacy .nudge-actions>*,.legacy .guide-tabs>*,.legacy .modal footer>*,.legacy .receipt-entry-tools>*{margin:0 6px 6px 0}
+.legacy .legacy-note{margin:8px 0;padding:8px 12px;border-radius:10px;background:var(--mint);font-size:.9em}
+@media(max-width:440px){.network-status>span{display:none}.network-status{min-width:26px}}/* v1.7.15: the magnifier needs the room; the state stays in the icon and its label */
+.topbar .app-search{border:1px solid #dce3d7;background:#fffefa;border-radius:9px;padding:0}/* v1.7.15: the drawing stays clear on the dark theme too */
+/* v1.7.15 kitchen extras: import from a link, barcode scanner, timers in cooking steps */
+.kx-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.kx-row .btn{min-height:44px}
+.scan-box{position:relative;border-radius:14px;overflow:hidden;background:#111;aspect-ratio:4/3;max-height:46vh;margin:6px 0}
+.scan-box video{width:100%;height:100%;object-fit:cover;display:block}
+.scan-aim{position:absolute;left:12%;right:12%;top:38%;bottom:38%;border:3px solid #3ca37c;border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.25)}
+.scan-alt{display:grid;gap:8px}
+.scan-alt .btn,.scan-alt input{min-height:44px}
+.step-timer{min-height:44px;margin:0 2px;font-weight:800}

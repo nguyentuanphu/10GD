@@ -10,7 +10,7 @@ import {chromium} from 'playwright';
 const origin='https://kitchen.test',out='docs/reviews/v1.7.13/invite';mkdirSync(out,{recursive:true});
 const mime:any={'.js':'application/javascript','.css':'text/css','.html':'text/html','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.webmanifest':'application/manifest+json'};
 const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tablet:{width:820,height:1100},desktop:{width:1280,height:800}};
-const TOKEN='Abc_-123456789012345678901234567';
+const TOKEN='k7m4p9';/* v1.7.15: 6-character codes */
 const serve=async(page:any,handlers:Record<string,(r:any)=>any>)=>page.route(origin+'/**',async(r:any)=>{const u=new URL(r.request().url());for(const [k,h] of Object.entries(handlers))if((u.pathname+u.search).startsWith(k))return h(r);if(u.pathname.startsWith('/.netlify/'))return r.fulfill({status:401,json:{error:'no'}});if(u.pathname==='/startup-scripts.json')return r.fulfill({json:JSON.parse(readFileSync('dist/startup-scripts.json','utf8'))});const f=resolve('dist',u.pathname==='/'?'index.html':u.pathname==='/m'?'rsvp.html'/* netlify.toml: /m → /rsvp.html (short invitation link) */:u.pathname.slice(1));try{await r.fulfill({contentType:mime[extname(f)]||'application/octet-stream',body:readFileSync(f)})}catch{await r.fulfill({status:404,body:''})}});
 (async()=>{
  const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});

@@ -4,19 +4,28 @@
 // re-sending; deadline and link expiry chosen by the host).
 //
 // One invitation = one guest group for one or more meals of one family. It lives in a store of its own, keyed by an unguessable
-// token (24 random bytes, base64url) that is only ever in the link the host shares. The guest page can read the invitation's own
+// token (v1.7.15: 6 characters, see newToken) that is only ever in the link the host shares. The guest page can read the invitation's own
 // public part and answer; nothing else of the family is reachable through it. The family keeps an index of its invitations.
 // Records are deleted 30 days after the link expires.
-import {randomBytes} from 'node:crypto';
+import {randomInt,createHash} from 'node:crypto';
 export const RSVP_STATUSES=['yes','maybe','no','busy'] as const;
 export const RSVP_MEALS=['breakfast','snackAm','lunch','snack','dinner'];
 export const RSVP_KEEP_MS=30*86400000,RSVP_WRITES_PER_DAY=20,RSVP_INDEX_MAX=100;
-const ISO_DAY=/^\d{4}-\d{2}-\d{2}$/,TOKEN=/^[A-Za-z0-9_-]{22}(?:[A-Za-z0-9_-]{10})?$/,ID=/^inv-[a-z0-9]{6,40}$/;
+const ISO_DAY=/^\d{4}-\d{2}-\d{2}$/,TOKEN=/^(?:[a-hjkmnp-z2-9]{6}|[A-Za-z0-9_-]{22}(?:[A-Za-z0-9_-]{10})?)$/,ID=/^inv-[a-z0-9]{6,40}$/;
 const clean=(s:any,max:number)=>String(s??'').replace(/[\u0000-\u001f\u007f<>]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
 const count=(v:any)=>Number.isInteger(v)&&v>=0&&v<=30;
 // v1.7.14 (owner: “link invite dài quá”): 16 random bytes (128 bits, 22 characters) — still unguessable; links made before (24 bytes) keep working
-export const newToken=()=>randomBytes(16).toString('base64url');
+// v1.7.15 (owner, 8 Nov 2026: “Mã invite cho khách vẫn còn dài quá”; pop-up: 6 characters): 6 lower-case letters and digits
+// without look-alikes (no 0 o 1 l i) — about 890 million codes. Because a short code can be guessed, the guest function refuses a
+// network address after a few wrong codes in an hour, and all short codes for the rest of the hour after many wrong codes overall.
+// Longer links made before (22 or 32 characters) keep working.
+export const SHORT_ALPHABET='abcdefghjkmnpqrstuvwxyz23456789',SHORT_LEN=6,GUESS_PER_IP_HOUR=10,GUESS_ALL_HOUR=300;
+export const newToken=()=>{let t='';for(let i=0;i<SHORT_LEN;i++)t+=SHORT_ALPHABET[randomInt(SHORT_ALPHABET.length)];return t};
+export const normalToken=(t:any)=>typeof t!=='string'?t:t.trim().length===SHORT_LEN?t.trim().toLowerCase():t.trim();
 export const validToken=(t:any)=>typeof t==='string'&&TOKEN.test(t);
+export const shortToken=(t:string)=>t.length===SHORT_LEN;
+// the network address is kept only scrambled, as a counter for the current hour
+export const guessKey=(ip:string)=>'guess/'+createHash('sha256').update('bep-rsvp-guess:'+ip).digest('base64url').slice(0,22);
 const validTime=(t:any)=>typeof t==='string'&&Number.isFinite(Date.parse(t));
 
 // what the host app sends to create an invitation

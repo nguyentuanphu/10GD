@@ -4,16 +4,24 @@
 import {getStore} from '@netlify/blobs';
 import {scopedStore} from '../lib/accounts.mjs';
 import {sendPushBatch} from '../lib/push.mjs';
-import {validToken,publicView,replyFromRequest,forgettable,replyMessage} from '../lib/rsvp.mjs';
+import {validToken,normalToken,shortToken,guessKey,GUESS_PER_IP_HOUR,GUESS_ALL_HOUR,publicView,replyFromRequest,forgettable,replyMessage} from '../lib/rsvp.mjs';
 const json=(data:any,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Robots-Tag':'noindex','Referrer-Policy':'no-referrer'}});
 export function createRsvpHandler({getStoreFn=getStore as any,pushSend=null as any,clock=()=>Date.now()}={}){
  const rsvpStore=()=>getStoreFn({name:'bep-rsvp',consistency:'strong',region:'ap-southeast-2'}),familyStore=()=>getStoreFn({name:'bep-family-data',consistency:'strong',region:'ap-southeast-2'});
  return async(request:Request,runtime:any=undefined)=>{
-  const url=new URL(request.url),token=url.searchParams.get('t');
+  const url=new URL(request.url),token=normalToken(url.searchParams.get('t'));
   if(!validToken(token))return json({error:'Invitation not found.'},404);
   if(!['GET','HEAD','POST'].includes(request.method))return json({error:'Unsupported.'},405);
-  try{const rs=rsvpStore(),key='invite/'+token,got=await rs.getWithMetadata(key,{type:'json'}),rec=got?.data,now=clock();
-   if(!rec||forgettable(rec,now)){if(rec)await rs.delete(key).catch(()=>{});return json({error:'Invitation not found.'},404)}
+  try{const rs=rsvpStore(),key='invite/'+token,now=clock(),hour=Math.floor(now/3600000);
+   // short codes can be guessed: too many wrong codes from one network address (or overall) in an hour → wait
+   const guarded=shortToken(token),ipKey=guarded?guessKey(String(runtime?.ip||request.headers.get('x-nf-client-connection-ip')||'unknown')):'';
+   const counts=guarded?await Promise.all([rs.get(ipKey,{type:'json'}),rs.get('guess/all',{type:'json'})]).catch(()=>[null,null]):[null,null];
+   const n=(c:any)=>c&&c.hour===hour?c.n:0;
+   if(guarded&&(n(counts[0])>=GUESS_PER_IP_HOUR||n(counts[1])>=GUESS_ALL_HOUR))return json({error:'Too many wrong codes. Please try again in an hour.',reason:'too_many'},429);
+   const got=await rs.getWithMetadata(key,{type:'json'}),rec=got?.data;
+   if(!rec||forgettable(rec,now)){if(rec)await rs.delete(key).catch(()=>{});
+    if(guarded&&!rec)await Promise.all([rs.setJSON(ipKey,{hour,n:n(counts[0])+1}),rs.setJSON('guess/all',{hour,n:n(counts[1])+1})]).catch(()=>{});
+    return json({error:'Invitation not found.'},404)}
    if(request.method!=='POST')return json(publicView(rec,now));
    if(request.headers.get('origin')!==url.origin)return json({error:'Same-origin request required.'},403);
    const raw=await request.text();if(raw.length>2000)return json({error:'Too large.'},413);let body;try{body=JSON.parse(raw)}catch{return json({error:'Invalid JSON.'},400)}

@@ -5,7 +5,7 @@ const CACHE='bep-family-v22-lite';
 // v1.6 lite install: the app shell, styles, icons and the offline pack list only (~0.5 MB on the wire).
 // Artwork is cached when viewed (bounded, least-recently-used), this week's menu and family recipe cells are
 // pinned on request from the page, and larger packs are downloaded from Other settings → Downloads.
-const ASSETS=['./','./index.html','./bootstrap.js','./offline-access.js','./startup-scripts.json','./styles.css','./offline-packs.json','./family-logo.png','./icon.svg','./notification-icon.png','./notification-icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
+const ASSETS=['./','./index.html','./load-app.js','./bootstrap.js','./offline-access.js','./startup-scripts.json','./styles.css','./offline-packs.json','./family-logo.png','./icon.svg','./notification-icon.png','./notification-icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
 const ART_PINNED='bep-art-pinned-v1',ART_RUNTIME='bep-art-runtime-v1',ART_INDEX='/__bep-art-index';
 const PACK_ART='bep-pack-art-v1',PACK_SHEETS='bep-pack-sheets-v1',PACK_CATALOG='bep-pack-catalog-v1',PACK_OCR='bep-pack-ocr-v1';
 const ART_RUNTIME_MAX_ENTRIES=240,ART_RUNTIME_MAX_BYTES=16*1024*1024,ART_REVALIDATE_MS=86400000,PIN_LIMIT=600;

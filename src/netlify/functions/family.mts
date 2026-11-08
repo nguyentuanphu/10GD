@@ -8,9 +8,10 @@ import {pushDetailOf} from '../lib/urgent-report.mjs';
 import {droppedItems} from '../lib/sync-guard.mjs';
 import {notifyAvailabilityChange} from '../lib/availability-notify.mjs';
 import {inviteFromRequest,newToken,forgettable,RSVP_INDEX_MAX} from '../lib/rsvp.mjs';
+import {fetchPage,extractRecipe,lookupBarcode,sydneyDay,IMPORT_PER_DAY,BARCODE_PER_DAY} from '../lib/recipe-import.mjs';
 const json=(data,status=200,extra={})=>Response.json(data,{status,headers:{'Cache-Control':'no-store',...extra}});
 function validState(s){return s&&s.version===1&&Array.isArray(s.members)&&s.members.length>0&&s.members.length<=12&&Array.isArray(s.recipes)&&s.weeks&&typeof s.weeks==='object'&&Array.isArray(s.pantry)&&s.preferences&&(!s.receipts||Array.isArray(s.receipts))}
-export function createFamilyHandler({getStoreFn=getStore,pushSend=null,reminderThrottleMs=60000}={}){
+export function createFamilyHandler({getStoreFn=getStore,pushSend=null,reminderThrottleMs=60000,webFetch=null,webResolve=null}:{getStoreFn?:any,pushSend?:any,reminderThrottleMs?:number,webFetch?:any,webResolve?:any}={}){
 const sendOpt=pushSend?{send:pushSend}:{};
 // v1.7: a saved family state also runs reminders that are due right now (same dedupe keys as the 15-minute schedule),
 // in the background and at most once a minute per family per instance, so a reminder set for "now" is not held for the next tick.
@@ -36,7 +37,7 @@ return async(request,runtime=undefined)=>{
  if(accountContext&&!accountContext.household)return json({error:'Chọn hoặc tạo gia đình trước.'},409);
  if(accountContext?.member?.role==='viewer'&&!['GET','HEAD'].includes(request.method)&&!['alert-read','alert-archive','push-key','push-subscribe','push-unsubscribe','push-test'].includes(op))return json({error:'Tài khoản chỉ xem không được sửa dữ liệu.'},403);
  // A family paused from the owner console is read-only: reads keep working, writes get 423 (local data stays on the device).
- if(!['GET','HEAD'].includes(request.method)&&['state','photo','alert-send','push-send','invite-create','invite-cancel'].includes(op)&&await isFamilySuspended(getStoreFn,accountContext.household.id))return json({error:'Gia đình đang tạm dừng (chỉ xem).',errorEn:'This family is paused (read-only).',reason:'family_suspended'},423);
+ if(!['GET','HEAD'].includes(request.method)&&['state','photo','alert-send','push-send','invite-create','invite-cancel','recipe-import','barcode'].includes(op)&&await isFamilySuspended(getStoreFn,accountContext.household.id))return json({error:'Gia đình đang tạm dừng (chỉ xem).',errorEn:'This family is paused (read-only).',reason:'family_suspended'},423);
  try{const store=scopedStore(familyStore(),accountContext.household.id,accountContext.household.members);
  if(op==='alerts'&&request.method==='GET')return json({alerts:await listAnnouncements(store)});
  if(op==='alert-send'&&request.method==='POST'){
@@ -71,8 +72,20 @@ return async(request,runtime=undefined)=>{
   const made=inviteFromRequest(data);if(made.error)return json({error:made.error,reason:made.reason||'invalid'},400);const inv=made.invite,rs=rsvpStore();
   let index=(await store.get('rsvp/index',{type:'json'}))||[];const known=index.find((x:any)=>x.inviteId===inv.inviteId);
   if(known){const rec=await rs.get('invite/'+known.token,{type:'json'});if(rec&&rec.householdId===accountContext.household.id){await rs.setJSON('invite/'+known.token,{...rec,...inv,householdId:rec.householdId,response:rec.response||null,cancelled:false});known.expiresAt=inv.expiresAt;await store.setJSON('rsvp/index',index);return json({token:known.token,inviteId:inv.inviteId,existing:true})}index=index.filter((x:any)=>x.inviteId!==inv.inviteId)}
-  const token=newToken(),created=await rs.setJSON('invite/'+token,{v:1,...inv,householdId:accountContext.household.id,createdBy:accountContext.account.username,createdAt:new Date().toISOString(),response:null,writes:[]},{onlyIfNew:true});if(created&&created.modified===false)return json({error:'Try again.'},409);
+  // a short code may already be taken: try another one (onlyIfNew never overwrites another family's invitation)
+  let token='';for(let i=0;i<6&&!token;i++){const t=newToken(),created=await rs.setJSON('invite/'+t,{v:1,...inv,householdId:accountContext.household.id,createdBy:accountContext.account.username,createdAt:new Date().toISOString(),response:null,writes:[]},{onlyIfNew:true});if(!(created&&created.modified===false))token=t}if(!token)return json({error:'Try again.'},409);
   const now=Date.now();index=[...index.filter((x:any)=>!forgettable({expiresAt:x.expiresAt},now)),{inviteId:inv.inviteId,token,expiresAt:inv.expiresAt}].slice(-RSVP_INDEX_MAX);await store.setJSON('rsvp/index',index);return json({token,inviteId:inv.inviteId})}
+ // v1.7.15 recipe import and barcode lookup (lib/recipe-import): family accounts only (not view-only, not paused), counted per family per
+ // Sydney day; the page or the barcode is looked up once and nothing of it is stored.
+ const dayCount=async(kind:string,max:number)=>{const key='limits/'+kind+'/'+sydneyDay();const n=(+(await store.get(key,{type:'json'}).catch(()=>0))||0);if(n>=max)return false;await store.setJSON(key,n+1);return true};
+ if(op==='recipe-import'&&request.method==='POST'){const body=await request.json().catch(()=>null);if(typeof body?.url!=='string')return json({error:'Dán link trang công thức.',errorEn:'Paste a recipe page link.',reason:'bad_url'},400);
+  if(!await dayCount('recipe-import',IMPORT_PER_DAY))return json({error:'Đã nhập đủ 30 link hôm nay. Mai thử lại nhé.',errorEn:'30 links imported today. Try again tomorrow.',reason:'limit'},429);
+  const page:any=await fetchPage(body.url,{...(webFetch?{fetchFn:webFetch}:{}),...(webResolve?{resolve:webResolve}:{})});if(page.error)return json({error:page.error==='bad_url'?'Link này không mở được (chỉ trang web công khai).':'Chưa mở được trang này. Kiểm tra link rồi thử lại.',errorEn:page.error==='bad_url'?'This link cannot be opened (public web pages only).':'Could not open this page. Check the link and try again.',reason:page.error},422);
+  const recipe=extractRecipe(page.html);if(!recipe)return json({error:'Trang này không có phần công thức chuẩn để đọc. Bạn chép tay nguyên liệu vào Viết món nhé.',errorEn:'This page has no standard recipe data to read. Copy the ingredients into Write recipe instead.',reason:'no_recipe'},422);
+  return json({recipe:{...recipe,source:page.url}})}
+ if(op==='barcode'&&request.method==='GET'){const code=String(url.searchParams.get('code')||'');if(!/^\d{8,14}$/.test(code))return json({error:'Mã vạch không hợp lệ.',errorEn:'Not a valid barcode.',reason:'bad_code'},400);
+  if(!await dayCount('barcode',BARCODE_PER_DAY))return json({error:'Đã tra đủ mã hôm nay.',errorEn:'Daily barcode limit reached.',reason:'limit'},429);
+  const r:any=await lookupBarcode(code,webFetch?{fetchFn:webFetch}:{});if(r.error==='unreachable')return json({error:'Chưa tra được mã này. Thử lại sau.',errorEn:'Could not look this code up. Try again later.',reason:'unreachable'},502);return json(r)}
  if(op==='invites'&&request.method==='GET'){const rs=rsvpStore(),now=Date.now(),index=(await store.get('rsvp/index',{type:'json'}))||[];const recs=await Promise.all(index.map((x:any)=>rs.get('invite/'+x.token,{type:'json'}).catch(()=>null)));const keep:any[]=[],out:any[]=[];
   recs.forEach((rec:any,i:number)=>{const x=index[i];if(!rec||rec.householdId!==accountContext.household.id||forgettable(rec,now)){if(rec&&rec.householdId===accountContext.household.id)later(rs.delete('invite/'+x.token).catch(()=>{}));return}keep.push(x);out.push({inviteId:rec.inviteId,token:x.token,meals:rec.meals,guestName:rec.guestName,adults:rec.adults,kids:rec.kids,deadline:rec.deadline,expiresAt:rec.expiresAt,maybe:rec.maybe,cancelled:rec.cancelled===true,response:rec.response||null})});
   if(keep.length!==index.length)later(store.setJSON('rsvp/index',keep).catch(()=>{}));return json({invites:out})}

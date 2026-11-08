@@ -39,7 +39,7 @@ const GUEST_MAYBE={full:1,half:.5,none:0};
 function guestWeight(g){const st=g?.rsvp?.status;if(st==='no'||st==='busy')return 0;if(st==='maybe')return GUEST_MAYBE[g.maybe]??1;return 1}
 function guestServings(meal){return guestGroups(meal).reduce((n,g)=>n+((g.adults||0)+(g.kids||0)*GUEST_KID_PORTION)*guestWeight(g),0)}
 const guestInt=(v)=>Number.isInteger(v??0)&&(v??0)>=0&&(v??0)<=GUEST_MAX;
-const INVITE_ID=/^inv-[a-z0-9]{6,40}$/,INVITE_TOKEN=/^[A-Za-z0-9_-]{22}(?:[A-Za-z0-9_-]{10})?$/,isoTime=(t)=>typeof t==='string'&&t.length<=40&&Number.isFinite(Date.parse(t));
+const INVITE_ID=/^inv-[a-z0-9]{6,40}$/,INVITE_TOKEN=/^(?:[a-hjkmnp-z2-9]{6}|[A-Za-z0-9_-]{22}(?:[A-Za-z0-9_-]{10})?)$/,isoTime=(t)=>typeof t==='string'&&t.length<=40&&Number.isFinite(Date.parse(t));
 function validInvite(v){return v===undefined||!!v&&typeof v==='object'&&INVITE_ID.test(v.id||'')&&INVITE_TOKEN.test(v.token||'')&&isoTime(v.deadline)&&isoTime(v.expiresAt)&&(v.host===undefined||typeof v.host==='string'&&v.host.length<=60)}
 function validRsvp(r){return r===undefined||!!r&&typeof r==='object'&&['yes','maybe','no','busy'].includes(r.status)&&(r.note===undefined||typeof r.note==='string'&&r.note.length<=200)&&(r.at===undefined||isoTime(r.at))}
 function validGuestGroup(g){return !!g&&typeof g==='object'&&!Array.isArray(g)&&guestInt(g.adults)&&guestInt(g.kids)&&(g.name===undefined||typeof g.name==='string'&&g.name.length<=GUEST_NAME_MAX)&&validInvite(g.invite)&&validRsvp(g.rsvp)&&(g.maybe===undefined||['full','half','none'].includes(g.maybe))}
