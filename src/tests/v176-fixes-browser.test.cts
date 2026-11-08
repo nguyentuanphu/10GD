@@ -160,7 +160,8 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  // 2. More tools: every row in the chosen language, on one line (owner: “Chi tiêu” in English mode)
  if(size==='narrow'||size==='mobile'){await page.locator('[data-ui-more]').first().click();const more=page.locator('.more-tools');await more.waitFor();
   const rows=await more.locator('.more-label').allInnerTexts();
-  if(lang==='en'){assert.ok(rows.includes('Spending'),`${label}: “Chi tiêu” is translated (a member is called Chi): ${rows}`);for(const r of rows)assert.ok(!/[ăâđêôơưàáạảãấầẩẫậắằẳẵặèéẻẽẹếềểễệìíỉĩịòóỏõọốồổỗộớờởỡợùúủũụứừửữựỳýỷỹỵ]/i.test(r),`${label}: English row “${r}”`)}
+  /* v1.7.17: every section is in the sliding bar, so “Chi tiêu” is checked there (More lists only the guide and install) */
+  if(lang==='en'){const bar=await page.locator('#nav a[href="#expenses"]').evaluate((a:any)=>[a.getAttribute('aria-label'),a.querySelector('.nav-short')?.textContent]);assert.ok(bar[0]==='Spending'&&bar[1]==='Spending',`${label}: “Chi tiêu” is translated (a member is called Chi): ${bar}`);for(const r of rows)assert.ok(!/[ăâđêôơưàáạảãấầẩẫậắằẳẵặèéẻẽẹếềểễệìíỉĩịòóỏõọốồổỗộớờởỡợùúủũụứừửữựỳýỷỹỵ]/i.test(r),`${label}: English row “${r}”`)}
   for(const h of await more.locator('.more-label').evaluateAll((a:any[])=>a.map(e=>Math.round(e.getBoundingClientRect().height))))assert.ok(h<34,`${label}: More row on one line (${h}px)`);
   await textOk('more');await shot('more');await page.evaluate('closeModal()')}
  // 3. Packed-lunch schedule: each name whole, on one line
