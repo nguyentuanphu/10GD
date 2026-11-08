@@ -32,11 +32,11 @@
   s.products??=[];s.receipts??=[];s.aliases??={};s.preferences.familyPlanner??=true;s.pantry=[];return s}
  function json(data:any,status=200){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}})}
  function makeFetch(real:typeof fetch){return async(input:any,init?:any)=>{const url=new URL(typeof input==='string'?input:input?.url||String(input),location.href),method=String(init?.method||input?.method||'GET').toUpperCase();
-  if(url.origin===location.origin&&url.pathname==='/.netlify/functions/family'){const op=url.searchParams.get('op');
+  if(url.origin===location.origin&&url.pathname==='/.netlify/functions/family'){const op=url.searchParams.get('op');(G.__apCalls||=[]).push(op);
    if(op==='recipe-import')return json({recipe:SAMPLE_RECIPE});
    if(op==='barcode')return json({found:true,name:'Mì gói thử',brand:'Mẫu',quantity:'5 gói'});
    if(op==='invite-create'){let b:any={};try{b=JSON.parse(init?.body||'{}')}catch{}return json({token:'t3st9k',inviteId:b.inviteId})}
-   if(op==='invite-cancel')return json({cancelled:true});if(op==='invites')return json({invites:[]});return json({ok:true})}
+   if(op==='invite-cancel')return json({cancelled:true});if(op==='invites')return json({invites:G.__apInvites||[]});return json({ok:true})}
   if(url.origin===location.origin&&url.pathname.startsWith('/.netlify/'))return json({error:'Tự chạy thử: không gửi lên máy chủ.'},503);
   if(method!=='GET'&&method!=='HEAD')return json({error:'Tự chạy thử: không gửi đi.'},503);
   return real(input,init)}}
@@ -48,7 +48,7 @@
  const skip=(msg:string)=>{throw new Skip(msg)};
  function enter(){const fs:any=familyStorage,mem=new Map<string,string>(),ls:Record<string,string>={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i)!;ls[k]=localStorage.getItem(k)!}
   saved={state,view,weekStart,selectedDate,session:G.BEP_SESSION,fs:{set:fs.setItem,get:fs.getItem,rem:fs.removeItem},qfs:G.queueFamilySync,fetch:G.fetch,beacon:navigator.sendBeacon,share:(navigator as any).share,ing:new Set(Object.keys(INGREDIENTS)),ls,hash:location.hash,y:scrollY,cooking:typeof cooking!=='undefined'?cooking:null};
-  fs.setItem=(k:string,v:any)=>{mem.set(k,String(v))};fs.getItem=(k:string)=>mem.has(k)?mem.get(k)!:null;fs.removeItem=(k:string)=>{mem.delete(k)};
+  fs.setItem=(k:string,v:any)=>{mem.set(k,String(v))};const photos=new Map<string,any>();saved.localPhoto=G.localPhoto;if(typeof G.localPhoto==='function')G.localPhoto=async(id:string,value?:any)=>{if(value===undefined)return photos.get(id);photos.set(id,value);return id};G.__apCalls=[];G.__apInvites=[];fs.getItem=(k:string)=>mem.has(k)?mem.get(k)!:null;fs.removeItem=(k:string)=>{mem.delete(k)};
   G.queueFamilySync=()=>{};try{localStorage.setItem('bep-usage-optout','1')}catch{}/* no usage counted while the app tests itself; put back by the snapshot */G.fetch=makeFetch(saved.fetch);try{(navigator as any).sendBeacon=()=>true}catch{}try{(navigator as any).share=async()=>{}}catch{}
   // a family that is in the middle of shopping mode (a per-tab setting) comes back to it afterwards
   const ss:Record<string,string>={};try{for(let i=0;i<sessionStorage.length;i++){const k=sessionStorage.key(i)!;ss[k]=sessionStorage.getItem(k)!}}catch{}saved.ss=ss;
@@ -56,7 +56,7 @@
   G.BEP_SESSION={mode:'account',household:{id:'00000000-0000-4000-8000-00000000a7e5',name:'Nhà mẫu (tự chạy thử)',role:'owner'},account:{username:'tu-chay-thu',name:'Tự chạy thử'}};
   state=mode==='real'?clone(saved.state):sampleState();selectedDate=sydneyDate();weekStart=planStartOf(state,selectedDate);view='today';document.documentElement.classList.add('ap-running')}
  function leave(){if(!saved)return;const s=saved;saved=null;try{closeModal()}catch{}const fs:any=familyStorage;fs.setItem=s.fs.set;fs.getItem=s.fs.get;fs.removeItem=s.fs.rem;
-  G.queueFamilySync=s.qfs;G.fetch=s.fetch;try{(navigator as any).sendBeacon=s.beacon}catch{}try{(navigator as any).share=s.share}catch{}G.BEP_SESSION=s.session;try{cooking=s.cooking}catch{}
+  G.queueFamilySync=s.qfs;if(s.localPhoto)G.localPhoto=s.localPhoto;delete G.__apCalls;delete G.__apInvites;G.fetch=s.fetch;try{(navigator as any).sendBeacon=s.beacon}catch{}try{(navigator as any).share=s.share}catch{}G.BEP_SESSION=s.session;try{cooking=s.cooking}catch{}
   for(const k of Object.keys(INGREDIENTS))if(!s.ing.has(k))delete (INGREDIENTS as any)[k];
   // everything this device stored goes back exactly as it was (the ladybug's own outbox is left alone)
   const now:string[]=[];for(let i=0;i<localStorage.length;i++)now.push(localStorage.key(i)!);
@@ -137,7 +137,7 @@
    cooking={recipe:r,step:Math.max(0,(r.steps||[]).findIndex((s:string)=>/\d+\s*phút/.test(s)))};renderCooking();await waitFor('#modal-root .cooking-step');
    const t=find('#modal-root [data-kx="step-timer"]');expect(t,aT('Bước có “phút” không có nút hẹn giờ.','No timer button on a step with minutes.'));step(aT('Bấm hẹn giờ','Tap the timer'));await tap(t!);closeModal()}},
   {id:'search',vi:'Tìm kiếm',en:'Search',dvi:'Mở kính lúp, gõ “trứng”, mở kết quả đầu.',den:'Open the magnifier, type “egg”, open the first result.',run:async()=>{
-   await go('today');step(aT('Bấm kính lúp','Tap the magnifier'));await tap('#app-search');await type('#modal-root #app-search-input',aT('trứng','egg'));const hit=await waitFor('#modal-root .search-hit-row');
+   await go('today');const dish=Object.values(currentWeek().days).flatMap((d:any)=>MEAL_TYPES.flatMap((t:string)=>d[t]?.recipes||[]))[0] as any;const term=dish?String(dish.name).split(/\s+/).slice(0,2).join(' '):aT('trứng','egg');step(aT(`Bấm kính lúp, tìm “${term}”`,`Tap the magnifier, look for “${term}”`));await tap('#app-search');await type('#modal-root #app-search-input',term);const hit=await waitFor('#modal-root .search-hit-row');
    step(aT('Mở kết quả đầu','Open the first result'));await tap(hit);await sleep(300);expect(!find('#modal-root #app-search-input'),aT('Kết quả tìm kiếm không mở được.','The result did not open.'));closeModal()}},
   {id:'language',vi:'Đổi tiếng Việt / English',en:'Switch Vietnamese / English',dvi:'Đổi ngôn ngữ hai lần, chữ trên trang phải đổi theo.',den:'Switch twice; the page text must follow.',run:async()=>{
    await go('today');const before=(typeof appLanguage!=='undefined'?appLanguage:'vi');step(aT('Đổi ngôn ngữ','Switch language'));await tap('#app-language');await sleep(200);
@@ -151,18 +151,24 @@
    for(const v of ['pantry','expenses']){const a=nav.querySelector(`a[href="#${v}"]`) as HTMLElement;step(aT(`Trượt tới và mở ${v}`,`Slide to and open ${v}`));a.scrollIntoView({inline:'center',block:'nearest'});await tap(a);await waitFor('#main h1');expect(view===v,aT(`Không mở được ${v}.`,`Could not open ${v}.`))}
    const on=nav.querySelector('a.active')!.getBoundingClientRect(),b=nav.getBoundingClientRect();expect(on.left>=b.left-1&&on.right<=b.right+1,aT('Mục đang mở bị khuất trên thanh.','The open section is hidden on the bar.'))}}];
 
+ // every scenario starts from a fresh sample family (or a fresh copy of the family's data), so one cannot disturb the next
+ function fresh(){if(!saved)return;state=mode==='real'?clone(saved.state):sampleState();selectedDate=sydneyDate();weekStart=planStartOf(state,selectedDate);view='today';attendanceType='dinner';G.__apCalls=[];G.__apInvites=[];try{if(typeof setShopMode==='function')setShopMode(false)}catch{}render()}
+ // one step of a workflow: a failure is written down and the next steps still run (owner, 9 Nov 2026: “Chạy hết các bước”)
+ async function part(label:string,fn:()=>Promise<any>|any){step(label);try{await fn();run.parts++}catch(e:any){if(e instanceof Skip)throw e;if(run.stop)throw e;run.fails.push({step:label,msg:String(e?.message||e).slice(0,300)});try{closeModal()}catch{}}}
  // ── running ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- const results:Record<string,{ok:boolean,msg?:string,step?:string,skipped?:boolean}>={};
+ const results:Record<string,{ok:boolean,msg?:string,step?:string,skipped?:boolean,fails?:{step:string,msg:string}[],parts?:number}>={};
  async function runList(list:typeof SC,watch:boolean){if(run)return;run={watch,slow:reduced()?350:700,stop:false,log:[],step:'',errors:[] as string[]};drawBar();
   const onErr=(e:any)=>{run?.errors.push(String(e?.message||e?.reason?.message||e?.reason||'error').slice(0,200))};addEventListener('error',onErr);addEventListener('unhandledrejection',onErr);
   enter();render();const failed:any[]=[];
   try{for(const sc of list){if(run.stop)break;run.name=aT(sc.vi,sc.en);run.errors.length=0;const bar=document.getElementById('ap-name');if(bar)bar.textContent=run.name;
-    try{closeModal();await sc.run();if(run.errors.length)throw Error(aT('Lỗi trong app: ','App error: ')+run.errors[0]);results[sc.id]={ok:true}}
-    catch(e:any){if(e instanceof Skip){results[sc.id]={ok:true,skipped:true,msg:e.message};continue}if(run.stop&&/Đã dừng|Stopped/.test(e?.message))break;results[sc.id]={ok:false,msg:String(e?.message||e).slice(0,300),step:run.step};failed.push({sc,...results[sc.id]})}
+    run.fails=[];run.parts=0;
+    try{closeModal();fresh();await sc.run();if(run.errors.length)run.fails.push({step:run.step,msg:aT('Lỗi trong app: ','App error: ')+run.errors[0]});
+     if(run.fails.length){const f=run.fails[0];results[sc.id]={ok:false,msg:f.msg,step:f.step,fails:[...run.fails],parts:run.parts};failed.push({sc,...results[sc.id]})}else results[sc.id]={ok:true,parts:run.parts}}
+    catch(e:any){if(e instanceof Skip){results[sc.id]={ok:true,skipped:true,msg:e.message};continue}if(run.stop&&/Đã dừng|Stopped/.test(e?.message))break;const all=[...run.fails,{step:run.step,msg:String(e?.message||e).slice(0,300)}];results[sc.id]={ok:false,msg:all[0].msg,step:all[0].step,fails:all,parts:run.parts};failed.push({sc,...results[sc.id]})}
     finally{ring(null)}}}
   finally{removeEventListener('error',onErr);removeEventListener('unhandledrejection',onErr);leave();run=null;document.getElementById('ap-bar')?.remove();openPanel()}
   if(failed.length)report(failed,list.length)}
- function report(failed:any[],total:number){const lines=failed.map(f=>`• ${aT(f.sc.vi,f.sc.en)} — ${aT('bước','step')} “${f.step}”: ${f.msg}`);
+ function report(failed:any[],total:number){const lines=failed.flatMap(f=>(f.fails&&f.fails.length?f.fails:[{step:f.step,msg:f.msg}]).map((x:any)=>`• ${aT(f.sc.vi,f.sc.en)} — ${aT('bước','step')} “${x.step}”: ${x.msg}`));
   const note=`${aT('Tự chạy thử','Self-test')} (${mode==='real'?aT('bản sao dữ liệu của nhà','copy of the family’s data'):aT('gia đình mẫu','sample family')}): ${failed.length}/${total} ${aT('kịch bản lỗi','scenarios failed')} (${innerWidth}×${innerHeight}, ${typeof appLanguage!=='undefined'?appLanguage:'vi'})\n${lines.join('\n')}`;
   let sent:any={};try{sent=JSON.parse(localStorage.getItem('bep-autoplay-sent')||'{}')}catch{}const key=String(note.length)+':'+lines.join('|').slice(0,200),day=sydneyDate();
   if(sent[key]===day){toastSafe(aT('Lỗi này đã được gửi hôm nay.','This was already sent today.'));return}
@@ -179,7 +185,7 @@
    <div class="ap-mode" role="radiogroup" aria-label="${aT('Chạy trên','Run on')}"><span class="ap-mode-l">${aT('Chạy trên','Run on')}</span>${([['sample',aT('Gia đình mẫu','Sample family')],['real',aT('Dữ liệu của nhà (bản sao)','Your family’s data (a copy)')]] as [string,string][]).map(([m,l])=>`<button type="button" class="chip${mode===m?' active':''}" role="radio" aria-checked="${mode===m}" data-ap="mode" data-mode="${m}">${esc(l)}</button>`).join('')}</div>
    <p class="ap-mode-note">${mode==='real'?aT('Dùng một bản sao dữ liệu của nhà mình: món, thực đơn, tủ, đi chợ như thật. Bản sao không được lưu, không đồng bộ, không gửi đi; chạy xong là bỏ — dữ liệu thật giữ nguyên. Bước thiếu điều kiện (vd. danh sách đi chợ trống) ghi “Bỏ qua”.','Uses a copy of your family’s data: your recipes, menu, pantry and shopping. The copy is never saved, synced or sent and is dropped afterwards — your data stays as it is. Steps whose starting point is missing (an empty list…) are “Skipped”.'):aT('Dùng một gia đình mẫu tạm, giống nhau mỗi lần chạy.','Uses a temporary sample family, the same every time.')}</p>
    ${n.length?`<p class="ap-sum" role="status">${aT(`Đạt ${ok}/${n.length} kịch bản`,`${ok} of ${n.length} passed`)}${n.some(r=>r.skipped)?aT(` (${n.filter(r=>r.skipped).length} bỏ qua)`,` (${n.filter(r=>r.skipped).length} skipped)`):''}.</p>`:''}
-   <ol class="ap-list">${SC.map(sc=>{const r=results[sc.id];return `<li class="ap-item"><div class="ap-txt"><b>${esc(aT(sc.vi,sc.en))}</b><small>${esc(aT(sc.dvi,sc.den))}</small>${r?.skipped?`<small>${esc(r.msg||'')}</small>`:''}${r&&!r.ok?`<small class="ap-err">${esc(aT('Bước','Step'))} “${esc(r.step||'')}”: ${esc(r.msg||'')}</small>`:''}</div>${status(sc.id)}<button type="button" class="btn ap-watch" data-ap="watch" data-id="${sc.id}">${aT('Xem','Watch')}</button></li>`}).join('')}</ol></div>
+   ${[[aT('Workflow trọn vẹn','Whole workflows'),SC.filter((x:any)=>x.workflow)],[aT('Kiểm tra nhanh','Quick checks'),SC.filter((x:any)=>!x.workflow)]].filter(([,l]:any)=>l.length).map(([h,list]:any)=>`<h3 class="ap-group">${esc(h)} <small>(${list.length})</small></h3><ol class="ap-list">${list.map((sc:any)=>{const r=results[sc.id];return `<li class="ap-item"><div class="ap-txt"><b>${esc(aT(sc.vi,sc.en))}</b><small>${esc(aT(sc.dvi,sc.den))}</small>${r?.skipped?`<small>${esc(r.msg||'')}</small>`:''}${r&&!r.ok?(r.fails&&r.fails.length?r.fails:[{step:r.step||'',msg:r.msg||''}]).map((x:any)=>`<small class="ap-err">${esc(aT('Bước','Step'))} “${esc(x.step)}”: ${esc(x.msg)}</small>`).join(''):''}${r?.ok&&!r.skipped&&r.parts?`<small>${esc(aT(`${r.parts} bước đạt`,`${r.parts} steps passed`))}</small>`:''}</div>${status(sc.id)}<button type="button" class="btn ap-watch" data-ap="watch" data-id="${sc.id}">${aT('Xem','Watch')}</button></li>`}).join('')}</ol>`).join('')}</div>
    <footer class="ap-foot"><button type="button" class="btn primary" data-ap="all">${art('play')}<span>${aT('Chạy tất cả','Run all')}</span></button></footer></section>`;
   (el.querySelector('[data-ap="all"]') as HTMLElement)?.focus()}
  function closePanel(){document.getElementById('ap-panel')?.remove()}
@@ -189,7 +195,7 @@
   if(a==='open'){e.preventDefault();G.bepLadybug?.close?.(false);openPanel()}
   else if(a==='close')closePanel();
   else if(a==='mode'){const m=b.dataset.mode==='real'?'real':'sample';if(m!==mode){mode=m;for(const k of Object.keys(results))delete results[k];try{localStorage.setItem('bep-autoplay-mode',m)}catch{}}openPanel();(document.querySelector(`#ap-panel [data-ap="mode"][data-mode="${m}"]`) as HTMLElement)?.focus()}
-  else if(a==='all'){closePanel();void runList(SC,false)}
+  else if(a==='all'){closePanel();void runList([...SC.filter((x:any)=>x.workflow),...SC.filter((x:any)=>!x.workflow)],false)}
   else if(a==='watch'){const sc=SC.find(x=>x.id===b.dataset.id);if(sc){closePanel();void runList([sc],true)}}
   else if(a==='stop'&&run)run.stop=true});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('ap-panel'))closePanel()});
@@ -197,5 +203,5 @@
  function entry(){const tabs=document.querySelector('.lb-sheet .lb-tabs');if(!tabs||!isOwner()||document.querySelector('.lb-sheet [data-ap="open"]'))return;
   tabs.insertAdjacentHTML('afterend',`<div class="ap-entry"><button type="button" class="btn ap-open" data-ap="open">${aT('Tự chạy thử','Self-test')}</button><small>${aT('App tự bấm thử các chức năng trên gia đình mẫu.','The app tries every feature on a sample family.')}</small></div>`)}
  new MutationObserver(()=>entry()).observe(document.body,{childList:true,subtree:true});
- G.bepAutoplay={setMode:(m:'sample'|'real')=>{mode=m;for(const k of Object.keys(results))delete results[k]},mode:()=>mode,open:openPanel,run:(ids?:string[],watch=false)=>runList(ids?SC.filter(s=>ids.includes(s.id)):SC,watch),results:()=>({...results}),scenarios:()=>SC.map(s=>s.id),running:()=>!!run};
+ G.bepAutoplay={kit:{tap,type,waitFor,waitGone,find,step,expect,go,noOverflow,part,skip,sleep,aT,visible,watch:()=>!!run?.watch,mode:()=>mode},register:(sc:any)=>{if(!SC.some(x=>x.id===sc.id))SC.push(sc)},setMode:(m:'sample'|'real')=>{mode=m;for(const k of Object.keys(results))delete results[k]},mode:()=>mode,open:openPanel,run:(ids?:string[],watch=false)=>runList(ids?SC.filter(s=>ids.includes(s.id)):SC,watch),results:()=>({...results}),scenarios:()=>SC.map(s=>s.id),running:()=>!!run};
 })();

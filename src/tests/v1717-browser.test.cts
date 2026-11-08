@@ -66,7 +66,26 @@ const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tab
    await E(`familyRecipeEditor(state.recipes.find(r=>r.name==='Rau xào').id)`);await prep.waitFor();await prep.fill('');await page.locator('#family-recipe-form').evaluate((f:any)=>f.requestSubmit());await page.waitForTimeout(300);
    assert.equal(await E(`'prepTime' in state.recipes.find(r=>r.name==='Rau xào')`),false,`${label}: emptied, it is removed (nothing invented)`);
    await E('closeModal()');
+   // 3. “Tự chạy thử” plays whole workflows (owner, 9 Nov 2026: “phải làm cả workflow… viết món, chụp ảnh… lên món cho các bữa,
+   //    nấu, đi chợ, đi chợ về cất đồ check stock… mọi thứ phải hoạt động như dự tính”; pop-up: every step runs even after one fails)
+   if(size==='mobile'||size==='desktop'){
+    await E(`(()=>{closeModal();globalThis.BEP_SESSION={mode:'account',household:{id:'00000000-0000-4000-8000-000000000000',name:'Nhà Phú',role:'owner'},account:{username:'henry'}};view='today';location.hash='today';render()})()`);
+    const real0=await E('JSON.stringify(state)');await E('bepAutoplay.open()');await page.locator('#ap-panel .ap-group').first().waitFor();
+    assert.match(await page.locator('#ap-panel .ap-group').first().innerText(),lang==='en'?/Whole workflows \(15\)/:/Workflow trọn vẹn \(15\)/,`${label}: the workflows come first, 15 of them`);await shot('autoplay-workflows');
+    await page.locator('#ap-panel [data-ap="all"]').click();await page.locator('#ap-bar').waitFor();await page.waitForFunction(()=>!(globalThis as any).bepAutoplay.running(),null,{timeout:300000});
+    const res:any=await E('bepAutoplay.results()');const wf=Object.entries(res).filter(([k]:any)=>k.startsWith('wf-'));
+    assert.equal(wf.length,15,`${label}: 15 workflows ran`);const bad=wf.filter(([,v]:any)=>!v.ok);assert.deepEqual(bad,[],`${label}: every workflow does what it should ${JSON.stringify(bad)}`);
+    assert.ok(wf.every(([,v]:any)=>v.skipped||v.parts>=3),`${label}: each workflow is several checked steps ${JSON.stringify(wf.map(([k,v]:any)=>[k,v.parts]))}`);
+    assert.ok(Object.values(res).every((v:any)=>v.ok),`${label}: the quick checks pass too`);assert.equal(await E('JSON.stringify(state)'),real0,`${label}: the family's own data is untouched`);
+    await page.locator('#ap-panel .ap-sum').waitFor();await shot('autoplay-workflows-done');
+    // a step that fails does not stop the rest of the workflow, and every failed step is reported
+    await E(`(()=>{const st=document.createElement('style');st.id='qa-break';st.textContent='[data-action="add-stock"]{display:none!important}';document.head.append(st);window.__n0=bepLadybug.outbox().length})()`);
+    await E(`bepAutoplay.run(['wf-cook'])`);await page.waitForFunction(()=>!(globalThis as any).bepAutoplay.running(),null,{timeout:120000});await E(`document.getElementById('qa-break').remove()`);
+    const ck:any=(await E('bepAutoplay.results()'))['wf-cook'];assert.ok(!ck.ok&&ck.fails.length>=1&&ck.parts>=1,`${label}: the broken step is caught and later steps still ran ${JSON.stringify(ck)}`);
+    assert.ok(ck.fails.some((f:any)=>/Thêm đồ|Stock tonight/.test(f.step)),`${label}: the failed step is named`);const out:any[]=await E('bepLadybug.outbox()');
+    assert.ok(out.length===await E('window.__n0')+1&&out[out.length-1].body.note.split('\n').length>=2,`${label}: one report lists every failed step`);
+    assert.ok(await page.locator('#ap-panel .ap-err').count()>=1,`${label}: the list shows the failed steps`);await E(`document.getElementById('ap-panel')?.remove()`)}
    const ow=await E('document.documentElement.scrollWidth-innerWidth');assert.ok(ow<=1,`${label}: overflow ${ow}`);assert.deepEqual(errors,[],`${label}: page errors`);await context.close();console.log('✓',label)}
-  console.log('PASS v1.7.17: arrows at the ends of the sliding bar (drawn, ≥ 44 px), a tap slides it without moving the page, 5 seconds later it slides back keeping the open section in view; More no longer repeats the bar; tonight’s start-cooking time on Today from preparation + cooking minutes, dishes without a time named, the optional “Chuẩn bị (phút)” field — 375 / 320 / 820 / 1280, VI and EN');
+  console.log('PASS v1.7.17: arrows at the ends of the sliding bar (drawn, ≥ 44 px), a tap slides it without moving the page, 5 seconds later it slides back keeping the open section in view; More no longer repeats the bar; tonight’s start-cooking time on Today from preparation + cooking minutes, dishes without a time named, the optional “Chuẩn bị (phút)” field; “Tự chạy thử” plays 15 whole workflows that all do what they should, and keeps going after a failed step — 375 / 320 / 820 / 1280, VI and EN');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -2567,3 +2567,4 @@ html[data-theme="dark"] .ap-item{background:var(--surface,#18221d)}html[data-the
 /* v1.7.17: tonight's start-cooking line on Today */
 .cook-timing{margin:4px 0 0;font-size:.88em;color:var(--green);font-weight:600;overflow-wrap:anywhere}
 html[data-theme="dark"] .cook-timing{color:#8fd6b0}
+.ap-group{margin:14px 0 8px;font-size:1em}.ap-group small{color:var(--muted);font-weight:500}

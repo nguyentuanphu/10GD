@@ -43,6 +43,43 @@ Pop-ups chose two things: the reminder time comes from the dishes, and family di
     - the 17:00 fallback.
   - The existing `alerts-online` prep reminder (a dish without a time) is unchanged.
 
+## 3. “Tự chạy thử” plays whole workflows (owner, 9 Nov 2026)
+*“auto play quá sơ sài chỉ hiện tại đang bấm nút, phải làm cả workflow, ví dụ viết món, chụp ảnh etc sau đó lên món cho các bữa, nấu, đi chợ, đi chợ về cất đồ check stock… Cho tôi thêm workflow đi, nhớ là mọi thứ phải hoạt động như dự tính.”*
+
+Henry chose all eight proposed workflows, asked for more, and wanted them in v1.7.17. A failed step must not stop the workflow: every later step still runs.
+
+`ladybug-workflows.ts` adds **15 workflows**, listed first under “Workflow trọn vẹn”. They do each job through the screens and check what the job must change in the family's data:
+
+| # | Workflow | Checked |
+|---|---|---|
+| 1 | Món mới → ảnh → lên bữa → đi chợ | dish written with amounts, cooking/preparation minutes, steps and a **pretend photo**; amounts and times saved; photo on the dish; found in Recipes; on tomorrow's dinner; the shopping list needs each ingredient at amount × portions ÷ yield |
+| 2 | Lên kế hoạch tuần → đi chợ → cất đồ → kiểm tủ | wizard: someone away one day, plan applied; every day has dishes; the calendar shows them away and that dinner counts one portion less; shop and tick everything, “Đi chợ xong”, put away; the pantry holds at least what was bought, nothing is left to buy, the pantry page lists it |
+| 3 | Nấu bữa tối → trừ tủ → bỏ đánh dấu | everyone home; tonight's ingredients stocked through “Thêm thực phẩm”; cooking mode, next step, timer; “Đã nấu” takes exactly what the meal needs; undo puts the pantry back |
+| 4 | Đi chợ về → hoá đơn → chi tiêu | items ticked; a pretend receipt (text in place of a photo) read; lines matched by typing; saved with total 21.40 and ingredients linked; the Spending page shows 21.40 |
+| 5 | Mã vạch → tủ → dùng → quét lại | pretend scan, match Eggs, 12 stored; 2 used; the second scan is remembered with no second lookup |
+| 6 | Có khách → suất & đi chợ → lời mời → bỏ khách | 2 adults for tomorrow's dinner: portions +2 and the day's list rises by exactly the dinner's extra share; invitation link (pretend server); a pretend reply of 3 updates portions; removing withdraws the link and puts everything back |
+| 7 | Nhập món từ link → ghép dòng → lên bữa → đi chợ | pretend page; “Bò tái” matched to Beef 1,200 g and added to shopping; saved; on tomorrow's lunch; the list has the beef |
+| 8 | Đồ sắp hết hạn → gợi ý → lên bữa | stock expiring tomorrow; Today's use-it-up card; a suggested dish with it goes on the meal |
+| 9 | Báo vắng → suất & đi chợ giảm → về nhà | everyone home; one person away: dinner portions −1 and the list drops by exactly their share; back home restores both |
+| 10 | Mua thêm | “Mua thêm” with name, amount and unit; on the list; ticked and unticked |
+| 11 | Sửa món đã lên bữa | a family dish on tomorrow's dinner: 400 → 800 g; the meal's copy and the list follow |
+| 12 | Không thích món → lên thực đơn sau tránh | each family member taps “Không thích” in “Cả nhà thấy món này thế nào?”; planning the week again leaves it out; one person changes their mind |
+| 13 | Nấu một lần cho hai bữa | tonight's dish also on tomorrow's meal; “Nấu luôn cho bữa sau”; the later meal counts as cooked ahead and needs nothing more |
+| 14 | Mang cơm đi | a packed meal still counts its portion; back to eating at home |
+| 15 | Thêm người vào nhà | Settings → add “Bà nội (thử)” at 1.2 portions. Uncooked meals show **“chưa báo” and still count her**: the app cooks enough until someone answers, which is the existing rule in `mealServings`. Eating at home keeps the portions; away takes them off. The day's list changes by exactly the whole day's share. |
+
+- **Fresh data:** each scenario starts from a fresh sample family, or a fresh copy of the family's data. Saving, sync, server calls, sharing, beacons and **dish photos** (kept in memory only) stay inside the run, and everything is restored afterwards.
+- **Failures:** a failed step is written down and the next steps still run. The list shows every failed step, and **one** feedback report lists them all.
+- **Results so far:** while building, the workflows caught mistakes in the workflows themselves (wrong field names, a preview that needed “Áp dụng”, the guest sheet opening another meal, expectations that ignored other meals of the day). All are fixed. **No app defect was found.**
+  - **Mobile VI, desktop EN, real copy:** all 27 scenarios (15 workflows + 12 quick checks) pass on the sample family at mobile VI and at desktop EN, and on a copy of a family's data.
+- **Tests (`test:v1717:browser`, phone and desktop):**
+  - the workflows come first (15);
+  - all pass, with ≥ 3 checked steps each;
+  - the quick checks pass;
+  - the family's own data is untouched;
+  - a deliberately broken step (“Thêm thực phẩm” hidden) is caught while later steps still run, the failed step is named, and one report lists every failed step.
+- **v1.7.16 suite:** `test:v1716:browser` still passes. Its search check now looks for a dish that is on the menu, so it also works on a family's own data.
+
 ## Tests
 - **New suite `test:v1717:browser`** (in `test:all`), at 375 / 320 / 820 / 1280 in VI and EN:
   - arrows: drawn, ≥ 44 px and named; a tap slides the bar without moving the page or changing the screen;
