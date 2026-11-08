@@ -11,10 +11,11 @@ import {randomBytes} from 'node:crypto';
 export const RSVP_STATUSES=['yes','maybe','no','busy'] as const;
 export const RSVP_MEALS=['breakfast','snackAm','lunch','snack','dinner'];
 export const RSVP_KEEP_MS=30*86400000,RSVP_WRITES_PER_DAY=20,RSVP_INDEX_MAX=100;
-const ISO_DAY=/^\d{4}-\d{2}-\d{2}$/,TOKEN=/^[A-Za-z0-9_-]{32}$/,ID=/^inv-[a-z0-9]{6,40}$/;
+const ISO_DAY=/^\d{4}-\d{2}-\d{2}$/,TOKEN=/^[A-Za-z0-9_-]{22}(?:[A-Za-z0-9_-]{10})?$/,ID=/^inv-[a-z0-9]{6,40}$/;
 const clean=(s:any,max:number)=>String(s??'').replace(/[\u0000-\u001f\u007f<>]/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
 const count=(v:any)=>Number.isInteger(v)&&v>=0&&v<=30;
-export const newToken=()=>randomBytes(24).toString('base64url');
+// v1.7.14 (owner: “link invite dài quá”): 16 random bytes (128 bits, 22 characters) — still unguessable; links made before (24 bytes) keep working
+export const newToken=()=>randomBytes(16).toString('base64url');
 export const validToken=(t:any)=>typeof t==='string'&&TOKEN.test(t);
 const validTime=(t:any)=>typeof t==='string'&&Number.isFinite(Date.parse(t));
 

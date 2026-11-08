@@ -2383,3 +2383,18 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 .pack-cover p{margin:0;flex:1 1 220px;overflow-wrap:anywhere}
 .pack-cover span{display:flex;gap:8px;flex-wrap:wrap}
 .pack-cover .btn{min-height:44px}
+
+/* v1.7.14: crop the receipt photo before reading it */
+.rcrop-wrap{display:flex;justify-content:center;margin:6px 0 4px}
+.rcrop-stage{position:relative;display:inline-block;max-width:100%;overflow:hidden;border-radius:10px;touch-action:none;user-select:none;-webkit-user-select:none}
+.rcrop-img{display:block;max-width:100%;max-height:58vh;width:auto;height:auto;pointer-events:none}
+.rcrop-box{position:absolute;border:3px solid #3ca37c;box-shadow:0 0 0 9999px rgba(20,30,25,.5);cursor:move;touch-action:none}
+.rcrop-h{position:absolute;width:44px;height:44px;display:grid;place-items:center;touch-action:none;outline-offset:2px}
+.rcrop-h span{display:block;background:#fff;border:2px solid #3ca37c;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.rcrop-t,.rcrop-b{left:50%;margin-left:-22px}.rcrop-t{top:-3px}.rcrop-b{bottom:-3px}
+.rcrop-l,.rcrop-r{top:50%;margin-top:-22px}.rcrop-l{left:-3px}.rcrop-r{right:-3px}
+.rcrop-t span,.rcrop-b span{width:34px;height:10px}.rcrop-l span,.rcrop-r span{width:10px;height:34px}
+.rcrop-t{align-items:start}.rcrop-b{align-items:end}.rcrop-l{justify-items:start}.rcrop-r{justify-items:end}
+.rcrop-t,.rcrop-b{cursor:ns-resize}.rcrop-l,.rcrop-r{cursor:ew-resize}
+.rcrop-h:focus-visible span{outline:3px solid var(--orange);outline-offset:2px}
+.rcrop-again{margin:8px 0 0;min-height:44px}

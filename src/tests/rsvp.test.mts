@@ -29,14 +29,14 @@ ok(inviteFromRequest({...base,guestName:'<b>Tuấn</b>'},clock).invite.guestName
 
 // the family creates an invitation (account required)
 assert.equal((await family(freq('invite-create',base,''))).status,401);
-let res=await family(freq('invite-create',base));assert.equal(res.status,200);const {token}=await res.json();ok(validToken(token),'the link carries an unguessable token (24 random bytes)');
+let res=await family(freq('invite-create',base));assert.equal(res.status,200);const {token}=await res.json();ok(validToken(token)&&token.length===22,'the link carries an unguessable token (16 random bytes, 22 characters — owner: “link invite dài quá”)');ok(validToken('A'.repeat(32)),'links made before (24 bytes, 32 characters) still work');
 res=await family(freq('invite-create',{...base,adults:3}));const again=await res.json();ok(again.token===token&&again.existing,'sending the same invitation again keeps the same link');
 // the guest reads only the invitation's public part
 res=await rsvp(rreq(token));assert.equal(res.status,200);const view=await res.json();
 ok(view.guestName==='Nhà anh Tuấn'&&view.host==='Nhà Phú'&&view.meals.length===2&&view.adults===3,'the guest page shows the host, the meals and the expected numbers');
 ok(!JSON.stringify(view).includes(fixture.household.id)&&!('householdId' in view)&&!('members' in view)&&!('writes' in view),'nothing else of the family is visible to the guest');
 assert.equal(res.headers.get('cache-control'),'no-store');ok(res.headers.get('x-robots-tag')==='noindex','not indexed by search engines');
-ok((await rsvp(rreq('A'.repeat(32)))).status===404&&(await rsvp(rreq('short'))).status===404,'a wrong or malformed link finds nothing');
+ok((await rsvp(rreq('A'.repeat(32)))).status===404&&(await rsvp(rreq('A'.repeat(22)))).status===404&&(await rsvp(rreq('short'))).status===404,'a wrong or malformed link finds nothing');
 // answers
 ok((await rsvp(rreq(token,{status:'yes',adults:2,kids:1},'https://evil.example'))).status===403,'answers only from the guest page (same origin)');
 ok((await rsvp(rreq(token,{status:'yes',adults:0,kids:0}))).status===400,'“will come” needs at least one person');

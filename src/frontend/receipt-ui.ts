@@ -101,6 +101,38 @@ readReceiptPhoto=async function(file){
  }catch(error){toast(error.message||T('Chưa đọc được ảnh. Bạn có thể dán chữ hoặc nhập thủ công.','Could not read the photo. Paste the text or enter it by hand.'),true);status(T('OCR chưa hoàn tất. Không có khoản chi nào được tự ghi nhận.','Reading did not finish. Nothing was recorded.'))}
  finally{ocrBusy=false}
 };
+// v1.7.14 (owner, 8 Nov 2026: “for scanning receipt you should also have functions to crop the receipt so the OCR can read easier”):
+// a chosen photo opens “Cắt hóa đơn” first — a frame with four edges to drag (or move with the arrow keys) around the printed
+// lines; “Đọc phần đã cắt” reads only that part, “Đọc cả ảnh” the whole photo. “Cắt lại ảnh” under the photo opens it again.
+const ocrRead=readReceiptPhoto;
+let cropSrc:any=null,cropURL='',cropLang='eng',crop={l:.04,t:.03,r:.96,b:.97};
+const ocrReady=()=>navigator.onLine&&!globalThis.BEP_OFFLINE||typeof ocrOfflineReady==='function'&&ocrOfflineReady();
+readReceiptPhoto=async function(file){if(!file||ocrBusy)return;if(!ocrReady())return ocrRead(file);collectReceipt();cropLang=$('#ocr-language')?.value||cropLang;cropSrc=file;crop={l:.04,t:.03,r:.96,b:.97};cropSheet()};
+const pct=(v:number)=>Math.round(v*1000)/10+'%';
+function cropPlace(){const box=document.querySelector('.rcrop-box') as HTMLElement|null;if(!box)return;box.style.left=pct(crop.l);box.style.top=pct(crop.t);box.style.width=pct(crop.r-crop.l);box.style.height=pct(crop.b-crop.t);
+ for(const h of document.querySelectorAll('.rcrop-h') as any){const k=h.dataset.edge;h.setAttribute('aria-valuenow',String(Math.round((crop as any)[k]*100)))}}
+function cropSheet(){if(cropURL)URL.revokeObjectURL(cropURL);cropURL=URL.createObjectURL(cropSrc);
+ const edge=(k:string,vi:string,en:string)=>`<div class="rcrop-h rcrop-${k}" data-edge="${k}" role="slider" tabindex="0" aria-label="${esc(T(vi,en))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span aria-hidden="true"></span></div>`;
+ modal(T('Cắt hóa đơn','Crop the receipt'),`<p class="hint">${T('Kéo 4 cạnh khung xanh sát các dòng chữ của hóa đơn (bỏ mặt bàn, ngón tay, phần trống). Đọc phần đã cắt sẽ đúng hơn.','Drag the four edges of the green frame close to the printed lines (leave out the bench, fingers and blank paper). Reading the cropped part is more accurate.')}</p>
+  <div class="rcrop-wrap"><div class="rcrop-stage"><img class="rcrop-img" src="${cropURL}" alt="${esc(T('Ảnh hóa đơn để cắt','Receipt photo to crop'))}" draggable="false"><div class="rcrop-box" data-edge="move">${edge('t','Cạnh trên','Top edge')}${edge('b','Cạnh dưới','Bottom edge')}${edge('l','Cạnh trái','Left edge')}${edge('r','Cạnh phải','Right edge')}</div></div></div>`,
+  `<button class="btn" type="button" data-rcrop="whole">${T('Đọc cả ảnh','Read the whole photo')}</button><button class="btn primary" type="button" data-rcrop="read">${T('Đọc phần đã cắt','Read the cropped part')}</button>`,true);
+ document.querySelector('.modal')?.classList.add('rcrop-modal');cropPlace()}
+let cropDrag:any=null;
+document.addEventListener('pointerdown',e=>{const t=(e.target as any)?.closest?.('.rcrop-h,.rcrop-box');if(!t)return;const stage=document.querySelector('.rcrop-stage') as HTMLElement;if(!stage)return;e.preventDefault();const k=t.classList.contains('rcrop-h')?t.dataset.edge:'move';
+ cropDrag={k,id:e.pointerId,x:e.clientX,y:e.clientY,start:{...crop},rect:stage.getBoundingClientRect()};try{t.setPointerCapture(e.pointerId)}catch{}});
+document.addEventListener('pointermove',e=>{const d=cropDrag;if(!d||d.id!==e.pointerId)return;const dx=(e.clientX-d.x)/d.rect.width,dy=(e.clientY-d.y)/d.rect.height,s=d.start,MIN=.08,c=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
+ if(d.k==='move'){const w=s.r-s.l,h=s.b-s.t,l=c(s.l+dx,0,1-w),t=c(s.t+dy,0,1-h);crop={l,t,r:l+w,b:t+h}}
+ else if(d.k==='l')crop.l=c(s.l+dx,0,crop.r-MIN);else if(d.k==='r')crop.r=c(s.r+dx,crop.l+MIN,1);else if(d.k==='t')crop.t=c(s.t+dy,0,crop.b-MIN);else if(d.k==='b')crop.b=c(s.b+dy,crop.t+MIN,1);cropPlace()});
+const cropEnd=(e:any)=>{if(cropDrag&&cropDrag.id===e.pointerId)cropDrag=null};document.addEventListener('pointerup',cropEnd);document.addEventListener('pointercancel',cropEnd);
+document.addEventListener('keydown',e=>{const h=(e.target as any)?.closest?.('.rcrop-h');if(!h)return;const k=h.dataset.edge,step=e.shiftKey?.05:.01,dir=({ArrowLeft:-1,ArrowUp:-1,ArrowRight:1,ArrowDown:1} as any)[e.key];if(!dir)return;e.preventDefault();
+ const MIN=.08,c=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));if(k==='l')crop.l=c(crop.l+dir*step,0,crop.r-MIN);if(k==='r')crop.r=c(crop.r+dir*step,crop.l+MIN,1);if(k==='t')crop.t=c(crop.t+dir*step,0,crop.b-MIN);if(k==='b')crop.b=c(crop.b+dir*step,crop.t+MIN,1);cropPlace()});
+async function croppedFile(){const bmp=await createImageBitmap(cropSrc);const sx=Math.round(crop.l*bmp.width),sy=Math.round(crop.t*bmp.height),sw=Math.max(1,Math.round((crop.r-crop.l)*bmp.width)),sh=Math.max(1,Math.round((crop.b-crop.t)*bmp.height));
+ const cv=document.createElement('canvas');cv.width=sw;cv.height=sh;cv.getContext('2d')!.drawImage(bmp,sx,sy,sw,sh,0,0,sw,sh);bmp.close?.();
+ const blob:Blob=await new Promise((ok,no)=>cv.toBlob(b=>b?ok(b):no(Error('crop')),'image/jpeg',.92));return new File([blob],'receipt-cropped.jpg',{type:'image/jpeg'})}
+async function cropRead(whole:boolean){if(!cropSrc||ocrBusy)return;let file=cropSrc;if(!whole){try{file=await croppedFile()}catch{file=cropSrc}}receiptEditor();const sel=$('#ocr-language');if(sel)sel.value=cropLang;await ocrRead(file)}
+document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('[data-rcrop]');if(!b)return;e.preventDefault();const a=b.dataset.rcrop;if(a==='again'){if(!cropSrc)return;collectReceipt();cropLang=$('#ocr-language')?.value||cropLang;cropSheet();return}cropRead(a==='whole')});
+{const editorBase=receiptEditor;receiptEditor=function(...a:any[]){const r=editorBase.apply(this,a);try{const img=document.querySelector('#modal-root .receipt-image');if(img&&cropSrc&&!document.querySelector('#modal-root [data-rcrop="again"]'))img.insertAdjacentHTML('afterend',`<button class="btn small soft rcrop-again" type="button" data-rcrop="again">${T('Cắt lại ảnh','Crop the photo again')}</button>`)}catch(err){console.warn('crop again',err)}return r}}
+(globalThis as any).ReceiptCrop={get:()=>({...crop}),set:(c:any)=>{crop={...crop,...c};cropPlace()},open:(file:any)=>readReceiptPhoto(file),read:(whole:boolean)=>cropRead(!!whole)};
 function summaryText(p,conf){const n=p.items.filter(i=>i.kind==='item').length;return T(`Đã đọc ${n} dòng món${p.store?' · '+p.store:''}${p.date?' · '+p.date:''}${p.time?' '+p.time:''} · độ tin cậy OCR ${Math.round(conf||0)}%. Kiểm tra tên, khối lượng, ngày và tổng tiền trước khi lưu.`,`Read ${n} item line(s)${p.store?' · '+p.store:''}${p.date?' · '+p.date:''}${p.time?' '+p.time:''} · OCR confidence ${Math.round(conf||0)}%. Check names, amounts, date and total before saving.`)}
 
 // ------------------------------------------------------------ form decorations

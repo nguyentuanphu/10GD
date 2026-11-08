@@ -42,6 +42,12 @@
   function = "family-gate"
   path = "/login"
 
+# v1.7.14: short guest invitation link (/m#<token>) shows the guest page; the token stays after # in the browser
+[[redirects]]
+  from = "/m"
+  to = "/rsvp.html"
+  status = 200
+
 # Connectivity health check (offline detection) must never be cached.
 [[headers]]
   for = "/health.json"
