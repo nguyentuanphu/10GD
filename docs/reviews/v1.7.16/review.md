@@ -147,6 +147,14 @@ Henry answered four questions in pop-ups:
   - A deliberately broken step is caught and sent to Feedback without a tap.
 - **Ladybug suite:** the owner sees the entry, and it opens the list.
 - **Screenshots:** `autoplay-list-*`, `autoplay-results-*`, `autoplay-watch-*`.
+- **Running on the family's own data (owner, 8 Nov 2026: *“Làm cho tôi luôn lựa chọn dùng trên dữ liệu thật nữa nhé”*).** The list offers two choices, as chips: **Gia đình mẫu** and **Dữ liệu của nhà (bản sao)**. The choice is remembered on the device.
+  - **What the copy is:** the same scenarios run on a copy of the family's own recipes, menu, pantry and shopping.
+  - **Kept apart:** the copy lives in memory only and is never saved, synced or sent. When the run ends it is dropped, and the family's data and the device are put back exactly.
+  - **Skipped, not failed:** a scenario whose starting point is missing in the family's data shows **“Bỏ qua”** with the reason and is not sent as a problem. Examples are an empty shopping list or no family menu this week.
+  - **Report:** the automatic report says which choice was used.
+  - **Privacy page:** updated in VI and EN.
+  - **Test:** in `test:v1716:browser`, every scenario passes or is skipped on the copy. The family's data and device storage are byte-for-byte the same afterwards, nothing is sent, and the choice is remembered.
+  - **Screenshots:** `autoplay-real-choice-*`, `autoplay-real-results-*`.
 
 ## Tests
 - `npm run check`: the loading-shell step.

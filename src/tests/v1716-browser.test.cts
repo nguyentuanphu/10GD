@@ -147,6 +147,19 @@ const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tab
     const n0=await E('bepLadybug.outbox().length');await E(`(()=>{window.__og=openGuide;openGuide=()=>{}})()`);await E(`bepAutoplay.run(['guide'])`);await page.waitForFunction(()=>!(globalThis as any).bepAutoplay.running(),null,{timeout:60000});await E(`openGuide=window.__og`);
     assert.equal((await E('bepAutoplay.results()')).guide.ok,false,`${label}: a broken step is caught`);
     const out:any[]=await E('bepLadybug.outbox()');assert.ok(out.length===n0+1&&/Tự chạy thử|Self-test/.test(out[out.length-1].body.note)&&out[out.length-1].body.ctx.selfTest===true,`${label}: and sent to Feedback without a tap ${JSON.stringify(out.slice(-1).map(x=>x.body.note))}`);
+    // owner, 8 Nov 2026: “Làm cho tôi luôn lựa chọn dùng trên dữ liệu thật nữa nhé” — the same scenarios on a copy of the family's
+    // own data: never saved, synced or sent; afterwards the family's data and the device are exactly as before
+    await E('bepAutoplay.open()');await page.locator('#ap-panel [data-ap="mode"][data-mode="real"]').click();
+    assert.equal(await page.locator('#ap-panel [data-ap="mode"][data-mode="real"]').getAttribute('aria-checked'),'true',`${label}: “Dữ liệu của nhà (bản sao)” chosen`);
+    assert.match(await page.locator('#ap-panel .ap-mode-note').innerText(),lang==='en'?/never saved, synced or sent/:/không được lưu, không đồng bộ, không gửi đi/,`${label}: the list says it is a copy that is dropped`);
+    assert.ok(await page.locator('#ap-panel .ap-mode .chip').evaluateAll((a:any[])=>a.every(b=>b.getBoundingClientRect().height>=44&&!b.querySelector('svg'))),`${label}: the two choices are chips, words only, ≥ 44 px`);await shot('autoplay-real-choice');
+    const real0=await E('JSON.stringify(state)'),ls0=await E(snap);const calls2:string[]=[];const onReq2=(r:any)=>{if(r.url().includes('/.netlify/'))calls2.push(r.method()+' '+r.url())};page.on('request',onReq2);
+    await page.locator('#ap-panel [data-ap="all"]').click();await page.locator('#ap-bar').waitFor();await page.waitForFunction(()=>!(globalThis as any).bepAutoplay.running(),null,{timeout:240000});page.off('request',onReq2);
+    const res2:any=await E('bepAutoplay.results()');const bad2=Object.entries(res2).filter(([,v]:any)=>!v.ok);assert.deepEqual(bad2,[],`${label}: every scenario passes or is skipped on the family's copy ${JSON.stringify(bad2)}`);
+    assert.equal(await E('JSON.stringify(state)'),real0,`${label}: the family's own data is exactly as before`);assert.equal(await E(snap),ls0,`${label}: and so is everything on the device`);
+    assert.deepEqual(calls2.filter(c=>!/feedback\?op=(access|status)/.test(c)),[],`${label}: nothing sent while testing on the copy`);
+    assert.equal(await E('bepAutoplay.mode()'),'real',`${label}: the choice is remembered`);await shot('autoplay-real-results');
+    await page.locator('#ap-panel [data-ap="mode"][data-mode="sample"]').click();
     await E(`(()=>{document.getElementById('ap-panel')?.remove();state.recipes=state.recipes.filter(r=>r.id!=='fam-own-1');save();render()})()`)}
    const ow=await E('document.documentElement.scrollWidth-innerWidth');assert.ok(ow<=1,`${label}: overflow ${ow}`);assert.deepEqual(errors,[],`${label}: page errors`);await context.close();console.log('✓',label)}
   console.log('PASS v1.7.16: removing an invited guest takes it off every meal of the invitation and withdraws the link (“Đóng” keeps it); a bigger “Bắt đầu đi chợ” with a running colour ring, still under reduced motion; receipt unit fits and the match box finds or adds an ingredient; “Tên: lượng” recipe lines read without the colon; the bottom bar slides sideways with every section; “Tự chạy thử” plays every scenario on a sample family, leaves the family’s data untouched and sends failures by itself — 375 / 320 / 820 / 1280, VI and EN');

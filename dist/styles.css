@@ -2549,3 +2549,5 @@ html[data-theme="dark"] .rm-opt.rm-new{color:#8fd6b0}
 @media (prefers-reduced-motion:reduce){.ap-ring{transition:none}}
 html[data-theme="dark"] .ap-item{background:var(--surface,#18221d)}html[data-theme="dark"] .ap-st.ok{background:#1f3b2c;color:#9fe0b8}html[data-theme="dark"] .ap-st.bad{background:#4a2420;color:#ffb4a9}html[data-theme="dark"] .ap-txt .ap-err{color:#ffb4a9}
 .ap-foot .btn.primary,.ap-foot .btn.primary span{color:#fff}
+.ap-mode{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 6px}.ap-mode-l{font-weight:700;margin-right:2px}.ap-mode .chip{min-height:44px}
+.ap-mode-note{color:var(--muted);font-size:.9em;margin:0 0 10px}

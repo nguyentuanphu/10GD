@@ -11,6 +11,9 @@
 // While it runs: the family's state is put aside and a sample family is used; saving goes to memory only, family sync is off,
 // every server call is answered by the app itself (pretend recipe page, product, invitation), analytics and sharing are stopped,
 // and everything this device stored is put back exactly as it was afterwards. Failures are then sent as one feedback report.
+// Owner, 8 Nov 2026: “Làm cho tôi luôn lựa chọn dùng trên dữ liệu thật nữa nhé” — a second choice runs the same scenarios on a
+// COPY of the family's own data (closer to real life). The copy is never saved, synced or sent, and is dropped afterwards; a
+// scenario whose starting point is missing in the family's data (an empty shopping list…) is marked “Bỏ qua”, not a failure.
 (function(){
  const aT=(vi:string,en:string)=>typeof tr==='function'?tr(vi,en):vi;
  const G:any=globalThis;
@@ -40,6 +43,9 @@
 
  // ── putting the family's things aside, and back ─────────────────────────────────────────────────────────────────────────────
  let saved:any=null;
+ let mode:'sample'|'real'=(()=>{try{return localStorage.getItem('bep-autoplay-mode')==='real'?'real':'sample'}catch{return 'sample'}})();
+ class Skip extends Error{}
+ const skip=(msg:string)=>{throw new Skip(msg)};
  function enter(){const fs:any=familyStorage,mem=new Map<string,string>(),ls:Record<string,string>={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i)!;ls[k]=localStorage.getItem(k)!}
   saved={state,view,weekStart,selectedDate,session:G.BEP_SESSION,fs:{set:fs.setItem,get:fs.getItem,rem:fs.removeItem},qfs:G.queueFamilySync,fetch:G.fetch,beacon:navigator.sendBeacon,share:(navigator as any).share,ing:new Set(Object.keys(INGREDIENTS)),ls,hash:location.hash,y:scrollY,cooking:typeof cooking!=='undefined'?cooking:null};
   fs.setItem=(k:string,v:any)=>{mem.set(k,String(v))};fs.getItem=(k:string)=>mem.has(k)?mem.get(k)!:null;fs.removeItem=(k:string)=>{mem.delete(k)};
@@ -48,7 +54,7 @@
   const ss:Record<string,string>={};try{for(let i=0;i<sessionStorage.length;i++){const k=sessionStorage.key(i)!;ss[k]=sessionStorage.getItem(k)!}}catch{}saved.ss=ss;
   if(typeof setShopMode==='function')setShopMode(false);
   G.BEP_SESSION={mode:'account',household:{id:'00000000-0000-4000-8000-00000000a7e5',name:'Nhà mẫu (tự chạy thử)',role:'owner'},account:{username:'tu-chay-thu',name:'Tự chạy thử'}};
-  state=sampleState();selectedDate=sydneyDate();weekStart=planStartOf(state,selectedDate);view='today';document.documentElement.classList.add('ap-running')}
+  state=mode==='real'?clone(saved.state):sampleState();selectedDate=sydneyDate();weekStart=planStartOf(state,selectedDate);view='today';document.documentElement.classList.add('ap-running')}
  function leave(){if(!saved)return;const s=saved;saved=null;try{closeModal()}catch{}const fs:any=familyStorage;fs.setItem=s.fs.set;fs.getItem=s.fs.get;fs.removeItem=s.fs.rem;
   G.queueFamilySync=s.qfs;G.fetch=s.fetch;try{(navigator as any).sendBeacon=s.beacon}catch{}try{(navigator as any).share=s.share}catch{}G.BEP_SESSION=s.session;try{cooking=s.cooking}catch{}
   for(const k of Object.keys(INGREDIENTS))if(!s.ing.has(k))delete (INGREDIENTS as any)[k];
@@ -85,10 +91,10 @@
   {id:'pages',vi:'Mở các trang chính',en:'Open the main pages',dvi:'Hôm nay, Thực đơn, Đi chợ, Món ăn, Tủ, Chi tiêu, Thói quen, Giá.',den:'Today, Menu, Shopping, Recipes, Pantry, Spending, Habits, Prices.',run:async()=>{
    for(const v of ['today','planner','shopping','recipes','pantry','expenses','insights','products']){step(aT(`Mở “${labels[v]?.[1]||v}”`,`Open “${v}”`));await go(v);expect(view===v,aT(`Không mở được ${v}.`,`Could not open ${v}.`));noOverflow(v)}}},
   {id:'days',vi:'Chọn ngày trong tuần',en:'Pick days of the week',dvi:'Bấm từng ngày — trang không được nhảy.',den:'Tap each day — the page must not jump.',run:async()=>{
-   await go('today');const days=[...document.querySelectorAll('#main .day-strip [data-action="select-day"]')] as HTMLElement[];expect(days.length>=7,aT('Không thấy dải ngày.','No day strip.'));
+   await go('today');const days=[...document.querySelectorAll('#main .day-strip [data-action="select-day"]')] as HTMLElement[];if(mode==='real'&&!days.length)skip(aT('Trang Hôm nay của nhà chưa có dải ngày.','No day strip on your Today page.'));expect(days.length>=7,aT('Không thấy dải ngày.','No day strip.'));
    for(const d of days.slice(0,7)){const date=d.dataset.date!;step(aT(`Chọn ngày ${date}`,`Pick ${date}`));await tap(`#main .day-strip [data-date="${date}"]`,{still:true});expect(selectedDate===date,aT(`Ngày ${date} chưa được chọn.`,`${date} was not picked.`))}}},
   {id:'guests',vi:'Thêm và bỏ khách',en:'Add and remove guests',dvi:'Mở “Có khách”, thêm “Khách thử”, lưu; mở lại, bỏ, lưu.',den:'Open “Guests coming”, add “Test guests”, save; reopen, remove, save.',run:async()=>{
-   await go('today');step(aT('Mở “Có khách”','Open “Guests coming”'));await tap('#main .guest-shortcut');await waitFor('#modal-root #guest-groups');
+   await go('today');if(mode==='real'&&!find('#main .guest-shortcut'))skip(aT('Tuần này chưa có thực đơn gia đình.','No family menu this week.'));step(aT('Mở “Có khách”','Open “Guests coming”'));await tap('#main .guest-shortcut');await waitFor('#modal-root #guest-groups');
    step(aT('Nhập tên khách','Type the guests’ name'));await type('#modal-root [data-guest-name="0"]','Khách thử');step(aT('Thêm 1 người lớn','One more adult'));await tap('#modal-root [data-guest-step="1"][data-k="adults"]',{still:true});
    step(aT('Lưu','Save'));await tap('#modal-root [data-fm="guests-save"]');await waitGone('#modal-root #guest-groups');
    const n=()=>Object.values(state.weeks).flatMap((w:any)=>Object.values(w.days)).flatMap((d:any)=>MEAL_TYPES.map((t:string)=>d[t])).filter((m:any)=>m?.guests?.some((g:any)=>g.name==='Khách thử')).length;
@@ -97,7 +103,7 @@
    expect(n()===0,aT('Bỏ khách xong mà bữa vẫn còn khách.','Guests removed but a meal still has them.'))}},
   {id:'shop',vi:'Đi chợ và cất đồ',en:'Shop and put away',dvi:'Bắt đầu đi chợ, đánh dấu vài món, Xong, cất vào tủ.',den:'Start shopping, tick a few items, Done, put away.',run:async()=>{
    await go('shopping');step(aT('Bấm “Bắt đầu đi chợ”','Tap “Start shopping”'));await tap('#main [data-flow="shop-start"]');await waitFor('#main .shop-mode-bar');
-   const boxes=[...document.querySelectorAll('#main .shopping-group .shop-row input.check[data-change="bought"]')].slice(0,3) as HTMLElement[];expect(boxes.length>=1,aT('Danh sách đi chợ trống.','The shopping list is empty.'));
+   const boxes=[...document.querySelectorAll('#main .shopping-group .shop-row input.check[data-change="bought"]')].slice(0,3) as HTMLElement[];if(!boxes.length){if(mode==='real')skip(aT('Danh sách đi chợ của nhà đang trống.','Your shopping list is empty.'));expect(false,aT('Danh sách đi chợ trống.','The shopping list is empty.'))}
    for(const b of boxes){step(aT('Đánh dấu đã mua','Tick as bought'));await tap(b)}
    const before=state.pantry.length;step(aT('Bấm “Xong đi chợ”','Tap “Done shopping”'));await tap('#main [data-flow="shop-done"]');await waitFor('#modal-root #store-form');
    step(aT('Cất vào tủ','Put away'));await tap('#modal-root [data-action="submit-form"][data-id="store-form"]');await waitGone('#modal-root #store-form');
@@ -146,18 +152,18 @@
    const on=nav.querySelector('a.active')!.getBoundingClientRect(),b=nav.getBoundingClientRect();expect(on.left>=b.left-1&&on.right<=b.right+1,aT('Mục đang mở bị khuất trên thanh.','The open section is hidden on the bar.'))}}];
 
  // ── running ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- const results:Record<string,{ok:boolean,msg?:string,step?:string}>={};
+ const results:Record<string,{ok:boolean,msg?:string,step?:string,skipped?:boolean}>={};
  async function runList(list:typeof SC,watch:boolean){if(run)return;run={watch,slow:reduced()?350:700,stop:false,log:[],step:'',errors:[] as string[]};drawBar();
   const onErr=(e:any)=>{run?.errors.push(String(e?.message||e?.reason?.message||e?.reason||'error').slice(0,200))};addEventListener('error',onErr);addEventListener('unhandledrejection',onErr);
   enter();render();const failed:any[]=[];
   try{for(const sc of list){if(run.stop)break;run.name=aT(sc.vi,sc.en);run.errors.length=0;const bar=document.getElementById('ap-name');if(bar)bar.textContent=run.name;
     try{closeModal();await sc.run();if(run.errors.length)throw Error(aT('Lỗi trong app: ','App error: ')+run.errors[0]);results[sc.id]={ok:true}}
-    catch(e:any){if(run.stop&&/Đã dừng|Stopped/.test(e?.message))break;results[sc.id]={ok:false,msg:String(e?.message||e).slice(0,300),step:run.step};failed.push({sc,...results[sc.id]})}
+    catch(e:any){if(e instanceof Skip){results[sc.id]={ok:true,skipped:true,msg:e.message};continue}if(run.stop&&/Đã dừng|Stopped/.test(e?.message))break;results[sc.id]={ok:false,msg:String(e?.message||e).slice(0,300),step:run.step};failed.push({sc,...results[sc.id]})}
     finally{ring(null)}}}
   finally{removeEventListener('error',onErr);removeEventListener('unhandledrejection',onErr);leave();run=null;document.getElementById('ap-bar')?.remove();openPanel()}
   if(failed.length)report(failed,list.length)}
  function report(failed:any[],total:number){const lines=failed.map(f=>`• ${aT(f.sc.vi,f.sc.en)} — ${aT('bước','step')} “${f.step}”: ${f.msg}`);
-  const note=`${aT('Tự chạy thử','Self-test')}: ${failed.length}/${total} ${aT('kịch bản lỗi','scenarios failed')} (${innerWidth}×${innerHeight}, ${typeof appLanguage!=='undefined'?appLanguage:'vi'})\n${lines.join('\n')}`;
+  const note=`${aT('Tự chạy thử','Self-test')} (${mode==='real'?aT('bản sao dữ liệu của nhà','copy of the family’s data'):aT('gia đình mẫu','sample family')}): ${failed.length}/${total} ${aT('kịch bản lỗi','scenarios failed')} (${innerWidth}×${innerHeight}, ${typeof appLanguage!=='undefined'?appLanguage:'vi'})\n${lines.join('\n')}`;
   let sent:any={};try{sent=JSON.parse(localStorage.getItem('bep-autoplay-sent')||'{}')}catch{}const key=String(note.length)+':'+lines.join('|').slice(0,200),day=sydneyDate();
   if(sent[key]===day){toastSafe(aT('Lỗi này đã được gửi hôm nay.','This was already sent today.'));return}
   const r=G.bepLadybug?.autoReport?.(note);if(r?.ok){sent={[key]:day};try{localStorage.setItem('bep-autoplay-sent',JSON.stringify(sent))}catch{}toastSafe(aT(`Đã tự gửi ${failed.length} lỗi vào Góp ý.`,`${failed.length} problem${failed.length>1?'s':''} sent to Feedback.`))}
@@ -165,13 +171,15 @@
  function toastSafe(m:string,bad=false){try{toast(m,bad)}catch{}}
 
  // ── the panel, the running bar and the ring ─────────────────────────────────────────────────────────────────────────────────
- function status(id:string){const r=results[id];return !r?`<span class="ap-st">${aT('Chưa chạy','Not run')}</span>`:r.ok?`<span class="ap-st ok">${aT('Đạt','Passed')}</span>`:`<span class="ap-st bad">${aT('Lỗi','Failed')}</span>`}
+ function status(id:string){const r=results[id];return !r?`<span class="ap-st">${aT('Chưa chạy','Not run')}</span>`:r.skipped?`<span class="ap-st">${aT('Bỏ qua','Skipped')}</span>`:r.ok?`<span class="ap-st ok">${aT('Đạt','Passed')}</span>`:`<span class="ap-st bad">${aT('Lỗi','Failed')}</span>`}
  function openPanel(){if(!isOwner()&&!saved)return;let el=document.getElementById('ap-panel');if(!el){el=document.createElement('div');el.id='ap-panel';el.className='ap-layer';document.body.append(el)}
   const n=Object.values(results),ok=n.filter(r=>r.ok).length;
   el.innerHTML=`<div class="ap-backdrop" data-ap="close"></div><section class="ap-sheet" role="dialog" aria-modal="true" aria-labelledby="ap-title"><header class="ap-head"><h2 id="ap-title">${aT('Tự chạy thử','Self-test')}</h2><button type="button" class="ap-x" data-ap="close" aria-label="${aT('Đóng','Close')}">${typeof uiArt==='function'?uiArt('close-x','btn-art'):'×'}</button></header>
-   <div class="ap-body"><p class="ap-intro">${aT('App tự bấm như một người dùng trên một gia đình mẫu tạm — dữ liệu của nhà mình không bị đụng tới. Bước nào hỏng sẽ tự gửi vào Góp ý. Bấm “Xem” để xem từng kịch bản chạy chậm.','The app taps through like a person on a temporary sample family — your family’s data is not touched. Failures are sent to Feedback automatically. Tap “Watch” to see one run slowly.')}</p>
-   ${n.length?`<p class="ap-sum" role="status">${aT(`Đạt ${ok}/${n.length} kịch bản.`,`${ok} of ${n.length} passed.`)}</p>`:''}
-   <ol class="ap-list">${SC.map(sc=>{const r=results[sc.id];return `<li class="ap-item"><div class="ap-txt"><b>${esc(aT(sc.vi,sc.en))}</b><small>${esc(aT(sc.dvi,sc.den))}</small>${r&&!r.ok?`<small class="ap-err">${esc(aT('Bước','Step'))} “${esc(r.step||'')}”: ${esc(r.msg||'')}</small>`:''}</div>${status(sc.id)}<button type="button" class="btn ap-watch" data-ap="watch" data-id="${sc.id}">${aT('Xem','Watch')}</button></li>`}).join('')}</ol></div>
+   <div class="ap-body"><p class="ap-intro">${aT('App tự bấm như một người dùng qua từng chức năng — dữ liệu thật của nhà mình không bị thay đổi. Bước nào hỏng sẽ tự gửi vào Góp ý. Bấm “Xem” để xem từng kịch bản chạy chậm.','The app taps through every feature like a person — your family’s real data is never changed. Failures are sent to Feedback automatically. Tap “Watch” to see one run slowly.')}</p>
+   <div class="ap-mode" role="radiogroup" aria-label="${aT('Chạy trên','Run on')}"><span class="ap-mode-l">${aT('Chạy trên','Run on')}</span>${([['sample',aT('Gia đình mẫu','Sample family')],['real',aT('Dữ liệu của nhà (bản sao)','Your family’s data (a copy)')]] as [string,string][]).map(([m,l])=>`<button type="button" class="chip${mode===m?' active':''}" role="radio" aria-checked="${mode===m}" data-ap="mode" data-mode="${m}">${esc(l)}</button>`).join('')}</div>
+   <p class="ap-mode-note">${mode==='real'?aT('Dùng một bản sao dữ liệu của nhà mình: món, thực đơn, tủ, đi chợ như thật. Bản sao không được lưu, không đồng bộ, không gửi đi; chạy xong là bỏ — dữ liệu thật giữ nguyên. Bước thiếu điều kiện (vd. danh sách đi chợ trống) ghi “Bỏ qua”.','Uses a copy of your family’s data: your recipes, menu, pantry and shopping. The copy is never saved, synced or sent and is dropped afterwards — your data stays as it is. Steps whose starting point is missing (an empty list…) are “Skipped”.'):aT('Dùng một gia đình mẫu tạm, giống nhau mỗi lần chạy.','Uses a temporary sample family, the same every time.')}</p>
+   ${n.length?`<p class="ap-sum" role="status">${aT(`Đạt ${ok}/${n.length} kịch bản`,`${ok} of ${n.length} passed`)}${n.some(r=>r.skipped)?aT(` (${n.filter(r=>r.skipped).length} bỏ qua)`,` (${n.filter(r=>r.skipped).length} skipped)`):''}.</p>`:''}
+   <ol class="ap-list">${SC.map(sc=>{const r=results[sc.id];return `<li class="ap-item"><div class="ap-txt"><b>${esc(aT(sc.vi,sc.en))}</b><small>${esc(aT(sc.dvi,sc.den))}</small>${r?.skipped?`<small>${esc(r.msg||'')}</small>`:''}${r&&!r.ok?`<small class="ap-err">${esc(aT('Bước','Step'))} “${esc(r.step||'')}”: ${esc(r.msg||'')}</small>`:''}</div>${status(sc.id)}<button type="button" class="btn ap-watch" data-ap="watch" data-id="${sc.id}">${aT('Xem','Watch')}</button></li>`}).join('')}</ol></div>
    <footer class="ap-foot"><button type="button" class="btn primary" data-ap="all">${art('play')}<span>${aT('Chạy tất cả','Run all')}</span></button></footer></section>`;
   (el.querySelector('[data-ap="all"]') as HTMLElement)?.focus()}
  function closePanel(){document.getElementById('ap-panel')?.remove()}
@@ -180,6 +188,7 @@
  document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('[data-ap]') as HTMLElement|null;if(!b)return;const a=b.dataset.ap;
   if(a==='open'){e.preventDefault();G.bepLadybug?.close?.(false);openPanel()}
   else if(a==='close')closePanel();
+  else if(a==='mode'){const m=b.dataset.mode==='real'?'real':'sample';if(m!==mode){mode=m;for(const k of Object.keys(results))delete results[k];try{localStorage.setItem('bep-autoplay-mode',m)}catch{}}openPanel();(document.querySelector(`#ap-panel [data-ap="mode"][data-mode="${m}"]`) as HTMLElement)?.focus()}
   else if(a==='all'){closePanel();void runList(SC,false)}
   else if(a==='watch'){const sc=SC.find(x=>x.id===b.dataset.id);if(sc){closePanel();void runList([sc],true)}}
   else if(a==='stop'&&run)run.stop=true});
@@ -188,5 +197,5 @@
  function entry(){const tabs=document.querySelector('.lb-sheet .lb-tabs');if(!tabs||!isOwner()||document.querySelector('.lb-sheet [data-ap="open"]'))return;
   tabs.insertAdjacentHTML('afterend',`<div class="ap-entry"><button type="button" class="btn ap-open" data-ap="open">${aT('Tự chạy thử','Self-test')}</button><small>${aT('App tự bấm thử các chức năng trên gia đình mẫu.','The app tries every feature on a sample family.')}</small></div>`)}
  new MutationObserver(()=>entry()).observe(document.body,{childList:true,subtree:true});
- G.bepAutoplay={open:openPanel,run:(ids?:string[],watch=false)=>runList(ids?SC.filter(s=>ids.includes(s.id)):SC,watch),results:()=>({...results}),scenarios:()=>SC.map(s=>s.id),running:()=>!!run};
+ G.bepAutoplay={setMode:(m:'sample'|'real')=>{mode=m;for(const k of Object.keys(results))delete results[k]},mode:()=>mode,open:openPanel,run:(ids?:string[],watch=false)=>runList(ids?SC.filter(s=>ids.includes(s.id)):SC,watch),results:()=>({...results}),scenarios:()=>SC.map(s=>s.id),running:()=>!!run};
 })();
