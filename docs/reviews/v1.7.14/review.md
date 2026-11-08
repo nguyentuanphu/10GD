@@ -19,6 +19,11 @@ The family's own list is on the production server and was not read. The same ste
 - *Trừ đồ đang có trong Tủ* still decides whether stock is taken off the list. When it is off, the list shows full amounts on purpose.
 - An amount picked by hand (*“Bạn chọn · Mua ít hơn cần”*) that is less than the meals need still leaves the rest on the list.
 
+## Owner decision (pop-up, 8 Nov 2026)
+- *“Tự tính là đủ (ước tính)”*. Boxes / packs without a weight count as covering what the list asked for when put away.
+- This replaces the first version's rule (31 Oct 2026) that a box was kept with no weight at all, which is what left the item on the list.
+- `units-catalog.test` follows the new decision. The count is still kept, and the mass is marked as an estimate.
+
 ## Data
 - New optional fields on pantry lots: `qtyEstimated` and `coverAsked`.
 - Existing lots are not changed until the family answers.
