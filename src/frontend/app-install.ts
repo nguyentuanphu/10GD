@@ -38,7 +38,7 @@ async function openInstall(){if(installed()){toast(iT('Bếp Nhà đã có trên
 function decorate(){const show=canOffer();
  // sidebar (tablet / desktop)
  const side=document.querySelector('.side-bottom');let sb=side?.querySelector('.install-side-link') as HTMLElement|null;
- if(side&&show&&!sb){side.insertAdjacentHTML('afterbegin',`<button type="button" class="side-link install-side-link" data-install="open"><span aria-hidden="true">${typeof moreIcon==='function'?moreIcon('install'):''}</span><span>${iT('Cài app','Install the app')}</span></button>`)}
+ if(side&&show&&!sb){const after=side.querySelector('.guide-side-link');(after?after:side).insertAdjacentHTML(after?'afterend':'beforeend',`<button type="button" class="side-link install-side-link" data-install="open"><span aria-hidden="true">${typeof moreIcon==='function'?moreIcon('install'):''}</span><span>${iT('Cài app','Install the app')}</span></button>`)}
  else if(sb&&!show)sb.remove();else if(sb)sb.lastElementChild!.textContent=iT('Cài app','Install the app');
  // Today reminder
  const main=document.getElementById('main');const old=main?.querySelector('.install-nudge');const later=+(store(LATER_KEY)||0);
