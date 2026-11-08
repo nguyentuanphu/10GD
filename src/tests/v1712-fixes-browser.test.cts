@@ -111,7 +111,9 @@ const MEMBERS=[['m-phu','Ba Phú',1],['m-mi','Mẹ Mi',1],['m-chi','Chi',.75],['
     const step=(i:number,k:string,d:number)=>page.locator(`#modal-root [data-fm="guest-step"][data-i="${i}"][data-k="${k}"][data-d="${d}"]`).click();
     await step(0,'adults',1);await step(0,'kids',1);await page.fill('#modal-root [data-guest-name="0"]','Nhà anh Tuấn');
     await page.locator('#modal-root [data-fm="guest-add"]').click();await page.fill('#modal-root [data-guest-name="1"]','Chị Lan');
-    await page.locator('#modal-root [name="to-date"]').fill(tomorrow);await page.locator('#modal-root [name="to-date"]').dispatchEvent('change');await page.locator('#modal-root [name="to-type"]').selectOption('breakfast');
+    /* v1.7.13: days and meals are the app's own chips (no phone date box or drop-down) */assert.equal(await page.locator('#modal-root .guest-when input[type="date"], #modal-root .guest-when select').count(),0,`${label}: no phone date box or drop-down in the guest sheet`);
+    await page.locator(`#modal-root [data-guest-pick="to-date"][data-v="${tomorrow}"]`).click();await page.locator('#modal-root [data-guest-pick="to-type"][data-v="breakfast"]').click();
+    assert.ok(await page.locator(`#modal-root [data-guest-pick="to-date"][data-v="${tomorrow}"]`).evaluate((b:any)=>b.classList.contains('active')&&b.getBoundingClientRect().height>=44),`${label}: the chosen day chip is marked, ≥ 44 px`);
     assert.match(await page.locator('#guest-total').innerText(),lang==='en'?/Adds 3\.5 portions per meal/:/Thêm 3,5 suất mỗi bữa/,`${label}: the sheet adds up the portions`);
     const meals=await page.locator('#guest-meals').innerText();assert.match(meals,lang==='en'?/\d+ meals?:/:/\d+ bữa:/,`${label}: the sheet lists the meals (${meals})`);
     const foot:any=await E(`(()=>{const bs=[...document.querySelectorAll('#modal-root .modal-footer > .btn')],r=bs.map(b=>b.getBoundingClientRect());return{n:bs.length,row:Math.abs(r[0].top-r[1].top)<=1,size:Math.abs(r[0].width-r[1].width)<=1,art:bs.every(b=>!!b.dataset.art&&b.querySelectorAll('svg').length===1)}})()`);
