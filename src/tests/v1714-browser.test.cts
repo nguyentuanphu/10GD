@@ -3,18 +3,18 @@
 //  1. a box / pack bought without a known weight was put away as 0 g, so the list kept asking for it in full;
 //  2. rounding leftovers (996.9 g needed, 996.9 g kept) showed as 0.1 g to buy.
 // Now a box / pack covers what the list asked for when put away (an estimate, shown in the pantry); boxes / packs put away before
-// this fix are not guessed — the list asks “Đủ rồi / Vẫn cần mua”. 375×812 (VI) and 1280×800 (EN); Chromium simulation.
+// this fix are not guessed — the list asks “Đủ rồi / Vẫn cần mua”. 375×812, 320×740, 820×1100 (VI) and 1280×800 (EN); Chromium simulation.
 import assert from 'node:assert/strict';
 import {readFileSync,mkdirSync} from 'node:fs';
 import {resolve,extname} from 'node:path';
 import {chromium} from 'playwright';
 const origin='https://kitchen.test',out='docs/reviews/v1.7.14';mkdirSync(out,{recursive:true});
 const mime:any={'.js':'application/javascript','.css':'text/css','.html':'text/html','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.webmanifest':'application/manifest+json'};
-const sizes:any={mobile:{width:375,height:812},desktop:{width:1280,height:800}};
+const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tablet:{width:820,height:1100},desktop:{width:1280,height:800}};
 (async()=>{
  const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});
  try{
-  for(const [size,lang] of [['mobile','vi'],['desktop','en']] as const){const label=`${size} ${lang}`;
+  for(const [size,lang] of [['mobile','vi'],['narrow','vi'],['tablet','vi'],['desktop','en']] as const){const label=`${size} ${lang}`;
    const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],serviceWorkers:'block',reducedMotion:'reduce',timezoneId:'Australia/Sydney'});
    await context.addInitScript((lang:string)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-local-locked','yes');localStorage.setItem('guest/bep-language',lang)},lang);
    const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -42,7 +42,21 @@ const sizes:any={mobile:{width:375,height:812},desktop:{width:1280,height:800}};
    // “Vẫn cần mua” keeps it and stops asking
    await E(`(()=>{const p=state.pantry.find(p=>p.id==='qa-old-box');p.qty=0;delete p.qtyEstimated;delete p.coverAsked;save();render()})()`);await page.locator(`#main .shop-row:has([data-id="${boxed}"]) [data-flow="pack-need"]`).click();await page.waitForTimeout(300);
    assert.deepEqual(await toBuy(),[boxed],`${label}: “Vẫn cần mua” keeps it on the list`);assert.equal(await page.locator('#main .pack-cover').count(),0,`${label}: and stops asking`);
+   // Today (owner, 8 Nov 2026, screenshot): “nhiều bữa random bị hiện lên trước alert, welcome và clear fridge” — urgent notes, then
+   // the greeting / use-it-up rows, then the notices, and only then the meals (the next meal first)
+   await E(`(()=>{selectedDate=sydneyDate();weekStart=planStartOf(state,selectedDate);const d=addDays(sydneyDate(),2),day=ensureWeek(state,planStartOf(state,d)).days[d],t=MEAL_TYPES.find(x=>fmMealOn(day,x)&&day[x]&&!day[x].cooked);
+    setMealGuests(day[t],[{name:'Nhà anh Tuấn',adults:3,kids:0,invite:{id:'inv-qa140001',token:'Q'.repeat(32),deadline:new Date(Date.now()+86400000).toISOString(),expiresAt:new Date(Date.now()+3*86400000).toISOString()},rsvp:{status:'yes',at:new Date().toISOString()}}]);save();view='today';render();scrollTo(0,0);window.__qa={d,t}})()`);
+   const order:any=await E(`[...document.querySelector('#main').children].map(c=>c.classList.contains('family-urgent')?'urgent':c.classList.contains('flow-rows-top')?'top':c.classList.contains('invite-notices')?'guests':c.classList.contains('next-meal')?'next':c.classList.contains('dashboard-grid')?'grid':'').filter(Boolean)`);
+   assert.deepEqual(order,['urgent','top','guests','next','grid'],`${label}: urgent notes, greeting rows, guest notice, then the meals (${order})`);
+   // guests who answered for a coming day are on Today, with their answer and the week that counts them (owner: “không thấy thông tin gì”)
+   const notice=page.locator('#main .invite-notices');const nt=await notice.innerText();assert.match(nt,lang==='en'?/Guests coming up[\s\S]*Nhà anh Tuấn · coming · 3 adults/:/Khách sắp tới[\s\S]*Nhà anh Tuấn · sẽ đến · 3 lớn/,`${label}: upcoming guests with their answer (${nt})`);
+   assert.ok(await notice.locator('[data-fm="guests"]').evaluate((b:any)=>b.getBoundingClientRect().height>=44&&!b.querySelector('svg')),`${label}: “Xem” ≥ 44 px, words only`);await notice.scrollIntoViewIfNeeded();await shot('today-guests');
+   await notice.locator('[data-fm="guests"]').click();await page.locator('#modal-root .guest-invite-status').waitFor();assert.match(await page.locator('#modal-root .guest-invite-status').innerText(),lang==='en'?/coming · 3 adults/:/sẽ đến · 3 lớn/,`${label}: “Xem” opens that meal with the answer`);await E('closeModal()');
+   // “Có khách” on a day without guests lists the guests already planned
+   await page.locator('#main .guest-shortcut').click();const up=page.locator('#modal-root .guest-upcoming');await up.waitFor();assert.match(await up.innerText(),/Nhà anh Tuấn/,`${label}: the guest sheet lists guests already planned`);await shot('guest-sheet-planned');await E('closeModal()');
+   // 👍 / 👎 on each dish show their drawing (they showed only “0” before)
+   assert.ok(await E(`(()=>{const b=[...document.querySelectorAll('#main .mr-btn')];return b.length>0&&b.every(x=>x.querySelector('svg.btn-art')&&x.getBoundingClientRect().height>=44)})()`),`${label}: like / dislike buttons drawn, ≥ 44 px`);
    const ow=await E('document.documentElement.scrollWidth-innerWidth');assert.ok(ow<=1,`${label}: overflow ${ow}`);assert.deepEqual(errors,[],`${label}: page errors`);await context.close();console.log('✓',label)}
-  console.log('PASS v1.7.14: nothing left to buy after shopping and putting away; boxes of unknown weight handled');
+  console.log('PASS v1.7.14: nothing left to buy after shopping and putting away; boxes of unknown weight handled; Today order; guests coming up; drawn like / dislike');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

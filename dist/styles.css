@@ -2372,6 +2372,12 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 .invite-notices p{margin:0;overflow-wrap:anywhere}
 .invite-late{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .invite-late .btn{min-height:44px}
+/* v1.7.14: guests coming up (Today and the guest sheet) */
+.invite-soon{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.invite-soon li{display:flex;align-items:center;justify-content:space-between;gap:8px;overflow-wrap:anywhere}
+.invite-soon li>span{min-width:0;flex:1}
+.invite-soon .btn{min-height:44px;flex:none}
+.guest-upcoming{margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:14px}
 /* v1.7.14: a box / pack put away without a known weight — the family says whether it is enough */
 .pack-cover{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:8px 0 0;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--orange,#c98258) 10%,transparent)}
 .pack-cover p{margin:0;flex:1 1 220px;overflow-wrap:anywhere}
