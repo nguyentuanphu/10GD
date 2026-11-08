@@ -2360,3 +2360,15 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 @media (max-width:360px){#main .week-tools>[data-flow="plan-start"],#main .week-tools>.share-btn{flex:1 1 0;min-width:0;white-space:normal;line-height:1.15;text-align:center;justify-content:center}
  #main .week-tools>.week-switch{gap:4px;flex-wrap:nowrap}#main .week-tools>.week-switch b{font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px));white-space:nowrap}#main .week-tools>.week-switch .text-btn{white-space:nowrap;padding:0 4px}}
 @media (max-width:360px){#main .week-tools>.week-start-pick{flex:1 1 100%}#main .week-tools>.week-switch{flex-wrap:wrap}}
+/* v1.7.13 guest invitations */
+.guest-invite{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
+.guest-invite>summary{min-height:44px;display:flex;align-items:center;font-weight:700;color:var(--green);cursor:pointer}
+.guest-invite .pick-label{margin:8px 0 2px;font-weight:700}
+.guest-invite .guest-invite-send{width:100%;min-height:48px;margin-top:10px}
+.guest-invite-status{margin:0 0 6px;overflow-wrap:anywhere}
+.guest-invite .btn.small{min-height:44px}
+.guest-invite-hint a{font-weight:700}
+.invite-notices{display:grid;gap:8px}
+.invite-notices p{margin:0;overflow-wrap:anywhere}
+.invite-late{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.invite-late .btn{min-height:44px}

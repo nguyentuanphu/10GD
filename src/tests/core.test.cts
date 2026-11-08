@@ -126,6 +126,21 @@ check(!validImport(null),'null backup is rejected without throwing');
  check(Object.keys(mealIngredients(later,s4)).length===0,'a dish served from leftovers is not bought or taken from the pantry again');
  eatLeftover(s4,lo.id,1);check(!s4.leftovers.some(x=>x.id===lo.id),'eaten up leftovers disappear');dropLeftover(s4,fz.id);check(s4.leftovers===undefined,'thrown out leftovers disappear');
  check(validImport(JSON.parse(JSON.stringify(s4))),'meals with leftover dishes pass backup validation')}
+// v1.7.13 guest invitations: a group the family invited counts by its answer
+{const s6=defaults(),w6=ensureWeek(s6,monday(sydneyDate())),days=Object.keys(w6.days).sort(),m1=w6.days[days[0]].dinner,m2=w6.days[days[1]].lunch;m1.servings=null;m2.servings=null;const b1=mealServings(m1,s6);
+ const inv={id:'inv-abc12345',token:'A'.repeat(32),deadline:'2026-11-13T10:00:00Z',expiresAt:'2026-11-15T12:59:00Z'};
+ setMealGuests(m1,[{name:'Nhà anh Tuấn',adults:2,kids:0,invite:inv,maybe:'half'}]);setMealGuests(m2,[{name:'Nhà anh Tuấn',adults:2,kids:0,invite:inv,maybe:'half'}]);
+ check(m1.guests[0].invite.token===inv.token&&m1.guests[0].maybe==='half','an invited group keeps its invitation and the family’s “not sure” choice');
+ check(Math.abs(mealServings(m1,s6)-(b1+2))<1e-9,'no answer yet: the family’s own estimate counts');
+ const ch=applyInviteReplies(s6,[{inviteId:'inv-abc12345',response:{status:'maybe',adults:3,kids:2,note:'muộn',at:'2026-11-10T00:00:00Z'}}]);
+ check(ch===2&&m1.guests[0].adults===3&&m2.guests[0].kids===2&&m1.guests[0].rsvp.note==='muộn','an answer is written into every meal of that group');
+ check(applyInviteReplies(s6,[{inviteId:'inv-abc12345',response:{status:'maybe',adults:3,kids:2,at:'2026-11-10T00:00:00Z'}}])===0,'the same answer is applied once');
+ check(Math.abs(mealServings(m1,s6)-(b1+(3+1)*.5))<1e-9,'“not sure” counted half when the family chose half');
+ m1.guests[0].maybe='none';check(Math.abs(mealServings(m1,s6)-b1)<1e-9,'“not sure” not counted when the family chose so');m1.guests[0].maybe='full';check(Math.abs(mealServings(m1,s6)-(b1+4))<1e-9,'“not sure” counted fully by default');
+ applyInviteReplies(s6,[{inviteId:'inv-abc12345',response:{status:'busy',adults:0,kids:0,at:'2026-11-12T00:00:00Z'}}]);check(Math.abs(mealServings(m1,s6)-b1)<1e-9&&m1.guests[0].adults===3,'busy / can’t come: not counted, the last numbers kept for reference');
+ check(validImport(JSON.parse(JSON.stringify(s6))),'invitations and answers pass backup validation');
+ const bad=JSON.parse(JSON.stringify(s6));Object.values(bad.weeks)[0].days[days[0]].dinner.guests[0].invite.token='short';check(!validImport(bad),'a malformed invitation is rejected');
+ const bad2=JSON.parse(JSON.stringify(s6));Object.values(bad2.weeks)[0].days[days[0]].dinner.guests[0].rsvp.status='party';check(!validImport(bad2),'an unknown answer is rejected')}
 function shoppingMealIngredientsSafe(s,m){return m.cooked?{}:mealIngredients(m,s)}
 `,ctx);
 // v1.7.12 (owner, 8 Nov 2026 — “cất đồ đúng chỗ tự động”): put-away places and use-by suggestions

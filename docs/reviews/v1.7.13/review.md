@@ -1,4 +1,4 @@
-# v1.7.13 — guest chips, meal buttons, Today order, tidy week tools, a way out of shopping mode
+# v1.7.13 — guest chips, meal buttons, Today order, tidy week tools, a way out of shopping mode, guest invitations
 
 Henry's feedback on v1.7.12, 8 Nov 2026 (~09:50 Sydney time), with iPhone screenshots. Branch `release/v1.7.13`.
 
@@ -42,6 +42,47 @@ Henry's feedback on v1.7.12, 8 Nov 2026 (~09:50 Sydney time), with iPhone screen
   - **Đi chợ xong** leaves and opens *Cất đồ* when something was bought.
 - **Reduced motion:** the border moves only when motion is allowed and is still under *reduce motion* (rule 13).
 
+## 6. Guest invitations — guests answer by link, without an account
+- **Asked (8 Nov 2026, Sydney time):** *“Link invite để tôi gửi đến gia đình đó để họ tự chọn bao nhiêu lớn bao nhiêu trẻ con, màn hình đơn giản để họ chọn và submit, sau đó có reminder… nếu họ không dùng app thì reminder như thế nào, và có option cho họ báo bận… chủ yếu khi gửi link vầy là 1 cách để giới thiệu app.”*
+- **Plan approved by pop-up:**
+  - “chưa chắc” counted as the family chooses;
+  - reminders by the guest's own calendar plus the family re-sending;
+  - a light intro at the bottom;
+  - busy = removed from the meal and the family is told at once;
+  - the family chooses the answer deadline and when the link ends;
+  - *“mình có tài khoản là tất nhiên”*: the family has an account, guests answer without one;
+  - *“làm luôn ở nhánh này”*.
+- **Family side** (guest sheet, each named group): **Mời qua link — khách tự báo số người**.
+  - **Options:**
+    - *Khách trả lời trước*: 2 ngày trước / 1 ngày trước (21:00 Sydney) / sáng hôm đó (09:00);
+    - *Link hết hạn*: sau hạn trả lời / sau bữa (23:59 of the last meal day) / sau 7 ngày;
+    - *Khách “chưa chắc” thì giỏ đi chợ*: tính đủ / tính một nửa / không tính.
+  - **Gửi lời mời** (drawn) saves the guests on the chosen meals, creates the link and opens the share sheet with a ready message: *“Nhà Phú mời Nhà anh Tuấn bữa tối T7 14/11. Bấm để báo bao nhiêu người đến (không cần tài khoản): …/rsvp.html#t=…”*.
+  - After sending, the group shows the answer (or *“chưa trả lời · hạn …”*) and **Gửi lại link**.
+  - Without a family account the sheet says so, with a sign-in link.
+- **Guest page** (`rsvp.html`; VI │ EN, follows the phone's language):
+  - *“Nhà Phú mời bạn”*, the meals, the deadline in Sydney time;
+  - **Sẽ đến / Chưa chắc / Không đến được**, then adults / children with drawn − / + (the family's estimate first) and an optional message → **Gửi** → thank you;
+  - **Thêm vào lịch** (a calendar file with every meal and two reminders: a day before and 2 hours before), **Đổi câu trả lời**, **Báo bận đột xuất**;
+  - after the deadline only “không đến được / báo bận”; an ended or withdrawn link shows a short note;
+  - at the bottom a light *“Bếp Nhà giúp nhà bạn… · Dùng thử Bếp Nhà →”* and a privacy link. No tracking.
+- **Answers back:**
+  - The family's phones get a notification. “Bận đột xuất” is sent as urgent.
+  - The app picks up answers (at most once a minute, when back online and when the app is opened again) and writes them into every meal of that group.
+  - Counting: yes as answered; not sure as chosen; no / busy 0; no answer yet the family's estimate.
+  - The meal card shows *“Khách: … · Nhà anh Tuấn (sẽ đến)”*.
+- **Today:**
+  - *“Hôm nay có khách: …”* on a day with guests;
+  - *“Chị Lan chưa trả lời lời mời (bữa sáng 8/11). — Nhắc lại”* once the deadline has passed. *Nhắc lại* opens the share sheet with a reminder and the same link.
+- **Server:**
+  - new store `bep-rsvp`, keyed by an unguessable token (24 random bytes);
+  - family operations `invite-create` / `invites` / `invite-cancel` (account, not viewer, not paused);
+  - public function `rsvp` that only reads the invitation's public part and takes answers: same origin; deadline, expiry and withdrawal enforced; at most 20 changes a day; `noindex`, `no-store`;
+  - records deleted 30 days after the link ends.
+- **Privacy page:** new section *6a. Lời mời khách / Guest invitations*.
+- **Data:** optional `guest.invite {id, token, deadline, expiresAt}`, `guest.rsvp {status, note, at}`, `guest.maybe`, all validated. No phone numbers or e-mail stored.
+- **Not done (as planned):** automatic SMS / e-mail to guests (costs per message, needs a provider key and guests' contact details).
+
 ## Tests
 - **New suite `test:v1713:browser`** (in `test:all`), at 375×812, 320×740, 820×1100 (VI) and 1280×800 (EN). It checks:
   - guest chips: no date box / drop-down, ≥ 44 px, scrolling inside the box, picking a day, last day never before first;
@@ -50,12 +91,17 @@ Henry's feedback on v1.7.12, 8 Nov 2026 (~09:50 Sydney time), with iPhone screen
   - week tools order, small gap, short label, height above the plan actions;
   - Thoát / Đi chợ xong labels, ≥ 56 px, glowing, drawn, side by side, still under reduced motion and moving without it; *Thoát* leaves without a sheet;
   - no overflow, no page errors.
+- **Invitations:**
+  - `rsvp.test` (server): token, what a guest sees, answers and rules, deadline, end, withdrawal, daily limit, family notified, deletion after 30 days;
+  - `core.test`: counting by answer and choice, answers applied once to every meal, validation;
+  - new browser suite `test:rsvp:browser`: guest page at 375 / 320 / 820 / 1280, VI and EN, answer, change, busy, calendar file (18:30 Sydney, two reminders), deadline, ended, wrong link, language, ≥ 44 px, no overflow; family side at 375 and 1280: no account → note; invite options; link shared; answer back on the card; Today notices and “Nhắc lại”.
 - **Updated:**
   - `v1712-fixes` (guest days are picked with chips; no date box / drop-down);
   - `v1712-flow` (Today order now has the row group under the urgent notes).
 
 ## Evidence (Chromium and WebKit viewport simulation, not physical devices)
 - **Chromium:** `docs/reviews/v1.7.13/{guest-chips,meal-card-buttons,today-rows,week-tools,shopping-bar}-{vi,en}-{size}.png`.
+- **Invitations:** `docs/reviews/v1.7.13/invite/{guest-open,guest-answer,guest-thanks,guest-busy,guest-ended}-{vi,en}-{size}.png`, `invite/{family-invite-options,family-answer,family-today-notices}-{vi,en}-{size}.png`.
 - **WebKit, iPhone 15 Pro Max emulation:** `docs/reviews/v1.7.13/webkit-iphone15promax-{guest-chips,meal-card-buttons,today-rows,week-tools,shopping-bar}.png`.
 
 ## Limits

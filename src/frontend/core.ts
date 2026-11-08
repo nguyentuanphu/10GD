@@ -33,12 +33,25 @@ function mealServings(meal,state){if(meal.servings!==null)return meal.servings;r
 // state.guestBook (optional) remembers named groups for next time: [{name,adults,kids}], most recent first.
 const GUEST_KID_PORTION=.5,GUEST_MAX=30,GUEST_GROUPS_MAX=10,GUEST_BOOK_MAX=20,GUEST_NAME_MAX=60;
 function guestGroups(meal){return Array.isArray(meal?.guests)?meal.guests:[]}
-function guestServings(meal){return guestGroups(meal).reduce((n,g)=>n+(g.adults||0)+(g.kids||0)*GUEST_KID_PORTION,0)}
+// v1.7.13 invitations: a group the family invited counts by its answer — yes: as answered; no / busy: 0; not sure: as the family
+// chose for that invitation (full / half / none); no answer yet: the family's own estimate.
+const GUEST_MAYBE={full:1,half:.5,none:0};
+function guestWeight(g){const st=g?.rsvp?.status;if(st==='no'||st==='busy')return 0;if(st==='maybe')return GUEST_MAYBE[g.maybe]??1;return 1}
+function guestServings(meal){return guestGroups(meal).reduce((n,g)=>n+((g.adults||0)+(g.kids||0)*GUEST_KID_PORTION)*guestWeight(g),0)}
 const guestInt=(v)=>Number.isInteger(v??0)&&(v??0)>=0&&(v??0)<=GUEST_MAX;
-function validGuestGroup(g){return !!g&&typeof g==='object'&&!Array.isArray(g)&&guestInt(g.adults)&&guestInt(g.kids)&&(g.name===undefined||typeof g.name==='string'&&g.name.length<=GUEST_NAME_MAX)}
+const INVITE_ID=/^inv-[a-z0-9]{6,40}$/,INVITE_TOKEN=/^[A-Za-z0-9_-]{32}$/,isoTime=(t)=>typeof t==='string'&&t.length<=40&&Number.isFinite(Date.parse(t));
+function validInvite(v){return v===undefined||!!v&&typeof v==='object'&&INVITE_ID.test(v.id||'')&&INVITE_TOKEN.test(v.token||'')&&isoTime(v.deadline)&&isoTime(v.expiresAt)}
+function validRsvp(r){return r===undefined||!!r&&typeof r==='object'&&['yes','maybe','no','busy'].includes(r.status)&&(r.note===undefined||typeof r.note==='string'&&r.note.length<=200)&&(r.at===undefined||isoTime(r.at))}
+function validGuestGroup(g){return !!g&&typeof g==='object'&&!Array.isArray(g)&&guestInt(g.adults)&&guestInt(g.kids)&&(g.name===undefined||typeof g.name==='string'&&g.name.length<=GUEST_NAME_MAX)&&validInvite(g.invite)&&validRsvp(g.rsvp)&&(g.maybe===undefined||['full','half','none'].includes(g.maybe))}
 function validGuests(list){return list===undefined||Array.isArray(list)&&list.length<=GUEST_GROUPS_MAX&&list.every(validGuestGroup)}
 function validGuestBook(list){return list===undefined||Array.isArray(list)&&list.length<=GUEST_BOOK_MAX&&list.every(g=>validGuestGroup(g)&&typeof g.name==='string'&&g.name.trim().length>0)}
-function cleanGuestGroups(list){const n=(v)=>Math.max(0,Math.min(GUEST_MAX,Math.round(+v||0)));return (Array.isArray(list)?list:[]).map(g=>({name:String(g?.name||'').trim().slice(0,GUEST_NAME_MAX),adults:n(g?.adults),kids:n(g?.kids)})).filter(g=>g.adults||g.kids).slice(0,GUEST_GROUPS_MAX).map(g=>g.name?g:{adults:g.adults,kids:g.kids})}
+function cleanGuestGroups(list){const n=(v)=>Math.max(0,Math.min(GUEST_MAX,Math.round(+v||0)));return (Array.isArray(list)?list:[]).map(g=>({name:String(g?.name||'').trim().slice(0,GUEST_NAME_MAX),adults:n(g?.adults),kids:n(g?.kids),...(validInvite(g?.invite)&&g?.invite?{invite:{id:g.invite.id,token:g.invite.token,deadline:g.invite.deadline,expiresAt:g.invite.expiresAt}}:{}),...(validRsvp(g?.rsvp)&&g?.rsvp?{rsvp:{...g.rsvp}}:{}),...(['full','half','none'].includes(g?.maybe)?{maybe:g.maybe}:{})})).filter(g=>g.adults||g.kids||g.invite).slice(0,GUEST_GROUPS_MAX).map(g=>{if(!g.name)delete g.name;return g})}
+// the answers the family's invitations got (server list) written into every meal the group is in; returns how many groups changed
+function applyInviteReplies(state,invites){let changed=0;const byId=new Map((invites||[]).filter(x=>x&&x.inviteId).map(x=>[x.inviteId,x]));if(!byId.size)return 0;
+ for(const w of Object.values(state.weeks||{}))for(const day of Object.values((w as any).days||{}))for(const m of Object.values(day as any)){const list=(m as any)?.guests;if(!Array.isArray(list))continue;
+  for(const g of list){const inv=g.invite&&byId.get(g.invite.id),r=inv?.response;if(!r||(g.rsvp&&g.rsvp.at===r.at&&g.rsvp.status===r.status))continue;
+   g.rsvp={status:r.status,...(r.note?{note:String(r.note).slice(0,200)}:{}),at:r.at};if(r.status==='yes'||r.status==='maybe'){g.adults=Math.max(0,Math.min(GUEST_MAX,r.adults|0));g.kids=Math.max(0,Math.min(GUEST_MAX,r.kids|0))}changed++}}
+ return changed}
 function setMealGuests(meal,groups){const c=cleanGuestGroups(groups);if(c.length)meal.guests=c;else delete meal.guests;return meal}
 function rememberGuests(state,groups){const book=Array.isArray(state.guestBook)?state.guestBook.slice():[];for(const g of cleanGuestGroups(groups).slice().reverse()){if(!g.name)continue;const i=book.findIndex(x=>x.name.toLowerCase()===g.name.toLowerCase());if(i>=0)book.splice(i,1);book.unshift({name:g.name,adults:g.adults,kids:g.kids})}if(book.length)state.guestBook=book.slice(0,GUEST_BOOK_MAX);return state.guestBook||[]}
 function forgetGuest(state,name){if(!Array.isArray(state.guestBook))return;state.guestBook=state.guestBook.filter(x=>x.name.toLowerCase()!==String(name).toLowerCase());if(!state.guestBook.length)delete state.guestBook}
