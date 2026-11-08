@@ -36,7 +36,7 @@ const truth=key=>{const sum=RECEIPTS[key].expect;return sum};
   await page.goto('https://kitchen.test/#expenses');await page.locator('#main .page-heading').waitFor({timeout:20000});await page.evaluate(seed);
   for(const key of ['aldi-wolli-creek','coles-16-waterloo']){
    const file=await renderReceipt(page,RECEIPTS[key].text);const t0=Date.now();
-   await page.evaluate(async f=>{newReceipt();await readReceiptPhoto(f)},file);
+   await page.evaluate(async f=>{newReceipt();await readReceiptPhoto(f);/* v1.7.14: a photo opens “Cắt hóa đơn” first — “Đọc cả ảnh” reads the whole photo as before */if(document.querySelector('#modal-root [data-rcrop="whole"]'))await ReceiptCrop.read(true)},file);
    const d=await draftSummary(page),exp=truth(key),want=RECEIPTS[key].expect;
    const rp=await page.evaluate(t=>ReceiptParse.parseReceipt(t).items.filter(i=>i.kind==='item').map(i=>[i.name,i.price]),RECEIPTS[key].text);
    const got=d.items.map(i=>i[1]);let ok=0;const pool=[...got];for(const[,p]of rp){const k=pool.findIndex(x=>Math.abs(x-p)<0.005);if(k>=0){ok++;pool.splice(k,1)}}

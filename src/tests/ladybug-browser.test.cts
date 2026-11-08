@@ -209,8 +209,9 @@ const dim=(s:string)=>`${sizes[s].width}x${sizes[s].height}`;
   assert.deepEqual(errors,[]);await context.close()}
  console.log('PASS responsive: Studio shortcut (top bar on desktop, account menu everywhere); bug and sheet at 320×740, 375×812, 820×1100, 1280×800 (light/dark, VI/EN), no overflow');
  // privacy page section linked from the sheet
- for(const lang of ['vi','en']){const context=await browser.newContext({locale:'vi-VN',viewport:sizes.mobile});const page=await context.newPage();await route(page,null);await page.goto(origin+`/privacy.html?lang=${lang}#feedback`);await page.waitForSelector(`main[lang="${lang}"] h1`);
+ for(const lang of ['vi','en']){const context=await browser.newContext({locale:'vi-VN',viewport:sizes.mobile});const page=await context.newPage();await route(page,null);await page.goto(origin+`/feedback-privacy.html?lang=${lang}`);/* v1.7.14 (owner pop-up): the ladybug section has its own page, linked from the sheet; the public privacy page does not mention it */await page.waitForSelector(`main[lang="${lang}"] h1`);
   const t=await page.locator(`main[lang="${lang}"] #${lang==='en'?'feedback-en':'feedback'}`).innerText();for(const w of lang==='en'?['only when you press','13 months','Network addresses are not stored']:['chỉ khi bạn bấm','13 tháng','Không lưu địa chỉ IP'])assert.ok(t.includes(w),lang+': '+w);assert.ok(!/netlify|blobs/i.test(t));await noOverflow(page,'privacy '+lang);await context.close()}
- console.log('PASS privacy page: Góp ý / Feedback section (VI/EN)');
+ {const pv=require('node:fs').readFileSync('dist/privacy.html','utf8').replace(/<!--[\s\S]*?-->/g,'');assert.ok(!/bọ rùa|ladybug|feedback-privacy/i.test(pv),'the public privacy page does not mention the ladybug')}
+ console.log('PASS feedback page: Góp ý / Feedback section (VI/EN), linked from the sheet; not on the public privacy page');
  await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

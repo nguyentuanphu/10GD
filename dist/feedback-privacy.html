@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="same-origin">
+<title>Góp ý (con bọ rùa) · FamTray · Bếp Nhà</title>
+<link rel="icon" href="family-logo.png" type="image/png">
+<!-- v1.7.14: what the ladybug feedback tool sends, moved here from privacy.html (owner pop-up, 8 Nov 2026: it is the operator's own
+     tool for invited testers, not for guests). Linked only from the ladybug sheet. -->
+<script src="privacy-head.js"></script>
+<style>
+:root{--bg:#f6f5f0;--panel:#fff;--line:#e2e1d8;--text:#22332b;--muted:#5f6a62;--brand:#174e3c;--accent:#b8643a;--focus:#c87649;color-scheme:light}
+html[data-theme="dark"]{--bg:#111714;--panel:#18211c;--line:#2f3b34;--text:#e6ece8;--muted:#a7b3ab;--brand:#8fd1ae;--accent:#e39a6f;--focus:#e39a6f;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,'Segoe UI',Roboto,'Be Vietnam Pro',sans-serif;-webkit-text-size-adjust:100%}
+a{color:var(--brand);text-underline-offset:2px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.wrap{max-width:820px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
+header.top{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding:8px 0 4px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--brand);text-decoration:none;min-height:44px}
+.brand img{width:32px;height:32px;border-radius:8px}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.btn{min-height:44px;min-width:44px;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.btn[aria-pressed="true"]{border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand);font-weight:600}
+h1{font-size:clamp(1.5rem,4.5vw,2rem);line-height:1.25;margin:16px 0 4px}
+h2{font-size:1.2rem;margin:0 0 8px;line-height:1.35}
+h3{font-size:1rem;margin:14px 0 6px}
+.updated{display:inline-block;font-weight:600;color:var(--accent);margin:0 0 8px}
+.lead{color:var(--muted);margin:0 0 16px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0;overflow-wrap:anywhere}
+section:target{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand)}
+ul{padding-left:1.2em;margin:6px 0}li{margin:4px 0}
+nav.toc ul{list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+nav.toc a{display:inline-flex;align-items:center;min-height:44px;padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--panel);text-decoration:none}
+code{font:600 .92em ui-monospace,Menlo,Consolas,monospace;overflow-wrap:anywhere}
+.muted{color:var(--muted)}
+html[data-lang="vi"] [lang="en"].doc,html[data-lang="en"] [lang="vi"].doc{display:none}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+</head>
+<body data-title-vi="Góp ý (con bọ rùa) · FamTray · Bếp Nhà" data-title-en="Feedback (the ladybug) · FamTray · Bếp Nhà">
+<div class="wrap">
+<header class="top">
+ <a class="brand" href="/"><img src="family-logo.png" alt=""><span>FamTray · Bếp Nhà</span></a>
+ <div class="tools" role="group" aria-label="Ngôn ngữ · Language">
+  <button class="btn" type="button" data-set-lang="vi" lang="vi">Tiếng Việt</button>
+  <button class="btn" type="button" data-set-lang="en" lang="en">English</button>
+ </div>
+</header>
+<main class="doc" lang="vi" id="vi">
+ <h1>Góp ý (con bọ rùa)</h1>
+ <p class="lead">Công cụ góp ý dành cho người được mời thử ứng dụng. Phần còn lại ở trang <a href="/privacy.html">Quyền riêng tư</a>.</p>
+ <section id="feedback" aria-labelledby="vi-feedback"><h2 id="vi-feedback">Góp ý (con bọ rùa)</h2>
+  <p>Con bọ rùa nổi trên màn hình dùng để gửi góp ý hoặc báo lỗi. Chỉ hiện với tài khoản được mời thử, hoặc với mọi người khi người vận hành bật cho tất cả.</p>
+  <ul><li><b>Gửi gì:</b> loại góp ý và chữ bạn viết; ảnh <b>chỉ khi bạn bấm</b> “Chụp màn hình” hoặc chọn ảnh — bạn xem lại và có thể che bớt hoặc xoá ảnh trước khi gửi. Ảnh được nén lại và bỏ thông tin máy ảnh/vị trí.</li>
+  <li><b>Thông tin kỹ thuật kèm theo</b> (liệt kê đầy đủ trong khung góp ý): trang đang mở, phiên bản app, loại máy (điện thoại / máy tính bảng / máy tính), ngôn ngữ, giao diện sáng/tối, kích thước màn hình, có mạng hay không, thời gian, và vài dòng lỗi gần đây của app (đã bỏ email, số dài và chữ trong ngoặc).</li>
+  <li><b>Không gửi:</b> tên, email, công thức, thực đơn hay dữ liệu gia đình — trừ khi chúng hiện trong ảnh bạn chọn gửi. Không lưu địa chỉ IP.</li>
+  <li>Nếu bạn đăng nhập, góp ý gắn với tên tài khoản để bạn xem trả lời trong “Góp ý của tôi”. Khi dùng không cần tài khoản, máy dùng một mã ngẫu nhiên (máy chủ chỉ lưu mã băm).</li>
+  <li>Khi không có mạng, góp ý được giữ trên máy và tự gửi một lần khi có mạng lại.</li>
+  <li>Chỉ người vận hành ứng dụng đọc góp ý; mỗi lần mở và mỗi thay đổi được ghi vào nhật ký kiểm tra. Góp ý và ảnh tự xoá sau 13 tháng.</li></ul>
+ </section>
+</main>
+<main class="doc" lang="en" id="en">
+ <h1>Feedback (the ladybug)</h1>
+ <p class="lead">The feedback tool for people invited to test the app. Everything else is on the <a href="/privacy.html">Privacy</a> page.</p>
+ <section id="feedback-en" aria-labelledby="en-feedback"><h2 id="en-feedback">Feedback (the ladybug)</h2>
+  <p>The floating ladybug sends feedback or reports a problem. It only shows for accounts invited to test, or for everyone when the operator switches it on for all.</p>
+  <ul><li><b>What is sent:</b> the kind of feedback and what you write; a picture <b>only when you press</b> “Take screenshot” or choose one — you see it first and can hide parts of it or remove it before sending. Pictures are re-compressed and lose camera/location details.</li>
+  <li><b>Technical details sent with it</b> (listed in full in the feedback sheet): the page you were on, app version, device class (phone / tablet / computer), language, light/dark theme, screen size, online or not, the time, and a few recent app error lines (with emails, long numbers and quoted text removed).</li>
+  <li><b>Never sent:</b> names, email, recipes, meal plans or family data — unless they appear in a picture you choose to send. Network addresses are not stored.</li>
+  <li>When you are signed in, feedback is linked to your username so you can read replies under “My feedback”. Without an account, the device uses a random code (the server keeps only a hash of it).</li>
+  <li>Offline, feedback waits on the device and is sent once when you are back online.</li>
+  <li>Only the app operator reads feedback; each view and change is written to an audit log. Feedback and pictures are deleted after 13 months.</li></ul>
+ </section>
+</main>
+</div>
+<script src="privacy-page.js"></script>
+</body>
+</html>

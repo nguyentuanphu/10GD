@@ -23,7 +23,8 @@ const T:any={vi:{loading:'Đang mở lời mời…',invites:(h:string)=>`${h} m
   error:'Not sent yet. Check the connection and try again.',intro:'Bếp Nhà helps your family plan meals, shop and invite guests like this.',introCta:'Try Bếp Nhà',eventTitle:(m:string,h:string)=>`${m} at ${h}`}};
 const $=(s:string)=>document.querySelector(s) as HTMLElement;
 const esc=(s:any)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'} as any)[c]);
-const token=(new URLSearchParams(location.hash.slice(1)).get('t')||new URLSearchParams(location.search).get('t')||'').trim();
+// the family's short link is /m#<token>; older links are rsvp.html#t=<token>
+const token=(new URLSearchParams(location.hash.slice(1)).get('t')||(/^#[A-Za-z0-9_-]{22,32}$/.test(location.hash)?location.hash.slice(1):'')||new URLSearchParams(location.search).get('t')||'').trim();
 let lang:'vi'|'en'=(()=>{try{const s=localStorage.getItem('rsvp-lang');if(s==='vi'||s==='en')return s}catch(e){}return /^vi/i.test(navigator.language||'')?'vi':'en'})();
 let view:any=null,editing=false,draft={status:'',adults:1,kids:0,note:''},busy=false,errorMsg='';
 const t=()=>T[lang];
@@ -34,7 +35,7 @@ function ics(){const z=(d:Date)=>d.toISOString().replace(/[-:]/g,'').replace(/\.
  for(const [i,m] of (view.meals as any[]).entries()){const start=sydneyUtc(m.date,MEAL_TIME[m.type]||'18:30'),end=new Date(start.getTime()+90*60000),title=t().eventTitle(t().meals[m.type]||m.type,view.host).replace(/[,;\\]/g,' ');
   lines.push('BEGIN:VEVENT','UID:'+token.slice(0,12)+'-'+i+'@famtray','DTSTAMP:'+z(new Date()),'DTSTART:'+z(start),'DTEND:'+z(end),'SUMMARY:'+title,'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+title,'TRIGGER:-P1D','END:VALARM','BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+title,'TRIGGER:-PT2H','END:VALARM','END:VEVENT')}
  lines.push('END:VCALENDAR');return lines.join('\r\n')}
-function intro(){$('#intro').innerHTML=`<p>${esc(t().intro)}</p><a href="/">${esc(t().introCta)} →</a><p class="muted" style="margin:8px 0 0;font-size:.9em"><a href="/privacy.html#${lang==='vi'?'invitations':'invitations-en'}">${esc(lang==='vi'?'Quyền riêng tư':'Privacy')}</a></p>`}
+function intro(){$('#intro').innerHTML=`<p>${esc(t().intro)}</p><a href="/">${esc(t().introCta)} →</a><p class="legal"><a href="/terms.html#${lang==='vi'?'invitations':'invitations-en'}">${esc(lang==='vi'?'Điều khoản':'Terms')}</a><span aria-hidden="true"> · </span><a href="/privacy.html#${lang==='vi'?'invitations':'invitations-en'}">${esc(lang==='vi'?'Quyền riêng tư':'Privacy')}</a></p>`}
 function stepper(k:'adults'|'kids'){return `<div class="step"><span><b>${esc(t()[k])}</b></span><button class="round" type="button" data-step="${k}" data-d="-1" aria-label="${esc(t().fewer+' '+t()[k])}">${ART.minus}</button><output aria-live="polite">${draft[k]}</output><button class="round" type="button" data-step="${k}" data-d="1" aria-label="${esc(t().more+' '+t()[k])}">${ART.add}</button></div>`}
 function render(){document.documentElement.lang=lang;document.title=(lang==='vi'?'Lời mời':'Invitation')+' · FamTray · Bếp Nhà';
  for(const b of document.querySelectorAll('.lang button') as any)b.setAttribute('aria-pressed',String(b.dataset.lang===lang));intro();
@@ -49,7 +50,7 @@ function render(){document.documentElement.lang=lang;document.title=(lang==='vi'
  main.innerHTML=head+`<section class="card"><h2>${esc(t().q)}</h2>${late?`<p class="notice">${esc(t().late)}</p>`:''}<div class="choices" role="group">${options.map(s=>`<button class="choice" type="button" data-status="${s}" aria-pressed="${draft.status===s}">${esc(t()[s])}</button>`).join('')}</div>
   ${draft.status==='yes'||draft.status==='maybe'?stepper('adults')+stepper('kids'):''}<label class="note"><span>${esc(t().note)}</span><textarea id="rsvp-note" maxlength="200" placeholder="${esc(t().notePh)}">${esc(draft.note)}</textarea></label>
   <button class="primary" type="button" data-act="send" ${draft.status&&!busy?'':'disabled'}>${ART.save}<span>${esc(busy?t().sending:t().send)}</span></button>${errorMsg?`<p class="error">${esc(errorMsg)}</p>`:''}</section>`}
-async function load(){if(!/^[A-Za-z0-9_-]{32}$/.test(token)){errorMsg=t().notFound;render();return}
+async function load(){if(!/^[A-Za-z0-9_-]{22}(?:[A-Za-z0-9_-]{10})?$/.test(token)){errorMsg=t().notFound;render();return}
  try{const res=await fetch('/.netlify/functions/rsvp?t='+encodeURIComponent(token),{cache:'no-store'});if(!res.ok){errorMsg=t().notFound;render();return}view=await res.json();
   const r=view.response;draft={status:r?.status&&r.status!=='busy'?r.status:'',adults:r&&(r.status==='yes'||r.status==='maybe')?r.adults:view.adults||1,kids:r&&(r.status==='yes'||r.status==='maybe')?r.kids:view.kids||0,note:r?.note||''};render()}catch(e){errorMsg=t().error;render()}}
 async function send(status:string){busy=true;errorMsg='';render();const coming=status==='yes'||status==='maybe';

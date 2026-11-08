@@ -64,11 +64,13 @@ async function main(){
   for(const [size,lang,theme] of [['mobile','vi','light'],['tablet','vi','light'],['desktop','vi','light'],['mobile','en','dark'],['tablet','en','dark'],['desktop','en','dark'],['mobile','vi','dark'],['mobile','en','light']]){
    const {page,context,errors}=await open({viewport:sizes[size],lang,theme});await openSheet(page);await expand(page);
    const t=await page.locator('#voice-settings').innerText();
-   if(lang==='vi'){for(const want of ['Cài đặt giọng nói','Của trình duyệt','Chính xác hơn','252 MB','Chưa tải','Giúp cải thiện nhận giọng nói (chỉ gửi chữ, không gửi âm thanh)'])assert.ok(t.includes(want),size+' vi missing '+want)}
-   else{for(const want of ['Voice settings','Browser','More accurate','252 MB','Not downloaded','Help improve voice recognition (sends text only, never audio)'])assert.ok(t.includes(want),size+' en missing '+want)}
+   if(lang==='vi'){for(const want of ['Cài đặt giọng nói','Của trình duyệt','Chính xác hơn','252 MB','Chưa tải','Thống kê giọng nói'/* v1.7.14: the switch is folded under this small heading */])assert.ok(t.includes(want),size+' vi missing '+want)}
+   else{for(const want of ['Voice settings','Browser','More accurate','252 MB','Not downloaded','Voice statistics'])assert.ok(t.includes(want),size+' en missing '+want)}
    assert.ok(!/Nhẹ|\bLight\b|79[.,]7 MB|whisper-base|Whisper base/.test(t),size+': v1.7.1 offers only More accurate (no Light pack)');assert.equal(await page.locator('[data-vl-pack]').count(),1);
    assert.equal(await active(page),'browser','browser recogniser by default');assert.equal(await page.locator('input[name=vl-choice]').count(),0,'no duplicate recogniser chooser');
-   assert.equal(await page.locator('#voice-stats-consent').isChecked(),false,'consent off by default');
+   assert.equal(await page.locator('#voice-stats-consent').isChecked(),true,'voice statistics on by default (owner pop-up, 8 Nov 2026)');
+   {const f=page.locator('.vl-consent-fold');assert.equal(await f.evaluate((d:any)=>d.open),false,'the switch is folded away');assert.ok(await f.evaluate((d:any)=>parseFloat(getComputedStyle(d).fontSize)<parseFloat(getComputedStyle(document.body).fontSize)),'small text');
+    await f.locator('summary').click();await page.locator('#voice-stats-consent').uncheck();await page.waitForTimeout(100);assert.equal(posts.length,0,'turning it off before anything was sent calls nobody')}
    assert.equal(await page.locator('[data-vl-download="small"]').isDisabled(),false);
    await check(page,`${size} ${lang} ${theme}`);await shot(page,`settings-${lang}-${theme}-${size}-${sizes[size].width}x${sizes[size].height}`);
    assert.deepEqual(errors,[]);await context.close();
@@ -102,12 +104,13 @@ async function main(){
    await context.setOffline(true);await page.evaluate('voiceLocalEngine&&voiceLocalEngine.dispose();voiceLocalEngine=null;closeModal();voiceModal()');
    await page.waitForFunction(()=>/hai ký thịt ba chỉ|two kilos/.test((document.querySelector('#voice-text') as any)?.value||''),null,{timeout:8000});
    await context.setOffline(false);
-   // 4. Consent gating: nothing is sent while OFF; ON sends one redacted text record.
+   // 4. Consent gating: nothing is sent while OFF; ON sends one redacted text record. v1.7.14: it is ON by default, so it is turned off first.
    const member=await page.evaluate('state.members[0]?.name||""');
+   await page.evaluate('closeModal();voiceModal()');await expand(page);await page.locator('.vl-consent-fold > summary').click();await page.locator('#voice-stats-consent').uncheck();await page.waitForTimeout(100);
    await page.evaluate('closeModal();voiceModal()');await page.waitForTimeout(300);await page.evaluate('stopVoice()');await page.locator('#voice-text').fill(`mua 2 ký thịt ba chỉ cho ${member}, gọi 0412 345 678, một bó rau răm`);
    await page.locator('[data-personal="voice-preview"]').click();await page.waitForSelector('[data-personal="voice-apply-shopping"]');await page.locator('[data-personal="voice-apply-shopping"]').click();await page.waitForTimeout(150);
    assert.equal(posts.length,0,'consent OFF: nothing sent');
-   await page.evaluate('closeModal();voiceModal()');await expand(page);await page.locator('#voice-stats-consent').check();await page.waitForTimeout(100);assert.equal(posts.length,0,'switching on sends nothing by itself');
+   await page.evaluate('closeModal();voiceModal()');await expand(page);await page.locator('.vl-consent-fold > summary').click();await page.locator('#voice-stats-consent').check();await page.waitForTimeout(100);assert.equal(posts.length,0,'switching on sends nothing by itself');
    await page.evaluate('stopVoice()');await page.locator('#voice-text').fill(`mua 2 ký thịt ba chỉ cho ${member}, gọi 0412 345 678, một bó rau răm`);
    await page.locator('[data-personal="voice-preview"]').click();await page.waitForSelector('[data-personal="voice-apply-shopping"]');await page.locator('[data-personal="voice-apply-shopping"]').click();
    await page.waitForFunction(()=>true);for(let i=0;i<40&&!posts.length;i++)await page.waitForTimeout(50);
@@ -117,7 +120,7 @@ async function main(){
    assert.equal(sent.recognizer,'local-small','recogniser used in this sheet session');assert.equal(sent.lang,'en','the EN toggle chosen earlier is remembered');assert.ok(sent.unrecognised.every((u:string)=>!u.includes(member)));
    assert.ok(sent.transcript.length<=300);assert.ok(!Object.keys(sent).some(k=>/audio|wav|pcm/i.test(k)));assert.match(posts[0].headers['x-voice-stats-device'],/^[A-Za-z0-9_-]{32}$/);
    // 5. Opt-out deletes.
-   await page.evaluate('closeModal();voiceModal()');await expand(page);await page.locator('#voice-stats-consent').uncheck();for(let i=0;i<40&&posts.length<2;i++)await page.waitForTimeout(50);
+   await page.evaluate('closeModal();voiceModal()');await expand(page);await page.locator('.vl-consent-fold > summary').click();await page.locator('#voice-stats-consent').uncheck();for(let i=0;i<40&&posts.length<2;i++)await page.waitForTimeout(50);
    assert.equal(posts[1]?.op,'forget');await page.waitForFunction(()=>localStorage.getItem('bep-voice-stats-device')===null,null,{timeout:3000});
    // 6. Remove pack → back to browser recognition.
    await page.locator('[data-vl-remove="small"]').click();await page.waitForFunction(()=>document.querySelector('[data-vl-pack="small"] .vl-state')?.getAttribute('data-state')==='none');

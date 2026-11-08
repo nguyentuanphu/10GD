@@ -2372,3 +2372,65 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 .invite-notices p{margin:0;overflow-wrap:anywhere}
 .invite-late{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .invite-late .btn{min-height:44px}
+/* v1.7.14: guests coming up (Today and the guest sheet) */
+.invite-soon{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.invite-soon li{display:flex;align-items:center;justify-content:space-between;gap:8px;overflow-wrap:anywhere}
+.invite-soon li>span{min-width:0;flex:1}
+.invite-soon .btn{min-height:44px;flex:none}
+.guest-upcoming{margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:14px}
+/* v1.7.14: a box / pack put away without a known weight — the family says whether it is enough */
+.pack-cover{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:8px 0 0;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--orange,#c98258) 10%,transparent)}
+.pack-cover p{margin:0;flex:1 1 220px;overflow-wrap:anywhere}
+.pack-cover span{display:flex;gap:8px;flex-wrap:wrap}
+.pack-cover .btn{min-height:44px}
+
+/* v1.7.14: crop the receipt photo before reading it */
+.rcrop-wrap{display:flex;justify-content:center;margin:6px 0 4px}
+.rcrop-stage{position:relative;display:inline-block;max-width:100%;overflow:hidden;border-radius:10px;touch-action:none;user-select:none;-webkit-user-select:none}
+.rcrop-img{display:block;max-width:100%;max-height:58vh;width:auto;height:auto;pointer-events:none}
+.rcrop-box{position:absolute;border:3px solid #3ca37c;box-shadow:0 0 0 9999px rgba(20,30,25,.5);cursor:move;touch-action:none}
+.rcrop-h{position:absolute;width:44px;height:44px;display:grid;place-items:center;touch-action:none;outline-offset:2px}
+.rcrop-h span{display:block;background:#fff;border:2px solid #3ca37c;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.rcrop-t,.rcrop-b{left:50%;margin-left:-22px}.rcrop-t{top:-3px}.rcrop-b{bottom:-3px}
+.rcrop-l,.rcrop-r{top:50%;margin-top:-22px}.rcrop-l{left:-3px}.rcrop-r{right:-3px}
+.rcrop-t span,.rcrop-b span{width:34px;height:10px}.rcrop-l span,.rcrop-r span{width:10px;height:34px}
+.rcrop-t{align-items:start}.rcrop-b{align-items:end}.rcrop-l{justify-items:start}.rcrop-r{justify-items:end}
+.rcrop-t,.rcrop-b{cursor:ns-resize}.rcrop-l,.rcrop-r{cursor:ew-resize}
+.rcrop-h:focus-visible span{outline:3px solid var(--orange);outline-offset:2px}
+.rcrop-again{margin:8px 0 0;min-height:44px}
+
+/* v1.7.14: receipt lines as a table that scrolls; the text read from the photo folds away */
+.receipt-raw-fold{margin:10px 0}
+.receipt-raw-fold>summary{min-height:44px;display:flex;align-items:center;font-weight:700;cursor:pointer}
+#receipt-lines.receipt-table{max-height:min(52vh,480px);overflow:auto;overscroll-behavior:contain;border:1px solid var(--line);border-radius:14px;margin:10px 0;background:var(--white)}
+.receipt-table .receipt-table-head{position:sticky;top:0;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) 84px 96px 92px 44px;gap:6px;padding:8px 10px;background:var(--mint);font-size:.82em;font-weight:800;color:var(--green)}
+.receipt-table .receipt-table-head .rt-price{grid-column:4}
+.receipt-table .receipt-line{display:grid;grid-template-columns:minmax(0,1fr) 84px 96px 92px 44px;grid-template-areas:"name qty unit price del" "match match match match match";gap:6px;align-items:center;padding:8px 10px;border-top:1px solid var(--line);margin:0;border-radius:0;box-shadow:none;background:transparent}
+.receipt-table .receipt-line-top,.receipt-table .receipt-line-bottom{display:contents}
+.receipt-table .receipt-line>*,.receipt-table .receipt-line-top>*,.receipt-table .receipt-line-bottom>*{grid-column:1/-1;min-width:0;max-width:100%}
+.receipt-table .receipt-line [data-feature="receipt-remove-line"]{width:44px;min-width:44px;min-height:44px;padding:0;justify-self:end}
+.receipt-table .receipt-label{grid-area:name;min-width:0}.receipt-table .receipt-price{grid-area:price;min-width:0;text-align:right}
+.receipt-table .receipt-line [data-feature="receipt-remove-line"]{grid-area:del}
+.receipt-table .receipt-line .field{margin:0;min-width:0}
+.receipt-table .receipt-line .field:has(.receipt-match){grid-area:match}.receipt-table .receipt-line .field:has(.receipt-qty){grid-area:qty}.receipt-table .receipt-line .field:has(.receipt-unit){grid-area:unit}
+.receipt-table .receipt-line .field:has(.receipt-qty)>label,.receipt-table .receipt-line .field:has(.receipt-unit)>label{display:none}
+.receipt-table .receipt-line .field:has(.receipt-match)>label{font-size:.8em}
+.receipt-table input,.receipt-table select{min-height:44px;width:100%;min-width:0;box-sizing:border-box}
+.receipt-table .receipt-qty{padding-left:8px;padding-right:6px}
+@media (max-width:560px){
+ .receipt-table .receipt-table-head{grid-template-columns:76px 70px minmax(0,1fr) 44px;grid-template-areas:"name name name name" "qty unit price price";row-gap:2px;padding:8px}
+ .receipt-table .receipt-table-head .rt-name{grid-area:name}.receipt-table .receipt-table-head .rt-qty{grid-area:qty}.receipt-table .receipt-table-head .rt-unit{grid-area:unit}.receipt-table .receipt-table-head .rt-price{grid-area:price;grid-column:auto}
+ .receipt-table .receipt-line{grid-template-columns:76px 70px minmax(0,1fr) 44px;grid-template-areas:"name name name del" "qty unit price price" "match match match match";padding:8px}
+ .receipt-table .receipt-line .field:has(.receipt-match)>label{display:none}
+ .receipt-table input,.receipt-table select{font-size:16px;padding-left:8px;padding-right:6px}
+}
+.receipt-table input[type=number]{-moz-appearance:textfield;appearance:textfield}
+.receipt-table input[type=number]::-webkit-inner-spin-button,.receipt-table input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+/* v1.7.14: Terms · Privacy, small, at the bottom of “Tài khoản & cài đặt” */
+.legal-links{margin:14px 0 0;text-align:center;font-size:.82em;color:var(--muted)}
+.legal-links a{display:inline-flex;align-items:center;min-height:44px;padding:0 6px;color:inherit}
+/* v1.7.14: usage and voice statistics switches — small, closed every time */
+.privacy-mini{font-size:.82em;color:var(--muted);margin:6px 0 0}
+.privacy-mini>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
+.privacy-mini .usage-toggle,.privacy-mini .vl-check{font-size:1em}
+.privacy-mini-section{background:transparent;border:0;box-shadow:none;padding:0 4px;margin:4px 0}

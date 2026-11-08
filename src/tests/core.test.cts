@@ -141,6 +141,10 @@ check(!validImport(null),'null backup is rejected without throwing');
  check(validImport(JSON.parse(JSON.stringify(s6))),'invitations and answers pass backup validation');
  const bad=JSON.parse(JSON.stringify(s6));Object.values(bad.weeks)[0].days[days[0]].dinner.guests[0].invite.token='short';check(!validImport(bad),'a malformed invitation is rejected');
  const bad2=JSON.parse(JSON.stringify(s6));Object.values(bad2.weeks)[0].days[days[0]].dinner.guests[0].rsvp.status='party';check(!validImport(bad2),'an unknown answer is rejected')}
+// v1.7.14 (owner, 8 Nov 2026: “cất đồ rồi mà tại sao vẫn hiện đồ để đi mua?”): rounding leftovers are not something to buy
+{const s7=defaults(),w7=ensureWeek(s7,monday(sydneyDate())),d=Object.keys(w7.days)[0];s7.preferences.pantryDeduct=true;const rows0=shopping(s7,w7,d,d),r0=rows0.find(r=>INGREDIENTS[r.id][1]==='g'&&r.needed>1);
+ s7.pantry=[{id:'eps',ingredient:r0.id,qty:r0.needed-1e-9,place:'fridge',expiry:''}];const r1=shopping(s7,w7,d,d).find(r=>r.id===r0.id);check(r1.missing===0&&r1.suggested===0,'a rounding leftover after putting away is not on the list');
+ s7.pantry=[{id:'eps',ingredient:r0.id,qty:r0.needed-1,place:'fridge',expiry:''}];check(shopping(s7,w7,d,d).find(r=>r.id===r0.id).missing>0,'a real shortfall still is')}
 function shoppingMealIngredientsSafe(s,m){return m.cooked?{}:mealIngredients(m,s)}
 `,ctx);
 // v1.7.12 (owner, 8 Nov 2026 — “cất đồ đúng chỗ tự động”): put-away places and use-by suggestions

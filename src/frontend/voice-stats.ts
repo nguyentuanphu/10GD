@@ -1,5 +1,6 @@
 'use strict';
-// Opt-in voice statistics (v1.6). OFF by default. The toggle lives in the voice sheet's
+// Voice statistics (v1.6). v1.7.14 (owner pop-up, 8 Nov 2026): ON by default (“giọng nói và analytics luôn bật sẵn”); turning it off is
+// remembered ('0'). Before v1.7.14 it was opt-in. The toggle lives in the voice sheet's
 // settings ("Giúp cải thiện nhận giọng nói (chỉ gửi chữ, không gửi âm thanh)").
 // When ON, after each CONFIRMED voice preview the app sends one small text record:
 //   {ts, lang, recognizer, transcript (redacted, ≤300 chars), unrecognised tokens,
@@ -11,7 +12,7 @@
 const VOICE_STATS_KEY='bep-voice-stats',VOICE_STATS_TOKEN='bep-voice-stats-device',VOICE_STATS_API='/.netlify/functions/voice-stats';
 const VOICE_STATS_MAX=300;
 
-function voiceStatsConsent(){try{return localStorage.getItem(VOICE_STATS_KEY)==='1'}catch{return false}}
+function voiceStatsConsent(){try{return localStorage.getItem(VOICE_STATS_KEY)!=='0'}catch{return false}}
 function voiceStatsNorm(s){return String(s||'').normalize('NFC').toLowerCase()}
 function voiceStatsFold(s){return voiceStatsNorm(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d')}
 function voiceStatsEscapeRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
@@ -63,7 +64,7 @@ async function voiceStatsSend(event,{fetchFn,household}={}){
 }
 async function voiceStatsSetConsent(on,{fetchFn}={}){
  const was=voiceStatsConsent();
- try{if(on)localStorage.setItem(VOICE_STATS_KEY,'1');else localStorage.removeItem(VOICE_STATS_KEY)}catch{}
+ try{localStorage.setItem(VOICE_STATS_KEY,on?'1':'0')}catch{}
  if(!on&&was){let token='';try{token=localStorage.getItem(VOICE_STATS_TOKEN)||''}catch{}
   if(token){try{const r=await (fetchFn||fetch)(VOICE_STATS_API+'?op=forget',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','x-voice-stats-device':token},body:'{}'});if(r.ok)try{localStorage.removeItem(VOICE_STATS_TOKEN)}catch{}else try{localStorage.setItem('bep-voice-stats-forget','1')}catch{}}catch{try{localStorage.setItem('bep-voice-stats-forget','1')}catch{}}}}
  return on;

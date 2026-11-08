@@ -83,6 +83,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
  for(const [size,lang,theme] of [['mobile','vi','light'],['tablet','en','dark'],['desktop','vi','dark']] as const){
   const {context,page,errors}=await openApp({viewport:sizes[size],lang,theme});
   await page.evaluate('otherSettingsModal()');const card=page.locator('#settings-usage');await card.waitFor();
+  {const d=card.locator('details.privacy-mini');assert.equal(await d.evaluate((x:any)=>x.open),false,'v1.7.14 (owner pop-up): the switch is folded away');assert.ok(await d.evaluate((x:any)=>parseFloat(getComputedStyle(x).fontSize)<parseFloat(getComputedStyle(document.body).fontSize)),'small text');await d.locator('summary').click()}
   await card.scrollIntoViewIfNeeded();const box=page.locator('#usage-optin');assert.equal(await box.isChecked(),true,'on by default');
   const text=await card.innerText();assert.match(text,lang==='en'?/Share anonymous usage statistics/:/Gửi thống kê sử dụng ẩn danh/);assert.match(text,lang==='en'?/Details/:/Xem chi tiết/);
   assert.equal(await card.locator('a').getAttribute('href'),'/privacy.html#usage');assert.ok(!/netlify|blobs/i.test(text));
@@ -94,7 +95,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
    assert.deepEqual(posts.map(x=>x.op),['forget']);assert.deepEqual(posts[0].body,{install});
    assert.equal(await page.evaluate("localStorage.getItem('bep-usage-v1')"),null,'local queue cleared');assert.equal(await page.evaluate("localStorage.getItem('bep-usage-install')"),null);
    posts.length=0;assert.equal(await page.evaluate("usageFeature('plan')"),false);assert.equal(await page.evaluate('usageInteract(Date.now()),usageTick(Date.now()+5000)'),0);assert.equal(await page.evaluate('usageFlush()'),false);await page.evaluate('usageFlush({beacon:true})');await page.waitForTimeout(150);assert.equal(posts.length,0,'nothing sent after opt-out');
-   await page.evaluate("closeModal();otherSettingsModal()");assert.equal(await page.locator('#usage-optin').isChecked(),false,'stays off');
+   await page.evaluate("closeModal();otherSettingsModal()");assert.equal(await page.locator('#usage-optin').isChecked(),false,'stays off');await page.locator('#settings-usage details > summary').click();
    await box.check();assert.equal(await page.evaluate("localStorage.getItem('bep-usage-optout')"),null,'turned back on')}
   assert.deepEqual(errors,[]);await context.close();
  }
@@ -103,7 +104,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
  {banner={...banner,flags:{...banner.flags,usageAnalytics:false}};const {context,page,errors}=await openApp({viewport:sizes.desktop});
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('bep-platform-flags')||'{}').usageAnalytics===false);
   posts.length=0;assert.equal(await page.evaluate("usageFeature('today')"),false);assert.equal(await page.evaluate('usageFlush()'),false);assert.equal(posts.length,0);
-  await page.evaluate('otherSettingsModal()');assert.equal(await page.locator('#usage-optin').isDisabled(),true);assert.match(await page.locator('#settings-usage').innerText(),/tạm ngừng cho mọi người/);
+  await page.evaluate('otherSettingsModal()');await page.locator('#settings-usage details > summary').click();assert.equal(await page.locator('#usage-optin').isDisabled(),true);assert.match(await page.locator('#settings-usage').innerText(),/tạm ngừng cho mọi người/);
   assert.deepEqual(errors,[]);await context.close();banner={...banner,flags:{...banner.flags,usageAnalytics:true}}}
 
  // ---------- 6. one-time "Terms updated" notice for existing contributors (non-modal) ----------
@@ -123,7 +124,7 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
   const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],reducedMotion:'reduce',colorScheme:theme});const page=await context.newPage();await route(page);
   await page.goto(origin+`/privacy.html?lang=${lang}#usage`);await page.waitForSelector(`main[lang="${lang}"] h1`);
   const visible=await page.locator(`main[lang="${lang}"]`).isVisible(),other=await page.locator(`main[lang="${lang==='vi'?'en':'vi'}"]`).isVisible();assert.ok(visible&&!other,'one language shown');
-  const body=await page.locator(`main[lang="${lang}"]`).innerText();assert.match(body,lang==='en'?/Updated: 1 Nov 2026/:/Cập nhật: 1\/11\/2026/);
+  const body=await page.locator(`main[lang="${lang}"]`).innerText();assert.match(body,lang==='en'?/Updated: 8 Nov 2026/:/Cập nhật: 8\/11\/2026/);/* v1.7.14: the page changed (ladybug section moved out, link to the terms) — the date at the top follows */
   for(const w of (lang==='en'?['13 months','country and state','Community','On device','FamTray Price Check']:['13 tháng','quốc gia và bang','Cộng đồng','Trên máy','FamTray So Giá']))assert.ok(body.includes(w),'privacy '+lang+' missing '+w);
   assert.ok(!/netlify|blobs/i.test(await page.content()),'no hosting vendor named');assert.ok(!/@[a-z0-9-]+\.[a-z]{2,}/i.test(body),'no invented e-mail');
   await noOverflow(page,'privacy '+size);await shot(page,`privacy-${lang}-${theme}-${size}-${sizes[size].width}x${sizes[size].height}`);
