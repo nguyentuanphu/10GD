@@ -2515,7 +2515,7 @@ html[data-theme="dark"] .rm-opt.rm-new{color:#8fd6b0}
  .sidebar nav#nav{overflow-x:auto;overflow-y:hidden;justify-content:flex-start;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
  .sidebar nav#nav::-webkit-scrollbar{display:none}
  .sidebar nav#nav a:nth-of-type(n+4){display:flex}
- .sidebar nav#nav>a,.sidebar nav#nav>.mobile-more{flex:0 0 25%;min-width:74px;scroll-snap-align:start}
+ .sidebar nav#nav>a,.sidebar nav#nav>.mobile-more{flex:0 0 auto;min-width:max(25%,74px);padding-left:8px;padding-right:8px;scroll-snap-align:start}
  .sidebar nav#nav>a>span:not(.nav-icon):not(.nav-short),.sidebar nav#nav>a>b,.sidebar nav#nav>a>small,.sidebar nav#nav>a>.badge{display:none}
  .sidebar nav#nav>a>.nav-short{display:block;white-space:nowrap}
  .sidebar nav#nav>a .nav-icon svg{width:25px;height:25px;display:block}
