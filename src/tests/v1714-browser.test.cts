@@ -98,7 +98,16 @@ const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tab
    await page.locator('#main .guest-shortcut').click();const up=page.locator('#modal-root .guest-upcoming');await up.waitFor();assert.match(await up.innerText(),/Nhà anh Tuấn/,`${label}: the guest sheet lists guests already planned`);await shot('guest-sheet-planned');await E('closeModal()');
    // 👍 / 👎 on each dish show their drawing (they showed only “0” before)
    assert.ok(await E(`(()=>{const b=[...document.querySelectorAll('#main .mr-btn')];return b.length>0&&b.every(x=>x.querySelector('svg.btn-art')&&x.getBoundingClientRect().height>=44)})()`),`${label}: like / dislike buttons drawn, ≥ 44 px`);
+   // Terms and privacy (owner, 8 Nov 2026: “bạn chưa add terms & conditions và privacy kìa. Làm bọn nó nhỏ thôi”): small links at the
+   // bottom of “Tài khoản & cài đặt”; the terms page (wording approved by pop-up) in VI and EN; the ladybug is not mentioned
+   {await E(`closeModal();otherSettingsModal('')`);const ll=page.locator('#modal-root .legal-links');await ll.waitFor();
+    const lk:any=await ll.evaluate((p:any)=>({size:parseFloat(getComputedStyle(p).fontSize),body:parseFloat(getComputedStyle(document.body).fontSize),links:[...p.querySelectorAll('a')].map((a:any)=>({h:a.getAttribute('href'),t:a.textContent,tall:a.getBoundingClientRect().height>=44}))}));
+    assert.ok(lk.size<lk.body&&lk.links.length===2&&lk.links[0].h==='/terms.html'&&lk.links[1].h==='/privacy.html'&&lk.links.every((a:any)=>a.tall),`${label}: small Terms · Privacy links ≥ 44 px ${JSON.stringify(lk)}`);
+    assert.equal(lk.links.map((a:any)=>a.t).join('|'),lang==='en'?'Terms|Privacy':'Điều khoản|Quyền riêng tư');await ll.scrollIntoViewIfNeeded();await shot('settings-legal');await E('closeModal()');
+    if(size==='mobile'||size==='desktop'){const tp=page;await tp.goto(origin+'/terms.html?lang='+lang);await tp.waitForSelector(`main[lang="${lang}"] h1`);
+     const tt=await tp.locator(`main[lang="${lang}"]`).innerText();assert.match(tt,lang==='en'?/Terms of use[\s\S]*9\. Contact/:/Điều khoản sử dụng[\s\S]*9\. Liên hệ/,`${label}: the terms page`);assert.ok(!/bọ rùa|ladybug/i.test(tt)&&/Australian Consumer Law/.test(tt),`${label}: terms wording as approved`);
+     assert.ok(await tp.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${label}: terms page fits`);await tp.screenshot({path:`${out}/terms-${lang}-${sizes[size].width}x${sizes[size].height}.png`})}}
    const ow=await E('document.documentElement.scrollWidth-innerWidth');assert.ok(ow<=1,`${label}: overflow ${ow}`);assert.deepEqual(errors,[],`${label}: page errors`);await context.close();console.log('✓',label)}
-  console.log('PASS v1.7.14: nothing left to buy after shopping and putting away; boxes of unknown weight handled; Today order; guests coming up; drawn like / dislike; receipt after put-away linked; receipt text box item lines only; suggestions from what was bought; pantry in English; receipt crop (set by itself, adjustable); receipt lines as a table');
+  console.log('PASS v1.7.14: nothing left to buy after shopping and putting away; boxes of unknown weight handled; Today order; guests coming up; drawn like / dislike; receipt after put-away linked; receipt text box item lines only; suggestions from what was bought; pantry in English; receipt crop (set by itself, adjustable); receipt lines as a table; Terms · Privacy');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

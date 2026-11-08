@@ -60,6 +60,8 @@ for(const [what,store] of [['guest data',{'guest/bep-gia-dinh-v1':OLD_DATA}],['l
 {const {ctx,page}=await open({locale:'en-AU',languages:['en-AU','en'],url:'/login'});check('sign-in page: English phone',await page.evaluate(()=>document.documentElement.lang)==='en');
  assert.equal((await page.locator('#submit').innerText()).trim(),'Sign in');assert.match(await page.locator('main').innerText(),/One table, the whole family/);assert.match(await page.title(),/^Sign in · FamTray · Bếp Nhà$/);
  assert.ok(!/Đăng nhập|Mật khẩu|Bếp Gia Đình/.test(await page.locator('main').innerText()),'no Vietnamese left on the English sign-in page');
+ {const lg:any=await page.locator('main .legal a').evaluateAll((a:any[])=>a.map(x=>({h:x.getAttribute('href'),t:x.textContent.trim(),tall:x.getBoundingClientRect().height>=44,small:parseFloat(getComputedStyle(x).fontSize)<parseFloat(getComputedStyle(document.body).fontSize)})));
+  assert.ok(lg.length===2&&lg[0].h==='/terms.html'&&lg[1].h==='/privacy.html'&&lg[0].t==='Terms'&&lg[1].t==='Privacy'&&lg.every((a:any)=>a.tall&&a.small),'sign-in page: small Terms · Privacy links (v1.7.14) '+JSON.stringify(lg))}
  await page.locator('#register-tab').click();assert.equal((await page.locator('#submit').innerText()).trim(),'Create account');
  await page.locator('[data-set-lang="vi"]').click();await page.locator('#submit').waitFor();check('sign-in switch to Vietnamese',await page.evaluate(()=>document.documentElement.lang)==='vi');
  assert.equal((await page.locator('#submit').innerText()).trim(),'Đăng nhập');assert.deepEqual(await saved(page),{lang:'vi',auto:null},'the choice is saved for the app too');await ctx.close()}

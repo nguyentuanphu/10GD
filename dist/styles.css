@@ -2426,3 +2426,6 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 }
 .receipt-table input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .receipt-table input[type=number]::-webkit-inner-spin-button,.receipt-table input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+/* v1.7.14: Terms · Privacy, small, at the bottom of “Tài khoản & cài đặt” */
+.legal-links{margin:14px 0 0;text-align:center;font-size:.82em;color:var(--muted)}
+.legal-links a{display:inline-flex;align-items:center;min-height:44px;padding:0 6px;color:inherit}

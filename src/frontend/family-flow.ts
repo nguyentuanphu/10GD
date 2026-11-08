@@ -179,3 +179,7 @@ document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('[dat
  if(b.dataset.flow==='pack-need'){for(const p of lots)p.coverAsked=true;save(flowT('Giữ trong giỏ.','Kept on the list.'));render();return}
  const w=currentWeek(),[s,en]=shopDates(),row=shopping(state,w,s,en).find((r:any)=>r.id===id),need=Math.max(0,row?.missing||0);if(need>0){lots[0].qty=need;lots[0].qtyEstimated=true}for(const p of lots)p.coverAsked=true;
  save(flowT('Đã tính phần đã cất là đủ.','Counted what was put away as enough.'));render()});
+
+// ── 9. Terms and privacy (owner, 8 Nov 2026: “bạn chưa add terms & conditions và privacy kìa. Làm bọn nó nhỏ thôi”): two small links at the
+//       bottom of “Tài khoản & cài đặt”. The guest page and the sign-in page carry the same two links.
+if(typeof otherSettingsModal==='function'){const legalBase=otherSettingsModal;otherSettingsModal=function(this:any,...a:any[]){const r=legalBase.apply(this,a);try{const host=document.querySelector('#modal-root .modal-content')||document.querySelector('#modal-root .modal');if(host&&!host.querySelector('.legal-links'))host.insertAdjacentHTML('beforeend',`<p class="legal-links"><a href="/terms.html" target="_blank" rel="noopener">${flowT('Điều khoản','Terms')}</a><span aria-hidden="true"> · </span><a href="/privacy.html" target="_blank" rel="noopener">${flowT('Quyền riêng tư','Privacy')}</a></p>`)}catch(err){console.warn('legal links',err)}return r}}

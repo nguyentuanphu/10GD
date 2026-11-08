@@ -104,6 +104,28 @@ The family's own list is on the production server and was not read. The same ste
 - In the owner's screenshot they showed only “0”: the old emoji had been removed and nothing replaced it. They now show the drawn thumbs (rule 27).
 - The rule-27 check's list of main / icon buttons now matches the app's list, so these two must have a drawing.
 
+## 11. Terms of use and privacy links
+- **Asked:** *“Bạn chưa add terms & conditions và privacy kìa. Làm bọn nó nhỏ thôi, tôi cần review wording nữa.”* Then: *“ko nên mention lady bug vì nó là tool riêng ko phải của khách dùng, cho tôi pop up để approve.”*
+- **Owner pop-ups (8 Nov 2026):** the draft wording is approved (*“Duyệt như bản nháp”*), and the ladybug section is removed from the privacy page.
+- **New `terms.html`** (VI │ EN, same look as the privacy page), 9 parts:
+  1. what the app does;
+  2. accounts and families;
+  3. your data;
+  4. information is a guide (prices, use-by, not medical / nutrition advice, allergies);
+  5. guest invitations;
+  6. fair use;
+  7. changes and ending the service (export path);
+  8. liability (Australian Consumer Law rights not affected);
+  9. contact through the family owner.
+  The ladybug is not mentioned, and no e-mail, company or address was invented.
+- **Small links “Điều khoản · Quyền riêng tư”** (≈ 0.8 of the body text, each ≥ 44 px tall) at the bottom of:
+  - *Tài khoản & cài đặt*;
+  - the guest page;
+  - the sign-in / sign-up page.
+- **Privacy page:**
+  - the title is now *Quyền riêng tư / Privacy*, the date is 8/11/2026, and it links to the terms;
+  - the ladybug section moved to `feedback-privacy.html`, which is linked only from the ladybug sheet (the people invited to test still see what it sends).
+
 ## Tests
 - `core.test`: a rounding leftover is not on the list; a real shortfall still is.
 - `receipt-parse.test`: OCR text in the shape of the owner's two photos (store, numbers and staff synthetic):
@@ -123,15 +145,20 @@ The family's own list is on the production server and was not read. The same ste
   - crop sheet: the frame set by itself around the item lines (header left out, to the TOTAL line), then edges ≥ 44 px, pointer and keyboard; buttons side by side and the same size, *Đọc phần đã cắt* drawn; only the cropped part read and kept; *Cắt lại ảnh*;
   - the lines as a table that scrolls, every cell ≥ 44 px, nothing cut, read text folded;
   - English pantry names and words; an unknown name kept;
+  - small Terms · Privacy links in settings (≥ 44 px), the terms page in VI and EN as approved, no ladybug;
   - no overflow, no page errors.
 - **Updated:**
   - `v1712-flow`: the meals in their usual order, no “Bữa tiếp theo”.
   - `rsvp-browser`: the short link `/m#…` opens the guest page and is in the shared message; the “Lời mời từ” choices, with a typed name kept.
   - `default-language`: its main-button list matches the app.
   - `receipt-ocr` / `generic-receipts`: tap *Đọc cả ảnh* on the new crop step.
+  - `ladybug-browser`: the feedback page is `feedback-privacy.html`, and the public privacy page does not mention the ladybug.
+  - `usage-browser`: the privacy page date is 8/11/2026.
+  - `default-language`: small Terms · Privacy links on the sign-in page.
+  - `rsvp-browser`: the same links on the guest page.
 
 ## Evidence
-- `docs/reviews/v1.7.14/{pack-cover-ask,today-guests,guest-sheet-planned,receipt-crop,receipt-table}-{vi,en}-{size}.png`, `pantry-english-en-1280x800.png`. Chromium viewport simulation, not physical devices.
+- `docs/reviews/v1.7.14/{pack-cover-ask,today-guests,guest-sheet-planned,receipt-crop,receipt-table,settings-legal}-…, terms-{vi,en}-{375x812,1280x800}-{vi,en}-{size}.png`, `pantry-english-en-1280x800.png`. Chromium viewport simulation, not physical devices.
 
 ## Limits
 - Receipt reading was checked on the owner's four photos locally; other shops' layouts may still need work. The photos are not in the repository.
