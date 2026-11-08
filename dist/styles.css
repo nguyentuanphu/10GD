@@ -2434,3 +2434,26 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 .privacy-mini>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
 .privacy-mini .usage-toggle,.privacy-mini .vl-check{font-size:1em}
 .privacy-mini-section{background:transparent;border:0;box-shadow:none;padding:0 4px;margin:4px 0}
+/* v1.7.15: search (magnifier, top right) and the “Tính năng” tab in the guide */
+.app-search{min-width:44px;min-height:44px;display:inline-grid;place-items:center}
+.app-search .btn-art{width:26px;height:26px}
+.search-box input{width:100%;min-height:48px;font-size:17px;border-radius:999px;padding:0 18px;border:1px solid var(--line);background:var(--white);color:var(--text)}
+.search-results{margin-top:10px;display:grid;gap:12px}
+.search-group h3{font-size:.8em;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 4px}
+.search-group ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.search-hit-row{width:100%;min-height:48px;display:grid;gap:2px;text-align:left;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--white);color:var(--text);font:inherit;cursor:pointer}
+.search-hit-row small{color:var(--muted);font-size:.85em;overflow-wrap:anywhere}
+.search-hit-row b{overflow-wrap:anywhere}
+.search-hit{outline:3px solid var(--orange);outline-offset:3px;border-radius:14px}
+.guide-tabs{display:flex;gap:8px;margin:0 0 10px}
+.guide-tabs .chip{min-height:44px}
+.feature-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.feature-item{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:14px;background:var(--white)}
+.feature-art svg{width:40px;height:40px;display:block}
+.feature-copy{display:grid;gap:2px;min-width:0}.feature-copy small{color:var(--muted);overflow-wrap:anywhere}
+.feature-open{min-height:44px}
+@media (prefers-reduced-motion:no-preference){.search-hit{transition:outline-color .3s}}
+.modal.guide-has-tabs{height:min(88vh,760px);max-height:min(88vh,760px)}
+.modal.guide-has-tabs .modal-content{flex:1 1 auto;overflow:auto}
+.guide-tour[hidden],.guide-features[hidden]{display:none!important}
+@media (max-width:360px){.topbar{padding-left:8px;padding-right:8px;gap:4px}.topbar .top-actions{gap:1px}}
