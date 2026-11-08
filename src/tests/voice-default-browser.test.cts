@@ -149,7 +149,8 @@ async function main(){
    if(size!=='narrow'){await page.evaluate("otherSettingsModal('offline-downloads')");const row=page.locator('.offline-pack[data-pack="voice-local-small"]');await row.waitFor();await row.locator('.vl-auto-opt').waitFor();
     await page.waitForFunction(()=>/Đang tự tải…|Downloading automatically…/.test(document.querySelector('.offline-pack[data-pack="voice-local-small"] .offline-pack-status')?.textContent||''));await page.waitForTimeout(700);
     assert.equal(await row.locator('[data-offline-download]').count(),0,'no second Download button while the automatic download runs');
-    await page.evaluate(()=>(0,eval)('voiceAutoUpdateProgress()'));
+    /* the stalled download may restart while the sheet opens (its counters back to 0/0): set the realistic byte count again on the job now running, as for the chip above */
+    await page.evaluate(()=>{const a=(0,eval)('voiceAuto');if(a.job){a.job.done=120*1048576;a.job.total=279299677}(0,eval)('voiceAutoUpdateProgress()')});
     const rt=await row.innerText();if(lang==='vi')assert.match(rt,/Tự tải bộ giọng chính xác[\s\S]*Cập nhật app không cần tải lại gói này[\s\S]*Đang tự tải · 120\/266 MB/);else assert.match(rt,/Download accurate voice automatically[\s\S]*App updates don’t re-download this pack[\s\S]*Downloading automatically · 120\/266 MB/);
     await check(page,`${size} ${lang} ${theme} row`,'.offline-pack[data-pack="voice-local-small"] .btn,.offline-pack[data-pack="voice-local-small"] .vl-auto-opt');
     await row.scrollIntoViewIfNeeded();await page.waitForTimeout(80);await page.screenshot({path:`${out}/downloads-row-${lang}-${theme}-${width}x${height}.jpg`,type:'jpeg',quality:72});shots++}

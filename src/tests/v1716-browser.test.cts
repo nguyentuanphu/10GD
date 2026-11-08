@@ -126,7 +126,7 @@ const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tab
    if(size==='mobile'||size==='desktop'){
     await E(`(()=>{closeModal();globalThis.BEP_SESSION=null;view='today';location.hash='today';render()})()`);await E('bepAutoplay.open()');assert.equal(await page.locator('#ap-panel').count(),0,`${label}: not offered without a family owner account`);
     await E(`(()=>{globalThis.BEP_SESSION={mode:'account',household:{id:'00000000-0000-4000-8000-000000000000',name:'Nhà Phú',role:'owner'},account:{username:'henry'}};state.recipes.push({...clone(state.recipes[0]),id:'fam-own-1',name:'Món riêng của nhà',custom:true});save();render()})()`);
-    const snap=`JSON.stringify(Object.fromEntries(Object.keys(localStorage).filter(k=>!/^bep-(usage-v1|ladybug|feedback|autoplay)/.test(k)).sort().map(k=>[k,localStorage.getItem(k)])))`;
+    const snap=`JSON.stringify(Object.fromEntries(Object.keys(localStorage).filter(k=>!/^bep-(usage-|ladybug|feedback|autoplay)/.test(k)).sort().map(k=>[k,localStorage.getItem(k)])))`;
     const realBefore=await E('JSON.stringify(state)'),lsBefore=await E(snap);const calls:string[]=[];const onReq=(r:any)=>{if(r.url().includes('/.netlify/'))calls.push(r.method()+' '+r.url())};page.on('request',onReq);
     await E('bepAutoplay.open()');const panel=page.locator('#ap-panel .ap-sheet');await panel.waitFor();
     assert.ok(await page.locator('#ap-panel [data-ap="all"]').evaluate((b:any)=>!!b.querySelector('svg.btn-art')&&b.getBoundingClientRect().height>=44),`${label}: “Chạy tất cả” drawn, ≥ 44 px`);
