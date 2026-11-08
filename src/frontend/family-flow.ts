@@ -159,3 +159,17 @@ function inviteNotices(){const main=document.getElementById('main');if(view!=='t
 document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('[data-flow="invite-remind"]');if(!b)return;e.preventDefault();const host=String((globalThis as any).BEP_SESSION?.household?.name||'Bếp Nhà'),link=`${location.origin}/rsvp.html#t=${b.dataset.token}`;
  shareText(flowT(`${host} nhắc ${b.dataset.name}: nhà mình chưa nhận được câu trả lời. Bấm để báo bao nhiêu người đến (không cần tài khoản): ${link}`,`${host} reminds ${b.dataset.name}: we haven’t heard back yet. Tap to say how many are coming (no account needed): ${link}`)).catch((err:any)=>toast(err?.message||String(err),true))});
 
+
+// ── 8. Boxes / packs put away before v1.7.14 without a known weight (owner, 8 Nov 2026: “cất đồ rồi mà tại sao vẫn hiện đồ để đi
+//       mua?”). Their weight is not guessed: the list row says what was put away and asks the family — “Đủ rồi” counts the lot as
+//       covering what the list still needs (marked as an estimate); “Vẫn cần mua” keeps the row and stops asking.
+function packCoverLots(id:string){const today=sydneyDate();return (state.pantry||[]).filter((p:any)=>p.ingredient===id&&!(p.qty>0)&&p.purchase?.amount>0&&!p.coverAsked&&(!p.expiry||p.expiry>=today))}
+function packCoverDecorate(){const main=document.getElementById('main');if(view!=='shopping'||!main)return;
+ for(const row of main.querySelectorAll('.shopping-group .shop-row') as any){const id=row.querySelector('[data-change="bought"]')?.dataset.id;if(!id||row.querySelector('.pack-cover'))continue;const lots=packCoverLots(id);if(!lots.length)continue;
+  const what=lots.map((p:any)=>`${+p.purchase.amount.toFixed(2)} ${p.purchase.unit}`).join(' + ');
+  row.insertAdjacentHTML('beforeend',`<div class="pack-cover" role="note"><p>${flowT(`Đã cất ${esc(what)} trong tủ (chưa rõ ${esc(INGREDIENTS[id][1])}). Đủ cho các bữa chưa?`,`${esc(what)} already put away (weight unknown). Is it enough for the planned meals?`)}</p><span><button class="btn small" type="button" data-flow="pack-enough" data-id="${esc(id)}">${flowT('Đủ rồi','Enough')}</button><button class="btn small soft" type="button" data-flow="pack-need" data-id="${esc(id)}">${flowT('Vẫn cần mua','Still need to buy')}</button></span></div>`)}}
+{const packRender=render;render=function(this:any,...a:any[]){const r=packRender.apply(this,a);try{packCoverDecorate()}catch(err){console.warn('pack cover',err)}return r}}
+document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('[data-flow="pack-enough"],[data-flow="pack-need"]');if(!b)return;e.preventDefault();const id=b.dataset.id,lots=packCoverLots(id);if(!lots.length)return;
+ if(b.dataset.flow==='pack-need'){for(const p of lots)p.coverAsked=true;save(flowT('Giữ trong giỏ.','Kept on the list.'));render();return}
+ const w=currentWeek(),[s,en]=shopDates(),row=shopping(state,w,s,en).find((r:any)=>r.id===id),need=Math.max(0,row?.missing||0);if(need>0){lots[0].qty=need;lots[0].qtyEstimated=true}for(const p of lots)p.coverAsked=true;
+ save(flowT('Đã tính phần đã cất là đủ.','Counted what was put away as enough.'));render()});
