@@ -2398,3 +2398,31 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 .rcrop-t,.rcrop-b{cursor:ns-resize}.rcrop-l,.rcrop-r{cursor:ew-resize}
 .rcrop-h:focus-visible span{outline:3px solid var(--orange);outline-offset:2px}
 .rcrop-again{margin:8px 0 0;min-height:44px}
+
+/* v1.7.14: receipt lines as a table that scrolls; the text read from the photo folds away */
+.receipt-raw-fold{margin:10px 0}
+.receipt-raw-fold>summary{min-height:44px;display:flex;align-items:center;font-weight:700;cursor:pointer}
+#receipt-lines.receipt-table{max-height:min(52vh,480px);overflow:auto;overscroll-behavior:contain;border:1px solid var(--line);border-radius:14px;margin:10px 0;background:var(--white)}
+.receipt-table .receipt-table-head{position:sticky;top:0;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) 84px 96px 92px 44px;gap:6px;padding:8px 10px;background:var(--mint);font-size:.82em;font-weight:800;color:var(--green)}
+.receipt-table .receipt-table-head .rt-price{grid-column:4}
+.receipt-table .receipt-line{display:grid;grid-template-columns:minmax(0,1fr) 84px 96px 92px 44px;grid-template-areas:"name qty unit price del" "match match match match match";gap:6px;align-items:center;padding:8px 10px;border-top:1px solid var(--line);margin:0;border-radius:0;box-shadow:none;background:transparent}
+.receipt-table .receipt-line-top,.receipt-table .receipt-line-bottom{display:contents}
+.receipt-table .receipt-line>*,.receipt-table .receipt-line-top>*,.receipt-table .receipt-line-bottom>*{grid-column:1/-1;min-width:0;max-width:100%}
+.receipt-table .receipt-line [data-feature="receipt-remove-line"]{width:44px;min-width:44px;min-height:44px;padding:0;justify-self:end}
+.receipt-table .receipt-label{grid-area:name;min-width:0}.receipt-table .receipt-price{grid-area:price;min-width:0;text-align:right}
+.receipt-table .receipt-line [data-feature="receipt-remove-line"]{grid-area:del}
+.receipt-table .receipt-line .field{margin:0;min-width:0}
+.receipt-table .receipt-line .field:has(.receipt-match){grid-area:match}.receipt-table .receipt-line .field:has(.receipt-qty){grid-area:qty}.receipt-table .receipt-line .field:has(.receipt-unit){grid-area:unit}
+.receipt-table .receipt-line .field:has(.receipt-qty)>label,.receipt-table .receipt-line .field:has(.receipt-unit)>label{display:none}
+.receipt-table .receipt-line .field:has(.receipt-match)>label{font-size:.8em}
+.receipt-table input,.receipt-table select{min-height:44px;width:100%;min-width:0;box-sizing:border-box}
+.receipt-table .receipt-qty{padding-left:8px;padding-right:6px}
+@media (max-width:560px){
+ .receipt-table .receipt-table-head{grid-template-columns:76px 70px minmax(0,1fr) 44px;grid-template-areas:"name name name name" "qty unit price price";row-gap:2px;padding:8px}
+ .receipt-table .receipt-table-head .rt-name{grid-area:name}.receipt-table .receipt-table-head .rt-qty{grid-area:qty}.receipt-table .receipt-table-head .rt-unit{grid-area:unit}.receipt-table .receipt-table-head .rt-price{grid-area:price;grid-column:auto}
+ .receipt-table .receipt-line{grid-template-columns:76px 70px minmax(0,1fr) 44px;grid-template-areas:"name name name del" "qty unit price price" "match match match match";padding:8px}
+ .receipt-table .receipt-line .field:has(.receipt-match)>label{display:none}
+ .receipt-table input,.receipt-table select{font-size:16px;padding-left:8px;padding-right:6px}
+}
+.receipt-table input[type=number]{-moz-appearance:textfield;appearance:textfield}
+.receipt-table input[type=number]::-webkit-inner-spin-button,.receipt-table input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}

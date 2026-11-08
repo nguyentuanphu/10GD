@@ -200,5 +200,9 @@ check('line quantities come only from printed sizes / weights / counts',()=>{
  check('“68 $1.20” under a $7.20 item is 6 @ $1.20; the same line under another price is not guessed',()=>{const a=goods(R.parseReceipt('TAX INVOICE\nCashier: STAFF\nMILIKET MI 4 TOM DAC BIET /   $7.20\nEACH\n68 $1.20\nTOTAL: $7.20'));assert.equal(a.length,1);assert.equal(a[0].multi?.count,6);
   const b=goods(R.parseReceipt('TAX INVOICE\nNOODLES   $5.00\n68 $1.20\nTOTAL: $5.00'));assert.ok(!b[0]?.multi)});
 }
+check('a price-per-kg line with a garbled weight joins the item above (weight = price ÷ price per kg, marked) and is never an item',()=>{const g=goods(R.parseReceipt('TAX INVOICE\nCHICKEN MINI DRUM   $8.64\n442kg @ $5.99/kg\nBEEF SHORT RIB   $21.91\n1.6826kg @ $12.00/kg\nTOTAL: $30.55'));
+ assert.equal(g.length,2);deq(g.map((i:any)=>[i.price,i.weight?.qty,i.weightDerived]),[[8.64,1.442,true],[21.91,1.826,true]])});
+check('a rounding line that lost its minus sign takes the sign that makes the lines add up to the total (only then)',()=>{const a=R.parseReceipt('TAX INVOICE\nBEEF BALL   $13.35\nPORK BELLY   $30.21\nROUNDING: ~$0.01\nTOTAL: $43.55').items.find((i:any)=>i.kind==='rounding');assert.equal(a.price,-0.01);
+ const b=R.parseReceipt('TAX INVOICE\nBEEF BALL   $13.35\nPORK BELLY   $30.21\nROUNDING: $0.02\nTOTAL: $43.58').items.find((i:any)=>i.kind==='rounding');assert.equal(b.price,0.02)});
 console.log(`receipt parser tests passed (${n})`);
 })().catch(e=>{console.error(e);process.exit(1)});

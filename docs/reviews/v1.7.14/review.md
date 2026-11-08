@@ -74,6 +74,22 @@ The family's own list is on the production server and was not read. The same ste
   - **Cắt lại ảnh** under the photo opens it again.
 - On the owner's grocer photo, cropping the top off gave 19 lines at 83 % OCR confidence (whole photo: 75 %).
 
+## 7b. The frame is set by itself; the lines as a table
+- **Asked:** *“Tại sao khi scan receipt lại ra đống chữ khó đọc? Tự scan và giữ những phần liên quan đến ingredient, hệ thống có tự crop được không, scan xong trong text đó scrollable, từng dòng table 1 ô tên sp, số lượng và giá.”*
+- **Owner pop-up (8 Nov 2026):** do it in v1.7.14; *“Tự cắt, vẫn cho chỉnh”*.
+- **Frame set automatically:**
+  - While *Cắt hóa đơn* is open, a quick look at a smaller copy (about 2 s) finds the item lines and sets the frame from the first item to the **TOTAL** line. *Total Items* does not stop it.
+  - The sheet says *“Đã đặt khung sát N dòng hàng…”*. The family can still drag the edges, and a frame they set is never moved.
+  - The shop, date and total read on the whole photo are kept when the cropped part leaves the header out.
+  - On the owner's butcher photo: 9 / 9 items, every price right, total $133.75, 82–84 % confidence.
+- **Two more misreads fixed on that photo:**
+  - `442kg @ $5.99/kg` / `1.6826kg @ $12.00/kg` (garbled weight) joins the item above, with the weight worked out as price ÷ price per kg and marked;
+  - a rounding line that lost its minus sign takes the sign that makes the lines add up to the printed total, and only then.
+- **The lines as a table:**
+  - The table scrolls, with a sticky heading *Tên sản phẩm · SL · Đơn vị · Giá*. Each row has the name, amount, unit and price, and what it matches underneath.
+  - On a phone each row is: name + ×, then SL · Đơn vị · Giá, then the match. Nothing is cut at 320 px, and every cell is ≥ 44 px.
+  - The text read from the photo folds away under *“Chữ đọc được từ ảnh (sửa hoặc dán nếu cần)”*. It stays open when there are no lines yet, so pasting still works.
+
 ## 8. A receipt scanned after putting away is not “bought again”
 - **Asked:** *“Nếu đã cho vào kho sau đó mới scan receipt thì sẽ báo là mua thêm thành ra không đúng.”*
 - **Now:** lots put away from the list around the receipt's date (from 1 day before to 3 days after) are linked to the receipt. Check against shopping & pantry shows *“Đã cất vào tủ lúc đi chợ · không cộng thêm”*, and nothing is added. Undo unlinks them.
@@ -94,7 +110,8 @@ The family's own list is on the production server and was not read. The same ste
   - the Cashier line;
   - all items and prices, and the $5.71 fix;
   - `0.884ko`, the multi-buys with a misread @, and the total under a misread SUB TOTAL;
-  - “68 $1.20” is not guessed under another price.
+  - “68 $1.20” is not guessed under another price;
+  - a garbled per-kg line joins the item above; a lost rounding minus sign.
 - `rsvp.test`: new tokens 22 characters, old 32-character links still valid, wrong links of either length not found.
 - **Browser suite `test:v1714:browser`** (in `test:all`), at 375×812, 320×740, 820×1100 (VI) and 1280×800 (EN). It checks:
   - a week bought and put away → nothing left to buy, box estimate, old box question;
@@ -103,7 +120,8 @@ The family's own list is on the production server and was not read. The same ste
   - receipt after put-away linked and nothing added, undo unlinks;
   - suggestions from what was bought;
   - text box item lines only;
-  - crop sheet: edges ≥ 44 px, pointer and keyboard; buttons side by side and the same size, *Đọc phần đã cắt* drawn; only the cropped part read and kept; *Cắt lại ảnh*;
+  - crop sheet: the frame set by itself around the item lines (header left out, to the TOTAL line), then edges ≥ 44 px, pointer and keyboard; buttons side by side and the same size, *Đọc phần đã cắt* drawn; only the cropped part read and kept; *Cắt lại ảnh*;
+  - the lines as a table that scrolls, every cell ≥ 44 px, nothing cut, read text folded;
   - English pantry names and words; an unknown name kept;
   - no overflow, no page errors.
 - **Updated:**
@@ -113,7 +131,7 @@ The family's own list is on the production server and was not read. The same ste
   - `receipt-ocr` / `generic-receipts`: tap *Đọc cả ảnh* on the new crop step.
 
 ## Evidence
-- `docs/reviews/v1.7.14/{pack-cover-ask,today-guests,guest-sheet-planned,receipt-crop}-{vi,en}-{size}.png`, `pantry-english-en-1280x800.png`. Chromium viewport simulation, not physical devices.
+- `docs/reviews/v1.7.14/{pack-cover-ask,today-guests,guest-sheet-planned,receipt-crop,receipt-table}-{vi,en}-{size}.png`, `pantry-english-en-1280x800.png`. Chromium viewport simulation, not physical devices.
 
 ## Limits
 - Receipt reading was checked on the owner's four photos locally; other shops' layouts may still need work. The photos are not in the repository.

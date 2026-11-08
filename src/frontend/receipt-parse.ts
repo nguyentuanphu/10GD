@@ -334,6 +334,11 @@ function parseReceipt(text,opts={}){
    // v1.7.14: “$65.71” for $5.71 (a speck read as a digit): when weight × price per kg says the price without its first digit, use that
    if(target&&target.weight&&per>0&&target.price!=null){const exp=kg*per,ok=(v:number)=>Math.abs(v-exp)<=Math.max(0.12,exp*0.04);const s2=target.price.toFixed(2);if(!ok(target.price)&&s2.length>4&&ok(+s2.slice(1))){target.price=+s2.slice(1);target.priceFromWeight=true}}
    continue}
+  // v1.7.14: a price-per-kg line whose weight OCR garbled (“442kg @ $5.99/kg”, “1.6826kg @ $12.00/kg”) belongs to the item above: the
+  // weight is that item's printed price ÷ the printed price per kg (marked as worked out); it never becomes an item of its own
+  {const pk=line.match(/k\s?[go9q]\s*(?:[@©®€&§]|[08](?=\s))\s*\$?\s?(\d+[.,]\d{2})\s*\$?\s*\/\s*k/i);if(pk&&lastItem&&section==='body'&&!/[A-Za-z]{4}/.test(line.replace(/k\s?[go9q]/gi,''))){const per=+pk[1].replace(',','.');
+   if(lastItem.weight==null&&lastItem.price!=null&&per>0){const kg=round(lastItem.price/per,3);if(kg>0&&kg<50){lastItem.weight={qty:kg,unit:'kg'};lastItem.perKg=per;lastItem.weightDerived=true;lastItem.qty=kg;lastItem.unit='kg';lastItem.size=null}}
+   lastItem.raw+=' / '+line;pending=null;continue}}
   {const gm=line.match(GLUED_MULTI_RE);if(gm&&lastItem&&lastItem.price!=null&&!lastItem.multi){const d=gm[1];let hit=null;
     // “2082.20” = 2 @ $2.20, “204$1.80” = 2 @ $1.80: count = first 1–2 digits, price = a tail of the number; only a split whose
     // count × price equals the item just read is used (nothing is guessed)
@@ -393,6 +398,8 @@ function parseReceipt(text,opts={}){
   const goodsSum=round(items.reduce((n,i)=>n+(i.price!=null?lineValue(i):0),0));
   const agree=payAmounts.length?others.find(v=>others.filter(x=>Math.abs(x-v)<0.005).length>=2):undefined;
   if(agree!=null&&Math.abs(printedTotal-goodsSum)>=0.005){totalConflict={read:printedTotal,used:agree};printedTotal=agree}}
+ // v1.7.14: a rounding line whose minus sign OCR lost (“ROUNDING: ~$0.02”): the sign that makes the lines add up to the printed total
+ if(printedTotal!=null){const rs=items.filter((i:any)=>i.kind==='rounding'&&i.price>0);if(rs.length===1){const sum=round(items.reduce((n:number,i:any)=>n+(i.price!=null?lineValue(i):0),0));if(Math.abs(sum-printedTotal)>=0.005&&Math.abs(sum-2*rs[0].price-printedTotal)<0.005){rs[0].price=-rs[0].price;rs[0].signFixed=true}}}
  // clipped prices: repaired only when the printed total confirms the result
  const missing=items.filter(i=>i.price==null);
  if(missing.length&&printedTotal!=null){
