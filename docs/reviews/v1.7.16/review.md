@@ -75,6 +75,22 @@ The page's recipe data was read here with the app's own reader. It writes 24 lin
 - **Tests (`test:v1716:browser`):** the page's 24 lines are imported. The test checks that no colon is left in a name, the amounts above, and that Hành tím and the herbs are kept separate. `test:v1715:browser` (the import of English lines) still passes.
 - **Screenshots:** `import-name-colon-*`.
 
+## 6. The bottom bar slides sideways (owner, 8 Nov 2026, 20:44)
+*“Phần bar ở dưới này nên làm chế độ trượt qua lại được như thế sẽ nhanh hơn là phải vào ‘thêm’.”*
+
+- **What is in the bar:** on phones (≤ 760 px) the bar now holds every section and slides sideways: Hôm nay · Thực đơn · Đi chợ · Món ăn · Tủ · Chi tiêu · Thói quen · Giá · Thêm. Four fit on the screen, and a soft fade on the edge shows there is more. “Thêm” stays last, for settings, the guide and install.
+- **Drawings:** each section has its own line drawing. The old text symbols ▤ ▧ ◷ ◴ and ⌂ are replaced (rule 27), and Giá's coloured bag became a line drawing like the rest.
+- **Labels:**
+  - Long names get a short one that fits: “Tủ”, “Thói quen”, “Giá”, and “Món ăn” instead of “Kho món ăn 125”.
+  - The full name stays for screen readers.
+  - English labels: Recipes, Pantry, Spending, Habits, Prices.
+- **Position:** the bar keeps its sideways position when the page redraws. The open section is brought into view sideways only, and the page itself never moves (rule 24). Opening a section is real navigation.
+- **Wider screens:** tablets and computers keep the sidebar as before.
+- **Tests (`test:v1716:browser`):**
+  - Phones (375, 320): all 9 items present, in order, with drawings, ≥ 44 px. Short names are checked, and the full name for screen readers. The bar slides and shows the fade. Tủ and then Chi tiêu each open in one tap and stay in view.
+  - Tablet and desktop: the sidebar lists every section.
+- **Screenshots:** `nav-slide-start-*`, `nav-slide-end-*`.
+
 ## Tests
 - `npm run check`: the loading-shell step.
 - `sync-merge` (in `npm test`): guests removed on one device are not brought back.

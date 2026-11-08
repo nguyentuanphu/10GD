@@ -102,7 +102,26 @@ const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tab
    for(const [n,q] of [['Hành tím','25'],['Húng quế','50'],['Ngò rí','20']] as const)assert.ok(row(n)?.qty===q,`${label}: “${n}” kept as its own line with ${q} g (${JSON.stringify(row(n))})`);
    for(const n of ['Rễ ngò rí','Hành tây','Tương ớt/Tương đen'])assert.ok(row(n)&&!row(n).qty,`${label}: “${n}” has no amount on the page, none is invented`);
    await page.locator('#family-recipe-form .rc-ing-row').nth(3).scrollIntoViewIfNeeded();await shot('import-name-colon');await E('closeModal()');
+   // 5. the bottom bar slides sideways on phones (owner, 8 Nov 2026: “Phần bar ở dưới này nên làm chế độ trượt qua lại được như thế sẽ
+   //    nhanh hơn là phải vào ‘thêm’”)
+   if(size==='mobile'||size==='narrow'){await E(`(()=>{view='today';location.hash='today';render();scrollTo(0,0)})()`);await page.waitForTimeout(200);
+    const items:any[]=await E(`[...document.querySelectorAll('#nav > *')].map(a=>({href:a.getAttribute('href'),shown:getComputedStyle(a).display!=='none',w:a.getBoundingClientRect().width,h:a.getBoundingClientRect().height,art:!!a.querySelector('.nav-icon svg:not(.emo-art)'),short:a.querySelector('.nav-short')?.textContent||a.innerText.trim(),label:a.getAttribute('aria-label')||a.innerText.trim()}))`);
+    assert.deepEqual(items.map(x=>x.href),['#today','#planner','#shopping','#recipes','#pantry','#expenses','#insights','#products',null],`${label}: every section is in the bar, “Thêm” last`);
+    assert.ok(items.every(x=>x.shown&&x.art&&x.h>=44&&x.w>=44),`${label}: each one shown with a line drawing, ≥ 44 px ${JSON.stringify(items)}`);
+    assert.deepEqual(items.slice(3,8).map(x=>x.short),lang==='en'?['Recipes','Pantry','Spending','Habits','Prices']:['Món ăn','Tủ','Chi tiêu','Thói quen','Giá'],`${label}: short names that fit`);
+    assert.equal(items[4].label,lang==='en'?'Pantry':'Tủ thực phẩm',`${label}: the full name stays for screen readers`);
+    const bar:any=await E(`(()=>{const n=document.getElementById('nav');return {sw:n.scrollWidth,cw:n.clientWidth,ov:getComputedStyle(n).overflowX,fade:n.classList.contains('nav-more-right')}})()`);
+    assert.ok(bar.sw>bar.cw+40&&bar.ov==='auto'&&bar.fade,`${label}: the bar slides sideways and shows there is more ${JSON.stringify(bar)}`);
+    await shot('nav-slide-start');
+    await E(`document.getElementById('nav').scrollLeft=1000`);await page.waitForTimeout(150);await shot('nav-slide-end');
+    const y0=await E('scrollY');await page.locator('#nav a[href="#pantry"]').click();await page.waitForTimeout(400);
+    const after:any=await E(`(()=>{const n=document.getElementById('nav'),a=n.querySelector('a.active'),r=a.getBoundingClientRect(),b=n.getBoundingClientRect();return {view,active:a.getAttribute('href'),inView:r.left>=b.left-1&&r.right<=b.right+1,left:n.scrollLeft}})()`);
+    assert.ok(after.view==='pantry'&&after.active==='#pantry'&&after.inView&&after.left>0,`${label}: one tap opens Tủ; the bar keeps its place with Tủ in view ${JSON.stringify(after)}`);
+    await page.locator('#nav a[href="#expenses"]').click();await page.waitForTimeout(400);assert.equal(await E('view'),'expenses',`${label}: Chi tiêu in one tap`);
+    assert.ok(await E(`document.querySelector('#nav a.active').getBoundingClientRect().right<=document.getElementById('nav').getBoundingClientRect().right+1`),`${label}: still in view after the redraw`);
+    void y0}
+   else{const shown=await E(`[...document.querySelectorAll('#nav a')].filter(a=>getComputedStyle(a).display!=='none').length`);assert.ok(shown>=8,`${label}: the sidebar lists every section as before (${shown})`)}
    const ow=await E('document.documentElement.scrollWidth-innerWidth');assert.ok(ow<=1,`${label}: overflow ${ow}`);assert.deepEqual(errors,[],`${label}: page errors`);await context.close();console.log('✓',label)}
-  console.log('PASS v1.7.16: removing an invited guest takes it off every meal of the invitation and withdraws the link (“Đóng” keeps it); a bigger “Bắt đầu đi chợ” with a running colour ring, still under reduced motion; receipt unit fits and the match box finds or adds an ingredient; “Tên: lượng” recipe lines read without the colon — 375 / 320 / 820 / 1280, VI and EN');
+  console.log('PASS v1.7.16: removing an invited guest takes it off every meal of the invitation and withdraws the link (“Đóng” keeps it); a bigger “Bắt đầu đi chợ” with a running colour ring, still under reduced motion; receipt unit fits and the match box finds or adds an ingredient; “Tên: lượng” recipe lines read without the colon; the bottom bar slides sideways with every section — 375 / 320 / 820 / 1280, VI and EN');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});
