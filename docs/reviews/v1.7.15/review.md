@@ -1,4 +1,4 @@
-# v1.7.15 — search, a “Tính năng” tab, “Cài app” (add to home screen), and old devices
+# v1.7.15 — search, a “Tính năng” tab, “Cài app”, old devices, recipe import from a link, barcodes into the pantry, step timers
 
 **Owner, 8 Nov 2026 (Sydney time):** *“Làm một cái magnify glass trên góc phải của mỗi trang làm tìm kiếm những thứ mà người ta cần, theo bạn sẽ tìm kiếm được gì? Với cả trong how to use thì cần có 1 tab để cho người ta biết mình có features gì và nó là như thế nào.”*
 
@@ -66,6 +66,44 @@
 - **Layout:** spacing fallbacks where flex `gap` is missing (chips, toolbars, the top bar, sheet footers). Some newer layouts (the receipt table, `:has()` rules) look plainer.
 - **Top bar:** the network label is hidden under 440 px (the icon and its spoken label stay), so the magnifier fits at 390 px. The magnifier sits on a light chip so the drawing stays clear on the dark theme.
 
+## 5. Learned from other family kitchen apps
+- **Asked:** *“Check các app khác giống của tôi là có app nào, và họ có chức năng nào nên làm theo?”*
+  - Looked at AnyList, Plan to Eat, Paprika, Samsung Food (recipe import), and Pantryfy, Pantrium, Pantri (AU) and NoWaste (pantry, barcodes, expiry).
+  - Henry chose import from a link, barcode scanning, and cooking timers with the screen kept awake. Then: *“Tất cả làm trong bản này luôn nhé.”*
+- **Pop-ups (8 Nov 2026):**
+  - links for family accounts only;
+  - ingredients the app cannot match are kept for the family to match;
+  - barcodes are looked up on Open Food Facts through the app's server.
+
+**Nhập món từ link** (Recipes → *Nhập món từ link*; also in the search and the *Tính năng* list)
+- **On the server** (`lib/recipe-import`, family op `recipe-import`):
+  - family account only (not view-only, not paused); at most 30 links per family per Sydney day;
+  - public web pages only: no local, private or metadata addresses, checked again after each of at most 3 redirects and against the address the name resolves to;
+  - 8 s, 2 MB, HTML only;
+  - reads the page's schema.org Recipe (JSON-LD): name, ingredient lines, steps (sections too), servings and time;
+  - nothing is stored, and no pictures are taken.
+- **In the app:**
+  - a line becomes an ingredient only when its name or alias matches exactly and its amount converts to that ingredient's unit (g / kg → g; ml / l / tbsp 15 / tsp 5 / cup 250 → ml; a count → each);
+  - every other line stays **as written** in *missingIngredients* (shown as *Định lượng chưa đầy đủ*) for the family to match, so no amount is guessed;
+  - the dish is a family dish and opens in **Viết món** to check.
+
+**Quét mã vạch vào tủ** (Pantry → *Quét mã vạch*, drawn; also in the search and *Tính năng*)
+- **Reading the code:** the camera with the browser's barcode reader, or the self-hosted ZXing reader (`dist/vendor/zxing`, Apache-2.0, loaded only when scanning). A photo of the code or the number typed also work.
+- **Looking it up:**
+  - a code the family matched before is used straight away (`barcodeMap`, at most 500, in the family's data);
+  - otherwise only the number goes through the server (family op `barcode`, 200 a day) to Open Food Facts;
+  - name, brand and pack size come back, with no photo.
+- **Saving:**
+  - the family confirms the ingredient (suggested from the name), the amount and where it is kept;
+  - the pack size is filled in only when it is in the ingredient's own unit (*700 g* is not *700 eggs*); left empty, it is kept as 1 pack.
+
+**Chế độ nấu**
+- *“45 phút / 45 minutes”* in a step is a button (≥ 44 px) that starts the timer.
+- When it ends: the phone vibrates, a short tone plays, and a notification shows if allowed and the app is in the background.
+- The screen is kept awake again when you come back to the app.
+
+**Privacy page:** new part *5a. Nhập món từ link và quét mã vạch / Importing a recipe from a link and scanning barcodes*.
+
 ## Tests
 - **New suite `test:v1715:browser`** (in `test:all`), at 375×812, 320×740, 820×1100 (VI) and 1280×800 (EN). It checks:
   - **The magnifier:** drawn, at the top right, ≥ 44 px, labelled, on Today, Menu, Shopping, Pantry and Recipes.
@@ -88,6 +126,16 @@
     - all 63 legacy files parse as ES2018 at most, with no look-behind literal, and share the pack hash;
     - in Chromium at 1024×768 with `Object.hasOwn`, `.at`, `structuredClone`, `Promise.allSettled`, `replaceChildren` and `PointerEvent` removed and look-behind throwing, the legacy copy loads (and only it);
     - Today, Menu, Shopping, Pantry, Recipes and Spending show; search works; the receipt sheet shows the note; no page errors.
+- **Kitchen extras** (in `test:v1715:browser`, at 375 VI and 1280 EN):
+  - **Import:** no import without an account; the link is sent; 3 lines matched with converted amounts, 2 kept as written; servings, time and steps kept; the editor opens.
+  - **Barcode:** typed code looked up, ingredient suggested, 700 g not filled in for eggs but filled for pork; saved with the code; the family's match remembered and used without a second lookup.
+  - **Cooking:** *45 minutes* is a ≥ 44 px button starting the timer; the end vibrates.
+- **`kitchen-import.test`** (in `npm test`):
+  - public pages only (files, localhost, private, metadata, bare names, passwords, ports, redirects to private, names resolving to private);
+  - the Recipe read from `@graph` with sections; nothing guessed from pages without recipe data;
+  - HTML only, 2 MB;
+  - Open Food Facts gives name / brand / size only;
+  - account required, 30 links a day, bad codes refused.
 - **Also run:**
   - `default-language` (rule 27, name at 320);
   - `browser` (account menu, top bar);
@@ -95,9 +143,11 @@
   - `artwork`, `emoji-art`, `ladybug`, `library-guide`, `scout-pair`, `authenticated-startup`.
 
 ## Evidence
-- `docs/reviews/v1.7.15/{search-results,guide-features}-{vi,en}-{size}.png`, `install-guide-iphone-vi-390x844.png`, `old-device-ipad-1024x768.png`. Chromium viewport simulation (with an iPhone user agent and with newer features removed), not physical devices.
+- `docs/reviews/v1.7.15/{search-results,guide-features}-{vi,en}-{size}.png`, `install-guide-iphone-vi-390x844.png`, `old-device-ipad-1024x768.png`, `{import-link,import-editor,barcode-confirm,cooking-step-timer}-{vi-375x812,en-1280x800}.png`. Chromium viewport simulation (with an iPhone user agent and with newer features removed), not physical devices.
 
 ## Limits
+- The camera scan was not run here (no camera). Typed codes, the lookup and saving were tested; ZXing decoding is the library's own.
+- Open Food Facts does not know every Australian product. An unknown code is matched by the family once, then remembered.
 - **Old devices:** no real iPad Air 1 or Safari 12 was available here. The legacy copy was checked by parsing it, and by running it in Chromium with the newer pieces removed. Henry's iPad Air should be tried after deploy.
 - The search covers what is on this device. A family member's changes appear after sync.
 - The menu is searched from 2 weeks back to 4 weeks ahead.

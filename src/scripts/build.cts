@@ -68,6 +68,9 @@ if(ocrAvailable){
  writeFileSync('dist/vendor/tesseract/LICENSES.txt','tesseract.js 5.0.0 and tesseract.js-core 5.0.0: Apache License 2.0 (https://github.com/naptha/tesseract.js).\nLanguage data eng/vie (4.0.0_best_int, via @tesseract.js-data): Apache License 2.0, tesseract-ocr/tessdata_best.\n\n'+readFileSync('node_modules/tesseract.js/LICENSE.md','utf8'));
 }else console.warn('OCR vendor files missing (run npm ci); the camera reader will use the public CDN.');
 
+// v1.7.15 barcode reader for browsers without a built-in one (iPhone Safari): @zxing/library (Apache-2.0), loaded only when scanning.
+{const from='node_modules/@zxing/library/umd/index.min.js';rmSync('dist/vendor/zxing',{recursive:true,force:true});if(existsSync(from)){mkdirSync('dist/vendor/zxing',{recursive:true});cpSync(from,'dist/vendor/zxing/zxing.min.js');writeFileSync('dist/vendor/zxing/LICENSES.txt','@zxing/library 0.21: Apache License 2.0 (https://github.com/zxing-js/library).\n')}else console.warn('ZXing vendor file missing (run npm ci); barcode photos need the browser reader.')}
+
 // Offline download packs (Settings → Other settings → Downloads for offline use). Sizes are exact bytes.
 {
  const size=(p:string)=>statSync('dist/'+p).size,gz=(p:string)=>gzipSync(readFileSync('dist/'+p),{level:6}).length;

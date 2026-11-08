@@ -103,6 +103,43 @@ const groups0=async(page:any,q:string)=>{await page.locator('#app-search').click
    await page.locator('#app-search').click();await page.fill('#app-search-input','canh');await page.waitForTimeout(250);assert.ok(await page.evaluate(`document.querySelectorAll('#search-results .search-hit-row').length>0`),'old device: search works');await page.evaluate('closeModal()');
    await page.evaluate('newReceipt()');await page.locator('#modal-root .legacy-note').waitFor();assert.equal(await page.locator('#modal-root [data-feature="receipt-camera"]').count(),0,'old device: no photo reading, a short note instead');
    await page.waitForTimeout(300);await page.screenshot({path:`${out}/old-device-ipad-1024x768.png`});assert.deepEqual(errors,[],'old device: page errors');await context.close();console.log('✓ old devices: app runs with the newer pieces removed')}
-  console.log('PASS v1.7.15: search at the top right of every screen (dishes, pantry, shopping, menu, receipts, guests, features; no statistics switches; offline) and the “Tính năng” tab in the guide; “Cài app” (prompt, iPhone guide, reminder, settings, sidebar, search, hidden once installed, shortcuts); old devices (ES2017 copy, polyfills)');
+  // Learned from other kitchen apps (owner: “Tất cả làm trong bản này luôn nhé”; pop-ups: family accounts for links, unknown ingredients
+  // kept for the family, barcodes via the app's server): import a recipe from a link, scan a barcode into the pantry, timers in steps
+  for(const [size,lang] of [['mobile','vi'],['desktop','en']] as const){const label=`kitchen extras ${size} ${lang}`;
+   const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],serviceWorkers:'block',reducedMotion:'reduce',timezoneId:'Australia/Sydney'});
+   await context.addInitScript((lang:string)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-local-locked','yes');localStorage.setItem('guest/bep-language',lang)},lang);
+   const page=await context.newPage(),errors:string[]=[],sent:any[]=[];page.on('pageerror',e=>errors.push(e.message));
+   await page.route(origin+'/**',async(r:any)=>{const u=new URL(r.request().url());
+    if(u.pathname==='/.netlify/functions/family'&&u.searchParams.get('op')==='recipe-import'){sent.push(JSON.parse(r.request().postData()||'{}'));return r.fulfill({json:{recipe:{name:'Thịt kho trứng',ingredients:['500 g pork belly, cubed','4 eggs','2 tbsp fish sauce','Salt to taste','1 cup something unknown'],steps:['Cut the pork.','Simmer for 45 minutes, then add the eggs.'],servings:4,time:75,source:'https://cook.example.com/r'}}})}
+    if(u.pathname==='/.netlify/functions/family'&&u.searchParams.get('op')==='barcode'){sent.push({code:u.searchParams.get('code')});return r.fulfill({json:{found:true,name:'Free Range Eggs',brand:'Sunny',quantity:'700 g'}})}
+    return route0(r)});
+   await page.goto(origin+'/#recipes',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>document.querySelector('#main h1'),null,{timeout:20000});
+   const E=(s:string)=>page.evaluate(s) as Promise<any>;const shot=(n:string)=>page.screenshot({path:`${out}/${n}-${lang}-${sizes[size].width}x${sizes[size].height}.png`});
+   await E(`(()=>{state.preferences.onboardingComplete=true;closeModal();render()})()`);
+   // without a family account: a short note, no request
+   await page.locator('[data-kx="import-open"]').click();assert.equal(await page.locator('#modal-root [data-kx="import-go"]').count(),0,`${label}: no import without a family account`);assert.ok(await page.locator('#modal-root a[href="/login"]').count(),`${label}: sign-in link`);await E('closeModal()');
+   await E(`(()=>{globalThis.BEP_SESSION={mode:'account',household:{id:'00000000-0000-4000-8000-000000000000',name:'Nhà Phú',role:'owner'}};render()})()`);
+   await page.locator('[data-kx="import-open"]').click();const go=page.locator('#modal-root [data-kx="import-go"]');assert.ok(await go.evaluate((b:any)=>!!b.querySelector('svg.btn-art')&&b.getBoundingClientRect().height>=44),`${label}: “Nhập món” drawn, ≥ 44 px`);
+   await page.fill('#kimp-url','https://cook.example.com/r');await shot('import-link');await go.click();await page.locator('#family-recipe-form').waitFor();
+   const rec:any=await E(`(()=>{const r=state.recipes[0];return{name:r.name,ings:r.ingredients,missing:r.missingIngredients,steps:r.steps,servings:r.servings,time:r.time,own:r.custom===true&&r.origin==='family'}})()`);
+   assert.deepEqual(rec.ings,[{id:'pork',qty:500},{id:'egg',qty:4},{id:'fishSauce',qty:30}],`${label}: lines with a known ingredient and a convertible amount become ingredients ${JSON.stringify(rec)}`);
+   assert.deepEqual(rec.missing,['Salt to taste','1 cup something unknown'],`${label}: every other line is kept as written for the family to match`);assert.ok(rec.servings===4&&rec.time===75&&rec.steps.length===2&&rec.own,`${label}: servings, time, steps; a family dish`);
+   assert.deepEqual(sent[0],{url:'https://cook.example.com/r'});await shot('import-editor');await E('closeModal()');
+   // barcode: typed number (camera not available in the test), looked up, the pack size filled only in the ingredient's own unit
+   await E(`location.hash='pantry'`);await page.waitForTimeout(200);const scan=page.locator('[data-kx="scan-open"]');assert.ok(await scan.evaluate((b:any)=>!!b.querySelector('svg.btn-art')&&b.getBoundingClientRect().height>=44),`${label}: “Quét mã vạch” drawn, ≥ 44 px`);
+   await scan.click();await page.locator('#scan-code').waitFor();await page.fill('#scan-code','9300633603256');await page.locator('[data-kx="scan-typed"]').click();await page.locator('#scan-ing').waitFor();
+   assert.equal(await page.locator('#scan-ing').inputValue(),'egg',`${label}: the product name suggests the ingredient`);assert.equal(await page.locator('#scan-qty').inputValue(),'',`${label}: 700 g is not filled in for eggs counted one by one`);
+   await page.selectOption('#scan-ing','pork');assert.equal(await page.locator('#scan-qty').inputValue(),'700',`${label}: 700 g fits an ingredient in grams`);await page.selectOption('#scan-ing','egg');await page.fill('#scan-qty','10');
+   assert.ok(await E('document.documentElement.scrollWidth<=innerWidth+1'),`${label}: fits`);await shot('barcode-confirm');await page.locator('#modal-root [data-kx="scan-save"]').click();await page.waitForTimeout(200);
+   const lot:any=await E(`state.pantry.find(p=>p.barcode==='9300633603256')`);assert.ok(lot&&lot.ingredient==='egg'&&lot.qty===10&&lot.storedOn,`${label}: put in the pantry ${JSON.stringify(lot)}`);
+   assert.equal(await E(`state.barcodeMap['9300633603256'].ingredient`),'egg',`${label}: the family's match is remembered`);
+   // the second scan of the same code uses the family's match, no lookup
+   const n=sent.length;await page.locator('[data-kx="scan-open"]').click();await page.fill('#scan-code','9300633603256');await page.locator('[data-kx="scan-typed"]').click();await page.locator('#scan-ing').waitFor();assert.equal(sent.length,n,`${label}: no second lookup`);assert.match(await page.locator('#modal-root').innerText(),lang==='en'?/matched by your family before/:/nhà mình đã ghép trước đây/);await E('closeModal()');
+   // cooking: “45 minutes” in a step starts the timer; the end vibrates and tells the cook
+   await E(`(()=>{window.__vib=0;navigator.vibrate=()=>{window.__vib++;return true};cooking={recipe:state.recipes[0],step:1};renderCooking()})()`);const st=page.locator('#modal-root .step-timer');await st.waitFor();
+   assert.equal(await st.getAttribute('data-min'),'45');assert.ok((await st.boundingBox())!.height>=44,`${label}: the minutes are a button ≥ 44 px`);await st.click();await page.waitForTimeout(150);assert.match(await E(`document.querySelector('#timer-display').textContent`),/^4[45]:\d\d$/,`${label}: the 45-minute timer runs`);
+   await E(`kitchenTimerDone()`);assert.ok(await E('window.__vib')>0,`${label}: the end vibrates`);await shot('cooking-step-timer');await E('closeModal()');
+   assert.deepEqual(errors,[],`${label}: page errors`);await context.close();console.log('✓',label)}
+  console.log('PASS v1.7.15: search at the top right of every screen (dishes, pantry, shopping, menu, receipts, guests, features; no statistics switches; offline) and the “Tính năng” tab in the guide; “Cài app” (prompt, iPhone guide, reminder, settings, sidebar, search, hidden once installed, shortcuts); old devices (ES2017 copy, polyfills); recipe import from a link, barcode into the pantry, timers in cooking steps');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});
