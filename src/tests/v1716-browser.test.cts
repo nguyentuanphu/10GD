@@ -66,7 +66,28 @@ const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tab
    assert.ok(await start.evaluate((b:any)=>!!b.querySelector('.btn-art')),`${label}: the main button keeps its drawing (rule 27)`);
    await shot('shop-start');
    await start.click();await page.locator('#main .shop-mode-bar').waitFor();assert.ok(true);
+   // 3. receipt lines (owner, 8 Nov 2026: “Hình đơn vị bị chèn, nguyên liệu chưa đối ứng không có lựa chọn search hoặc thêm mà chỉ có
+   //    dropdown”): the unit fits; the match box finds an ingredient by typing (no accents needed) and adds a new one
+   await E(`(()=>{view='today';location.hash='today';render();newReceipt();receiptDraft.items=[{id:'l1',label:'18 XINH-XINH CHA SONG',total:10,match:'',qty:null,unit:'',confidence:'unknown'},{id:'l2',label:'SUNNY FROZEN PRAWN GP CUTLET',total:22.5,match:'',qty:null,unit:'',confidence:'unknown'}];receiptEditor()})()`);
+   const line=(i:number)=>page.locator(`#modal-root .receipt-line[data-index="${i}"]`);await line(0).waitFor();
+   const unitFits=await line(0).locator('.receipt-unit').evaluate((s:any)=>{const c=document.createElement('canvas').getContext('2d')!,cs=getComputedStyle(s);c.font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;const text=c.measureText(s.options[s.selectedIndex].text).width;return {text:Math.round(text),room:Math.round(s.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-14)}});
+   assert.ok(unitFits.text<=unitFits.room,`${label}: “${lang==='en'?'Unknown':'Chưa rõ'}” fits in the unit box ${JSON.stringify(unitFits)}`);
+   assert.equal(await line(0).locator('select.receipt-match').isVisible(),false,`${label}: the long dropdown is replaced`);
+   const mbox=line(1).locator('.rm-search');assert.ok((await mbox.boundingBox())!.height>=44,`${label}: match box ≥ 44 px`);
+   const prawn:string=await E(`Object.keys(INGREDIENTS).find(id=>INGREDIENTS[id][0]==='Tôm')`);assert.ok(prawn,'Tôm exists');
+   await mbox.click();await mbox.fill(lang==='en'?'prawn':'tom');const opt=line(1).locator(`.rm-opt[data-rm-value="${prawn}"]`);await opt.waitFor();
+   assert.ok((await opt.boundingBox())!.height>=44,`${label}: suggestions ≥ 44 px`);await line(1).locator('.rm-list').scrollIntoViewIfNeeded();await shot('receipt-match-search');
+   await opt.click();assert.equal(await line(1).locator('select.receipt-match').inputValue(),prawn,`${label}: typing “tom” finds Tôm (no accents needed)`);
+   assert.equal(await mbox.inputValue(),await E(`shopIngName(${JSON.stringify(prawn)})`),`${label}: the box shows the chosen ingredient`);
+   // a name the app does not know yet: add it, in the line's unit
+   await line(0).locator('.receipt-unit').selectOption('kg');const b0=line(0).locator('.rm-search');await b0.click();await b0.fill('Chả song');
+   const add=line(0).locator('.rm-new');await add.waitFor();assert.match(await add.innerText(),lang==='en'?/Add a new ingredient: “Chả song”/:/Thêm nguyên liệu mới: “Chả song”/,`${label}: offers to add a new ingredient`);
+   await add.click();const made:any=await E(`(()=>{const v=document.querySelector('#modal-root .receipt-line[data-index="0"] select.receipt-match').value;return {v,cat:state.ingredientCatalog?.[v]}})()`);
+   assert.ok(/^family-ing-/.test(made.v)&&made.cat?.name==='Chả song'&&made.cat.unit==='g',`${label}: “Chả song” added to the family's ingredients in grams ${JSON.stringify(made)}`);
+   assert.equal(await E(`(collectReceipt(),receiptDraft.items[0].match)`),made.v,`${label}: the receipt line keeps the match`);
+   await b0.click();await b0.fill('cha song');assert.ok(await line(0).locator(`.rm-opt[data-rm-value="${made.v}"]`).count()===1&&await line(0).locator('.rm-new').count()===0,`${label}: next time it is found, not added twice`);
+   await page.keyboard.press('Escape');await E('closeModal()');
    const ow=await E('document.documentElement.scrollWidth-innerWidth');assert.ok(ow<=1,`${label}: overflow ${ow}`);assert.deepEqual(errors,[],`${label}: page errors`);await context.close();console.log('✓',label)}
-  console.log('PASS v1.7.16: removing an invited guest takes it off every meal of the invitation and withdraws the link (“Đóng” keeps it); a bigger “Bắt đầu đi chợ” with a running colour ring, still under reduced motion — 375 / 320 / 820 / 1280, VI and EN');
+  console.log('PASS v1.7.16: removing an invited guest takes it off every meal of the invitation and withdraws the link (“Đóng” keeps it); a bigger “Bắt đầu đi chợ” with a running colour ring, still under reduced motion; receipt unit fits and the match box finds or adds an ingredient — 375 / 320 / 820 / 1280, VI and EN');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

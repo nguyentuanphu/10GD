@@ -37,6 +37,24 @@ Henry sent a phone screenshot of the grey loading screen and asked: *“Tại sa
 - **Reduced motion:** the ring stays still (rule 13). It also stays still on old browsers without `@property`.
 - **Focus:** keyboard focus shows an orange outline outside the ring.
 
+## 4. Receipt lines: the unit fits, and the match box finds or adds an ingredient (owner, 8 Nov 2026, 20:31)
+*“Hình đơn vị bị chèn, nguyên liệu chưa đối ứng không có lựa chọn search hoặc thêm mà chỉ có dropdown.”*
+
+- **Unit column:** wider (108 px on phones, 116 px on larger screens), so “Chưa rõ” / “Unknown” is no longer cut off. The quantity column, which only holds a short number, is narrower.
+- **Match box:** the long “Đối ứng” dropdown is now a box to type in (`receipt-match-picker.ts`).
+  - **With nothing typed:** it suggests what is on the shopping list and “Chi tiêu khác”.
+  - **Typing:** finds ingredients and dishes on the menu without needing accents. For example, “tom” finds *Tôm*, and English names work in English.
+  - **Name not found:** it offers **“Thêm nguyên liệu mới: “…””**. This adds the name to the family's own ingredient list (`state.ingredientCatalog`, the same list recipe import uses), in the line's unit: grams for g/kg, ml for ml/l, otherwise that unit. Next time the name is found, not added again.
+  - **Suggestions and voice matches** still fill the box.
+  - **Every option** is at least 44 px tall, with words only (no drawings, rule 27). Enter picks the first option, Escape closes the list.
+  - **Unchanged:** the original select stays as the hidden value, so saving, suggestions and learning work as before.
+- **Tests (`test:v1716:browser`):**
+  - the unit text fits in its box;
+  - the dropdown is replaced;
+  - “tom” finds Tôm;
+  - “Chả song” is added once, in grams, kept on the line, and found the next time without a second add.
+- **Screenshots:** `receipt-match-search-*`.
+
 ## Tests
 - `npm run check`: the loading-shell step.
 - `sync-merge` (in `npm test`): guests removed on one device are not brought back.

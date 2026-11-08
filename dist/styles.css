@@ -2492,3 +2492,19 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 @keyframes shop-ring{to{--shop-ring:360deg}}
 @media (max-width:520px){#main .shop-mode-start .btn{flex:1 1 100%;justify-content:center}.shop-mode-start small{flex:1 1 100%;text-align:center}}
 @media (prefers-reduced-motion:reduce){.shop-mode-start .btn::before{animation:none}}
+/* v1.7.16 (owner, 8 Nov 2026: “Hình đơn vị bị chèn… chưa đối ứng không có lựa chọn search hoặc thêm”): a wider unit column so
+   “Chưa rõ” fits, and the receipt line's match box to type in (suggestions listed under it, in the flow so they are never clipped). */
+.receipt-table .receipt-table-head,.receipt-table .receipt-line{grid-template-columns:minmax(0,1fr) 76px 116px 92px 44px}
+@media (max-width:560px){.receipt-table .receipt-table-head,.receipt-table .receipt-line{grid-template-columns:60px 108px minmax(0,1fr) 44px}}
+.rm-pick{display:grid;gap:4px;min-width:0}
+.rm-pick .rm-search{min-height:44px;width:100%;min-width:0}
+.rm-list{display:grid;gap:2px;max-height:264px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--white);padding:4px}
+.rm-list[hidden]{display:none!important}
+.rm-opt{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-height:44px;width:100%;padding:8px 10px;border:0;border-radius:9px;background:transparent;color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.rm-opt small{color:var(--muted);font-size:.78em;text-align:right;flex:none;max-width:45%}
+.rm-opt:hover,.rm-opt:focus-visible{background:var(--mint);outline:none}
+.rm-opt.rm-new{color:var(--green);font-weight:700}
+.rm-empty{margin:6px 8px;color:var(--muted);font-size:.9em}
+html[data-theme="dark"] .rm-list{background:var(--surface,#18221d)}
+html[data-theme="dark"] .rm-opt:hover,html[data-theme="dark"] .rm-opt:focus-visible{background:var(--surface-3,#26372e)}
+html[data-theme="dark"] .rm-opt.rm-new{color:#8fd6b0}
