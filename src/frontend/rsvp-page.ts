@@ -24,7 +24,7 @@ const T:any={vi:{loading:'Đang mở lời mời…',invites:(h:string)=>`${h} m
 const $=(s:string)=>document.querySelector(s) as HTMLElement;
 const esc=(s:any)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'} as any)[c]);
 // the family's short link is /m#<token>; older links are rsvp.html#t=<token>
-const token=(new URLSearchParams(location.hash.slice(1)).get('t')||(/^#[A-Za-z0-9_-]{22,32}$/.test(location.hash)?location.hash.slice(1):'')||new URLSearchParams(location.search).get('t')||'').trim();
+const token=(new URLSearchParams(location.hash.slice(1)).get('t')||(/^#(?:[A-Za-z0-9]{6}|[A-Za-z0-9_-]{22,32})$/.test(location.hash)?location.hash.slice(1):'')||new URLSearchParams(location.search).get('t')||'').trim().replace(/^[A-Za-z0-9]{6}$/,(s:string)=>s.toLowerCase());
 let lang:'vi'|'en'=(()=>{try{const s=localStorage.getItem('rsvp-lang');if(s==='vi'||s==='en')return s}catch(e){}return /^vi/i.test(navigator.language||'')?'vi':'en'})();
 let view:any=null,editing=false,draft={status:'',adults:1,kids:0,note:''},busy=false,errorMsg='';
 const t=()=>T[lang];
@@ -50,7 +50,7 @@ function render(){document.documentElement.lang=lang;document.title=(lang==='vi'
  main.innerHTML=head+`<section class="card"><h2>${esc(t().q)}</h2>${late?`<p class="notice">${esc(t().late)}</p>`:''}<div class="choices" role="group">${options.map(s=>`<button class="choice" type="button" data-status="${s}" aria-pressed="${draft.status===s}">${esc(t()[s])}</button>`).join('')}</div>
   ${draft.status==='yes'||draft.status==='maybe'?stepper('adults')+stepper('kids'):''}<label class="note"><span>${esc(t().note)}</span><textarea id="rsvp-note" maxlength="200" placeholder="${esc(t().notePh)}">${esc(draft.note)}</textarea></label>
   <button class="primary" type="button" data-act="send" ${draft.status&&!busy?'':'disabled'}>${ART.save}<span>${esc(busy?t().sending:t().send)}</span></button>${errorMsg?`<p class="error">${esc(errorMsg)}</p>`:''}</section>`}
-async function load(){if(!/^[A-Za-z0-9_-]{22}(?:[A-Za-z0-9_-]{10})?$/.test(token)){errorMsg=t().notFound;render();return}
+async function load(){if(!/^(?:[a-hjkmnp-z2-9]{6}|[A-Za-z0-9_-]{22}(?:[A-Za-z0-9_-]{10})?)$/.test(token)){errorMsg=t().notFound;render();return}
  try{const res=await fetch('/.netlify/functions/rsvp?t='+encodeURIComponent(token),{cache:'no-store'});if(!res.ok){errorMsg=t().notFound;render();return}view=await res.json();
   const r=view.response;draft={status:r?.status&&r.status!=='busy'?r.status:'',adults:r&&(r.status==='yes'||r.status==='maybe')?r.adults:view.adults||1,kids:r&&(r.status==='yes'||r.status==='maybe')?r.kids:view.kids||0,note:r?.note||''};render()}catch(e){errorMsg=t().error;render()}}
 async function send(status:string){busy=true;errorMsg='';render();const coming=status==='yes'||status==='maybe';

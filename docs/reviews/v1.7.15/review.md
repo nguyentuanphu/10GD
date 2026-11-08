@@ -104,6 +104,24 @@
 
 **Privacy page:** new part *5a. Nhập món từ link và quét mã vạch / Importing a recipe from a link and scanning barcodes*.
 
+## 6. Shorter guest invitation code
+
+Owner, 8 Nov 2026, Sydney time: *“Mã invite cho khách vẫn còn dài quá”*. Pop-ups chose **6 characters**, in v1.7.15.
+
+- **New links:** `…/m#k7m4p9`. The code is 6 lower-case letters and digits, without look-alikes (no 0 o 1 l i). That gives about 890 million codes.
+  - Before, it was 22 characters (v1.7.14), and 32 before that.
+  - Older links keep working.
+  - A code typed in capitals still opens the invitation.
+- **Collisions:** if a new code is already taken, the server picks another. `onlyIfNew` means it never overwrites another family's invitation.
+- **Guess protection** (`functions/rsvp.mts`), for short codes only:
+  - After **10 wrong codes in an hour** from one network address, that address must wait until the next hour, even with a real code.
+  - After **300 wrong codes in an hour overall**, short codes pause until the next hour.
+  - The address is kept only as a one-way scrambled value, as a counter for the current hour.
+- **Privacy page section 7** now says this in VI and EN.
+- **Tests:**
+  - `rsvp.test` checks the code shape, randomness (2000 codes), the capitals case, both limits, the scrambled address, the reset an hour later, and that older long links are not slowed.
+  - `rsvp-browser` now uses a 6-character code.
+
 ## Tests
 - **New suite `test:v1715:browser`** (in `test:all`), at 375×812, 320×740, 820×1100 (VI) and 1280×800 (EN). It checks:
   - **The magnifier:** drawn, at the top right, ≥ 44 px, labelled, on Today, Menu, Shopping, Pantry and Recipes.
@@ -151,3 +169,4 @@
 - **Old devices:** no real iPad Air 1 or Safari 12 was available here. The legacy copy was checked by parsing it, and by running it in Chromium with the newer pieces removed. Henry's iPad Air should be tried after deploy.
 - The search covers what is on this device. A family member's changes appear after sync.
 - The menu is searched from 2 weeks back to 4 weeks ahead.
+- **Guest code:** the tradeoff of a 6-character code is that someone who tries many wrong codes on purpose can make short-code links wait until the next hour (the overall limit). Real guests then see “try again in an hour”.
