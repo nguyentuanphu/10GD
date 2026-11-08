@@ -103,6 +103,19 @@ const dim=(s:string)=>`${sizes[s].width}x${sizes[s].height}`;
  // ---------- 3. send without a picture; with a screenshot (hide a part); VI/EN; light/dark ----------
  {const {context,page,errors}=await openApp({who:'tina',size:'mobile',lang:'vi',theme:'light'});await bug(page).waitFor();const before=(await reports()).length;
   await openSheet(page);await noOverflow(page,'sheet 375');
+  // v1.7.16 (owner, 8 Nov 2026: “Khi ấn mấy cái nút này màn hình nó nhảy”): tapping a kind of feedback or a tab keeps the sheet
+  // still — no replayed slide-up, tabs and chips stay where they were (rule 24)
+  {await page.waitForTimeout(300);const top=(sel:string)=>page.locator(sel).first().evaluate((e:any)=>Math.round(e.getBoundingClientRect().top));
+   const tabs0=await top('.lb-tabs'),chips0=await top('.lb-sheet [data-type="other"]');
+   for(const t of await page.locator('.lb-sheet [data-type]').evaluateAll((a:any[])=>a.map(b=>b.dataset.type))){await page.locator(`.lb-sheet [data-type="${t}"]`).click();await page.waitForTimeout(60);
+    assert.ok(!(await page.locator('.lb-sheet').getAttribute('class'))!.includes('lb-enter'),'no slide-up on a tap');
+    assert.ok(Math.abs(await top('.lb-tabs')-tabs0)<=1&&Math.abs(await top('.lb-sheet [data-type="other"]')-chips0)<=1,`tapping “${t}” moves nothing`)}
+   await page.locator('.lb-sheet [data-tab="mine"]').click();await page.waitForTimeout(250);assert.ok(Math.abs(await top('.lb-tabs')-tabs0)<=1,'the tabs stay put on “Góp ý của tôi”');
+   await page.locator('.lb-sheet [data-tab="send"]').click();await page.waitForTimeout(250);assert.ok(Math.abs(await top('.lb-tabs')-tabs0)<=1&&Math.abs(await top('.lb-sheet [data-type="other"]')-chips0)<=1,'and back on “Gửi góp ý”');
+   await page.locator('.lb-sheet [data-type="bug"]').click();console.log('PASS feedback sheet: kinds and tabs do not move the page (owner report)')
+   // v1.7.16: a family owner finds “Tự chạy thử” in the sheet (words only, ≥ 44 px); it opens the scenario list
+   const ap=page.locator('.lb-sheet [data-ap="open"]');await ap.waitFor();assert.ok(await ap.evaluate((b:any)=>b.getBoundingClientRect().height>=44&&!b.querySelector('svg')),'“Tự chạy thử” ≥ 44 px, words only');
+   await ap.click();await page.locator('#ap-panel .ap-sheet').waitFor();assert.equal(await page.locator('.lb-sheet').count(),0,'the feedback sheet closes for the list');await page.locator('#ap-panel [data-ap="close"].ap-x').click();await openSheet(page);console.log('PASS “Tự chạy thử” entry for the family owner')}
   for(const el of await page.locator('.lb-sheet button:visible, .lb-sheet summary:visible').all()){const b=await el.boundingBox();if(b)assert.ok(b.height>=44&&b.width>=44,'sheet target ≥44px: '+(await el.innerText()).slice(0,30))}
   assert.match(await page.locator('.lb-sheet').innerText(),/Gửi góp ý/);assert.ok(!/netlify|blobs/i.test(await page.locator('.lb-sheet').innerText()),'no vendor named');
   await page.locator('[data-type="idea"]').click();assert.equal(await page.locator('[data-type="idea"]').getAttribute('aria-checked'),'true');

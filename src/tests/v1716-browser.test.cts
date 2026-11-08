@@ -121,7 +121,34 @@ const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tab
     assert.ok(await E(`document.querySelector('#nav a.active').getBoundingClientRect().right<=document.getElementById('nav').getBoundingClientRect().right+1`),`${label}: still in view after the redraw`);
     void y0}
    else{const shown=await E(`[...document.querySelectorAll('#nav a')].filter(a=>getComputedStyle(a).display!=='none').length`);assert.ok(shown>=8,`${label}: the sidebar lists every section as before (${shown})`)}
+   // 6. “Tự chạy thử” in the ladybug (owner, 8 Nov 2026: the app plays the scenarios like a user, picks the failures itself, and
+   //    a list to watch each one run; pop-ups: a temporary sample family, family owners only, failures sent automatically)
+   if(size==='mobile'||size==='desktop'){
+    await E(`(()=>{closeModal();globalThis.BEP_SESSION=null;view='today';location.hash='today';render()})()`);await E('bepAutoplay.open()');assert.equal(await page.locator('#ap-panel').count(),0,`${label}: not offered without a family owner account`);
+    await E(`(()=>{globalThis.BEP_SESSION={mode:'account',household:{id:'00000000-0000-4000-8000-000000000000',name:'Nhà Phú',role:'owner'},account:{username:'henry'}};state.recipes.push({...clone(state.recipes[0]),id:'fam-own-1',name:'Món riêng của nhà',custom:true});save();render()})()`);
+    const snap=`JSON.stringify(Object.fromEntries(Object.keys(localStorage).filter(k=>!/^bep-(usage-v1|ladybug|feedback|autoplay)/.test(k)).sort().map(k=>[k,localStorage.getItem(k)])))`;
+    const realBefore=await E('JSON.stringify(state)'),lsBefore=await E(snap);const calls:string[]=[];const onReq=(r:any)=>{if(r.url().includes('/.netlify/'))calls.push(r.method()+' '+r.url())};page.on('request',onReq);
+    await E('bepAutoplay.open()');const panel=page.locator('#ap-panel .ap-sheet');await panel.waitFor();
+    assert.ok(await page.locator('#ap-panel [data-ap="all"]').evaluate((b:any)=>!!b.querySelector('svg.btn-art')&&b.getBoundingClientRect().height>=44),`${label}: “Chạy tất cả” drawn, ≥ 44 px`);
+    assert.ok(await page.locator('#ap-panel .ap-x svg').count()===1,`${label}: the X is a drawing`);
+    const watch=await page.locator('#ap-panel [data-ap="watch"]').evaluateAll((a:any[])=>a.map(b=>({h:b.getBoundingClientRect().height,art:!!b.querySelector('svg')})));assert.ok(watch.length>=10&&watch.every(x=>x.h>=44&&!x.art),`${label}: a “Xem” per scenario, ≥ 44 px, words only`);
+    await shot('autoplay-list');
+    // run everything quickly
+    await page.locator('#ap-panel [data-ap="all"]').click();await page.locator('#ap-bar').waitFor();await page.waitForFunction(()=>!(globalThis as any).bepAutoplay.running(),null,{timeout:240000});page.off('request',onReq);
+    const res:any=await E('bepAutoplay.results()');const bad=Object.entries(res).filter(([,v]:any)=>!v.ok);assert.deepEqual(bad,[],`${label}: every scenario passes ${JSON.stringify(bad)}`);assert.ok(Object.keys(res).length>=12,`${label}: ${Object.keys(res).length} scenarios`);
+    assert.equal(await E('JSON.stringify(state)'),realBefore,`${label}: the family's own data is untouched (its own recipe still there, nothing added)`);
+    assert.equal(await E(snap),lsBefore,`${label}: everything stored on the device is back as it was`);
+    assert.deepEqual(calls.filter(c=>!/feedback\?op=(access|status)/.test(c)),[],`${label}: nothing sent to the server while testing`);
+    await page.locator('#ap-panel .ap-sum').waitFor();assert.match(await page.locator('#ap-panel .ap-sum').innerText(),lang==='en'?/(\d+) of \1 passed/:/Đạt (\d+)\/\1 kịch bản/,`${label}: the list shows the result`);await shot('autoplay-results');
+    // watch one: a bar at the top and a ring around each tap
+    await page.locator('#ap-panel [data-ap="watch"][data-id="shop"]').click();await page.locator('#ap-bar').waitFor();await page.locator('#ap-ring:not([hidden])').waitFor({timeout:15000});await shot('autoplay-watch');
+    await page.waitForFunction(()=>!(globalThis as any).bepAutoplay.running(),null,{timeout:120000});
+    // a failure is picked up and sent by itself
+    const n0=await E('bepLadybug.outbox().length');await E(`(()=>{window.__og=openGuide;openGuide=()=>{}})()`);await E(`bepAutoplay.run(['guide'])`);await page.waitForFunction(()=>!(globalThis as any).bepAutoplay.running(),null,{timeout:60000});await E(`openGuide=window.__og`);
+    assert.equal((await E('bepAutoplay.results()')).guide.ok,false,`${label}: a broken step is caught`);
+    const out:any[]=await E('bepLadybug.outbox()');assert.ok(out.length===n0+1&&/Tự chạy thử|Self-test/.test(out[out.length-1].body.note)&&out[out.length-1].body.ctx.selfTest===true,`${label}: and sent to Feedback without a tap ${JSON.stringify(out.slice(-1).map(x=>x.body.note))}`);
+    await E(`(()=>{document.getElementById('ap-panel')?.remove();state.recipes=state.recipes.filter(r=>r.id!=='fam-own-1');save();render()})()`)}
    const ow=await E('document.documentElement.scrollWidth-innerWidth');assert.ok(ow<=1,`${label}: overflow ${ow}`);assert.deepEqual(errors,[],`${label}: page errors`);await context.close();console.log('✓',label)}
-  console.log('PASS v1.7.16: removing an invited guest takes it off every meal of the invitation and withdraws the link (“Đóng” keeps it); a bigger “Bắt đầu đi chợ” with a running colour ring, still under reduced motion; receipt unit fits and the match box finds or adds an ingredient; “Tên: lượng” recipe lines read without the colon; the bottom bar slides sideways with every section — 375 / 320 / 820 / 1280, VI and EN');
+  console.log('PASS v1.7.16: removing an invited guest takes it off every meal of the invitation and withdraws the link (“Đóng” keeps it); a bigger “Bắt đầu đi chợ” with a running colour ring, still under reduced motion; receipt unit fits and the match box finds or adds an ingredient; “Tên: lượng” recipe lines read without the colon; the bottom bar slides sideways with every section; “Tự chạy thử” plays every scenario on a sample family, leaves the family’s data untouched and sends failures by itself — 375 / 320 / 820 / 1280, VI and EN');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

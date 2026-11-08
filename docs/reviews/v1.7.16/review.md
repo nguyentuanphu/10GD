@@ -91,6 +91,63 @@ The page's recipe data was read here with the app's own reader. It writes 24 lin
   - Tablet and desktop: the sidebar lists every section.
 - **Screenshots:** `nav-slide-start-*`, `nav-slide-end-*`.
 
+## 7. Feedback sheet stays still, and “Tự chạy thử” (owner, 8 Nov 2026)
+*“Khi ấn mấy cái nút này màn hình nó nhảy, ở lady bug bạn làm autoplay như một người dùng để nó tự test qua nhiều scenarios đi, để test hết các chức năng và work flow, cái nào không dùng được nó sẽ tự pick lỗi, song song cho sẵn một danh sách để khi tôi ấn thì để xem nó chạy và hoạt động như thế nào. Có nhiều cái cần giả lập như receipt hoặc barcode.”*
+
+Henry answered four questions in pop-ups:
+- **Data:** a temporary sample family.
+- **Who sees it:** family owners only.
+- **Failures:** sent automatically.
+- **Release:** included in v1.7.16.
+
+**The jump:**
+- **Cause:** the ladybug sheet is drawn again on every tap. Its slide-up animation (`lb-up`) played again each time, and changing tab changed the sheet's height, so the tabs moved.
+- **Fix:** the slide-up plays only when the sheet opens (`.lb-enter`), and the sheet keeps one height.
+- **Test:** `test:ladybug:browser` now taps every kind and both tabs, and checks that nothing moves by more than 1 px.
+
+**Tự chạy thử (`ladybug-autoplay.ts`):**
+- **Where:** a “Tự chạy thử” button in the ladybug sheet, for family owners. It opens a list of 12 scenarios, each with **Xem**, plus **Chạy tất cả** (drawn play button).
+- **The 12 scenarios:**
+  - Open every main page
+  - Pick each day (the page must not jump)
+  - Add and remove guests
+  - Shop and put away
+  - Pretend receipt: sample receipt text instead of a photo; read the lines, match “tom”, save
+  - Pretend barcode: a typed code and a pretend product lookup, put away
+  - Import a recipe link: a pretend page with “Gừng: 25g” and “Bò tái:1,2kg”
+  - Cook with a step timer
+  - Search
+  - Switch Vietnamese / English
+  - Guide tabs (must not jump)
+  - The sliding bottom bar (phones)
+- **Checks:** every step checks its result. Any app error during a scenario fails it, and a tapped tab, day or chip that moves more than 2 px fails it (rule 24).
+- **Xem:** plays one scenario slowly. A bar at the top shows the scenario and its step, with **Dừng**, and a yellow ring marks each control as it is tapped. The ring does not animate under reduced motion.
+- **Sample family, kept apart from the real one:**
+  - It is created the way a new family is.
+  - Saving goes to memory only and family sync is off.
+  - Every server call is answered inside the app, so nothing is sent: no real invitation, recipe page or product lookup.
+  - Usage counting, sharing and beacons are paused.
+  - Afterwards the family's state, the page, shopping mode and everything stored on the device are put back exactly. The ladybug's own outbox is left alone.
+- **Failures:** sent as **one** feedback report, through the ladybug outbox, so a report made offline waits. It names the scenario, the failed step, the reason, screen size and language, and is marked `ctx.selfTest`. The same report is sent at most once a day.
+- **Found while building it:** the first run caught real problems. Some were in the self-test itself:
+  - a missing new-family default;
+  - a 0-based cooking step;
+  - a shopping mode left on from before.
+  
+  All are fixed.
+- **Privacy:** the feedback privacy page (VI and EN) now describes the self-test and what its automatic report contains.
+- **Tests (`test:v1716:browser`, phone and desktop):**
+  - The list is only offered to a family owner.
+  - Drawn “Chạy tất cả” and X; a “Xem” per scenario, ≥ 44 px, words only.
+  - **All 12 scenarios pass.**
+  - The family's own data, including a recipe of their own, is byte-for-byte unchanged, and so is everything stored on the device.
+  - **No server call** while testing.
+  - The results show in the list.
+  - Watching shows the bar and the ring.
+  - A deliberately broken step is caught and sent to Feedback without a tap.
+- **Ladybug suite:** the owner sees the entry, and it opens the list.
+- **Screenshots:** `autoplay-list-*`, `autoplay-results-*`, `autoplay-watch-*`.
+
 ## Tests
 - `npm run check`: the loading-shell step.
 - `sync-merge` (in `npm test`): guests removed on one device are not brought back.

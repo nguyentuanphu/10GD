@@ -217,7 +217,7 @@ function sheetHTML(){const c=context(),q=outbox(),items=mineCache?.items||[],unr
  const mine=`<div class="lb-panel" role="tabpanel" id="lb-panel-mine" aria-labelledby="lb-tab-mine" ${tab==='mine'?'':'hidden'}>${!online()&&!mineCache?`<p class="lb-hint">${T('Đang ngoại tuyến. Danh sách sẽ hiện khi có mạng.','Offline. The list appears when you are online.')}</p>`:''}${mineLoading&&!mineCache?`<p class="lb-hint">${T('Đang tải…','Loading…')}</p>`:''}
   ${waiting||sent?`<ul class="lb-list">${waiting}${sent}</ul>`:(mineCache?`<p class="lb-empty">${T('Chưa có góp ý nào. Chạm con bọ rùa khi thấy gì chưa ổn.','Nothing yet. Tap the ladybug when something looks wrong.')}</p>`:'')}
   <div class="lb-foot"><button type="button" class="lb-btn" data-act="min">⤡ ${T('Thu nhỏ bọ rùa','Tuck the ladybug away')}</button><button type="button" class="lb-btn" data-act="reset">⌂ ${T('Đặt lại vị trí','Reset its place')}</button><button type="button" class="lb-btn" data-act="close">${T('Đóng','Close')}</button></div></div>`;
- return `<div class="lb-backdrop" data-act="close"></div><section class="lb-sheet" role="dialog" aria-modal="true" aria-labelledby="lb-title" tabindex="-1"><header class="lb-head"><span class="lb-head-bug" aria-hidden="true">${BUG_SVG}</span><h2 id="lb-title">${T('Góp ý','Feedback')}</h2><span class="lb-net ${online()?'on':'off'}">${online()?T('Trực tuyến','Online'):T('Ngoại tuyến','Offline')}</span><button type="button" class="lb-x" data-act="close" aria-label="${T('Đóng','Close')}">✕</button></header>${tabs}<div class="lb-body">${send}${mine}</div></section>`}
+ return `<div class="lb-backdrop" data-act="close"></div><section class="lb-sheet${entering?' lb-enter':''}" role="dialog" aria-modal="true" aria-labelledby="lb-title" tabindex="-1"><header class="lb-head"><span class="lb-head-bug" aria-hidden="true">${BUG_SVG}</span><h2 id="lb-title">${T('Góp ý','Feedback')}</h2><span class="lb-net ${online()?'on':'off'}">${online()?T('Trực tuyến','Online'):T('Ngoại tuyến','Offline')}</span><button type="button" class="lb-x" data-act="close" aria-label="${T('Đóng','Close')}">✕</button></header>${tabs}<div class="lb-body">${send}${mine}</div></section>`}
 function paintSheetStatus(){const el=layer?.querySelector('#lb-status');if(!el)return;const q=outbox().length;const r=layer.querySelector('[data-act="retry"]');if(r)r.hidden=!q;
  el.textContent=notice||(!online()?T(`Đang ngoại tuyến. Góp ý sẽ được lưu trên máy này và tự gửi khi có mạng${q?` (${q} đang chờ)`:''}.`,`You are offline. Feedback is saved on this device and sent automatically when you are back online${q?` (${q} waiting)`:''}.`)
   :flushing?T('Đang gửi…','Sending…'):q?T(`${q} góp ý đang chờ gửi.`,`${q} waiting to send.`):lastResult?.refused?T('Một góp ý không được nhận: ','One report was not accepted: ')+lastResult.refused:'')}
@@ -228,11 +228,14 @@ function render(focusSel?:string){if(!layer)return;const ta=layer.querySelector(
 function focusables(){return [...layer.querySelectorAll('button:not([disabled]),[href],textarea,input,summary,[tabindex]:not([tabindex="-1"])')].filter((n:any)=>!n.closest('[hidden]')&&n.getClientRects().length)}
 function onSheetKey(e:any){if(e.key==='Escape'){e.preventDefault();if(draft.hideMode){draft.hideMode=false;render('[data-act="hide"]');return}closeSheet();return}
  if(e.key==='Tab'){const f=focusables();if(!f.length)return;const first:any=f[0],last:any=f[f.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}}
+// v1.7.16 (owner, 8 Nov 2026: “Khi ấn mấy cái nút này màn hình nó nhảy”): the sheet is drawn again on every tap; its slide-up
+// played each time and the tab bar moved with the sheet's height. It slides up only when it opens, and keeps one height.
+let entering=false;
 function openSheet(which?:string){
  if(layer){if(which){tab=which;render()}return}
  returnFocus=document.activeElement;if(which)tab=which;else if((+status?.unread||0)>0)tab='mine';notice='';
  layer=document.createElement('div');layer.className='lb-layer';document.body.append(layer);document.documentElement.classList.add('lb-open');
- layer.addEventListener('keydown',onSheetKey);render();(layer.querySelector(tab==='send'?'#lb-note':'#lb-tab-mine') as any)?.focus?.();
+ layer.addEventListener('keydown',onSheetKey);entering=true;render();entering=false;(layer.querySelector(tab==='send'?'#lb-note':'#lb-tab-mine') as any)?.focus?.();
  if(tab==='mine'||!mineCache)void loadMine()}
 function closeSheet(restore=true){if(!layer)return;const ta=layer.querySelector('#lb-note');if(ta)draft.note=ta.value;draft.hideMode=false;layer.remove();layer=null;document.documentElement.classList.remove('lb-open');if(restore)(btn&&btn.isConnected?btn:returnFocus)?.focus?.()}
 async function loadMine(){if(!online()||mineLoading)return;mineLoading=true;try{const d=await call('mine');mineCache={items:d.items||[],at:Date.now()};put(K.mine,mineCache);status={...(status||{}),unread:+d.unread||0};put(K.status,status);paint()}catch{}finally{mineLoading=false}
@@ -285,7 +288,10 @@ function start(){if(started)return;started=true;
  setInterval(()=>{void refresh()},STATUS_EVERY);setInterval(()=>{if(outbox().length)void flush()},FLUSH_EVERY);
  // Language switch re-labels the bug and redraws an open sheet with the draft kept.
  if(typeof changeAppLanguage==='function'){const base=changeAppLanguage;changeAppLanguage=function(this:any,...a:any[]){const r=base.apply(this,a);paint();if(layer)render();return r}}}
-(globalThis as any).bepLadybug={refresh,flush,open:openSheet,close:closeSheet,outbox,reset:resetPos,minimize:setMin,layout,setPosition:(side:string,y:number)=>{saved={side,y};put(K.pos,saved);layout()},state:()=>({visible:visible(),mounted:!!btn,minimized,saved,status,yielded,queued:outbox().length,sheet:!!layer,tab}),capture:captureScreen};
+// v1.7.16 (owner, 8 Nov 2026: “cái nào không dùng được nó sẽ tự pick lỗi”; pop-up: send automatically): the self-test sends what
+// failed as one report, through the same outbox as a report the family writes (kept on the device when offline)
+function autoReport(note:string,shot?:string|null){const ctx=context();ctx.queued=!online();(ctx as any).selfTest=true;return enqueue({clientId:rid(18),type:'bug',note:String(note).slice(0,1000),ctx,errors:errors.map(scrub),shot:shot||null})}
+(globalThis as any).bepLadybug={autoReport,refresh,flush,open:openSheet,close:closeSheet,outbox,reset:resetPos,minimize:setMin,layout,setPosition:(side:string,y:number)=>{saved={side,y};put(K.pos,saved);layout()},state:()=>({visible:visible(),mounted:!!btn,minimized,saved,status,yielded,queued:outbox().length,sheet:!!layer,tab}),capture:captureScreen};
 const idle=(f:any)=>typeof (globalThis as any).requestIdleCallback==='function'?(globalThis as any).requestIdleCallback(f,{timeout:3000}):setTimeout(f,1200);
 if(document.readyState==='complete')idle(start);else addEventListener('load',()=>idle(start),{once:true});
 })();
