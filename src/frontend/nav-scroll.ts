@@ -21,7 +21,7 @@
   for(const a of nav.querySelectorAll('a[href^="#"]') as NodeListOf<HTMLAnchorElement>){const id=a.getAttribute('href')!.slice(1),icon=a.querySelector('.nav-icon');
    if(icon&&ICON[id]&&(!icon.querySelector('svg')||icon.querySelector('.emo-art')))icon.innerHTML=svg(ICON[id]);
    const s=SHORT[id];if(s&&!a.querySelector('.nav-short')){const full=String((typeof labels!=='undefined'&&(labels as any)[id]?.[1])||[...a.childNodes].filter(n=>!(n as any).classList?.contains?.('nav-icon')).map(n=>n.textContent).join(' ')).replace(/\s+/g,' ').trim();
-    a.insertAdjacentHTML('beforeend',`<span class="nav-short" aria-hidden="true">${esc(nT(s[0],s[1]))}</span>`);if(full&&!a.getAttribute('aria-label'))a.setAttribute('aria-label',full)}}
+    const short=`<span class="nav-short" aria-hidden="true">${esc(nT(s[0],s[1]))}</span>`;if(icon)icon.insertAdjacentHTML('afterend',short);else a.insertAdjacentHTML('afterbegin',short);if(full&&!a.getAttribute('aria-label'))a.setAttribute('aria-label',full)}}
   if(!(nav as any)._navScroll){(nav as any)._navScroll=true;nav.addEventListener('scroll',()=>{keepLeft=nav.scrollLeft;fade(nav)},{passive:true})}
   // keep where the family slid to; bring the open section into view sideways only (never scrolls the page)
   nav.scrollLeft=keepLeft;const on=nav.querySelector('a.active') as HTMLElement|null;
