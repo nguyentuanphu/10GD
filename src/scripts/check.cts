@@ -64,3 +64,9 @@ console.log('Edge entry points executed as ES modules.');
  const js=tracked.filter((f:string)=>/\.(js|cjs|mjs|jsx)$/.test(f));if(js.length)throw Error('Hand-written JavaScript is tracked — write it in TypeScript: '+js.join(', '));
  const inline=tracked.filter((f:string)=>/^(dist|extension)\/.*\.html$/.test(f)&&/<script(?![^>]*\bsrc=)[^>]*>/i.test(fs.readFileSync(f,'utf8')));if(inline.length)throw Error('Inline <script> in '+inline.join(', ')+' — move it to a TypeScript file');
  console.log('All scripts are TypeScript: no hand-written JavaScript tracked, no inline page scripts.')}
+// v1.7.16 (owner, 8 Nov 2026: “Tại sao vẫn hiện cái icon cũ này?”): the page shell shown while the app loads uses the same drawings
+// as the app — no phone emoji or text-symbol icons (rule 19). The footer's text heart (♡) is ordinary text, kept as before.
+{const shell=fs.readFileSync('dist/index.html','utf8').replace(/<span>♡<\/span><\/footer>/,'</footer>');
+ const bad=[...new Set(shell.match(/[\u2190-\u2bff]|\p{Extended_Pictographic}/gu)||[])];if(bad.length)throw Error('The loading shell in dist/index.html shows emoji / symbol icons instead of drawings: '+bad.join(' '));
+ if(!/data-action="reminders"[^>]*><svg/.test(shell))throw Error('The loading shell bell must be the drawn bell');
+ console.log('Loading shell: drawings only (bell, family, leaf), no emoji or symbol icons.')}
