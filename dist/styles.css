@@ -2551,3 +2551,19 @@ html[data-theme="dark"] .ap-item{background:var(--surface,#18221d)}html[data-the
 .ap-foot .btn.primary,.ap-foot .btn.primary span{color:#fff}
 .ap-mode{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 6px}.ap-mode-l{font-weight:700;margin-right:2px}.ap-mode .chip{min-height:44px}
 .ap-mode-note{color:var(--muted);font-size:.9em;margin:0 0 10px}
+/* v1.7.17: arrows over the ends of the sliding bottom bar, and the last tab peeking out */
+.nav-arrow{display:none}
+@media (max-width:760px){
+ .sidebar nav#nav>a,.sidebar nav#nav>.mobile-more{min-width:max(22%,72px)}
+ .nav-arrow{display:grid;place-items:center;position:absolute;z-index:2;width:44px;padding:0;border:0;cursor:pointer;background:transparent}
+ .nav-arrow[hidden]{display:none}
+ .nav-arrow-left{left:0;background:linear-gradient(to right,var(--paper,#fffefa) 55%,transparent)}
+ .nav-arrow-right{right:0;background:linear-gradient(to left,var(--paper,#fffefa) 55%,transparent)}
+ .nav-arrow .btn-art{width:30px;height:30px;filter:drop-shadow(0 1px 2px #0002)}
+ html[data-theme="dark"] .nav-arrow-left{background:linear-gradient(to right,var(--surface,#141c18) 55%,transparent)}
+ html[data-theme="dark"] .nav-arrow-right{background:linear-gradient(to left,var(--surface,#141c18) 55%,transparent)}
+ .sidebar nav#nav.nav-more-right,.sidebar nav#nav.nav-more-left{-webkit-mask-image:none;mask-image:none}
+}
+/* v1.7.17: tonight's start-cooking line on Today */
+.cook-timing{margin:4px 0 0;font-size:.88em;color:var(--green);font-weight:600;overflow-wrap:anywhere}
+html[data-theme="dark"] .cook-timing{color:#8fd6b0}
