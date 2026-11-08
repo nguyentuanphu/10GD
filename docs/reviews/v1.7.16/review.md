@@ -55,6 +55,26 @@ Henry sent a phone screenshot of the grey loading screen and asked: *“Tại sa
   - “Chả song” is added once, in grams, kept on the line, and found the next time without a second add.
 - **Screenshots:** `receipt-match-search-*`.
 
+## 5. Recipe import: “Tên: lượng” lines, and no wrong ingredients (owner, 8 Nov 2026, 20:42)
+*“https://netspace.edu.vn/cach-nau-pho-bo-ngon-nhu-quan/ — Các nguyên liệu lấy gần đúng nhưng chỗ nào có : cũng bị mang vào, nhiều chỗ đọc định lượng không đúng.”*
+
+The page's recipe data was read here with the app's own reader. It writes 24 lines such as “Xương ống bò: 0.5kg”, “Bò tái:1,2kg” and “Chanh: 1 quả”.
+
+**Causes:**
+1. **The colon:** the reader only understood “lượng đơn vị tên”. The editor split “name: amount” but left the colon in the name, and did not read “Bò tái:1,2kg” (no space, comma decimal) at all.
+2. **Wrong ingredients:** a spoken alias was enough to pick an ingredient, so “Hành tím 25g” became **Hành tây**, and “Húng quế 50g” + “Ngò rí 20g” were added up as **Rau thơm 70g**.
+
+**Change:**
+- **Reading “Tên: lượng”:** these lines are now read in both places (`importCanon` in kitchen-extras, `rcParseLine` in the editor), with or without a space and with a comma or a dot. The colon never stays in the name, and `lạng` is understood (100 g).
+- **Matching:** a line becomes an ingredient only when that ingredient's own name (VI or EN) is in the line. For example, “pork belly” → Thịt heo and “Thịt heo ba chỉ” → Thịt heo. A match the family taught the app still counts.
+- **Other lines:** everything else stays as the page wrote it, for the family to match. Amounts are never guessed or added up.
+- **On the phở page:**
+  - Gừng 25 g, Hành lá 30 g, Chanh 1 quả and Muối 16 g become ingredients.
+  - Hành tím 25 g, Húng quế 50 g, Ngò rí 20 g, Xương ống bò 0.5 kg, Bò tái 1,2 kg and the rest are kept as their own lines with their amounts.
+  - Rễ ngò rí, Hành tây and Tương ớt / Tương đen have no amount on the page, so none is added.
+- **Tests (`test:v1716:browser`):** the page's 24 lines are imported. The test checks that no colon is left in a name, the amounts above, and that Hành tím and the herbs are kept separate. `test:v1715:browser` (the import of English lines) still passes.
+- **Screenshots:** `import-name-colon-*`.
+
 ## Tests
 - `npm run check`: the loading-shell step.
 - `sync-merge` (in `npm test`): guests removed on one device are not brought back.

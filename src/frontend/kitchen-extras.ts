@@ -15,14 +15,24 @@ const ingLabel=(id:string)=>typeof shopIngName==='function'?shopIngName(id):(ING
 const signIn=()=>`<p class="hint">${kT('Cần tài khoản gia đình.','Needs a family account.')} <a href="/login">${kT('Đăng nhập','Sign in')}</a></p>`;
 
 // ── 1. recipe import ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-const UNIT:Record<string,[string,number]>={g:['g',1],gr:['g',1],gram:['g',1],grams:['g',1],gam:['g',1],kg:['g',1000],kgs:['g',1000],kilo:['g',1000],ml:['ml',1],l:['ml',1000],litre:['ml',1000],liter:['ml',1000],litres:['ml',1000],liters:['ml',1000],lít:['ml',1000],tbsp:['ml',15],tablespoon:['ml',15],tablespoons:['ml',15],tsp:['ml',5],teaspoon:['ml',5],teaspoons:['ml',5],cup:['ml',250],cups:['ml',250],quả:['quả',1],trái:['quả',1],each:['quả',1],pc:['quả',1],pcs:['quả',1],piece:['quả',1],pieces:['quả',1],whole:['quả',1],large:['quả',1],medium:['quả',1],small:['quả',1]};
+const UNIT:Record<string,[string,number]>={g:['g',1],gr:['g',1],gram:['g',1],grams:['g',1],gam:['g',1],kg:['g',1000],kgs:['g',1000],kilo:['g',1000],ml:['ml',1],l:['ml',1000],litre:['ml',1000],liter:['ml',1000],litres:['ml',1000],liters:['ml',1000],lít:['ml',1000],tbsp:['ml',15],tablespoon:['ml',15],tablespoons:['ml',15],tsp:['ml',5],teaspoon:['ml',5],teaspoons:['ml',5],cup:['ml',250],cups:['ml',250],quả:['quả',1],trái:['quả',1],lạng:['g',100],each:['quả',1],pc:['quả',1],pcs:['quả',1],piece:['quả',1],pieces:['quả',1],whole:['quả',1],large:['quả',1],medium:['quả',1],small:['quả',1]};
 const FRAC:Record<string,number>={'½':.5,'¼':.25,'¾':.75,'⅓':1/3,'⅔':2/3,'⅛':.125};
-function importLine(raw:string){const line=String(raw||'').replace(/\s+/g,' ').trim();const m=line.match(/^(\d+(?:[.,]\d+)?(?:\s*[½¼¾⅓⅔⅛])?|[½¼¾⅓⅔⅛]|\d+\s*\/\s*\d+)(?:\s*[-–]\s*\d+(?:[.,]\d+)?)?\s*([a-zA-Zà-ỹÀ-Ỹ]+\.?)?\s+(.+)$/);
+// v1.7.16: many Vietnamese pages write “Tên: lượng” (“Hành tím: 25g”, “Bò tái:1,2kg”, “Chanh: 1 quả”); turn that into the usual
+// “lượng đơn vị tên” first, so it is read the same way (exact names only, amounts as written — never guessed)
+function importCanon(raw:string){const line=String(raw||'').replace(/\s+/g,' ').trim();const m=line.match(/^([^:：\d][^:：]*?)\s*[:：]\s*(\d+(?:[.,]\d+)?|\d+\s*\/\s*\d+|[½¼¾⅓⅔⅛])\s*([a-zA-Zà-ỹÀ-Ỹ]+\.?)?\s*$/);return m?`${m[2]}${m[3]?' '+m[3]:''} ${m[1].trim()}`:line}
+const kNorm=(x:any)=>(typeof normalizeText==='function'?normalizeText(x):String(x||'').toLowerCase()).split(' ').filter(Boolean).map((w:string)=>w.length>3?w.replace(/(es|s)$/,''):w);
+function nameFits(id:string,name:string){const words=kNorm(name);const labels=[INGREDIENTS[id]?.[0],(globalThis as any).INGREDIENT_EN?.[id]??(typeof INGREDIENT_EN!=='undefined'?(INGREDIENT_EN as any)[id]:'')].filter(Boolean).map(kNorm);
+ return labels.some((l:string[])=>l.length>0&&words.some((_:string,i:number)=>l.every((w,j)=>words[i+j]===w)))}
+function importLine(raw:string){const line=importCanon(raw);const m=line.match(/^(\d+(?:[.,]\d+)?(?:\s*[½¼¾⅓⅔⅛])?|[½¼¾⅓⅔⅛]|\d+\s*\/\s*\d+)(?:\s*[-–]\s*\d+(?:[.,]\d+)?)?\s*([a-zA-Zà-ỹÀ-Ỹ]+\.?)?\s+(.+)$/);
  if(!m)return null;let q=0;const a=m[1].replace(',','.').replace(/\s+/g,'');if(/\//.test(a)){const [x,y]=a.split('/').map(Number);q=y?x/y:0}else{const f=a.match(/[½¼¾⅓⅔⅛]/);q=(parseFloat(a)||0)+(f?FRAC[f[0]]:0)}
  if(!(q>0))return null;let unitWord=(m[2]||'').toLowerCase().replace(/\.$/,''),rest=m[3];if(unitWord&&!UNIT[unitWord]){rest=m[2]+' '+rest;unitWord=''}
  const name=rest.replace(/\(.*?\)/g,' ').split(/,| - | – /)[0].replace(/\b(of|fresh|chopped|sliced|diced|minced|finely|roughly)\b/gi,' ').replace(/\s+/g,' ').trim();if(!name)return null;
  // an exact name or alias only (a near match is left for the family to choose — never a wrong ingredient)
- const exact=typeof voiceExactIngredient==='function'?voiceExactIngredient(name,state):'';const guess:any=!exact&&typeof inferIngredient==='function'?inferIngredient(name,state):null;const id=exact||(guess&&['name','learned'].includes(guess.confidence)?guess.match:'');if(!id||!INGREDIENTS[id])return null;
+ const exact=typeof voiceExactIngredient==='function'?voiceExactIngredient(name,state):'';const guess:any=typeof inferIngredient==='function'?inferIngredient(name,state):null;
+ // v1.7.16 (owner, 8 Nov 2026: “nhiều chỗ đọc định lượng không đúng”): a spoken alias is not enough for a recipe page — “Hành tím”
+ // became Hành tây and “Húng quế” + “Ngò rí” were added up as Rau thơm. The ingredient's own name (VI or EN) must be in the line
+ // (“pork belly” → Thịt heo / Pork, “Thịt heo ba chỉ” → Thịt heo); a match the family taught the app still counts.
+ const id=guess?.confidence==='learned'&&INGREDIENTS[guess.match]?guess.match:[exact,guess?.confidence==='name'?guess.match:''].find(x=>x&&INGREDIENTS[x]&&nameFits(x,name))||'';if(!id)return null;
  const base=INGREDIENTS[id][1];const u=unitWord?UNIT[unitWord]:['quả',1];if(!u||u[0]!==base)return null;const qty=Math.round(q*u[1]*100)/100;return qty>0&&qty<1e6?{id,qty}:null}
 function recipeFromImport(r:any){const ings:any[]=[],missing:string[]=[];for(const line of r.ingredients||[]){const hit=importLine(line);if(hit){const same=ings.find(x=>x.id===hit.id);if(same)same.qty=Math.round((same.qty+hit.qty)*100)/100;else ings.push(hit)}else missing.push(String(line).slice(0,200))}
  const servings=r.servings>0&&r.servings<=50?Math.round(r.servings):4;

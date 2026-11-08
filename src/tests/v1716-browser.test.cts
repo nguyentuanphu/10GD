@@ -12,6 +12,8 @@ import {resolve,extname} from 'node:path';
 import {chromium} from 'playwright';
 const origin='https://kitchen.test',out='docs/reviews/v1.7.16';mkdirSync(out,{recursive:true});
 const mime:any={'.js':'application/javascript','.css':'text/css','.html':'text/html','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.webmanifest':'application/manifest+json'};
+// the ingredient lines of the page Henry imported (netspace.edu.vn, “Cách nấu phở bò ngon như quán”), as its recipe data writes them
+const PHO=['Sợi phở: 700g','Xương ống bò: 0.5kg','Nạm bò: 0.5kg','Bò tái:1,2kg','Quế: 6g','Hoa hồi: 6g','Trần bì: 3g','Đinh hương: 1g','Thảo quả: 3g','Hành tím: 25g','Gừng: 25g','Rễ ngò rí','Hành tây','Húng quế: 50g','Ngò gai: 50g','Ngò rí: 20g','Hành lá: 30g','Giá: 200g','Chanh: 1 quả','Ớt sừng: 1 quả','Muối: 16g','Đường phèn: 15g','Bột nêm: 16g','Tương ớt/Tương đen'];
 const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tablet:{width:820,height:1100},desktop:{width:1280,height:800}};
 (async()=>{
  const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});
@@ -21,6 +23,7 @@ const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tab
    await context.addInitScript((lang:string)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-local-locked','yes');localStorage.setItem('guest/bep-language',lang)},lang);
    const page=await context.newPage(),errors:string[]=[],cancels:any[]=[];page.on('pageerror',e=>errors.push(e.message));
    await page.route(origin+'/**',async(r:any)=>{const u=new URL(r.request().url());
+    if(u.pathname==='/.netlify/functions/family'&&u.searchParams.get('op')==='recipe-import')return r.fulfill({json:{recipe:{name:'Cách nấu phở bò ngon như quán',ingredients:PHO,steps:['Chần xương.'],servings:5,time:240,source:'https://netspace.edu.vn/cach-nau-pho-bo-ngon-nhu-quan/'}}});
     if(u.pathname==='/.netlify/functions/family'&&u.searchParams.get('op')==='invite-cancel'){cancels.push(JSON.parse(r.request().postData()||'{}'));return r.fulfill({json:{cancelled:true}})}
     if(u.pathname.startsWith('/.netlify/'))return r.fulfill({status:401,json:{error:'no'}});
     if(u.pathname==='/startup-scripts.json')return r.fulfill({json:JSON.parse(readFileSync('dist/startup-scripts.json','utf8'))});
@@ -87,7 +90,19 @@ const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tab
    assert.equal(await E(`(collectReceipt(),receiptDraft.items[0].match)`),made.v,`${label}: the receipt line keeps the match`);
    await b0.click();await b0.fill('cha song');assert.ok(await line(0).locator(`.rm-opt[data-rm-value="${made.v}"]`).count()===1&&await line(0).locator('.rm-new').count()===0,`${label}: next time it is found, not added twice`);
    await page.keyboard.press('Escape');await E('closeModal()');
+   // 4. recipe import of “Tên: lượng” lines (owner, 8 Nov 2026: “những chỗ nào có : cũng bị mang vào, nhiều chỗ đọc định lượng không đúng”)
+   await E(`(()=>{globalThis.BEP_SESSION={mode:'account',household:{id:'00000000-0000-4000-8000-000000000000',name:'Nhà Phú',role:'owner'}};view='recipes';location.hash='recipes';render()})()`);
+   await page.locator('[data-kx="import-open"]').click();await page.fill('#kimp-url','https://netspace.edu.vn/cach-nau-pho-bo-ngon-nhu-quan/');await page.locator('#modal-root [data-kx="import-go"]').click();await page.locator('#family-recipe-form').waitFor();
+   const rows:any[]=await page.locator('#family-recipe-form .rc-ing-row').evaluateAll((a:any[])=>a.map(li=>({name:li.querySelector('.rc-ing-name-input').value,qty:li.querySelector('.rc-ing-qty').value,unit:li.querySelector('.rc-ing-unit').value})));
+   assert.equal(rows.length,PHO.length,`${label}: every line of the page is kept (${rows.length})`);
+   assert.deepEqual(rows.filter(x=>/[:：]/.test(x.name)).map(x=>x.name),[],`${label}: no “:” left in a name`);
+   const row=(n:string)=>rows.find(x=>x.name===n);
+   for(const [n,q,u] of [['Xương ống bò','0.5','kg'],['Nạm bò','0.5','kg'],['Bò tái','1,2','kg'],['Hoa hồi','6','g'],['Ớt sừng','1','quả'],['Đường phèn','15','g']] as const){const x=row(n);const ok=!!x&&(x.qty===q||+String(x.qty).replace(',','.')===+q.replace(',','.')*(x.unit==='g'&&u==='kg'?1000:1))&&(x.unit===u||(u==='kg'&&x.unit==='g'));assert.ok(ok,`${label}: “${n}” reads ${q} ${u} (got ${JSON.stringify(x)})`)}
+   const got:any=await E(`state.recipes[0].ingredients.map(i=>i.id)`);assert.ok(!got.includes('onion')&&!got.includes('herbs')&&got.includes('ginger')&&got.includes('salt'),`${label}: only lines naming an ingredient become ingredients — Hành tím is not Hành tây, Húng quế / Ngò rí are not added up as Rau thơm ${JSON.stringify(got)}`);
+   for(const [n,q] of [['Hành tím','25'],['Húng quế','50'],['Ngò rí','20']] as const)assert.ok(row(n)?.qty===q,`${label}: “${n}” kept as its own line with ${q} g (${JSON.stringify(row(n))})`);
+   for(const n of ['Rễ ngò rí','Hành tây','Tương ớt/Tương đen'])assert.ok(row(n)&&!row(n).qty,`${label}: “${n}” has no amount on the page, none is invented`);
+   await page.locator('#family-recipe-form .rc-ing-row').nth(3).scrollIntoViewIfNeeded();await shot('import-name-colon');await E('closeModal()');
    const ow=await E('document.documentElement.scrollWidth-innerWidth');assert.ok(ow<=1,`${label}: overflow ${ow}`);assert.deepEqual(errors,[],`${label}: page errors`);await context.close();console.log('✓',label)}
-  console.log('PASS v1.7.16: removing an invited guest takes it off every meal of the invitation and withdraws the link (“Đóng” keeps it); a bigger “Bắt đầu đi chợ” with a running colour ring, still under reduced motion; receipt unit fits and the match box finds or adds an ingredient — 375 / 320 / 820 / 1280, VI and EN');
+  console.log('PASS v1.7.16: removing an invited guest takes it off every meal of the invitation and withdraws the link (“Đóng” keeps it); a bigger “Bắt đầu đi chợ” with a running colour ring, still under reduced motion; receipt unit fits and the match box finds or adds an ingredient; “Tên: lượng” recipe lines read without the colon — 375 / 320 / 820 / 1280, VI and EN');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});
