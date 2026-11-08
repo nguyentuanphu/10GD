@@ -32,7 +32,8 @@ t('record from a confirmed preview',()=>{const {c}=ctx();
  c.__in.draft.text='x'.repeat(500);assert.equal(J(c,'voiceStatsEvent(__in)').transcript.length,300,'truncated to 300 chars');
 });
 t('consent gating: nothing is sent while off',async()=>{const {c,ls}=ctx();const calls:any[]=[];c.__f=async(u:string,o:any)=>{calls.push({u,o});return{ok:true}};
- assert.equal(vm.runInContext('voiceStatsConsent()',c),false,'off by default');
+ assert.equal(vm.runInContext('voiceStatsConsent()',c),true,'on by default (owner pop-up, 8 Nov 2026: “giọng nói và analytics luôn bật sẵn”)');
+ await vm.runInContext('voiceStatsSetConsent(false,{fetchFn:__f})',c);assert.equal(calls.length,0,'turning off with nothing sent yet calls nobody');assert.equal(ls.getItem('bep-voice-stats'),'0','off is remembered');assert.equal(vm.runInContext('voiceStatsConsent()',c),false);
  assert.equal(await vm.runInContext("voiceStatsSend({transcript:'a'},{fetchFn:__f,household:'h-1'})",c),false);assert.equal(calls.length,0);assert.equal(ls.getItem('bep-voice-stats-device'),null,'no device token is even created');
  await vm.runInContext('voiceStatsSetConsent(true,{fetchFn:__f})',c);assert.equal(calls.length,0,'switching on sends nothing by itself');
  c.navigator.onLine=false;assert.equal(await vm.runInContext("voiceStatsSend({transcript:'a'},{fetchFn:__f})",c),false);assert.equal(calls.length,0,'offline: dropped, not queued');c.navigator.onLine=true;
@@ -44,7 +45,7 @@ t('consent gating: nothing is sent while off',async()=>{const {c,ls}=ctx();const
  // Opt-out deletes server-side records and forgets the token.
  calls.length=0;await vm.runInContext('voiceStatsSetConsent(false,{fetchFn:__f})',c);
  assert.equal(calls.length,1);assert.equal(calls[0].u,'/.netlify/functions/voice-stats?op=forget');assert.equal(calls[0].o.headers['x-voice-stats-device'],token);
- assert.equal(ls.getItem('bep-voice-stats-device'),null);assert.equal(ls.getItem('bep-voice-stats'),null);
+ assert.equal(ls.getItem('bep-voice-stats-device'),null);assert.equal(ls.getItem('bep-voice-stats'),'0','off is remembered, so it does not come back on by default');
  calls.length=0;assert.equal(await vm.runInContext("voiceStatsSend({transcript:'a'},{fetchFn:__f})",c),false);assert.equal(calls.length,0);
 });
 t('opt-out while the server is unreachable retries the deletion later',async()=>{const {c,ls}=ctx();let up=false;const calls:string[]=[];c.__f=async(u:string)=>{calls.push(u);if(!up)throw Error('offline');return{ok:true}};

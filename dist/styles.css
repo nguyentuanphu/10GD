@@ -2429,3 +2429,8 @@ body.shop-mode #main.cl:not([data-cl-screen="today"]) .kitchen-action-dock,body.
 /* v1.7.14: Terms · Privacy, small, at the bottom of “Tài khoản & cài đặt” */
 .legal-links{margin:14px 0 0;text-align:center;font-size:.82em;color:var(--muted)}
 .legal-links a{display:inline-flex;align-items:center;min-height:44px;padding:0 6px;color:inherit}
+/* v1.7.14: usage and voice statistics switches — small, closed every time */
+.privacy-mini{font-size:.82em;color:var(--muted);margin:6px 0 0}
+.privacy-mini>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
+.privacy-mini .usage-toggle,.privacy-mini .vl-check{font-size:1em}
+.privacy-mini-section{background:transparent;border:0;box-shadow:none;padding:0 4px;margin:4px 0}

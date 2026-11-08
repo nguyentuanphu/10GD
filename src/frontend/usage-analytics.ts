@@ -112,17 +112,19 @@ function usageHook(){
 }
 
 // ---------- settings card (Cài đặt khác) ----------
+// v1.7.14 (owner pop-up, 8 Nov 2026: “giọng nói và analytics luôn bật sẵn và phần bật tắt này chữ nhỏ thôi và luôn luôn collapsed, wordings
+// cần lược chung chung hơn”): on by default (unchanged), the switch sits in a small section that is closed every time settings open
 function usageSettingsCard(){
  const on=!usageOptedOut(),off=usageFlagOff();
  const body=`<label class="usage-toggle" for="usage-optin"><input type="checkbox" role="switch" id="usage-optin" ${on?'checked':''} ${off?'disabled':''}><span>${usageT('Gửi thống kê sử dụng ẩn danh','Share anonymous usage statistics')}</span></label>
- <p class="hint usage-hint">${off?usageT('Hiện đang tạm ngừng cho mọi người.','Currently paused for everyone.')+' ':''}${usageT('Chỉ đếm số phút, số lần mở và tính năng dùng; không gửi món ăn, tên, giá hay chữ bạn nhập. Tắt là xoá dữ liệu đã gửi từ máy này.','Counts minutes, visits and features only; never recipes, names, prices or anything you type. Turning it off deletes what this device sent.')} <a href="/privacy.html#usage" target="_blank" rel="noopener">${usageT('Xem chi tiết','Details')}</a></p>`;
- return typeof settingsCard==='function'?settingsCard('settings','usage',usageT('Thống kê sử dụng','Usage statistics'),usageT('Giúp gia đình mình làm app tốt hơn.','Helps make the app better.'),body):`<section id="settings-usage">${body}</section>`;
+ <p class="hint usage-hint">${off?usageT('Hiện đang tạm ngừng cho mọi người.','Currently paused for everyone.')+' ':''}${usageT('Bật sẵn. Giúp làm app tốt hơn; không gửi nội dung của gia đình. Tắt là xoá dữ liệu đã gửi từ máy này.','On by default. Helps make the app better; nothing your family writes is sent. Turning it off deletes what this device sent.')} <a href="/privacy.html#usage" target="_blank" rel="noopener">${usageT('Xem chi tiết','Details')}</a></p>`;
+ return `<section class="kitchen-section privacy-mini-section" id="settings-usage"><details class="privacy-mini"><summary>${usageT('Thống kê sử dụng','Usage statistics')}</summary>${body}</details></section>`;
 }
 function usageInstallSettings(){
  if(typeof otherSettingsModal!=='function')return;const usageBaseOther=otherSettingsModal;
  otherSettingsModal=function(section=''){const r=usageBaseOther.apply(this,arguments);const host=document.querySelector('.modal.other-settings .modal-content')||document.querySelector('.modal .modal-content');const data=document.getElementById('settings-data');
   if(!document.getElementById('settings-usage')){if(data)data.insertAdjacentHTML('afterend',usageSettingsCard());else host?.insertAdjacentHTML('beforeend',usageSettingsCard())}
-  if(section==='usage')requestAnimationFrame(()=>document.getElementById('settings-usage')?.scrollIntoView({block:'start'}));return r};
+  if(section==='usage')requestAnimationFrame(()=>{const d=document.querySelector('#settings-usage details') as HTMLDetailsElement|null;if(d)d.open=true;document.getElementById('settings-usage')?.scrollIntoView({block:'start'})});return r};
  document.addEventListener('change',e=>{if(e.target?.id!=='usage-optin')return;const on=!!e.target.checked;usageSetOptOut(!on).then(()=>{typeof toast==='function'&&toast(on?usageT('Đã bật thống kê sử dụng ẩn danh.','Anonymous usage statistics turned on.'):usageT('Đã tắt và yêu cầu xoá dữ liệu đã gửi.','Turned off and asked to delete what was sent.'))})});
 }
 

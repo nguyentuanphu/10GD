@@ -126,6 +126,23 @@ The family's own list is on the production server and was not read. The same ste
   - the title is now *Quyền riêng tư / Privacy*, the date is 8/11/2026, and it links to the terms;
   - the ladybug section moved to `feedback-privacy.html`, which is linked only from the ladybug sheet (the people invited to test still see what it sends).
 
+## 12. Privacy page wording; voice and usage statistics on by default
+- **Owner pop-up (8 Nov 2026, privacy page review):** *“Như recommend, nhưng giọng nói và analytics luôn bật sẵn và phần bật tắt này chữ nhỏ thôi và luôn luôn collapsed, wordings cần lược chung chung hơn.”*
+- **Numbering:** 5b → 6 *Món ăn chia sẻ cộng đồng*, 6a → 7 *Lời mời khách*, 7 → 8 *Liên hệ*.
+- **Guest invitations section:** now says *“tên người hoặc gia đình mời”*, following *Lời mời từ*.
+- **Voice and usage sections:** shorter and more general; both say **on by default**, where to turn them off, and that turning off deletes what the device sent. The essentials stay:
+  - never audio;
+  - never recipes, names, typed text, prices or receipts;
+  - no IP address or exact location;
+  - 90 days (voice) and 13 months (usage).
+- **Voice statistics** are now **on by default**. Turning them off is remembered (`'0'`) and still deletes what the device sent.
+  - **Limit:** before this release, turning off only removed the setting, so it cannot be told apart from “never chosen”. A device that had turned it off will start on, until it is turned off again.
+- **Usage statistics:** were already on by default.
+- **Both switches:** small text, inside a section that is closed every time it opens:
+  - *Tài khoản & cài đặt → Thống kê sử dụng*;
+  - *Cài đặt giọng nói → Thống kê giọng nói*.
+  - Opening settings at *usage* opens that section.
+
 ## Tests
 - `core.test`: a rounding leftover is not on the list; a real shortfall still is.
 - `receipt-parse.test`: OCR text in the shape of the owner's two photos (store, numbers and staff synthetic):
@@ -153,7 +170,8 @@ The family's own list is on the production server and was not read. The same ste
   - `default-language`: its main-button list matches the app.
   - `receipt-ocr` / `generic-receipts`: tap *Đọc cả ảnh* on the new crop step.
   - `ladybug-browser`: the feedback page is `feedback-privacy.html`, and the public privacy page does not mention the ladybug.
-  - `usage-browser`: the privacy page date is 8/11/2026.
+  - `usage-browser`: the privacy page date is 8/11/2026; the usage switch is folded and small, and still on by default.
+  - `voice-stats-client` / `voice-local-browser`: voice statistics are on by default, turning them off is remembered, and the switch is folded and small (owner pop-up).
   - `default-language`: small Terms · Privacy links on the sign-in page.
   - `rsvp-browser`: the same links on the guest page.
 

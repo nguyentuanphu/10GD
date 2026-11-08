@@ -844,8 +844,8 @@ function voiceLocalSettingsHtml(cap,statuses){
  ${cap&&!cap.ok?`<p class="hint vl-note">${cap.reasons.map(voiceLocalReasonText).map(vlEsc).join(' ')} ${vlT('Đang dùng nhận giọng nói của trình duyệt.','Using browser speech recognition.')}</p>`:''}
  <button type="button" class="btn small vl-sc-link" data-vl-check>${vlT('Kiểm tra giọng chính xác trên máy này','Check accurate voice on this device')}</button>
  </fieldset>
- <label class="vl-check vl-consent"><input type="checkbox" class="check" id="voice-stats-consent" ${consent?'checked':''}> ${vlT('Giúp cải thiện nhận giọng nói (chỉ gửi chữ, không gửi âm thanh)','Help improve voice recognition (sends text only, never audio)')}</label>
- <p class="hint">${vlT('Tắt mặc định. Khi bật: sau mỗi lần bạn xác nhận, app gửi câu chữ đã lược bỏ tên thành viên, email, số điện thoại; lưu tối đa 90 ngày; tắt là xoá.','Off by default. When on: after each confirmation the app sends the words with member names, emails and phone numbers removed; kept up to 90 days; switching off deletes them.')} <a href="/privacy.html#voice" target="_blank" rel="noopener">${vlT('Xem chi tiết','Details')}</a></p>`;
+ <details class="privacy-mini vl-consent-fold"><summary>${vlT('Thống kê giọng nói','Voice statistics')}</summary><label class="vl-check vl-consent"><input type="checkbox" class="check" id="voice-stats-consent" ${consent?'checked':''}> ${vlT('Giúp cải thiện nhận giọng nói (chỉ gửi chữ, không gửi âm thanh)','Help improve voice recognition (sends text only, never audio)')}</label>
+ <p class="hint">${vlT('Bật sẵn. Chỉ gửi chữ đã bỏ thông tin cá nhân, không gửi âm thanh. Tắt là xoá dữ liệu đã gửi từ máy này.','On by default. Sends text with personal details removed, never audio. Turning it off deletes what this device sent.')} <a href="/privacy.html#voice" target="_blank" rel="noopener">${vlT('Xem chi tiết','Details')}</a></p></details>`;
 }
 async function voiceLocalRenderSettings(){
  const box=document.getElementById('voice-local-settings');if(!box)return;
