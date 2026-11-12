@@ -37,7 +37,7 @@ function basket(){
  for(const r of rows){if(!hasIng(r.id))continue;const at=w.boughtAt?.[r.id]||null;out.push({key:'i:'+r.id,kind:'ingredient',id:r.id,name:ingName(r.id),group:INGREDIENTS[r.id][2]||null,boughtAt:at})}
  // v1.7.14 (owner, 8 Nov 2026: “suggest chung chung của cả kho thay vì mấy món để mua”): after shopping and putting away, the list
  // has nothing left to buy, so the items ticked as bought this week (and in the receipt's week) are the ones a receipt line is about
- {const weeks=[w];const rd=receiptDraft?.date;if(rd&&/^\d{4}-\d{2}-\d{2}$/.test(rd)){const rw=state.weeks?.[planStartOf(state,rd)];if(rw&&rw!==w)weeks.push(rw)}
+ {const weeks=[w];const rd=receiptDraft?.date;if(rd&&/^\d{4}-\d{2}-\d{2}$/.test(rd)){const rw=state.weeks?.[menuWeekKey(state,rd)];if(rw&&rw!==state.weeks?.[menuWeekKey(state,weekStart)])weeks.push(rw)}
   for(const wk of weeks)for(const[id,at]of Object.entries(wk.boughtAt||{}))if(hasIng(id)&&at)out.push({key:'i:'+id,kind:'ingredient',id,name:ingName(id),group:INGREDIENTS[id][2]||null,boughtAt:at})}
  for(const e of w.extras||[]){if(!e?.name)continue;out.push({key:'x:'+RM.norm(e.name),kind:'extra',id:e.id,name:String(e.name).slice(0,60),group:'other',boughtAt:e.done?e.boughtAt||null:null})}
  const seen=new Set();const list=out.filter(b=>!seen.has(b.key)&&seen.add(b.key));

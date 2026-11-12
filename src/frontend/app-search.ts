@@ -58,7 +58,7 @@ function searchHits(raw:string):Hit[]{const q=sNorm(raw);if(!q)return[];const wo
  try{const w=currentWeek(),[s,e]=shopDates();for(const r of shopping(state,w,s,e) as any[]){if(r.skip||!(typeof shoppingHasAmount!=='function'||shoppingHasAmount(r)))continue;const name=sIng(r.id);
   add('shopping',name,r.bought?sT('Đã mua','Bought'):sT('Cần mua','To buy')+(typeof fmtQty==='function'&&r.missing>0?' '+fmtQty(r.missing,INGREDIENTS[r.id][1]):''),`${name} ${sBoth(r.id)}`,()=>{close();location.hash='shopping';sFocus(`#main .shop-row:has([data-id="${CSS.escape(r.id)}"])`)})}}catch{}
  // menu: two weeks back to four weeks ahead
- if(typeof sydneyDate==='function'){const today=sydneyDate();for(let i=-14;i<=28;i++){const d=addDays(today,i),wk=state.weeks?.[planStartOf(state,d)],day=wk?.days?.[d];if(!day)continue;
+ if(typeof sydneyDate==='function'){const today=sydneyDate();for(let i=-14;i<=28;i++){const d=addDays(today,i),wk=state.weeks?.[monday(d)],day=wk?.days?.[d];if(!day)continue;
   for(const t of MEAL_TYPES){const m=day[t];if(!m?.recipes?.length)continue;for(const r of m.recipes as any[])add('menu',r.name,`${mealName(t)} · ${sDay(d)}${i===0?' · '+sT('hôm nay','today'):''}`,r.name,()=>{close();selectedDate=d;weekStart=planStartOf(state,d);location.hash='today';render();sFocus(`#main .family-meal-card[data-meal-date="${d}"][data-meal-type="${t}"]`)})}
   // guests on those meals
   for(const t of MEAL_TYPES){const m=day[t];for(const g of (typeof guestGroups==='function'?guestGroups(m):[]) as any[]){if(!g.name||i<0)continue;const st=typeof rsvpLabel==='function'&&g.invite?rsvpLabel(g):(typeof guestGroupShort==='function'?guestGroupShort(g):'');

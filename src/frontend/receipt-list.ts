@@ -115,9 +115,12 @@ function plan(s:any,rec:any,week:any,start:string,end:string){
 function placeFor(s:any,id:string,rec:any){const lab=(rec.items||[]).filter((i:any)=>i.ingredient===id).map((i:any)=>i.label).join(' ');if(/\b(frz|frozen|frzn)\b/i.test(lab))return'freezer';if(typeof suggestStorePlace==='function')return suggestStorePlace(s,id);return ING()[id][2]==='dry'&&!['egg','tofu','milk','yogurt','cream','butter','parmesan','mozzarella','feta'].includes(id)?'dry':'fridge'}
 // ticked: ingredient ids (and 'x:'+extra id) to update, or null for all. choices: {id: {mode:'pantry'|'meal'|'none', meal:{date,type}}}.
 // Returns the undo record stored on the receipt.
+// v1.7.19 (audit C8): weeks are stored under their Monday, while `start` is the family's menu-week start (any day). The undo
+// record keeps the stored key; records written before keep only `week` and are read through its Monday.
+function mondayKey(d:string){if(!DATE.test(d||''))return d;const x=new Date(d+'T12:00:00');x.setDate(x.getDate()-((x.getDay()+6)%7));return`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`}
 function apply(s:any,rec:any,week:any,start:string,end:string,ticked:any,choices:any={}){
  const p=plan(s,rec,week,start,end),now=new Date().toISOString(),scope=typeof purchaseScope==='function'?purchaseScope(start,end):start+'/'+end;
- const undo:any={at:now,week:start,end,bought:{},boughtAt:{},pantryIds:[],choices:{}};if(!week.boughtAt)undo.newBoughtAt=true;if(!week.unitBought)undo.newUnitBought=true;const rows0=shopRows(s,week,start,end);
+ const undo:any={at:now,week:start,weekKey:mondayKey(start),end,bought:{},boughtAt:{},pantryIds:[],choices:{}};if(!week.boughtAt)undo.newBoughtAt=true;if(!week.unitBought)undo.newUnitBought=true;const rows0=shopRows(s,week,start,end);
  for(const r of p.rows){if(ticked&&!ticked.includes(r.ingredient))continue;
   if(r.covered>0){week.boughtAt??={};undo.boughtAt[r.ingredient]=week.boughtAt[r.ingredient]??null;
    if(r.units){if(r.short<=0){const row=rows0.find((x:any)=>x.id===r.ingredient);week.unitBought??={};week.unitBought[scope]??={};undo.unitBought??={};undo.unitBought[r.ingredient]=week.unitBought[scope][r.ingredient]??null;undo.scope=scope;if(row&&typeof setShoppingBought==='function')setShoppingBought(week,start,end,row,true);week.boughtAt[r.ingredient]=now}}
@@ -125,7 +128,7 @@ function apply(s:any,rec:any,week:any,start:string,end:string,ticked:any,choices
   if(r.status==='stored'){undo.linked??=[];for(const lid of r.lots||[]){const x=s.pantry.find((y:any)=>y.id===lid);if(x&&!x.receiptId){x.receiptId=rec.id;x.boughtOn=rec.date;if(typeof pantryTouch==='function')pantryTouch(x);undo.linked.push(lid)}}continue}
   if(r.extra>0){const c=choices?.[r.ingredient]||{mode:'pantry'};const mode=['pantry','meal','none'].includes(c.mode)?c.mode:'pantry';undo.choices[r.ingredient]=mode==='meal'&&c.meal?{mode,meal:{date:c.meal.date,type:c.meal.type}}:{mode};
    if(mode==='none')continue;
-   const lot:any={id:typeof uid==='function'?uid():'lot-'+Math.random().toString(36).slice(2),ingredient:r.ingredient,qty:r.units?0:r.extra,place:placeFor(s,r.ingredient,rec),expiry:'',boughtOn:rec.date,receiptId:rec.id};
+   const place=placeFor(s,r.ingredient,rec),lot:any={id:typeof uid==='function'?uid():'lot-'+Math.random().toString(36).slice(2),ingredient:r.ingredient,qty:r.units?0:r.extra,place,expiry:''/* a receipt lot is not reviewed here, so no use-by is filled in (v1.7.18 rule, kept) */,boughtOn:rec.date,receiptId:rec.id};
    if(r.units)lot.purchase={unit:r.units,amount:r.extra,basePerUnit:null,pricePerUnit:null,note:'Từ hoá đơn'};
    if(mode==='meal'&&c.meal&&DATE.test(c.meal.date)&&typeof c.meal.type==='string')lot.forMeal={date:c.meal.date,type:c.meal.type.slice(0,20)};
    if(typeof pantryTouch==='function')pantryTouch(lot);s.pantry.push(lot);undo.pantryIds.push(lot.id)}}
@@ -133,7 +136,7 @@ function apply(s:any,rec:any,week:any,start:string,end:string,ticked:any,choices
  rec.reconciled=undo;return undo;
 }
 function undo(s:any,rec:any){
- const u=rec.reconciled;if(!u)return false;const week=s.weeks?.[u.week];
+ const u=rec.reconciled;if(!u)return false;const week=s.weeks?.[u.weekKey||mondayKey(u.week)];
  if(week){for(const[id,v]of Object.entries(u.bought||{})){if(v==null)delete week.bought[id];else week.bought[id]=v}
   for(const[id,v]of Object.entries(u.boughtAt||{})){if(!week.boughtAt)continue;if(v==null)delete week.boughtAt[id];else week.boughtAt[id]=v}
   for(const[id,v]of Object.entries(u.unitBought||{})){const rows=week.unitBought?.[u.scope];if(!rows)continue;if(v==null)delete rows[id];else rows[id]=v}

@@ -21,8 +21,8 @@ const qtyText=(n,u)=>typeof fmtQty==='function'?fmtQty(n,u):n+' '+u;
 const RL=(globalThis as any).ReceiptList;
 const DAY=/^\d{4}-\d{2}-\d{2}$/;
 // v1.7.18: the shopping list a receipt is matched against — the receipt's week and the week in view
-function receiptWeeks(date){const out=[];const add=(w,start,end)=>{if(w&&!out.some(x=>x.week===w))out.push({week:w,start,end})};
- try{if(DAY.test(date||'')&&typeof planStartOf==='function'){const k=planStartOf(state,date);add(state.weeks?.[k],k,addDays(k,6))}}catch{}
+function receiptWeeks(date){const out=[];const add=(w,start,end)=>{const key=typeof menuWeekKey==='function'?menuWeekKey(state,start):start;if(w&&!out.some(x=>x.week===w||x.key===key))out.push({week:w,start,end,key})};
+ try{if(DAY.test(date||'')&&typeof planStartOf==='function'){const k=planStartOf(state,date);add(planWeek(state,k),k,addDays(k,6))}}catch{}
  try{const[a,b]=typeof shopDates==='function'?shopDates():[weekStart,addDays(weekStart,6)];add(currentWeek(),a,b)}catch{}
  return out}
 
