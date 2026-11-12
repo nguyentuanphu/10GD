@@ -28,6 +28,11 @@ const meal=(ids:string[],extra:any={})=>({recipes:ids.map(id=>dish(id)),cooked:f
  ctx.setMealTimes(s,{dinner:''});ok(ctx.mealTimeOf(s,'dinner')===''&&s.preferences.dinnerTime==='19:00','clearing dinner: “Chưa đặt”, dinnerTime kept valid (HH:MM) for older devices');
  assert.throws(()=>ctx.setMealTimes(s,{lunch:'12h'}));ok(!('lunch' in s.preferences.mealTimes),'a time that is not hours:minutes is refused, nothing saved');
  ok(ctx.validMealTimes(s.preferences)&&ctx.validMealTimes({})&&!ctx.validMealTimes({mealTimes:{tea:'15:00'}})&&!ctx.validMealTimes({mealTimes:{lunch:'24:00'}})&&!ctx.validMealTimes({mealTimes:'18:30'})&&!ctx.validMealTimes({thawReminderTime:'8pm'})&&ctx.validMealTimes({thawReminderTime:'20:30'}),'validator: known meals, HH:MM or empty; old states without it stay valid');
+{const r:any={preferences:{}};ok(ctx.reminderSettingOf(r,'thawReminderTime')==='20:00'&&ctx.reminderSettingOf(r,'cookEarliestTime')==='08:00','thaw time and “Không nhắc nấu trước” start at 20:00 and 08:00');
+  assert.equal(ctx.setMealTimes(r,{thawReminderTime:'20:00',cookEarliestTime:'08:00'}),0);ok(!('thawReminderTime' in r.preferences)&&!('cookEarliestTime' in r.preferences),'left at the starting values: nothing written');
+  assert.equal(ctx.setMealTimes(r,{thawReminderTime:'19:30',cookEarliestTime:'06:00'}),2);ok(r.preferences.thawReminderTime==='19:30'&&r.preferences.cookEarliestTime==='06:00'&&ctx.validMealTimes(r.preferences),'the family changes both');
+  assert.throws(()=>ctx.setMealTimes(r,{cookEarliestTime:''}));assert.throws(()=>ctx.setMealTimes(r,{thawReminderTime:''}));ok(r.preferences.cookEarliestTime==='06:00','both are required: an empty value is refused');
+  ok(!ctx.validMealTimes({cookEarliestTime:'6am'})&&ctx.validMealTimes({cookEarliestTime:'05:45'}),'validator checks “Không nhắc nấu trước”')}
  ok(JSON.stringify(ctx.mealTimeTypes({preferences:{enabledMeals:['breakfast','dinner']}}))===JSON.stringify(['breakfast','dinner'])&&JSON.stringify(ctx.mealTimeTypes({preferences:{familyPlanner:false,dinnerTime:'18:30'}}))===JSON.stringify(['lunch','dinner'])&&JSON.stringify(ctx.mealTimeTypes({preferences:{enabledMeals:['dinner'],mealTimes:{snack:'15:30'}}}))===JSON.stringify(['snack','dinner']),'only the meals the family uses are listed, plus any meal that already has a time')}
 
 // 2. the start time for any meal; an early breakfast gets no start after the meal
@@ -35,7 +40,9 @@ ok(cookTiming({recipes},meal(['pho']),'12:30').start==='10:15','lunch 12:30 − 
 ok(cookTiming({recipes},meal(['chao']),'')===null&&cookTiming({recipes},meal(['chao']),undefined)===null,'a meal without a time: nothing is computed (no 18:30 assumed)');
 {const t:any=cookTiming({recipes},meal(['chao']),'07:30');ok(t.start===null&&t.early===true,'breakfast 07:30: the 08:00 bound would be after the meal, so no start is given');
  const c:any=vm.createContext({console});vm.runInContext(fs.readFileSync('dist/cook-timing.js','utf8').replace(/\(function\s*\(\)\s*\{[\s\S]*$/,''),c);
- for(const [ids,at] of [[['pho'],'12:30'],[['chao'],'07:30'],[['chao'],'08:40'],[['rau','ga'],'18:00'],[['pho'],'']] as const)assert.deepEqual(JSON.parse(JSON.stringify(c.cookTiming({recipes},meal([...ids]),at))),JSON.parse(JSON.stringify(cookTiming({recipes},meal([...ids]),at))));
+ for(const prefs of [{},{cookEarliestTime:'06:00'},{cookEarliestTime:'09:30'},{cookEarliestTime:'bad'}])for(const [ids,at] of [[['pho'],'12:30'],[['chao'],'07:30'],[['chao'],'08:40'],[['rau','ga'],'18:00'],[['pho'],'']] as const)assert.deepEqual(JSON.parse(JSON.stringify(c.cookTiming({recipes,preferences:prefs},meal([...ids]),at))),JSON.parse(JSON.stringify(cookTiming({recipes,preferences:prefs},meal([...ids]),at))));
+ const e6:any=cookTiming({recipes,preferences:{cookEarliestTime:'06:00'}},meal(['chao']),'07:30');ok(e6.start==='06:45'&&!e6.early,'“Không nhắc nấu trước” 06:00: breakfast 07:30 − 20 − 15 = 06:55 → 06:45');
+ ok(cookTiming({recipes,preferences:{cookEarliestTime:'09:30'}},meal(['pho']),'12:30').start==='10:15'&&cookTiming({recipes,preferences:{cookEarliestTime:'11:00'}},meal(['pho']),'12:30').start==='11:00','a later bound moves the start to that time, never before it');
  ok(true,'the app and the server make the same sum for every meal')}
 
 // 3. the scheduled run: a store, one device, a day swept every 15 minutes
@@ -57,6 +64,9 @@ const base=(weeks:any,prefs:any={},extra:any={})=>({members:[{id:'mum',name:'M�
  ok(again===0,'no duplicates when the run repeats');ok(sent.every(p=>!EMOJI.test(p.title+p.body)),'no emoji');
  const {sent:en}=await sweep(st,'2026-11-08T13:00:00Z',24,[{deviceId:'dev-mt-en',memberId:'mum',subscription:sub(9),types:{},language:'en'}]);
  ok(en.filter(x=>x.type==='prep').map(x=>x.title).join(' | ')==='Time to cook lunch Mon 9/11 — start at 10:15 | Time to cook dinner Mon 9/11 — start at 17:30','English device: “Time to cook lunch — start at 10:15”')}
+{const date='2026-11-09',st=base({'2026-11-09':{days:{[date]:{breakfast:meal(['chao'])}}}},{dinnerTime:'18:30',mealTimes:{breakfast:'07:30'},cookEarliestTime:'06:00'});
+ const {sent:quiet}=await sweep(st,'2026-11-08T13:00:00Z');ok(!quiet.some(x=>x.type==='prep'),'a phone still in its quiet hours (21:00–07:00 unless changed) is not woken at 06:45');
+ const {sent}=await sweep(st,'2026-11-08T13:00:00Z',24,[{deviceId:'dev-mt-early',memberId:'mum',subscription:sub(7),types:{},quietStart:'22:00',quietEnd:'06:00'}]);const p=sent.filter(x=>x.type==='prep');ok(p.length===1&&p[0].at==='2026-11-08T19:45:00.000Z'&&p[0].title==='Đến giờ nấu bữa sáng T2 9/11 — bắt đầu lúc 06:45',`the family set “Không nhắc nấu trước” 06:00: breakfast 07:30 is reminded at 06:45 Sydney ${JSON.stringify(p.map(x=>[x.at,x.title]))}`)}
 {const date='2026-11-09',st=base({'2026-11-09':{days:{[date]:{breakfast:meal(['chao']),lunch:meal(['pho']),dinner:meal(['ga'])}}}},{dinnerTime:'18:30',mealTimes:{dinner:''}});
  const {sent}=await sweep(st,'2026-11-08T13:00:00Z');ok(!sent.some(x=>x.type==='prep'),'no meal has a time (dinner cleared): no cooking reminder at all, not even the 17:00 one')}
 {// DST: AEDT starts Sun 4 Oct 2026 (02:00 → 03:00); AEST returns Sun 4 Apr 2027 (03:00 → 02:00)

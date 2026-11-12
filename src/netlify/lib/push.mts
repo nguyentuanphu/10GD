@@ -28,8 +28,10 @@ export function cookTiming(state:any,meal:any,mealTime?:string){if(!meal||meal.c
  const dishes=meal.recipes.map((r:any)=>{const src=(state?.recipes||[]).find((x:any)=>x.id===r.id)||r;const cook=Number.isFinite(+src.time)&&+src.time>0?Math.round(+src.time):null,prep=Number.isFinite(+src.prepTime)&&+src.prepTime>0?Math.round(+src.prepTime):0;return{name:String(src.name||r.name||''),cook,prep,total:cook==null?null:cook+prep}});
  const timed=dishes.filter((d:any)=>d.total!=null),unknown=dishes.length-timed.length;if(!timed.length)return{dishes:dishes.length,unknown,longest:null,sum:0,start:null};
  const longest=timed.reduce((a:any,b:any)=>b.total>a.total?b:a),sum=timed.reduce((n:number,d:any)=>n+d.total,0);
- const [h,m]=String(mealTime).split(':').map(Number),meal0=h*60+m,raw=Math.max(480,meal0-longest.total-15),at=Math.floor(raw/15)*15;
- if(at>=meal0)return{dishes:dishes.length,unknown,longest,sum,start:null,early:true};
+ // the family's “Không nhắc nấu trước” (preferences.cookEarliestTime, 08:00 until chosen; owner pop-up 12 Nov 2026 “Để tuỳ chọn”)
+ const ce=String(state?.preferences?.cookEarliestTime||''),earliest=MEAL_CLOCK.test(ce)?+ce.slice(0,2)*60+(+ce.slice(3)):480,earliestAt=`${String(Math.floor(earliest/60)).padStart(2,'0')}:${String(earliest%60).padStart(2,'0')}`;
+ const [h,m]=String(mealTime).split(':').map(Number),meal0=h*60+m,raw=Math.max(earliest,meal0-longest.total-15),at=Math.floor(raw/15)*15;
+ if(at>=meal0)return{dishes:dishes.length,unknown,longest,sum,start:null,early:true,earliest:earliestAt};
  return{dishes:dishes.length,unknown,longest,sum,start:`${String(Math.floor(at/60)).padStart(2,'0')}:${String(at%60).padStart(2,'0')}`}}
 // Meal times (same rules as frontend/meal-times.ts mealTimeOf): preferences.mealTimes[type] 'HH:MM' or '' (not set); dinner reads
 // preferences.dinnerTime (older devices write only that) unless the family cleared it (mealTimes.dinner === '').

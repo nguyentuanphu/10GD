@@ -163,6 +163,46 @@ Audit of 12 Nov 2026 (`docs/reviews/audit-20261112/`), findings about extra item
 - A bought extra is not merged into a matching planned ingredient row on the list. It goes into the pantry as its own lot, and the pantry adds lots together. Merging the two rows on the list would change how the list is worked out, so it is left for Henry to decide.
 - Recipes with a yield and guests are not part of these flows (extras and units), so they were not varied here.
 
+## Audit fixes — language, Sydney time and money (W4)
+This section was merged with the release branch at a27f771 (YY's extras and unit-picker work, and W2's fixes). The literal scan and the EN sweep were re-run on the merged code.
+
+Audit of 12 Nov 2026 (Sydney time), findings D11–D21 and B13, B17, B19–B22. Branch `agent-w4/fixes`. **Privacy / data change: none.** What is sent off the device is unchanged. The errand push body is untouched; only the text the family shares or copies follows the app language. `dist/privacy.html`, `dist/feedback-privacy.html` and the ladybug filing are not touched.
+
+**Test:** `test:v1719-language:browser` (`src/tests/v1719-language-browser.test.cts`, added to `test:all`). It covers the following:
+- EN sweep of every screen and of every reachable sheet the audit named.
+- A check of every hard-coded sheet title, error, placeholder and accessible label in the code (115 literals).
+- Share text in EN and VI.
+- VI developer words.
+- Sydney time on `Asia/Ho_Chi_Minh` and `America/New_York` devices, with the clock fixed at 12:00 Sydney.
+- VND in global search.
+- Accent-insensitive search.
+- `validImport` round trip.
+
+Before the fixes, the first run of this suite listed more than 600 problems. It now passes. Screenshots are in `language-time-money/`: EN pantry edit, where to buy and stores, at 320×740, 375×812, 820×1100 and 1280×800, light and dark. This is Chromium viewport simulation, not physical phones.
+
+| Finding | What changed | Test |
+|---|---|---|
+| D12 (Henry) | Pantry edit sheet: "Edit pantry food", "Delete this batch"; the buying-unit lot sheet is translated too (`unit-picker.ts`) | EN sheet sweep |
+| D11, B22 | Stores, add/edit store, "Where to buy X?" for items and extras: every title, label, placeholder and button in English; dynamic titles use `uiText` with the English ingredient name | EN sheet sweep |
+| D13 | Shopping rows: "Used in N meals · Your amount · Less than the recipes need"; "Bought/Remove X" labels; the family's purchase note is marked as family content | EN screen sweep, with a custom amount seeded |
+| D14 (language part) | `textShopping` and the family week share are in the app's language (English day and dish names; family dishes and notes stay as written). The errand share and copy use `requestShareText`. The emoji lines keep their structure for W5. | EN/VI share check |
+| D15 | All 95 literals have English (dictionary block in `language.ts`, plus `uiText` where names are built in); the suite now scans every `modal(` title, `throw Error(` message, placeholder and aria-label in the code | literal check |
+| D16 | "Gợi ý thực đơn khác" replaces "/ Generate mới"; "hóa đơn" replaces "receipt"; the CSV sheet explains each column name in Vietnamese | VI sheet check |
+| D17 | Errand result sheets: "Đã lưu yêu cầu, nhưng chưa gửi được thông báo tới điện thoại người nhận" (+ EN) | literal check |
+| D18 | Studio → Góp ý says "kho lỗi của nhóm làm app" / "the app team's issue list" and "cài đặt máy chủ". Only the wording changed; nothing sent changes. | source check |
+| D16 (start-up page) | Decided by the lead on 12 Nov 2026. The start-up failure page uses the saved language. It shows “VI / EN” only when no language is saved yet, or only a guessed one. | `startup.test`: a new saved-language case for EN and VI; the existing “Thử lại / Retry” check for the no-language case still holds |
+| D19, D20, D21, B21 | One helper, `appTimeLabel` / `sydneyParts` / `sydneyHour` (`core.ts`), in the family's zone (Sydney by default, the same zone as `sydneyDate`). It is used by the sync-conflict sheet, So Giá "Updated", receipt tick/capture/created times, extension last seen, trusted-device expiry, ladybug times, the voice check, the greeting's default hour and the automatic dark theme. Studio sign-up labels, capture times and "Computed" are in Sydney time with "giờ Sydney". | TZ check + source scan for device-zone formatting |
+| B13 | Global search receipts, receipt matching and receipt quality use `aud(n, currency)`. VND shows "125.000 ₫". Receipt matching keeps a discount's minus sign. | VND check |
+| B17 | `searchHit` (same `normalizeText` as global search) for the meal picker, the recipe list and the weekend soup search | accent check |
+| B19 | The guest total no longer switches to a decimal comma; portions use one style | source check |
+| B20 | The dry place is "Pantry shelf" everywhere (dictionary and global search) | pantry places check |
+
+**Not fixed, and why**
+- **Legacy sheets that cannot be opened in family mode:** week advice, day suggestion, the weekend soup picker, the old meal editor and the old recipe form. Their titles, labels and messages are translated. Their long body text is not, because no screen opens them any more (checked in the browser: no control for them on any screen). The code is kept.
+- **Usage statistics' hour buckets (`usage-analytics.ts`):** these use the device hour. That is stored and sent data, so it is left alone under the no-data-change rule.
+- **So Giá / voice price amounts:** these stay in AUD on purpose, because they are Australian supermarket prices.
+- **Week-start uses near the greeting (`monday(date)`):** these belong to the week-start group (W2/W3).
+- **B19 amount precision:** the precision in `pantryBuyingDisplay` and the "suất" / "suất chuẩn" wording are left to the amounts and maths group.
 ## Meal times and cooking reminders
 
 Owner decision, 12 Nov 2026 (Sydney time), pop-up “Làm đủ 4 ý, gộp v1.7.19”. Henry: “Trong bếp nhà mình nên có option chọn giờ ăn để dựa vào đó còn gửi noti báo nấu ăn etc”.
@@ -171,22 +211,23 @@ Owner decision, 12 Nov 2026 (Sydney time), pop-up “Làm đủ 4 ý, gộp v1.7
 - **Bếp của nhà mình → Thực đơn → Giờ ăn** (`src/frontend/meal-times.ts`): one time per meal the family uses. It sits inside the Thực đơn card because My kitchen keeps exactly four cards (owner decision, 1 Nov 2026); “Đổi giờ ăn” and `kitchenModal('mealtimes')` scroll straight to it.
   - Meals shown: the meals chosen in the guided setup (`enabledMeals`); lunch and dinner for the older two-meal menu (`familyPlanner === false`); breakfast, lunch and dinner when nothing was chosen. A meal that already has a time is always shown.
   - A meal without a time says “Chưa đặt — không nhắc nấu” and gets no cooking reminder (rule 32). “Bỏ giờ” clears a time. “Lưu giờ ăn” saves.
+  - Two family settings sit next to the meal times (Henry, 12 Nov 2026 pop-up: “Tuỳ chọn cho user”, “Để tuỳ chọn”): “Nhắc rã đông lúc (tối hôm trước)” (`thawReminderTime`, starts at 20:00) and “Không nhắc nấu trước” (`cookEarliestTime`, starts at 08:00; the family may set e.g. 06:00). Both show their starting value, are editable and required; nothing is written while they stay at the starting value.
   - View-only members see the times but cannot change them.
   - The old “Giờ ăn tối” field in Thực đơn is removed; meal times are edited in this one place (rule 29).
 - **Cooking reminder for every planned meal with a time** (`src/netlify/lib/push.mts`).
   - Wording: VI “Đến giờ nấu bữa trưa T2 9/11 — bắt đầu lúc 10:15”, body “Ăn lúc 12:30 · 1 món · lâu nhất … · tổng … phút”. EN “Time to cook lunch Mon 9/11 — start at 10:15”.
-  - Start = meal time − the longest dish (preparation + cooking) − 15 min, rounded down to the quarter hour, never before 08:00. Same `cookTiming` in the app and on the server; a unit test checks that both give the same answers.
-  - When the 08:00 bound would put the start at or after the meal (an early breakfast), no reminder is sent; the app says “bữa này sớm hơn giờ app bắt đầu nhắc (08:00), nên chuẩn bị từ hôm trước”.
+  - Start = meal time − the longest dish (preparation + cooking) − 15 min, rounded down to the quarter hour, never before the family's “Không nhắc nấu trước” (08:00 until changed). The app and the server read the same setting. Same `cookTiming` in the app and on the server; a unit test checks that both give the same answers.
+  - When that bound would put the start at or after the meal (an early breakfast), no reminder is sent; the app says “bữa này sớm hơn giờ “Không nhắc nấu trước” (08:00), nên chuẩn bị từ hôm trước”. Each phone's quiet hours (21:00–07:00 unless changed) still apply, so a 06:45 reminder reaches only phones whose quiet hours end earlier; the Giờ ăn note says so.
   - Dinner with no cooking time on any dish keeps the 17:00 “chuẩn bị nấu” reminder (`prepReminderTime`), now labelled “Bữa tối chưa ghi thời gian nấu”.
   - Dedupe: one key per meal and day (`prep/<date>/<meal>`; dinner keeps `prep/<date>` so a reminder already sent on the day of the update is not sent again).
 - **Thaw reminder the evening before** (`thaw` type).
-  - At 20:00 in the family's time zone (default; the family can change it in Nhắc nhở → Giờ nhắc chung, `thawReminderTime`), once for tomorrow's planned meals that need an ingredient kept in the freezer (a pantry lot in Ngăn đông with an amount, not expired before that day).
+  - At the family's thaw time (`thawReminderTime`, 20:00 until changed in Giờ ăn) in the family's time zone, once for tomorrow's planned meals that need an ingredient kept in the freezer (a pantry lot in Ngăn đông with an amount, not expired before that day).
   - Dishes cooked ahead, served from leftovers or part of a weekend batch are left out, as on the shopping list. Cooked meals are left out.
   - VI “Rã đông tối nay cho ngày mai T3 10/11” / “Chuyển đồ ngăn đông xuống ngăn mát cho bữa tối 18:30: Gà kho gừng.”; EN “Thaw tonight for tomorrow Tue 10/11” / “Move freezer food to the fridge for dinner 18:30: Gà kho gừng.” No emoji. Dish names are used because the server has no ingredient names (nothing new is sent to it).
   - It is sent for planned meals with or without a meal time, because the trigger is the freezer item.
 - **Each device still chooses.** Per-device types: “Nhắc giờ nấu” (`prep`, relabelled) and the new “Nhắc rã đông” (`thaw`). Both are on by default for a device that has not saved its choices; a device registered before this release gets thaw reminders until it turns them off (server rule for unknown types). Shopper devices get neither.
 - **Daily cap.** The cooking and thaw reminders do not use up the 2 automatic reminders a device gets per day (otherwise breakfast, lunch and dinner reminders would silently drop). Wording in Nhắc nhở updated. *To confirm with Henry.*
-- **Nhắc nhở & thông báo** (`push-settings-ui.ts`, and the older `push-ui.ts` / `app.ts` sheets it replaces at start-up): a read-only “Giờ ăn” list (“Chưa đặt” for a meal without a time) and “Đổi giờ ăn”, which opens Bếp của nhà mình at Giờ ăn. No meal-time field there.
+- **Nhắc nhở & thông báo** (`push-settings-ui.ts`, and the older `push-ui.ts` / `app.ts` sheets it replaces at start-up): a read-only “Giờ ăn” list (“Chưa đặt” for a meal without a time, plus the thaw time and “Không nhắc nấu trước”) and “Đổi giờ ăn”, which opens Bếp của nhà mình at Giờ ăn. No meal-time, thaw-time or earliest-time field there.
 - **Meal cards** show the family's time next to the meal name (“Bữa tối · 18:30”); no time when not set. The older two-meal card no longer says “Bữa trưa · 12:00”; its “Dọn cơm” task uses the meal time or “Lúc ăn”.
 - **Today's start-cooking line** goes on the next meal today that has a time and is still to cook (the first not yet eaten, else the last one).
 
@@ -216,7 +257,7 @@ Owner decision, 12 Nov 2026 (Sydney time), pop-up “Làm đủ 4 ý, gộp v1.7
 - `state.preferences.mealTimes = {breakfast?, snackAm?, lunch?, snack?, dinner?}`, each `'HH:MM'` or `''` (the family cleared it). A missing key means not set, except dinner.
 - Dinner: `preferences.dinnerTime` stays (older devices read and validate it as HH:MM). Saving a dinner time writes both. Clearing dinner writes `mealTimes.dinner = ''` and keeps `dinnerTime`. Any other dinner value is read from `dinnerTime`, so a change made on an older device still counts.
 - Older states (only `dinnerTime`) need no migration: dinner reads from `dinnerTime`, other meals are “Chưa đặt”.
-- `preferences.thawReminderTime` (optional `'HH:MM'`).
+- `preferences.thawReminderTime` and `preferences.cookEarliestTime` (optional `'HH:MM'`; 20:00 and 08:00 when absent).
 - Stored in the family state like `dinnerTime` today. Nothing new is sent anywhere else; privacy pages unchanged.
 
 **Tests**
@@ -225,17 +266,17 @@ Owner decision, 12 Nov 2026 (Sydney time), pop-up “Làm đủ 4 ý, gộp v1.7
 - New `test:meal-times:browser` (in `test:all`): 320×740 VI light, 375×812 VI dark, 375×812 EN light (phone in Los Angeles), 820×1100 EN dark, 1280×800 VI light (phone in Ho Chi Minh City), 1280×800 EN dark; weeks starting Monday and Saturday. It opens Giờ ăn, checks the meals listed, “Chưa đặt”, 44 px targets, drawing only on Lưu, no emoji, no sideways scroll; fills, clears (tapped control stays), saves; `validImport`; two sync merges; meal cards; Today's start line; Nhắc nhở summary, no meal-time field there, the link opens Giờ ăn; view-only; Thực đơn save keeps the times.
 - Screenshots: `docs/reviews/v1.7.19/meal-times/`.
 
-**Local runs** (12 Nov 2026, Sydney time, on this branch before commit): `check` OK, `typecheck` OK, `npm test` OK (with `meal-times.test`, `cook-timing.test`, `push.test`, `notifications.test`, `alerts-online.test`), `test:meal-times:browser` OK, `test:browser` (kitchen hub) OK, `test:v1717:browser` OK, `test:emoji-art:browser` OK, `test:alerts-online:browser` OK, `test:urgent-reasons:browser` OK, `test:sync-merge:browser` OK, `test:text-size:browser` OK, `test:audit-data:browser` OK, `test:journey:browser` OK.
-- `test:language:browser` FAILS, on the base commit too (a27f771, checked in a clean copy): the English Viết món unit hint says “lạng” (`unit-picker.ts`, from the unit-picker work). Not caused by this change; not fixed here.
+**Local runs** (12 Nov 2026 19:08 Sydney time, after merging `claude/bold-pascal-riryi0` at 8251ef2, before commit): `check` OK, `typecheck` OK, `npm test` OK (with `meal-times.test`, `cook-timing.test`, `push.test`, `notifications.test`, `alerts-online.test`), `test:meal-times:browser` OK, `test:language:browser` OK, `test:v1719-language:browser` OK, `test:browser` (kitchen hub) OK, `test:audit-data:browser` OK, `test:extras-audit:browser` OK, `test:v1717:browser` OK, `test:urgent-reasons:browser` OK, `test:alerts-online:browser` OK, `test:sync-merge:browser` OK.
 
 **Limits**
 - Chromium viewport simulation, not physical phones. The time field looks like the browser's own (12-hour in this Chromium).
 - Push delivery is mocked in tests; no real phone received a reminder.
 - Not varied here: currency (no money in these screens), recipes with a yield and guests (the start time uses dish times, not portions).
 
-**Questions for Henry**
-1. Thaw reminder time: 20:00 the evening before by default (the family can change it in Nhắc nhở → Giờ nhắc chung). OK?
-2. Cooking and thaw reminders do not count towards the 2 automatic reminders per device per day. OK, or keep the cap?
-3. A meal before about 08:15 (breakfast) gets no cooking reminder, because reminders never start before 08:00; the app says to get ready the day before. Keep the 08:00 bound?
-4. Thaw reminders also come for planned meals without a time (the trigger is the freezer). OK?
-5. Studio's family reminder line and the guest invitation calendar times were not changed (both would show meal times to someone outside the family's own data). Change them?
+**Henry's answers** (12 Nov 2026, Sydney time, pop-up)
+1. Thaw time: “Tuỳ chọn cho user” — a family setting in Giờ ăn, starting at 20:00; Nhắc nhở shows it read-only. Done.
+2. Daily cap: “Nhắc nấu và rã đông không tính” — kept.
+3. New devices: “Bật sẵn, tắt được” — kept.
+4. Early breakfast: “Để tuỳ chọn” — “Không nhắc nấu trước” in Giờ ăn, starting at 08:00, used by the app and the server. Done.
+5. Studio reminder line and guest calendar: unchanged (no privacy or data change).
+6. Thaw for meals without a time: kept (the trigger is the freezer item).

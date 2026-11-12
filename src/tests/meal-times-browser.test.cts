@@ -36,18 +36,20 @@ const runs:[number,number,'vi'|'en','light'|'dark',string,number][]=[
    assert.equal(await card.locator('h4').innerText(),T('Giờ ăn','Meal times'),`${label}: the section is called Giờ ăn`);
    assert.equal(await page.locator('#kitchen-menu #kitchen-mealtimes').count(),1,`${label}: inside the Thực đơn card (My kitchen keeps its four cards)`);
    const vis=await card.evaluate((el:any)=>{const r=el.getBoundingClientRect();return r.top<innerHeight&&r.bottom>0});assert.ok(vis,`${label}: opening at Giờ ăn scrolls to it`);
-   const rows:string[]=await card.locator('.meal-time-row').evaluateAll((a:any[])=>a.map(r=>r.dataset.mtRow));assert.deepEqual(rows,['breakfast','lunch','dinner'],`${label}: one time per meal the family uses`);
+   const rows:string[]=await card.locator('.meal-time-row[data-mt-row]').evaluateAll((a:any[])=>a.map(r=>r.dataset.mtRow));assert.deepEqual(rows,['breakfast','lunch','dinner'],`${label}: one time per meal the family uses`);
    assert.equal(await page.locator('#mt-dinner').inputValue(),'18:30',`${label}: the older dinner time is carried over`);
    assert.equal(await page.locator('#mt-breakfast').inputValue(),'',`${label}: breakfast empty`);
    assert.equal(await card.locator('[data-mt-row="breakfast"] .meal-time-state').innerText(),T('Chưa đặt — không nhắc nấu','Not set — no cooking reminder'),`${label}: a meal without a time says “Chưa đặt” and gets no reminder`);
    assert.equal(await page.locator('#settings-form [name="dinnerTime"]').count(),0,`${label}: the old dinner-time field is gone from Thực đơn (one place only)`);
-   for(const sel of ['#mt-breakfast','#mt-lunch','#mt-dinner','[data-mt-row="dinner"] [data-mt="clear"]','[data-mt="save"]']){const b=(await page.locator(sel).boundingBox())!;assert.ok(b.height>=44,`${label}: ${sel} is a ≥ 44 px target (${b.height})`)}
+   assert.equal(await page.locator('#mt-thaw').inputValue(),'20:00',`${label}: the thaw time starts at 20:00, visible and editable`);assert.equal(await page.locator('#mt-earliest').inputValue(),'08:00',`${label}: “Không nhắc nấu trước” starts at 08:00`);
+   assert.equal(await page.locator('label[for="mt-earliest"]').innerText(),T('Không nhắc nấu trước','No cooking reminder before'));assert.equal(await page.locator('label[for="mt-thaw"]').innerText(),T('Nhắc rã đông lúc (tối hôm trước)','Thaw reminder at (the evening before)'));
+   for(const sel of ['#mt-thaw','#mt-earliest','#mt-breakfast','#mt-lunch','#mt-dinner','[data-mt-row="dinner"] [data-mt="clear"]','[data-mt="save"]']){const b=(await page.locator(sel).boundingBox())!;assert.ok(b.height>=44,`${label}: ${sel} is a ≥ 44 px target (${b.height})`)}
    assert.equal(await page.locator('[data-mt="save"] svg.btn-art').count(),1,`${label}: Lưu giờ ăn (main action) has its drawing`);
    assert.equal(await page.locator('[data-mt="clear"] svg.btn-art').count(),0,`${label}: Bỏ giờ (secondary) is words only`);
    assert.ok(!/\p{Extended_Pictographic}/u.test(await card.innerText()),`${label}: no emoji`);
    await noOverflow('Giờ ăn');await card.scrollIntoViewIfNeeded();await page.screenshot({path:name('kitchen-meal-times-before')});
    // fill two meals, clear dinner: the tapped control does not move (rule 24)
-   await page.locator('#mt-breakfast').fill('07:00');await page.locator('#mt-lunch').fill('12:30');
+   await page.locator('#mt-breakfast').fill('07:00');await page.locator('#mt-thaw').fill('19:30');await page.locator('#mt-earliest').fill('06:00');await page.locator('#mt-lunch').fill('12:30');
    assert.equal(await card.locator('[data-mt-row="lunch"] .meal-time-state').innerText(),T('Nhắc giờ nấu theo giờ này','Cooking reminder from this time'),`${label}: the line under a set time says what happens`);
    const clear=page.locator('[data-mt-row="dinner"] [data-mt="clear"]');await clear.evaluate((el:any)=>el.scrollIntoView({block:'center'}));const y0=(await clear.boundingBox())!.y;await clear.click();await page.waitForTimeout(150);
    assert.ok(Math.abs((await clear.boundingBox())!.y-y0)<=1,`${label}: Bỏ giờ stays where it was`);assert.equal(await page.locator('#mt-dinner').inputValue(),'',`${label}: Bỏ giờ empties dinner`);
@@ -55,8 +57,8 @@ const runs:[number,number,'vi'|'en','light'|'dark',string,number][]=[
    const before:any=await E('clone(state)');
    const save=page.locator('[data-mt="save"]');await save.evaluate((el:any)=>el.scrollIntoView({block:'center'}));const s0=(await save.boundingBox())!.y;await save.click();await page.waitForTimeout(250);
    {const s1=(await save.boundingBox())!.y;assert.ok(Math.abs(s1-s0)<=1,`${label}: Lưu giờ ăn does not move the sheet (${s0} → ${s1}, connected=${await save.isConnected?.()})`)}
-   const p:any=await E(`({mt:state.preferences.mealTimes,dt:state.preferences.dinnerTime,d:mealTimeOf(state,'dinner'),valid:validImport(clone(state))})`);
-   assert.deepEqual(p.mt,{breakfast:'07:00',lunch:'12:30',dinner:''},`${label}: saved shape ${JSON.stringify(p.mt)}`);
+   const p:any=await E(`({thaw:state.preferences.thawReminderTime,early:state.preferences.cookEarliestTime,mt:state.preferences.mealTimes,dt:state.preferences.dinnerTime,d:mealTimeOf(state,'dinner'),valid:validImport(clone(state))})`);
+   assert.ok(p.thaw==='19:30'&&p.early==='06:00',`${label}: thaw time and earliest cooking time saved ${JSON.stringify(p)}`);assert.deepEqual(p.mt,{breakfast:'07:00',lunch:'12:30',dinner:''},`${label}: saved shape ${JSON.stringify(p.mt)}`);
    assert.ok(p.dt==='18:30'&&p.d==='',`${label}: dinner “Chưa đặt”; dinnerTime kept valid for older devices`);assert.ok(p.valid,`${label}: validImport accepts the new shape`);
    // a second device changed something else at the same time: the sync merge keeps both
    const merged:any=await E(`(()=>{const base=${JSON.stringify(before)},remote=clone(base);remote.preferences.budget=777;remote.preferences.updatedAt=Date.now()-5;const m=mergeFamilyStates(base,clone(state),remote);return{mt:m.state.preferences.mealTimes,budget:m.state.preferences.budget,valid:validImport(clone(m.state))}})()`);
@@ -72,7 +74,7 @@ const runs:[number,number,'vi'|'en','light'|'dark',string,number][]=[
     for(const t of ['breakfast','lunch','dinner']){const m=mealAt(state,sydneyDate(),t);if(m){m.recipes=[clone(r1)];m.cooked=false;m.off=false}}save();render();scrollTo(0,0)})()`);
    const where:any=await E(`(()=>{const el=document.querySelector('#main .cook-timing');const card=el?.closest('.family-meal-card');const type=card?.dataset.mealType;const t=type?cookTiming(state,mealAt(state,sydneyDate(),type),mealTimeOf(state,type)):null;return{type,text:el?.textContent||'',want:t?.start||null,early:!!t?.early}})()`);
    assert.ok(where.type&&['breakfast','lunch','dinner'].includes(where.type),`${label}: the start time is on one of today's timed meals ${JSON.stringify(where)}`);
-   assert.ok(where.early?/08:00/.test(where.text):where.text.includes(where.want),`${label}: and it is that meal's own start (${where.text})`);
+   assert.ok(where.early?where.text.includes('06:00'):where.text.includes(where.want),`${label}: and it is that meal's own start (${where.text})`);
    await E(`(()=>{for(const t of ['breakfast','lunch'])mealAt(state,sydneyDate(),t).cooked=true;save();render();scrollTo(0,0)})()`);
    const line=page.locator(`#main .family-meal-card[data-meal-date="${today}"][data-meal-type="dinner"] .cook-timing`);await line.waitFor();
    assert.equal(await line.innerText(),T('Bắt đầu nấu khoảng 16:15 · 1 món, lâu nhất Phở bò nhà làm 120 phút (chuẩn bị 30 + nấu 90)','Start cooking around 16:15 · 1 dish, longest Phở bò nhà làm 120 min (prep 30 + cook 90)'),`${label}: dinner 18:30 − 120 − 15`);
@@ -82,9 +84,9 @@ const runs:[number,number,'vi'|'en','light'|'dark',string,number][]=[
    // 3. Nhắc nhở: a read-only summary and a link, no time field of its own for meals
    await E('remindersModal()');const sum=page.locator('#push-meal-times');await sum.waitFor();
    const list:string[]=await sum.locator('li').evaluateAll((a:any[])=>a.map(li=>li.innerText.replace(/\s+/g,' ').trim()));
-   assert.deepEqual(list,lang==='en'?['Breakfast 07:00','Lunch 12:30','Dinner 18:30']:['Bữa sáng 07:00','Bữa trưa 12:30','Bữa tối 18:30'],`${label}: Nhắc nhở lists the meal times (${list})`);
+   assert.deepEqual(list,lang==='en'?['Breakfast 07:00','Lunch 12:30','Dinner 18:30','Thaw reminder (the evening before) 19:30','No cooking reminder before 06:00']:['Bữa sáng 07:00','Bữa trưa 12:30','Bữa tối 18:30','Nhắc rã đông (tối hôm trước) 19:30','Không nhắc nấu trước 06:00'],`${label}: Nhắc nhở lists the meal times (${list})`);
    assert.equal(await page.locator('.modal input[name="dinnerTime"],.modal input[name^="mt-"],.modal #meal-times-form').count(),0,`${label}: no meal-time field in Nhắc nhở`);
-   assert.ok(await page.locator('.modal input[name="thawReminderTime"]').count()===1,`${label}: the thaw reminder time is a family reminder time`);
+   assert.equal(await page.locator('.modal input[name="thawReminderTime"],.modal input[name="cookEarliestTime"]').count(),0,`${label}: thaw time and earliest cooking time are only read here (one place to change them)`);
    const types:string=await page.locator('.push-type-list').innerText();assert.ok(types.includes(T('Nhắc giờ nấu','Cooking time'))&&types.includes(T('Nhắc rã đông','Thaw reminder')),`${label}: each device chooses Nhắc giờ nấu and Nhắc rã đông`);
    const link=page.locator('#push-meal-times [data-section="mealtimes"]');assert.equal(await link.innerText(),T('Đổi giờ ăn','Change meal times'));assert.ok((await link.boundingBox())!.height>=44,`${label}: the link is a ≥ 44 px target`);
    assert.equal(await link.locator('svg.btn-art').count(),0,`${label}: the link (secondary) is words only`);

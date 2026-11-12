@@ -60,7 +60,7 @@ function scoutFreshLabel(o){const f=PS.freshness(o);const cap=scoutCaptured(PS.c
  return{cls:f.status+(cap?.old?' scout-old':''),text:age+(cap?.old?' · '+scoutT('cũ','old'):'')}}
 function scoutStatusLine(){const parts=[];if(scoutData.state)parts.push('📍 '+esc(scoutData.postcode)+' · '+scoutData.state);
  parts.push(scoutOnline()?(scoutAccount()?'🟢 '+scoutT('Đồng bộ gia đình','Family sync'):'📱 '+scoutT('Chỉ trên thiết bị này','This device only')):'⚪ '+scoutT('Offline · dùng bản lưu trên máy','Offline · using the copy on this device'));
- if(scoutAccount()&&scoutData.pool?.at)parts.push(scoutT('Cập nhật ','Updated ')+new Date(scoutData.pool.at).toLocaleTimeString(appLanguage==='en'?'en-AU':'vi-VN',{hour:'2-digit',minute:'2-digit'}));
+ if(scoutAccount()&&scoutData.pool?.at)parts.push(scoutT('Cập nhật ','Updated ')+appTimeLabel(scoutData.pool.at,{date:false,zone:true}));
  if(scoutData.pending.length)parts.push('⏳ '+scoutData.pending.length+' '+scoutT('giá chờ đồng bộ','prices waiting to sync'));
  return parts.join(' · ')}
 function scoutCaptureButtons(){if(scoutViewer())return`<p class="hint">${scoutT('Tài khoản chỉ xem: bạn xem được giá của gia đình nhưng không thêm giá.','View-only account: you can see family prices but not add them.')}</p>`;
@@ -283,7 +283,7 @@ function scoutCollect(form){
 }
 // v1.7.11 (owner, 7 Nov 2026: “So giá bây giờ chỉ nên có tài khoản đi cho chắc”): So Giá is for signed-in families only. Without an
 // account the panel is one short card asking for a free account; prices this device saved earlier are kept, just not shown.
-function scoutAccountCard(){return`<section class="card price-scout scout-account-only" aria-label="${esc(scoutT('So Giá','Price Check'))}"><div class="scout-account-card">${scoutArt('money','ol-cart')}<div><h3>${scoutT('So Giá cần tài khoản','Price Check needs an account')}</h3><p>${scoutT('So giá giữa các siêu thị và xem giá online cần tài khoản (miễn phí, dùng một mình cũng được). Giá đã ghi trên máy này vẫn được giữ.','Comparing supermarkets and seeing online prices need a free account (just you is fine). Prices saved on this device are kept.')}</p></div><a class="btn primary" href="/login">${scoutT('Tạo tài khoản','Create account')}</a></div></section>`}
+function scoutAccountCard(){return`<section class="card price-scout scout-account-only" aria-label="${esc(scoutT('So Giá','Price Check'))}"><div class="scout-account-card">${scoutArt('money','ol-cart')}<div><h3>${scoutT('So Giá cần tài khoản','Price Check needs an account')}</h3><p>${scoutT('So giá giữa các siêu thị và xem giá online cần tài khoản (miễn phí, dùng một mình cũng được). Giá đã ghi trên máy này vẫn được giữ.','Comparing supermarkets and seeing online prices need a free account — one just for you is fine. Prices saved on this device are kept.')}</p></div><a class="btn primary" href="/login">${scoutT('Tạo tài khoản','Create account')}</a></div></section>`}
 async function scoutApi(op,options={}){if(!scoutOnline())throw Error(scoutT('Đang offline.','Offline.'));const r=await fetch('/.netlify/functions/grocery?op='+op,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...options.headers}});const data=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(Error(data.error||('HTTP '+r.status)),{status:r.status});return data}
 async function scoutStore(o){
  if(!scoutAccount()){scoutData.local=[o,...scoutData.local.filter(x=>x.id!==o.id)].slice(0,2000);scoutSave();return'local'}

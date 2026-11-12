@@ -14,11 +14,13 @@ function cookTiming(s:any,meal:any,mealTime?:string){if(!meal||meal.cooked||!Arr
   return{name:String(src.name||r.name||''),cook,prep,total:cook==null?null:cook+prep}});
  const timed=dishes.filter((d:any)=>d.total!=null),unknown=dishes.length-timed.length;if(!timed.length)return{dishes:dishes.length,unknown,longest:null,sum:0,start:null};
  const longest=timed.reduce((a:any,b:any)=>b.total>a.total?b:a),sum=timed.reduce((n:number,d:any)=>n+d.total,0);
- const [h,m]=String(mealTime).split(':').map(Number),meal0=h*60+m,raw=Math.max(COOK_EARLIEST_MIN,meal0-longest.total-COOK_BUFFER_MIN),at=Math.floor(raw/15)*15;
- if(at>=meal0)return{dishes:dishes.length,unknown,longest,sum,start:null,early:true};
+ // the family's “Không nhắc nấu trước” (preferences.cookEarliestTime, 08:00 until chosen; owner pop-up 12 Nov 2026 “Để tuỳ chọn”)
+ const ce=String(s?.preferences?.cookEarliestTime||''),earliest=/^([01]\d|2[0-3]):[0-5]\d$/.test(ce)?+ce.slice(0,2)*60+(+ce.slice(3)):COOK_EARLIEST_MIN,earliestAt=`${String(Math.floor(earliest/60)).padStart(2,'0')}:${String(earliest%60).padStart(2,'0')}`;
+ const [h,m]=String(mealTime).split(':').map(Number),meal0=h*60+m,raw=Math.max(earliest,meal0-longest.total-COOK_BUFFER_MIN),at=Math.floor(raw/15)*15;
+ if(at>=meal0)return{dishes:dishes.length,unknown,longest,sum,start:null,early:true,earliest:earliestAt};
  return{dishes:dishes.length,unknown,longest,sum,start:`${String(Math.floor(at/60)).padStart(2,'0')}:${String(at%60).padStart(2,'0')}`}}
 function cookTimingText(t:any){const T=(vi:string,en:string)=>typeof tr==='function'?tr(vi,en):vi;if(!t)return '';
- if(t.early)return T(`${t.dishes} món, lâu nhất ${t.longest.name} ${t.longest.total} phút — bữa này sớm hơn giờ app bắt đầu nhắc (08:00), nên chuẩn bị từ hôm trước.`,`${t.dishes} dish${t.dishes>1?'es':''}, longest ${t.longest.name} ${t.longest.total} min — this meal is earlier than reminders start (08:00), so get ready the day before.`);
+ if(t.early)return T(`${t.dishes} món, lâu nhất ${t.longest.name} ${t.longest.total} phút — bữa này sớm hơn giờ “Không nhắc nấu trước” (${t.earliest}), nên chuẩn bị từ hôm trước.`,`${t.dishes} dish${t.dishes>1?'es':''}, longest ${t.longest.name} ${t.longest.total} min — this meal is earlier than “No cooking reminder before” (${t.earliest}), so get ready the day before.`);
  if(!t.start)return T(`${t.dishes} món chưa ghi thời gian nấu — thêm trong Món ăn để app nhắc đúng giờ.`,`No cooking time on ${t.dishes} dish${t.dishes>1?'es':''} yet — add it in Recipes to be reminded on time.`);
  const L=t.longest,split=L.prep?T(` (chuẩn bị ${L.prep} + nấu ${L.cook})`,` (prep ${L.prep} + cook ${L.cook})`):'';
  return T(`Bắt đầu nấu khoảng ${t.start} · ${t.dishes} món, lâu nhất ${L.name} ${L.total} phút${split}${t.unknown?` · ${t.unknown} món chưa ghi thời gian`:''}`,

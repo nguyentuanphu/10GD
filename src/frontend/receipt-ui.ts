@@ -255,7 +255,7 @@ saveReceipt=async function(confirmed=false){
 };
 function duplicateSheet(dup){
  const r=dup.match,count=r.printed?.count??(r.items||[]).filter(i=>!i.lineKind||i.lineKind==='item').length;
- const when=r.createdAt?new Date(r.createdAt).toLocaleDateString(lang()==='en'?'en-AU':'vi-VN'):r.date;
+ const when=r.createdAt?appTimeLabel(r.createdAt,{time:false,year:true,lang:lang()}):r.date;
  const what=`${r.store}, ${money(r.total,r.currency)}, ${count} ${T('món','items')}`;
  const body=dup.kind==='exact'?`<p>${esc(T(`Hoá đơn này có vẻ đã lưu ngày ${when} (${what}). Vẫn lưu?`,`This receipt seems to have been saved on ${when} (${what}). Save it anyway?`))}</p>`:`<p>${esc(T(`Có thể trùng: đã có hoá đơn ${what} ngày ${r.date}${r.printed?.time?' lúc '+r.printed.time:''}. Đây là lần mua khác?`,`Possible duplicate: a receipt for ${what} on ${r.date}${r.printed?.time?' at '+r.printed.time:''} is already saved. Is this a different purchase?`))}</p>`;
  modal(dup.kind==='exact'?T('Hoá đơn có vẻ đã lưu','Receipt may already be saved'):T('Có thể trùng hoá đơn','Possible duplicate receipt'),body+`<p class="hint">${esc(T('Không có gì bị xoá hay gộp tự động.','Nothing is deleted or merged automatically.'))}</p>`,
