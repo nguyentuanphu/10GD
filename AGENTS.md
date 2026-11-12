@@ -70,3 +70,7 @@ This is an agent workflow rule, not a claim that GitHub branch protection or hos
 ## Privacy changes need Henry first — owner instruction, 12 November 2026 (Sydney time)
 
 28. Never change the privacy policy (`dist/privacy.html`), the terms, or what personal or family data the app collects, sends, stores or shares without asking Henry first, with the pop-up question tool. Show him the exact new wording (VI and EN) and what data changes, and wait for his answer before the change goes on any release branch. Approval of a feature is not approval of its privacy text. The release report to Henry must name every privacy or data-handling change in plain words; a line in the PR body is not enough. Henry, 12 Nov 2026: “Any changes to privacy you will need to ask me first.”
+
+## Change every related place — owner instruction, 12 November 2026 (Sydney time)
+
+29. When a feature changes, update every place in the app that does the same job or shows the same thing, in the same release (for example, the buying-unit sheet on Đi chợ and the unit choice in Viết món, receipts, the pantry and added items). Before the plan or the change, list every related place found in the code. Say which ones are changed and why any is left out, and ask Henry about any left out. Every related place gets the same browser checks. Henry, 12 Nov 2026: “Lần sau khi update thì phải update những cái liên quan chứ không thể update một nơi mà nơi khác liên quan bỏ qua như vậy.”
