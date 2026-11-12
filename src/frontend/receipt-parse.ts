@@ -267,7 +267,7 @@ function findStore(lines,head,retailer){
 
 // ---------------------------------------------------------------- main parser
 // v1.7.10: “@” read as 0 / 8 / § and “1.442g” (k dropped) on photos of thermal receipts; “/kg” may be cut to “/k”
-const WEIGHT_RE=/(\d+[.,]\s?\d{3}(?=\s*k?g)|\d+[.,]\s?\d{1,2}(?=\s*kg))\s*k?g\s*(?:net)?\s*(?:[@©®€&§]|[08](?=\s))?\s*\$?\s?(\d+[.,]\d{2})\s*\$?\s*[/]\s*k/i;
+const WEIGHT_RE=/(\d+[.,]\s?\d{3}(?=\s*k?g)|\d+[.,]\s?\d{1,2}(?=\s*kg))\s*k?g\s*(?:net)?\s*(?:[@©®€&§]|[08](?=\s))?\s*\$?\s?(\d+[.,]\d{2})\d?\s*\$?\s*[/]\s*k/i;// v1.7.18: “$9.989/kg” (a doubled digit) still reads as $9.98
 const MULTI_RE=/^\W*(?:[qo]ty\s*)?(\d{1,3})\s*(?:[@©®§&]\s*\$?|\s[068Oo]\s+\$)\s?(\d+[.,]\d{1,2})(?!\d)\s*(?:each|ea\b\.?)?/i;
 // v1.7.10: “2 @ $2.20” read glued as “2082.20” (@→0, $→8). Accepted only when count × each equals the item just read.
 const GLUED_MULTI_RE=/^\W*(?:\S{1,4}\s+)?(\d{1,2}[0@][0-9@$S§]{1,3}\d{0,2}[.,]\d{1,2})(?:\s+\S{1,3}){0,3}\W*$/;
@@ -324,7 +324,7 @@ function parseReceipt(text,opts={}){
  for(let i=0;i<lines.length;i++){
   // v1.7.10: specks beside the paper can sit before SUB TOTAL / TOTAL / BALANCE / card lines (“2 TOTAL: $133.75”, “oir 2 MASTERCARD”);
   // Woolworths' own item count (“11 SUBTOTAL”) stays
-  const line=/^\W*\d{1,3}\s+SUB\s*TOTAL\b/i.test(lines[i])?lines[i]:lines[i].replace(/^(?:\S{1,5}\s+){1,2}(?=(?:SUB\s*TOTAL|S[UB]?B\s*TOTAL|TOTAL|BALANCE|ROUNDING|CASH|CHANGE|MASTERCARD|VISA|EFTPOS|DEBIT|GST\s+INCLUDED|TOTAL\s+ITEMS)\b)/i,''),n=norm(line);
+  const line=/^\W*\d{1,3}\s+SUB\s*TOTAL\b/i.test(lines[i])?lines[i]:lines[i].replace(/^(?:(?!S[UB]?B\b)\S{1,5}\s+){1,2}(?=(?:SUB\s*TOTAL|S[UB]?B\s*TOTAL|TOTAL|BALANCE|ROUNDING|CASH|CHANGE|MASTERCARD|VISA|EFTPOS|DEBIT|GST\s+INCLUDED|TOTAL\s+ITEMS)\b)/i,''),n=norm(line);
   if(section==='warranty')continue;
   if(/^\W*[wy]arrant(y|ies)\b/i.test(line)){section='warranty';pending=null;continue}
   if(section==='pay'&&totals.some(t=>t.p>=4)&&/tax\s*invoice/i.test(line)){multiple=true;break}
@@ -341,12 +341,12 @@ function parseReceipt(text,opts={}){
   if(det.id==='costco'&&/^TPDDISC\s/.test(line)){const v=amountIn(line);if(v!=null&&lastItem){lastItem.discount=round((lastItem.discount||0)-Math.abs(v));lastItem.raw+=' / '+line.slice(8)}else if(v!=null)add(adjust('discount',line.slice(8),-Math.abs(v)));continue}
   if(/surcharge/i.test(line)&&!/^\W*total\s+surcharge/i.test(line)){const v=amountIn(line);if(v!=null&&section!=='head')add(adjust('surcharge',line,v));continue}
   if(/^\W*total\s+surcharge/i.test(line))continue;
-  if(/^\W*round(ing)?\b/i.test(line)){const v=amountIn(line);if(v!=null&&Math.abs(v)>=0.005)add(adjust('rounding',line,v));continue}
+  if(/^\W*round(ing)?\b/i.test(line)){let v=amountIn(line);if(v!=null&&/[~≈—–]\s?\$?\s?\d[.,]\d{2}/.test(line))v=-Math.abs(v)/* v1.7.18: “ROUNDING: ~$0.02” is a minus read as a tilde */;if(v!=null&&Math.abs(v)>=0.005)add(adjust('rounding',line,v));continue}
   if(/you have saved|^\W*D\d{3}\b/i.test(line)&&det.id==='woolworths-uk'){const v=amountIn(line);if(v!=null&&lastItem){lastItem.discount=round((lastItem.discount||0)-Math.abs(v));lastItem.raw+=' / '+line}continue}
   if(/^\W*(credit|discount|less|promo|coupon|voucher|member\s*(discount|saving)|multi\s*buy|saving)\b/i.test(line)&&!/surcharge/i.test(line)&&/-\s?\$?\s?\d|\d[.,]\d{2}\s*-/.test(line)){const v=amountIn(line);if(v!=null){add(adjust('discount',line,-Math.abs(v)));continue}}
   // v1.7.14: a bare amount right under the subtotal is the total whose word OCR lost (“: $80.83” under “SUB TOTAL”)
   if(section==='sub'&&/^\W*\$?\s?\d{1,5}[.,]\d{2}\W*$/.test(line)){const v=amountIn(line);if(v!=null)totals.push({value:v,p:3,line:i,label:'TOTAL'});pending=null;continue}
-  if(PAY_RE.test(n)){if(/^(purchase|refund|total aud|mastercard|master card|visa|eftpos|eft|debit|amex)\b/.test(n)){const v=amountIn(line);if(v!=null)payAmounts.push(v)}if(section!=='head'||i>bodyStart&&bodyStart>=0)section='pay';pending=null;continue}
+  if(PAY_RE.test(n)){if(/^(purchase|refund|total aud|mastercard|master card|visa|eftpos|eft|debit|amex)\b/.test(n)||/^cash\b(?! ?out)/.test(n)){const v=amountIn(line);if(v!=null)payAmounts.push(v)}if(section!=='head'||i>bodyStart&&bodyStart>=0)section='pay';pending=null;continue}
   if(isSensitive(line)){pending=null;continue}
   if(/\bnet\b.*\b(gst|vat)\b|^\W*[ab]\s+\d+[.,]\d\s*%/i.test(line))continue;
   if(section==='head'){
@@ -359,7 +359,7 @@ function parseReceipt(text,opts={}){
   // continuation: weighed line → previous (or pending) item
   const w=line.match(WEIGHT_RE);
   if(w){const kg=+w[1].replace(/\s/g,'').replace(',','.'),per=+w[2].replace(',','.'),p=priceOf(line.slice(w.index+w[0].length),aldi);
-   let target=null;
+   let target=null;const garbledPrice=!!pending&&!p&&/[A-Za-z]{3}.*\s\$?\S*\d{3,}\S*(?:\s+\S{1,4})?\s*$/.test(pending.text);
    if(pending&&contPending()&&lastItem&&lastItem.weight==null&&lastItem.price!=null){target=lastItem;target.raw+=' / '+pending.text}
    else if(pending&&section==='body'){const c=cleanLabel(pending.text,det.id);if(/[A-Za-z]{2}/.test(c.label))target=add(makeItem(c.label,c.code,p?p.price:null,p?.gst,pending.text,!p))}
    else if(lastItem&&lastItem.weight==null&&!(!det.id&&p&&lastItem.price!=null&&Math.abs(lastItem.price-p.price)>0.015))target=lastItem;
@@ -368,6 +368,11 @@ function parseReceipt(text,opts={}){
    pending=null;
    if(target&&kg>0&&kg<50){target.weight={qty:kg,unit:'kg'};target.perKg=per;target.raw+=' / '+line;if(target.price==null&&p){target.price=p.price;target.priceMissing=false}target.qty=kg;target.unit='kg';target.size=null}
    // v1.7.14: “$65.71” for $5.71 (a speck read as a digit): when weight × price per kg says the price without its first digit, use that
+   // v1.7.18 (butcher receipt: “PORK MINCE   6571 via” for $5.71): no readable price, but weight × price per kg is printed — that is
+   // the line price (worked out, flagged for checking like other repaired prices); nothing is invented when either number is missing
+   if(target&&garbledPrice&&target.weight&&per>0&&target.price==null&&kg>0){target.price=round(kg*per);target.priceMissing=false;target.priceFromWeight=true;target.priceRepaired=true}
+   // the unreadable price's digits (“PORK MINCE   6571 via”) are not part of the name
+   if(target&&target.priceFromWeight&&target.name)target.name=target.name.replace(/\s+\S*\d{3,}\S*(?:\s+\S{1,4})?$/,'').trim()||target.name;
    if(target&&target.weight&&per>0&&target.price!=null){const exp=kg*per,ok=(v:number)=>Math.abs(v-exp)<=Math.max(0.12,exp*0.04);const s2=target.price.toFixed(2);if(!ok(target.price)&&s2.length>4&&ok(+s2.slice(1))){target.price=+s2.slice(1);target.priceFromWeight=true}}
    continue}
   // v1.7.14: a price-per-kg line whose weight OCR garbled (“442kg @ $5.99/kg”, “1.6826kg @ $12.00/kg”) belongs to the item above: the
@@ -428,6 +433,11 @@ function parseReceipt(text,opts={}){
  // printed total: the last of the strongest kind (ALDI may print several subtotal blocks)
  const pick=[4,3,2,1].map(p=>totals.filter(t=>t.p===p).pop()).find(Boolean)||null;
  let printedTotal=pick?pick.value:null,totalConflict=null;
+ // v1.7.18 (owner, 12 Nov 2026, butcher receipt): the large “TOTAL: $133.75” was lost by OCR, so only SUB TOTAL ($133.77) was
+ // read; the CASH / card amount is what was paid, and is used when no TOTAL line was read and it differs from the subtotal
+ // by less than 5 cents (cash rounding) — never to replace a TOTAL that was read.
+ if(pick&&pick.p<4&&payAmounts.length){const paid=payAmounts[payAmounts.length-1];if(paid>0&&Math.abs(paid-pick.value)<0.05&&Math.abs(paid-pick.value)>=0.005)printedTotal=paid}
+ if(!pick&&payAmounts.length===1&&payAmounts[0]>0)printedTotal=payAmounts[0];
  // the printed total is cross-checked against the other printed amounts (payment, EFTPOS "TOTAL AUD",
  // subtotal): when they agree with each other and not with the total line, the total line was misread.
  if(printedTotal!=null){const sg=printedTotal<0?-1:1,others=[...payAmounts,...totals.filter(t=>t!==pick).map(t=>t.value)].map(v=>Math.abs(v)*sg).filter(v=>Math.abs(v-printedTotal)>=0.005);
@@ -458,6 +468,9 @@ function parseReceipt(text,opts={}){
 function lineValue(i){return round((i.price||0)+(i.discount||0))}
 function adjust(kind,line,value){const label=line.replace(/\s*-?\$?\s?-?\d[\d.,]*\s*[A-Z]?\s*$/,'').replace(/[:\s]+$/,'').trim()||kind;return{kind,name:label,code:null,price:round(value),gst:null,size:null,pack:null,repaired:false,qty:null,unit:null,weight:null,perKg:null,multi:null,each:false,expanded:'',snack:false,nonFood:true,raw:line,priceMissing:false,dup:null}}
 function makeItem(label,code,price,gst,raw,missing){
+ // v1.7.18 (owner's phone, butcher receipt: “BEEF BALL i”, “PORK BELLY i”): a lone lower-case letter or bar after an all-capitals
+ // name is a speck between the name and the price column, not part of the name
+ label=String(label||'').replace(/^([^a-z]*[A-Z]{3}[^a-z]*?)\s+[a-z|!]$/,'$1');
  const s=extractSize(label);let name=s.text,qty=null,unit=null;
  const each=/\b(ea|each)$/i.test(name);if(each){name=name.replace(/\s*\b(ea|each)$/i,'').trim();qty=1;unit='each'}
  if(s.size){qty=s.size.qty;unit=s.size.unit}

@@ -38,3 +38,16 @@ Not changed, on purpose:
 **Result on the owner's photo (the app's own OCR, run locally, photo not kept):** 29 of 29 items with their names, 7 TPD savings on the right items, the reward, 1 line (Strawberries 1.2 kg) whose price OCR could not read left for the family to type. This receipt prints no grand total, so the app still asks for the amount paid.
 
 **Tests:** new `receipt-parse.test` case from that OCR text (membership number blanked). It fails on main and passes here; the 45 earlier receipt cases, `receipt-ocr` and `generic-receipts` browser suites pass.
+
+## 4. HP Meats butcher receipt (owner, 12 Nov 2026, 13:19: “This is the previous one I shared and it still can't read”)
+On the phone the app read the 9 items but took **SUB TOTAL $133.77** as the amount paid, and names ended in a speck (“BEEF BALL i”). The local OCR of the full photo also lost PORK MINCE (“$5.71” read as “6571”) and read “-$0.02” rounding as “~$0.02”.
+
+**Causes and fixes (`receipt-parse.ts`):**
+- **SUB TOTAL read as TOTAL:** specks before a total word are removed at the start of a line, and that rule also removed the word “SUB”. “SUB” is now kept.
+- **Amount paid:** when no TOTAL line was read (the large “TOTAL: $133.75” is often lost), the **CASH** (or card) amount is used as the total paid when it differs from the subtotal by less than 5 cents (cash rounding). A TOTAL that was read is never replaced.
+- **Speck letters:** a lone lower-case letter or bar after an all-capitals name is dropped.
+- **Rounding “~$0.02”** is a minus.
+- **Unreadable price on a weighed line:** when OCR read the price as garbage digits (“6571”), weight × price per kg (0.572 kg × $9.99) gives $5.71, flagged “please check”. When the price column is missing altogether (torn receipt) the price stays empty, as before (owner rule: nothing invented). “$9.989/kg” (a doubled digit) still reads as $9.98–9.99.
+- A price that OCR misread by one digit (“$13.95” for $13.35) is **not** changed: it stays as read and the difference with the total is reported, so every kept price is one printed on the receipt.
+
+**Tests:** new `receipt-parse.test` case with the phone's text and the local OCR text (no photo kept): 9 items, total $133.75, difference $0 on the phone text; it fails on main. All 47 receipt cases, `receipt-ocr` and `generic-receipts` browser suites pass.

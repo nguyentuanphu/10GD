@@ -220,5 +220,18 @@ check('Costco two-line receipt: names joined to prices, TPD savings on their ite
  const reward=r.items.find((x:any)=>x.kind==='discount'&&/rewards/i.test(x.name));assert.ok(reward&&reward.price===-72.71,'REDEEM REWARDS is a 72.71 reduction');
  assert.ok(!r.items.some((x:any)=>/TOTAL NUMBER|Bottom|BOB/i.test(x.name||'')),'count and basket markers are not items');
 });
+// v1.7.18 (owner, 12 Nov 2026, HP Meats butcher receipt, “still can't read”): text as the phone read it (cropped below the header;
+// the big “TOTAL: $133.75” lost) and as the app's OCR read the whole photo locally. No photo is kept; no personal data on it.
+check('butcher receipt: SUB TOTAL stays a subtotal, CASH is the amount paid, speck letters and “~$0.02” rounding, garbled price from weight × $/kg',()=>{
+ const PHONE="BEEF BALL i                        $13.35\n0.534kg @ $25.00/kg\nPORK BELLY i                       $30.21\n1.374kg @ $21.89/kg\nPORK MINCE                          $5.71\n0.572kg @ $9.99/kg\nBEEF GRAVY                         $22.58\n0.982kg @ $22.99/kg\nHP Meats Sliced Beef                $6.99\nCHICKEN MINI DRUM                   $8.64\n1.442kg @ $5.99/kg\nPORK NECK BONE                      $3.53\n0.884kg @ $3.99/kg\nBEEF SHORT RIB                     $21.91\n1.826kg @ $12.00/kg\nBEEF ASADO                         $20.85\n0.948kg @ $21.99/kg\nTotal Items: 9\nSUB TOTAL:    $133.77\nROUNDING:     -$0.02\nGST INCLUDED IN TOTAL:     $0.00\nCASH:    $133.75\n",OCR="\u2018 HP MEATS PTY LTD    %\nABN: 30 674 580 904                v\nTel: 0493682999                 Er\n299 ILLAWARRA ROAD                %\nMARRICKVILLE NSW 2204              a\nTAX INVOICE                   %\nDate: 07/11/2026         No: P2611070008 |\nCashier: OPO2                Reg.: POSO1    i\nBEEF BALL                        $13.95\n0.534kg @ $25.00/kg                        3\nPORK BELLY                       $30.21  \u00a7\n1.374kg @ $21.89/kg\nPORK MINCE                          6571 via\n0.572kg @ $9.989/kg\nBEEF GRAVY                        $22.58\n0.982kg @ $22.89/kg\nHP Meats S|iced Beef                $6.98\nCHICKEN MINI DRUM                   $8.64\n|.442kg @ $5.98/kg\nPORK NECK BONE                      $3.53\n0.884kg @ $3.99/kg\nBEEF SHORT RIB                     $21.91\n1.826kg @ $12.00/kg\nBEEF ASADO                             $20.85\n0.948kg @ $21.99/kg\nTotal ltems: 8\nSUB TOTAL:    $133.77\nROUNDING:     ~$0.02\nGST INCLUDED IN TOTAL:     $0.00\nCASH:    $133.75\nBALANCE:      $0.00\nTransaction: 07/11/2026 08:02:46\nTEE on my TE\n";
+ const a=R.parseReceipt(PHONE),ga=goods(a);
+ assert.equal(ga.length,9);assert.equal(a.printedTotal,133.75,'CASH $133.75 is what was paid; “SUB TOTAL” is not read as TOTAL');assert.equal(a.difference,0);
+ assert.ok(!ga.some((x:any)=>/\s[a-z|]$/.test(x.name)),'“BEEF BALL i” → “BEEF BALL”');
+ const b=R.parseReceipt(OCR),gb=goods(b);
+ assert.equal(gb.length,9,'PORK MINCE kept although its price read as “6571”');assert.equal(b.printedTotal,133.75);
+ const mince=gb.find((x:any)=>/^PORK MINCE$/.test(x.name));assert.ok(mince&&mince.price===5.71&&mince.priceRepaired&&mince.priceFromWeight,'0.572 kg × $9.99/kg = $5.71, flagged for checking');
+ const rnd=b.items.find((x:any)=>x.kind==='rounding');assert.equal(rnd.price,-0.02,'“~$0.02” is a minus');
+ assert.ok(b.warnings.some((w:any)=>w.code==='over'),'the misread $13.95 is still reported, not silently changed');
+});
 console.log(`receipt parser tests passed (${n})`);
 })().catch(e=>{console.error(e);process.exit(1)});
