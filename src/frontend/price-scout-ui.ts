@@ -262,7 +262,7 @@ function scoutConfirm(draft){
  <div class="scout-grid"><div class="field"><label for="scout-date">${scoutT('Ngày thấy giá','Seen on')}</label><input class="input" id="scout-date" name="observedAt" type="date" max="${PS.sydneyToday()}" required value="${d.observedAt}"></div>
  <div class="field"><label for="scout-by">${scoutT('Người ghi','Recorded by')}</label>${scoutAccount()?`<input class="input" id="scout-by" value="${esc(d.observedBy)}" disabled>`:`<select class="input" id="scout-by" name="observedBy">${(state.members||[]).map(m=>opt(m.name,m.name,d.observedBy===m.name)).join('')}${opt('',scoutT('Không ghi tên','No name'),!d.observedBy)}</select>`}</div></div>
  <div class="field"><label for="scout-note">${scoutT('Ghi chú','Note')}</label><input class="input" id="scout-note" name="note" maxlength="300" value="${esc(d.note||'')}"></div>
- ${d.raw?`<details><summary>${d.source==='voice'?'🎙 '+scoutT('Lời nói','What you said'):scoutT('Chữ đọc được','Recognised text')}</summary><textarea class="input" id="scout-raw" rows="5" maxlength="20000">${esc(d.raw)}</textarea><button type="button" class="btn" data-scout="reparse">↻ ${scoutT('Đọc lại từ chữ này','Re-read this text')}</button></details>`:''} <p id="scout-sanity" class="callout scout-sanity" role="status" hidden></p>
+ ${d.raw?`<details><summary>${d.source==='voice'?'🎙 '+scoutT('Lời nói','What you said'):scoutT('Chữ đọc được','Recognised text')}</summary><textarea class="input" id="scout-raw" rows="5" maxlength="20000">${esc(d.raw)}</textarea><button type="button" class="btn" data-scout="reparse">${scoutT('Đọc lại từ chữ này','Re-read this text')}</button></details>`:''} <p id="scout-sanity" class="callout scout-sanity" role="status" hidden></p>
  <p class="hint">${scoutAccount()?(scoutCommunityOn()?scoutT('Giá luôn lưu cho gia đình đang chọn. Chỉ gửi cho cộng đồng (ẩn danh) khi ô “Chia sẻ với cộng đồng” được đánh dấu.','Always saved for your selected family. Sent to the community (anonymously) only when “Share with the community” is ticked.'):scoutT('Giá được chia sẻ trong gia đình đang chọn, không chia sẻ với gia đình khác.','Shared with your selected family only, never with other families.')):scoutT('Chế độ chỉ trên thiết bị: giá chỉ lưu trên máy này.','Device-only mode: this price stays on this device.')}</p>
  </form>`,`<button class="btn" data-action="close-modal">${scoutT('Hủy','Cancel')}</button><button class="btn primary" type="submit" form="scout-obs-form">✓ ${scoutT('Lưu giá','Save price')}</button>`,true);
  scoutSanity();
@@ -312,7 +312,7 @@ async function scoutRefresh({quiet=false}={}){
  finally{scoutRefreshing=false;if(view==='shopping')scoutRerender()}
 }
 async function scoutDelete(id){
- if(scoutViewer())return;if(!confirm(scoutT('Xóa giá này?','Delete this price?')))return;
+ if(scoutViewer())return;if(!(await confirmAsk(scoutT('Xóa giá này?','Delete this price?'),scoutT('Giá này sẽ không còn trong danh sách của nhà mình.','This price will no longer be in your family’s list.'),scoutT('Xóa giá','Delete price'))))return;
  if(!scoutAccount()){scoutData.local=scoutData.local.filter(o=>o.id!==id);scoutSave();scoutRerender();return}
  if(scoutData.pending.some(o=>o.id===id)){scoutData.pending=scoutData.pending.filter(o=>o.id!==id);scoutSave();scoutRerender();return}
  try{await scoutApi('observe&id='+encodeURIComponent(id),{method:'DELETE'});scoutData.pool.observations=scoutData.pool.observations.filter(o=>o.id!==id);scoutSave();scoutRerender()}catch(e){toast(e.message,true)}

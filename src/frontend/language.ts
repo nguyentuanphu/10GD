@@ -90,7 +90,7 @@ const EN_SENTENCE_RULES=[
  [/^Vượt mục tiêu (\$[\d.,]+)\. Thử đổi vài món hoặc kiểm tra lại tủ\.$/,'$1 over target. Try swapping a few dishes or check the pantry.'],
  [/^Ví dụ: (\d+) g, (\d+) hộp, (\d+) bó…$/,'e.g. $1 g, $2 boxes, $3 bunch…'],
  [/^🍲 Weekends feast · (.+)$/,(_,n)=>'🍲 Weekends feast · '+(translateRecipeViToEn(n)||n)],
- [/^🧺 ĐI CHỢ NHÀ MÌNH · (.+)$/,'🧺 OUR SHOPPING LIST · $1'],
+ [/^(?:🧺 )?ĐI CHỢ NHÀ MÌNH · (.+)$/,'OUR SHOPPING LIST · $1'],/* v1.7.19 D1: the shared list heading has no emoji */
  [/^(Ước tính )?ít hơn ([\d.,]+) ?(\S+) so với lượng cần mua\.$/,(_,e,a,u)=>(e?'Estimated ':'')+a+' '+enUnit(u)+' less than the menu needs.'],[/^(Ước tính )?dư ([\d.,]+) ?(\S+) so với lượng cần mua\.$/,(_,e,a,u)=>(e?'Estimated ':'')+a+' '+enUnit(u)+' more than the menu needs.'],
  [/^Bạn chọn ít hơn ([\d.,]+) ?(\S+) so với lượng cần mua theo thực đơn\.$/,(_,a,u)=>`You chose ${a} ${enUnit(u)} less than the menu needs.`],[/^Mua dư ([\d.,]+) ?(\S+) so với lượng cần; có thể để dành cho bữa khác\.$/,(_,a,u)=>`Buying ${a} ${enUnit(u)} more than needed; it can be kept for another meal.`],
  [/^□ (.+): ([\d.,]+) (\S+)$/,(_,n,a,u)=>'□ '+enIng(n)+': '+a+' '+enUnit(u)],[/^Dự kiến: (\$[\d.,]+) \(giá mẫu\)$/,'Estimate: $1 (sample prices)'],

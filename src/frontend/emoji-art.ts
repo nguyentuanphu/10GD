@@ -23,11 +23,12 @@ function emojiArtify(root:any){if(!root)return;const doc=root.ownerDocument||doc
  EA_RE.lastIndex=0;
  const walker=doc.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:(n:any)=>{EA_RE.lastIndex=0;return EA_RE.test(n.nodeValue)&&!eaSkip(n)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT}});
  const nodes:any[]=[];while(walker.nextNode())nodes.push(walker.currentNode);
- for(const n of nodes){if(n.parentNode&&(n.parentNode.nodeName==='OPTION'||n.parentNode.nodeName==='OPTGROUP'))continue;const text=n.nodeValue;let last=0,html='',changed=false;EA_RE.lastIndex=0;let m;
+ // v1.7.19 (rule 27): chips, tabs and disclosures are words only — an emoji the app wrote there is dropped, not drawn
+ for(const n of nodes){if(n.parentNode&&(n.parentNode.nodeName==='OPTION'||n.parentNode.nodeName==='OPTGROUP'))continue;const wordsOnly=!!n.parentElement?.closest?.('.chip,[role="tab"],summary');const text=n.nodeValue;let last=0,html='',changed=false;EA_RE.lastIndex=0;let m;
   const esc=(s:string)=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'} as any)[c]);
   while((m=EA_RE.exec(text))){const e=m[0],k=eaKey(e);html+=esc(text.slice(last,m.index));last=m.index+e.length;
    // a text glyph already in its final form is left alone, so a pass never rewrites what it wrote (no observer loop)
-   if(EA_TEXT.has(k)){const out=EA_FORCE_TEXT.has(k)?k+'\uFE0E':e;if(out!==e)changed=true;html+=esc(out)}else{changed=true;const svg=EMOJI_ART[k];if(svg)html+='<span class="emo-art" aria-hidden="true">'+svg+'</span>'}}
+   if(EA_TEXT.has(k)){const out=EA_FORCE_TEXT.has(k)?k+'\uFE0E':e;if(out!==e)changed=true;html+=esc(out)}else{changed=true;const svg=EMOJI_ART[k];if(svg&&!wordsOnly)html+='<span class="emo-art" aria-hidden="true">'+svg+'</span>'}}
   if(!changed)continue;html+=esc(text.slice(last));const tpl=doc.createElement('template');tpl.innerHTML=html;n.replaceWith(tpl.content)}
  // titles / labels / placeholders read by people: no emoji there either
  if(root.querySelectorAll)for(const el of [root,...root.querySelectorAll('[title],[aria-label],[placeholder]')])for(const a of ['title','aria-label','placeholder']){const v=el.getAttribute?.(a);if(v){EA_RE.lastIndex=0;if(EA_RE.test(v)&&!el.closest?.('[data-user-content]')){const nv=eaStripText(v).trim();if(nv!==v)el.setAttribute(a,nv)}}}
