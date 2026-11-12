@@ -68,6 +68,8 @@ async function main() {
         assert.ok(Math.abs(more.icon - first.icon) <= 2 && Math.abs(more.label - first.label) <= 2 && Math.abs(more.iconH - first.iconH) <= 2, 'More tab aligned with the other tabs: ' + JSON.stringify(tabs));
         // v1.7.4: "Các mục khác" rows share one layout — icon and label start at the same x on every row, incl. the guide row.
         await page.click('#nav .mobile-more'); await page.locator('.more-tools .more-guide').waitFor();
+        /* v1.7.18: the install row is added on the next tick after the sheet opens (app-install.ts) — wait for it instead of racing it; the check below is unchanged */
+        await page.waitForFunction(() => document.querySelectorAll('.more-tools .more-row').length >= 2, null, { timeout: 5000 }).catch(() => {});
         const rows = await page.evaluate(() => [...document.querySelectorAll('.more-tools .more-row')].map((e: any) => [Math.round(e.querySelector('.more-icon').getBoundingClientRect().left), Math.round(e.querySelector('.more-label').getBoundingClientRect().left), Math.round(e.getBoundingClientRect().height)]));
         /* v1.7.17 (owner: sections already in the sliding bar are not repeated in More): guide and install remain */ assert.ok(rows.length >= 2 && rows.every((r: any) => r[0] === rows[0][0] && r[1] === rows[0][1] && r[2] >= 44), 'More sheet rows aligned: ' + JSON.stringify(rows));
         await page.click('#modal-root [data-action="close-modal"]');
