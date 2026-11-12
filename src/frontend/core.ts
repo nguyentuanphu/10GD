@@ -6,6 +6,19 @@ function hashDate(){const m=location.hash.match(/[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$
 const clone=x=>JSON.parse(JSON.stringify(x));
 const isoDate=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const sydneyDate=()=>new Intl.DateTimeFormat('en-CA',{timeZone:globalThis.BEP_TIMEZONE||'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+// v1.7.19 (audit D19–D21, B21; rule 22): one formatter for every moment the family sees (sync, receipts, So Giá, devices,
+// ladybug, voice check): the family's zone (Sydney unless the family chose another in settings, the same zone as sydneyDate),
+// never the device's. Calendar days stored as YYYY-MM-DD keep dateLabel.
+const familyTimeZone=()=>globalThis.BEP_TIMEZONE||'Australia/Sydney';
+const familyZoneName=(en?:boolean)=>familyTimeZone()==='Asia/Ho_Chi_Minh'?(en?'Vietnam time':'giờ Việt Nam'):(en?'Sydney time':'giờ Sydney');
+function sydneyParts(at:any=Date.now()){const p:any=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:familyTimeZone(),weekday:'short',year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(at instanceof Date?at:new Date(at)).map(x=>[x.type,x.value]));return{year:+p.year,month:+p.month,day:+p.day,hour:+p.hour%24,minute:+p.minute,weekday:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(p.weekday)}}
+const sydneyHour=(at:any=Date.now())=>sydneyParts(at).hour;
+// opts: time (default true), date (default true), year, weekday, zone (adds "giờ Sydney" / "Sydney time"), lang ('vi'|'en')
+function appTimeLabel(at:any,o:any={}){if(at==null||at==='')return'';const d=at instanceof Date?at:new Date(at);if(isNaN(+d))return'';const en=o.lang?o.lang==='en':typeof appLanguage!=='undefined'&&appLanguage==='en';const p=sydneyParts(d),pad=(n:number)=>String(n).padStart(2,'0'),out:string[]=[];
+ if(o.weekday)out.push(en?['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][p.weekday]:['CN','T2','T3','T4','T5','T6','T7'][p.weekday]);
+ if(o.date!==false)out.push(p.day+'/'+p.month+(o.year?'/'+p.year:''));
+ if(o.time!==false)out.push(pad(p.hour)+':'+pad(p.minute));
+ return out.join(' ')+(o.zone?' '+familyZoneName(en):'')}
 const parseDate=s=>new Date(s+'T12:00:00');
 const addDays=(s,n)=>{const d=parseDate(s);d.setDate(d.getDate()+n);return isoDate(d)};
 const monday=s=>{const d=parseDate(s);return addDays(s,-((d.getDay()+6)%7))};
