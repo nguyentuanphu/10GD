@@ -3,6 +3,11 @@
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
 ## 12 Nov 2026 (later)
+- **Meal times and cooking reminders** (pop-up answer: "Làm đủ 4 ý, gộp v1.7.19"):
+  1. "Bếp của nhà mình" gets a "Giờ ăn" section with a time for each meal the family uses (sáng, phụ sáng, trưa, phụ chiều, tối). A meal with no time shows "Chưa đặt" and gets no reminder.
+  2. Every planned meal that has a time gets "Đến giờ nấu [bữa] — bắt đầu lúc …", not only dinner. The start is the meal time minus the longest dish's cooking time minus 15 minutes.
+  3. A thaw reminder comes the evening before when a dish needs something from the freezer.
+  4. Meal times are edited in one place only (Bếp của nhà mình). Nhắc nhở and the meal cards read from it (rule 29). Each device still chooses whether it receives reminders. The times are stored in the family's own data, like the dinner time today; nothing new is sent anywhere else.
 - **Unit picker, remaining places (rule 29):** the receipt line unit, the notes-import unit and the voice recipe preview also use the shared unit picker. A family unit with a conversion is added to the pantry through that conversion. A unit without a conversion is stored as a bought lot in that unit, with no guessed grams. (Pop-up answer: "Đổi cả 3 chỗ".)
 - **Bought extras that are on the menu list:** a bought extra's amount counts towards the planned list row for the same ingredient, so the row shows "Đủ" and nothing is bought twice. If the family deliberately bought more than the list needs, ask whether to put the extra in the pantry. (Pop-up answer: "Như recommend, nhưng nếu user cố tình mua dư thì hỏi để cất vào pantry".)
 - **Product calls by the fix agents** (not yet confirmed by Henry):
