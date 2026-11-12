@@ -55,7 +55,8 @@ async function main(){
  const shot=async(page:any,name:string)=>{await page.screenshot({path:`${out}/${name}.png`,fullPage:false});shots.push(name)};
  const scrollToRows=async(page:any)=>{await page.evaluate(()=>{const el=document.querySelector('.shopping-group');if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-70)});await page.waitForTimeout(150)};
  const visibleChips=(page:any)=>page.evaluate(()=>[...document.querySelectorAll('#purchase-unit-choice .unit-chip')].filter((c:any)=>!c.hidden&&c.offsetParent!==null&&c.closest('.unit-chip-group:not([hidden])')).map((c:any)=>c.dataset.unitChoice));
- const openPicker=async(page:any)=>{await page.locator('[data-action="purchase-quantity"]').first().click();await page.waitForSelector('#purchase-unit-choice .unit-chip');await page.waitForTimeout(100)};
+ // v1.7.18: the sheet shows suggested units first; the full grouped list (search, keyboard) opens with “Xem tất cả đơn vị”
+ const openPicker=async(page:any)=>{await page.locator('[data-action="purchase-quantity"]').first().click();await page.waitForSelector('.unit-suggest .unit-chip');if(!await page.locator('#purchase-unit-choice').count())await page.locator('[data-unit-action="show-all"]').click();await page.waitForSelector('#purchase-unit-choice .unit-chip');await page.waitForTimeout(100)};
  try{
   // 1. Shopping rows: icon + text label for registry units; custom units get the generic icon.
   for(const [lang,theme] of [['vi','light'],['en','dark'],['vi','dark'],['en','light']]){
