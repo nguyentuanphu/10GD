@@ -75,7 +75,7 @@ function setMatch(i:number,value:string,{basket=null,later=false}:any={}){const 
  it.extra=it.extra||{};if(basket)it.extra.basket=basket;else delete it.extra.basket;it.match=value;it.confidence='';it.later=later;it.src=value?'family':'';
  if(value&&hasIng(value)&&it.qty==null){const w=it.extra.weightKg;if(w){it.qty=w;it.unit='kg'}}
  const sel=select(i);if(sel){if(value&&![...sel.options].some(o=>o.value===value)){const name=hasIng(value)?ingName(value):value;sel.insertAdjacentHTML('beforeend',`<option value="${esc(value)}">${esc(name)}</option>`)}sel.value=value;sel.dispatchEvent(new Event('change',{bubbles:true}))}
- const line=sel?.closest('.receipt-line');if(line&&it.qty!=null){const q=line.querySelector('.receipt-qty') as HTMLInputElement,u=line.querySelector('.receipt-unit') as HTMLSelectElement;if(q&&q.value==='')q.value=String(it.qty);if(u&&it.unit&&!u.value)u.value=it.unit}
+ const line=sel?.closest('.receipt-line');if(line&&it.qty!=null){const q=line.querySelector('.receipt-qty') as HTMLInputElement,u=line.querySelector('.receipt-unit') as HTMLSelectElement;if(q&&q.value==='')q.value=String(it.qty);if(u&&it.unit&&!u.value){if(u.tagName==='INPUT'&&typeof unitFieldSet==='function')unitFieldSet(u,it.unit,{silent:true});else u.value=it.unit}}
  openList=null;refresh(i)}
 // A new family ingredient named as on the receipt (size words left out), in the line's unit.
 function newName(it:any){const raw=String(it.label||'').replace(/\b\d+(?:[.,]\d+)?\s?(?:kg|g|ml|l|pk|pack)\b/gi,'').replace(/\s+/g,' ').trim()||String(it.label||'').trim();return raw.toLowerCase().replace(/(^|[\s'/-])([a-zà-ỹ])/g,(m:string,a:string,b:string)=>a+b.toUpperCase()).slice(0,100)}

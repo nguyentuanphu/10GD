@@ -94,11 +94,11 @@ New suites: `tests/audit-data-fixes.test.cjs` (in `npm test`), `npm run test:aud
 | “Nhờ mua thêm” request (`push-ui.ts`, `errand-form`) | Yes: adds the same extra item | **Changed** (audit A5). Same amount + unit picker and the same extra record as “Mua thêm”; it had a free-text “Số lượng / cách mua”. |
 | Ladybug self-test “Giấy bếp (thử)” (`ladybug-workflows.ts`) | Uses the add form | **Changed** to set the new field (cuộn). |
 | Pantry add / edit (`app.ts`, `stockForm`; `unit-picker.ts`, `unit-stock-form`) | No unit is picked | **Not changed.** The amount is typed in the ingredient's own unit, shown as text. A lot bought in a buying unit keeps that unit from the purchase. Adding a unit choice would change how pantry amounts are stored, which is a data change for Henry to decide. |
-| Receipt line unit (`family-features.ts`, `receiptLineRows` `.receipt-unit`; read by `receipt-list-ui.ts`, `receipt-match-ui.ts`, `receipt-match-picker.ts`) | Close (unit of a bought line) | **Not changed — question for Henry.** The value goes into pantry amounts and price maths, which only understand g, kg, ml, l, quả and the buying units. A family unit has no path there, so converting it changes what a receipt puts into the pantry. |
-| Notes import (“Nhập danh sách ghi chú”, `family-features.ts` `.note-unit` → `shopping-planning.ts`) | Close (writes buying-unit records) | **Not changed — question for Henry.** Same reason as receipts: it writes buying-unit records and pantry amounts without the conversion step the Đi chợ sheet asks for. |
+| Receipt line unit (`family-features.ts`, `receiptLineRows` `.receipt-unit`; read by `receipt-list-ui.ts`, `receipt-match-ui.ts`, `receipt-match-picker.ts`) | Yes | **Changed** (Henry, 12 Nov: “Đổi cả 3 chỗ”). Shared picker with suggestions for the matched ingredient; “gói / hộp chưa rõ lượng” kept as its own choice. A family unit with a conversion is counted through it (`receipt-list.ts` `baseQuantity`). A unit without one becomes a bought lot in that unit (“Chưa quy đổi được · giữ theo 1 túi”), never grams. |
+| Notes import (“Nhập danh sách ghi chú”, `family-features.ts` `.note-unit` → `shopping-planning.ts`) | Yes | **Changed** (“Đổi cả 3 chỗ”). Shared picker per row. A family unit's conversion, or a fixed one such as chục = 10 quả, is used as the buying-unit conversion; otherwise it stays unknown. |
 | Receipt list “1 X = ? …” question (`receipt-list-ui.ts`, `.rl-per-unit`) | No | Not changed: it asks what one pack weighs in g / ml / quả (a conversion), not the item's unit. |
 | Price Scout pack unit and basis (`price-scout-ui.ts`, `scout-pack-unit`, `scout-basis`) | No | Not changed: pack size of a store product (g, kg, mL, L, each, wash, roll, sheet) and the “per kg / per 100 g” price basis used to compare prices. A family unit has no pack size. |
-| Voice recipe preview (`voice-recipe.ts`, `.vr-ing-unit`) | Close | **Not changed — question for Henry.** It is the check of what was heard (typed text with suggestions, read back by the dictation parser). The rows then open in Viết món, where the shared picker is used. |
+| Voice recipe preview (`voice-recipe.ts`, `.vr-ing-unit`) | Yes | **Changed** (“Đổi cả 3 chỗ”). Shared picker with the recipe units group; the heard unit stays as written until the family changes it. |
 | New ingredient from a receipt (`receipt-match-picker.ts`, `FAMILY_UNITS`) | No | Not changed: it sets the counting unit of a new family ingredient, limited to the units the recipe maths can count. |
 | Voice “add to list”, products “add to list”, scan amount (`personal-core.ts`, `products-ui.ts`, `kitchen-extras.ts`) | No control | Not changed: the unit comes from speech, the product's pack size or the ingredient; nothing is picked. |
 
@@ -160,5 +160,33 @@ Audit of 12 Nov 2026 (`docs/reviews/audit-20261112/`), findings about extra item
 
 **Limits and not fixed:**
 - Chromium viewport simulation, not physical devices.
-- A bought extra is not merged into a matching planned ingredient row on the list. It goes into the pantry as its own lot, and the pantry adds lots together. Merging the two rows on the list would change how the list is worked out, so it is left for Henry to decide.
+- (Decided by Henry later the same day; see the next section.)
 - Recipes with a yield and guests are not part of these flows (extras and units), so they were not varied here.
+
+## Henry's answers, 12 Nov 2026 (Sydney time): the last unit places, and bought extras on the list
+**1. “Đổi cả 3 chỗ”.** The receipt line unit, the notes-import unit and the voice recipe preview use the shared unit picker (see the §4 inventory).
+- A family unit **with** a conversion goes into the pantry through it. Example: 2 “túi QA” (1 túi ≈ 500 ml) become 1000 ml.
+- A unit **without** one is kept as a bought lot in that unit. Example: “1 túi” of a rooster has no grams; the receipt sheet says “Chưa quy đổi được · giữ theo 1 túi”.
+- Only “gói / hộp chưa rõ lượng” still asks for the amount.
+
+**2. “Như recommend, nhưng nếu user cố tình mua dư thì hỏi để cất vào pantry”.**
+- A ticked extra of an ingredient that is also on the menu list counts towards that row (`extraCoverPlan`):
+  - when it covers the row, the row reads “Đủ — đã mua 1 con ở “Đồ dùng khác””; it counts as bought, and its tick is locked to the extra;
+  - otherwise the row says what is still short.
+- Nothing is bought or put away twice: “Cất đồ” stores the extra, not the row.
+- Ticking an extra that is more than the list needs asks once, “Mua dư Gà trống?”, with two choices: “Không cất phần dư” or “Cất phần dư vào tủ”.
+- The put-away sheet shows the split (“1 con cho thực đơn · dư 1 con”) with a “Cất cả phần dư … vào tủ” tick, set from that answer and still changeable.
+
+**Data (internal, not privacy):**
+- Extra items may carry `surplus` (`'pantry'` or `'skip'`).
+- Receipt lines keep the unit as chosen.
+- No new data leaves the device.
+
+**Tests:** new `test:unit-places:browser` (in `test:all`).
+- Sizes and looks: 320×740, 375×812, 820×1100 and 1280×800, in VI light and EN dark. Every run uses a week starting on Saturday; the EN runs also use VND and a phone in Los Angeles time.
+- Receipt and notes import: the picker opens over the sheet, suggests con first, the family-unit conversion is used, and a no-conversion lot is kept.
+- Voice preview: the heard unit is kept until the family picks one in the picker.
+- Bought extras on the list: short, then “Đủ”, the surplus question, and the put-away amounts with and without the extra part.
+- Every run ends with `validImport` and a sync-merge round trip.
+- Updated to drive the picker instead of the old list or text box: `receipt-list`, `v1716` and `v1714` (receipt line unit); `voice-price` (voice preview unit). Each still checks the same result.
+- Screenshots: `docs/reviews/v1.7.19/unit-places/`. Chromium viewport simulation, not physical devices.
