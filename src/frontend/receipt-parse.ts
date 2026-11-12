@@ -65,12 +65,19 @@ const ABBREVIATIONS={
  strwb:'strawberries',strawb:'strawberries',bluebs:'blueberries',rasp:'raspberries',
  lett:'lettuce',cucmbr:'cucumber',caps:'capsicum',brocc:'broccoli',caul:'cauliflower',mshrm:'mushrooms',grlc:'garlic',gngr:'ginger',swt:'sweet',
  prwn:'prawn',prwns:'prawns',slmn:'salmon',lmb:'lamb',tna:'tuna',brd:'bread',rls:'rolls',noodl:'noodles',ndl:'noodles',
- juc:'juice',jce:'juice',choc:'chocolate',bisc:'biscuits',crkr:'crackers',aus:'australian',
+ juc:'juice',jce:'juice',cnut:'coconut',choc:'chocolate',bisc:'biscuits',crkr:'crackers',aus:'australian',
  brshles:'brushless',brshless:'brushless',hamdril:'hammer drill',batt:'battery',chrgr:'charger',chrgrkit:'charger kit',tis:'tissue'
 };
 // Product types that are not cooking ingredients even when they name one ("honey soy chicken chips").
-const SNACK_WORDS=/\b(chips|crisps|snacks?|biscuits?|cookies?|crackers?|chocolate|lollies|candy|soft drink|cola|cordial|ice cream|gum|popcorn|pretzels?|humbugs?|kulfi|drumstick 475|mousse)\b/;
-const NONFOOD_WORDS=/\b(battery|batteries|drill|hammer|accessory|disc|blade|tools?|towel|tissues?|toilet|litter|bag|monitor|arm|hdmi|cable|hangers?|hooks?|holder|trimmer|energizer|lithium|mixer|fryer|spreader|pruner|hedge|charger|kit|paper|detergent|nappies|wipes|shampoo|soap|bleach|foil|cling|sponge|globe|candle)\b/;
+const SNACK_WORDS=/\b(chips|crisps|snacks?|biscuits?|cookies?|crackers?|chocolate|lollies|candy|soft drink|cola|cordial|ice cream|gum|popcorn|pretzels?|humbugs?|kulfi|drumstick 475|mousse|coconut rolls|egg rolls|love letters)\b/;
+const NONFOOD_WORDS=/\b(battery|batteries|drill|hammer|accessory|disc|blade|tools?|towel|tissues?|toilet|litter|bag|monitor|arm|hdmi|cable|hangers?|hooks?|holder|trimmer|energizer|lithium|mixer|fryer|spreader|pruner|hedge|charger|kit|paper|detergent|nappies|wipes|shampoo|soap|bleach|foil|cling|sponge|globe|candle|omo|laundry|fabric softener|softener|rinse aid|rinse|dishwasher|dishwashing|finish|toothpaste|toothbrush|colgate|mouthwash|floss|deodorant|razors?|serviettes?|napkins?|garbage|bin liners?|cleaner|disinfectant|kleenex|quilton|huggies)\b/;
+// v1.7.18 (owner, 12 Nov 2026, Costco “OMO TRIPLE CAPS”): laundry / dishwasher capsules are read on the printed words, before
+// “caps” is expanded to capsicum
+const NONFOOD_RAW=/\b(triple|laundry|washing|wash|dishwasher|dish) (caps?|capsules|pods|tabs|tablets)\b/;
+// Prepared products that name a raw ingredient (“APPLE JUICE”, “PRAWN HARGOW”, “ROAST BEEF”, “S/ONION PANCAKE”): never mapped by
+// themselves to the raw ingredient; at most a suggestion when the ingredient itself is that product (“bread rolls”, “oyster sauce”).
+const PREPARED_RE=/\b(juices?|dumplings?|hargow|hargov|har gow|gyoza|dim sum|siu mai|shu mai|wontons?|spring rolls?|pancakes?|roast(?= (?:beef|chicken|pork|lamb|turkey|duck|ham)\b)|roasted|rotisserie|deli|cooked|smoked|sauces?|spread|dippers|dip|rolls|nuggets?|schnitzels?|kiev|pies?|pizzas?|lasagne|sushi|mayo|mayonnaise|kimchi|(?:strawberry|strwberry|banana|flavoured|iced coffee) milk)\b/;
+function preparedWord(name){const m=(' '+norm(name)+' ').match(PREPARED_RE);return m?m[1]:null}
 function splitGlued(s){return String(s).replace(/([a-z])([A-Z])/g,'$1 $2').replace(/([A-Z]{2,})([A-Z][a-z])/g,'$1 $2').replace(/([A-Za-z]{2,})(\d)/g,'$1 $2').replace(/[/&]/g,' ')}
 function expandAbbrev(name,table=ABBREVIATIONS){
  const words=norm(splitGlued(name)).split(' ').filter(Boolean),out=[];
@@ -78,7 +85,7 @@ function expandAbbrev(name,table=ABBREVIATIONS){
  return out.join(' ').replace(/\b(\d+(?:\.\d+)?) (kg|g|ml|l|gram|grams|litre|pk|pack)\b/g,'$1$2').replace(/\s+/g,' ').trim();
 }
 function isSnack(expanded){return SNACK_WORDS.test(' '+norm(expanded)+' ')}
-function isNonFood(expanded){return NONFOOD_WORDS.test(' '+norm(expanded)+' ')&&!/\b(dog food|cat food)\b/.test(norm(expanded))?true:/\b(dog food|cat food|pet food)\b/.test(norm(expanded))}
+function isNonFood(expanded,raw){if(raw&&NONFOOD_RAW.test(norm(splitGlued(raw))))return true;return NONFOOD_WORDS.test(' '+norm(expanded)+' ')&&!/\b(dog food|cat food)\b/.test(norm(expanded))?true:/\b(dog food|cat food|pet food)\b/.test(norm(expanded))}
 
 // ---------------------------------------------------------------- size repair
 // OCR confusions are only repaired inside the numeric part directly before a unit.
@@ -141,6 +148,8 @@ function extractSize(name){
   }
   // "…1759"/"Blueberries 1709": the g was read as 9 (no unit left) — only 4 digits ending in 9, last token
   if(!best){const g9=text.match(/(^|[A-Za-z\s])(\d{3})9\s*$/);if(g9&&plausible(+g9[2],'g')&&+g9[2]%5===0){const at=g9.index+g9[1].length;best={qty:+g9[2],unit:'g',index:at,len:4,changed:true}}}
+  // v1.7.18 (Costco “JONGGA KIMCHI 1.5K”): the line ran out of room after the K of KG — a number + K at the very end is kilograms
+  if(!best){const k=text.match(/(^|\s)(\d{1,2}(?:[.,]\d{1,3})?)\s?K$/i);if(k&&plausible(+k[2].replace(',','.'),'kg')){const at=k.index+k[1].length;best={qty:+k[2].replace(',','.'),unit:'kg',index:at,len:text.length-at,changed:false}}}
   if(best){size={qty:best.qty,unit:best.unit};if(best.changed)repaired=true;
    const glued=best.index>0&&/[A-Za-z]/.test(text[best.index-1]);
    text=text.slice(0,best.index)+(glued?' ':'')+fmtSize(size)+text.slice(best.index+best.len)}
@@ -476,7 +485,7 @@ function makeItem(label,code,price,gst,raw,missing){
  const each=/\b(ea|each)$/i.test(name);if(each){name=name.replace(/\s*\b(ea|each)$/i,'').trim();qty=1;unit='each'}
  if(s.size){qty=s.size.qty;unit=s.size.unit}
  const expanded=expandAbbrev(name),g=genericLabel(name);
- return{kind:'item',name,code:code||null,price:price??null,gst:gst||null,size:s.size,pack:s.pack,repaired:s.repaired,qty,unit,weight:null,perKg:null,multi:null,each,expanded,snack:isSnack(expanded),nonFood:isNonFood(expanded),raw:String(raw||''),priceMissing:!!missing||price==null,dup:null,generic:!!g,genericKey:g?g.key:null,plu:g?g.plu:null};
+ return{kind:'item',name,code:code||null,price:price??null,gst:gst||null,size:s.size,pack:s.pack,repaired:s.repaired,qty,unit,weight:null,perKg:null,multi:null,each,expanded,snack:isSnack(expanded),nonFood:isNonFood(expanded,name),raw:String(raw||''),priceMissing:!!missing||price==null,dup:null,generic:!!g,genericKey:g?g.key:null,plu:g?g.plu:null};
 }
 // v1.7.2 generic / local-grocer lines: a department word ("GROCERY", "VEG", "MEAT", "DEPT 01", "MISC"), a PLU
 // on its own, or only a price. They name no item, so they are never matched automatically ("Chưa rõ món").
@@ -526,32 +535,48 @@ function looksLikeReceipt(text){const r=typeof text==='string'?parseReceipt(text
 
 // ---------------------------------------------------------------- matching
 // English receipt words → app ingredient ids (only for ids whose aliases are Vietnamese-only).
-const EN_ALIASES={salmon:['salmon'],corn:['sweet corn','corn kernels','corn cob'],milk:['milk','full cream milk','lite milk','skim milk'],yogurt:['yogurt','yoghurt','greek yoghurt'],cream:['cream whipped','whipped cream','thickened cream','cooking cream','pure cream','whipping cream'],butter:['butter','unsalted butter'],mozzarella:['mozzarella'],parmesan:['parmesan'],feta:['feta'],bread:['bread','white bread','sourdough','rolls','bread rolls','wraps','white wraps'],wholeBread:['wholemeal bread','wholemeal','hi fibre','grain bread'],flour:['plain flour','flour'],oats:['rolled oats','oats'],lemon:['lemon','lemons'],lettuce:['lettuce','iceberg lettuce','cos lettuce'],zucchini:['zucchini'],eggplant:['eggplant'],bellPepper:['capsicum','capsicums'],asparagus:['asparagus'],avocado:['avocado','avocados'],apple:['apple','apples','apple jazz','apple pink lady'],orange:['orange','oranges','mandarins','mandarin'],tuna:['tuna'],spaghetti:['spaghetti'],penne:['penne'],chickpea:['chickpeas'],peanut:['peanuts'],almond:['almonds'],walnut:['walnuts'],oil:['canola oil','olive oil','vegetable oil','sunflower oil'],carrot:['carrots','carrot'],onion:['onions','brown onions','red onions'],potato:['potatoes','brushed potatoes','washed potatoes'],broccoli:['broccoli'],egg:['eggs','free range eggs','cage eggs','cage 12pk','cage free'],spinach:['baby spinach','spinach'],tomato:['tomato','tomatoes','tomato gourmet','cherry tomatoes'],mushroom:['mushrooms','mushroom oyster','mushroom']};
+const EN_ALIASES={salmon:['salmon'],corn:['sweet corn','sweetcorn','corn kernels','corn cob'],milk:['milk','full cream milk','lite milk','skim milk'],yogurt:['yogurt','yoghurt','greek yoghurt'],cream:['cream whipped','whipped cream','thickened cream','cooking cream','pure cream','whipping cream'],butter:['butter','unsalted butter'],mozzarella:['mozzarella'],parmesan:['parmesan'],feta:['feta'],bread:['bread','white bread','sourdough','rolls','bread rolls','wraps','white wraps'],wholeBread:['wholemeal bread','wholemeal','hi fibre','grain bread'],flour:['plain flour','flour'],oats:['rolled oats','oats'],lemon:['lemon','lemons'],lettuce:['lettuce','iceberg lettuce','cos lettuce'],zucchini:['zucchini'],eggplant:['eggplant'],bellPepper:['capsicum','capsicums'],asparagus:['asparagus'],avocado:['avocado','avocados'],apple:['apple','apples','apple jazz','apple pink lady'],orange:['orange','oranges','mandarins','mandarin'],tuna:['tuna'],spaghetti:['spaghetti'],penne:['penne'],chickpea:['chickpeas'],peanut:['peanuts'],almond:['almonds'],walnut:['walnuts'],oil:['canola oil','olive oil','vegetable oil','sunflower oil'],carrot:['carrots','carrot'],onion:['onions','brown onions','red onions'],potato:['potatoes','brushed potatoes','washed potatoes'],broccoli:['broccoli'],egg:['eggs','free range eggs','cage eggs','cage 12pk','cage free'],spinach:['baby spinach','spinach'],tomato:['tomato','tomatoes','tomato gourmet','cherry tomatoes'],mushroom:['mushrooms','mushroom oyster','mushroom']};
 // Returns {match, confidence:'learned'|'high'|'suggested'|'unknown'} for one parsed line.
-function matchIngredient(item,{ingredients={},aliases={},extraAliases={},memory={},retailer=null}={}){
- if(item.kind!=='item'||item.generic)return{match:'',confidence:'unknown'};
- for(const k of memoryKeys(item,retailer)){const v=memory[k];if(v&&(v==='other'||Object.hasOwn(ingredients,v)))return{match:v,confidence:'learned'}}
- if(item.snack||item.nonFood)return{match:'',confidence:'unknown'};
- const words=norm(item.expanded||item.name).replace(/\b\d+(\.\d+)?(kg|g|ml|l|pk|pack|gram|litre)?\b/g,' ').replace(/\b(pack|bag|each|loose|cut|bottle|carton|per kg|perkg|kg)\b/g,' ').replace(/\s+/g,' ').trim();
- if(!words)return{match:'',confidence:'unknown'};
- const n=' '+words+' ',nt=words.split(' ').length;let best='',score=0,cover=0;
- for(const[id,ing]of Object.entries(ingredients)){
-  for(const alias of[norm(ing[0]),...(aliases[id]||[]),...(EN_ALIASES[id]||[]).map(norm),...(extraAliases[id]||[]).map(norm)]){
-   if(!alias||alias.length<3)continue;
-   if(n.includes(' '+alias+' ')){const at=alias.split(' ').length,s=alias.length+(n.trim()===alias?100:0);if(s>score){score=s;best=id;cover=at/nt}}
-  }
- }
- if(!best)return{match:'',confidence:'unknown'};
- return{match:best,confidence:score>=100||cover>=0.6?'high':'suggested'};
+// v1.7.18 (owner, 12 Nov 2026: “the names of items on the receipt may differ from the items on đi chợ”): the family's memory first,
+// then only what is on this week's shopping list (`list`: ingredient ids), then the whole catalogue. Whole words only; a prepared
+// product (juice, dumplings, pancake, roast beef, sauce…) is never matched by itself to the raw ingredient it names.
+// Returns {match, confidence:'learned'|'high'|'suggested'|'unknown', source:'memory'|'list'|'catalogue'|'', prepared}.
+function matchWords(item){return norm(item.expanded||item.name).replace(/\b\d+(\.\d+)?(kg|g|ml|l|pk|pack|gram|litre)?\b/g,' ').replace(/\b(pack|bag|each|loose|cut|bottle|carton|per kg|perkg|kg)\b/g,' ').replace(/\s+/g,' ').trim()}
+function aliasesOf(id,ing,aliases,extraAliases){return[norm(ing[0]),...(aliases[id]||[]),...(EN_ALIASES[id]||[]).map(norm),...(extraAliases[id]||[]).map(norm)]}
+function bestMatch(words,ids,{ingredients,aliases,extraAliases}){
+ const n=' '+words+' ',nt=words.split(' ').length;let best='',score=0,cover=0,alias='';
+ for(const id of ids){const ing=ingredients[id];if(!ing)continue;
+  for(const a of aliasesOf(id,ing,aliases,extraAliases)){if(!a||a.length<3)continue;
+   if(n.includes(' '+a+' ')){const at=a.split(' ').length,s=a.length+(n.trim()===a?100:0);if(s>score){score=s;best=id;cover=at/nt;alias=a}}}}
+ return best?{match:best,confidence:score>=100||cover>=0.6?'high':'suggested',alias}:null;
+}
+function matchIngredient(item,{ingredients={},aliases={},extraAliases={},memory={},retailer=null,list=null}={}){
+ // source / prepared ride along as non-enumerable facts, so {match, confidence} compares as before
+ const res=(match,confidence,source,prepared)=>Object.defineProperties({match,confidence},{source:{value:source},prepared:{value:prepared}});
+ const none=(prepared=null)=>res('','unknown','',prepared);
+ if(item.kind!=='item'||item.generic)return none();
+ for(const k of memoryKeys(item,retailer)){const v=memory[k];if(v&&(v==='other'||Object.hasOwn(ingredients,v)))return res(v,'learned','memory',null)}
+ if(item.snack||item.nonFood)return none();
+ const words=matchWords(item);if(!words)return none();
+ const prep=preparedWord(item.expanded||item.name),opts={ingredients,aliases,extraAliases};
+ const guard=r=>{if(!r||!prep)return r;const p=norm(prep);if(!(' '+r.alias+' ').includes(' '+p+' '))return null;return r.alias===p?{...r,confidence:'suggested'}:r};
+ const onList=Array.isArray(list)?list.filter(id=>Object.hasOwn(ingredients,id)):[];
+ if(onList.length){const r=guard(bestMatch(words,onList,opts));if(r)return res(r.match,r.confidence,'list',prep)}
+ const r=guard(bestMatch(words,Object.keys(ingredients),opts));
+ return r?res(r.match,r.confidence,'catalogue',prep):none(prep);
 }
 // Key(s) for the family's confirmed mapping: retailer + item code when printed, and retailer + name.
 function memoryKeys(item,retailer){if(item.generic)return[];const r=norm(retailer||'any')||'any',out=[];if(item.code)out.push('receipt '+r+' c '+item.code);const n=norm(item.name||item.label);if(n)out.push('receipt '+r+' n '+n);return out}
 
 // Canonical quantity of one line (g / ml / each) — only from what is printed, else null.
-function lineQuantity(item){
+// base (optional): the matched ingredient's base unit. A pack count (“CAGE FREE 30PK”) is a number of pieces only for an ingredient
+// counted in pieces (quả / cái / con); it never becomes a weight.
+const COUNTED_BASE=['quả','cái','con'];
+function lineQuantity(item,base=null){
  if(item.weight)return{qty:round(item.weight.qty*1000,3),unit:'g'};
  const count=item.multi?item.multi.count:1;
  if(item.size){const u=item.size.unit,q=item.size.qty*count;return u==='kg'?{qty:round(q*1000,3),unit:'g'}:u==='l'?{qty:round(q*1000,3),unit:'ml'}:u==='pk'?null:{qty:round(q,3),unit:u}}
+ if(item.pack&&item.pack>1&&COUNTED_BASE.includes(base))return{qty:item.pack*count,unit:'each'};
  if(item.each)return{qty:count,unit:'each'};
  return null;
 }
@@ -797,6 +822,6 @@ async function recognize(file,{lang='eng',status=null,createWorker=null,original
  }finally{if(worker)try{await worker.terminate()}catch{}}
 }
 
-const api={genericLabel,GENERIC_WORDS,readScore,preferOther,RETAILERS,ABBREVIATIONS,EN_ALIASES,KNOWN_WORDS,addWords,detectRetailer,detectCurrency,expandAbbrev,splitGlued,isSnack,isNonFood,extractSize,repairNumber,plausible,tidy,cleanLabel,priceOf,clippedPrice,parseReceipt,warningsFor,warningText,looksLikeReceipt,differenceNote,redact,isSensitive,matchIngredient,memoryKeys,lineQuantity,fingerprint,receiptKey,sha256Hex,findDuplicate,sameStore,reconcile,findDate,preprocess,toGray,otsu,blankExtents,paperExtents,charAccuracy,prepareImage,recognize,norm,warpField};
+const api={preparedWord,COUNTED_BASE,genericLabel,GENERIC_WORDS,readScore,preferOther,RETAILERS,ABBREVIATIONS,EN_ALIASES,KNOWN_WORDS,addWords,detectRetailer,detectCurrency,expandAbbrev,splitGlued,isSnack,isNonFood,extractSize,repairNumber,plausible,tidy,cleanLabel,priceOf,clippedPrice,parseReceipt,warningsFor,warningText,looksLikeReceipt,differenceNote,redact,isSensitive,matchIngredient,memoryKeys,lineQuantity,fingerprint,receiptKey,sha256Hex,findDuplicate,sameStore,reconcile,findDate,preprocess,toGray,otsu,blankExtents,paperExtents,charAccuracy,prepareImage,recognize,norm,warpField};
 root.ReceiptParse=api;
 })(globalThis);
