@@ -9,6 +9,8 @@
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),assert=require('assert');
 const {COSTCO}=require('./fixtures/receipt-list.cjs');
 const root=process.cwd(),dir='docs/reviews/v1.7.18/receipt-list',origin='https://kitchen.test';fs.mkdirSync(dir,{recursive:true});
+// v1.7.19 (owner, “Đổi cả 3 chỗ”, rule 29): a receipt line's unit is picked in the shared unit picker, not a plain list.
+const pickLineUnit=async(page:any,line:any,unit:string)=>{await line.locator('.unit-field-btn').click();const chip=page.locator(`#unit-sheet-layer .unit-chip[data-unit-choice="${unit}"]`).first();await page.locator('#unit-sheet-layer .unit-chip').first().waitFor();if(!(await chip.isVisible()))await page.locator('#unit-sheet-layer [data-unit-action="show-all"]').click();await chip.click();await page.locator('#unit-sheet-layer [data-unit-sheet-act="save"]').click();await page.locator('#unit-sheet-layer').waitFor({state:'detached'})};
 const mime:any={'.html':'text/html','.js':'application/javascript','.json':'application/json','.css':'text/css','.webp':'image/webp','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json','.gz':'application/gzip','.wasm':'application/wasm'};
 const SIZES:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tablet:{width:820,height:1100},desktop:{width:1280,height:800}};
 const OIL_ONLY='Costco Wholesale Australia\nAUS FIELDS CAN OIL\n153701     1x 10.69     10.69\nTOTAL NUMBER OF ITEMS SOLD = 1\n';
@@ -88,12 +90,12 @@ const saveWithTotal=async(page:any)=>{await page.evaluate(()=>{collectReceipt();
    await still(page,oy,`${box(oy)} [data-rl="new"]`,'Thêm món mới');
    const fam=await page.evaluate(()=>Object.entries((state as any).ingredientCatalog||{}).map(([id,x]:any)=>[id,x.name,x.unit]));assert.ok(fam.some((f:any)=>f[1]==='Lkk Oyster Sauce'&&f[2]==='cái'),'family ingredient named as on the receipt: '+JSON.stringify(fam));
    d=await draft(page);assert.ok(/^family-ing-/.test(d[oy].match));assert.match(await page.locator(box(oy)).innerText(),/Hoá đơn không in lượng/);
-   await page.locator(`#modal-root .receipt-line[data-index="${oy}"] .receipt-qty`).fill('1');await page.locator(`#modal-root .receipt-line[data-index="${oy}"] .receipt-unit`).selectOption('cái');
+   await page.locator(`#modal-root .receipt-line[data-index="${oy}"] .receipt-qty`).fill('1');await pickLineUnit(page,page.locator(`#modal-root .receipt-line[data-index="${oy}"]`),'cái');
    await page.locator(`${box(oy)} .rl-have`).waitFor();assert.match(await page.locator(`${box(oy)} .rl-have`).innerText(),/= 1 cái · app sẽ nhớ cho lần sau/);
    // the oil: confirm the suggestion, enter 1 chai, “1 chai ≈ 4 L”
    const oil=await lineOf(page,/CAN OIL/);await page.evaluate((k:number)=>document.querySelector(`#modal-root .receipt-line[data-index="${k}"]`)!.scrollIntoView({block:'center'}),oil);
    await still(page,oil,`${box(oil)} [data-rl="ok"]`,'Đúng, giữ gợi ý');
-   await page.locator(`#modal-root .receipt-line[data-index="${oil}"] .receipt-qty`).fill('1');await page.locator(`#modal-root .receipt-line[data-index="${oil}"] .receipt-unit`).selectOption('chai');
+   await page.locator(`#modal-root .receipt-line[data-index="${oil}"] .receipt-qty`).fill('1');await pickLineUnit(page,page.locator(`#modal-root .receipt-line[data-index="${oil}"]`),'chai');
    await page.locator(`${box(oil)} .rl-per-qty`).waitFor();await page.locator(`${box(oil)} .rl-per-unit`).selectOption('l');await page.locator(`${box(oil)} .rl-per-qty`).fill('4');
    assert.match(await page.locator(`${box(oil)} .rl-have`).innerText(),/= 4[.,]?0*\s?(l|lít|L|000 ml)/i);d=await draft(page);assert.equal(d[oil].per,4000,'1 chai ≈ 4 L = 4000 ml per chai');
    await shot(page,'mobile-375-amount-once-vi-light');

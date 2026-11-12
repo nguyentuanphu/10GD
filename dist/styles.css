@@ -2656,3 +2656,7 @@ html[data-theme="dark"] .field-error{color:#ff9a86}
 .shop-row .extra-delete .btn-art{width:26px;height:26px;margin:0}
 .shop-row .extra-stored{color:var(--green,#2f6b45)}
 #store-purchases-why{display:block;margin-top:4px}
+/* v1.7.19: “Đủ — đã mua … ở Đồ dùng khác” stays readable on a ticked (struck-through) row */
+.shop-row .extra-covers{display:inline-block;width:100%;text-decoration:none;color:var(--green,#2f6b45);font-weight:600}
+html[data-theme="dark"] .shop-row .extra-covers{color:#8fd6b0}
+.store-surplus{margin:6px 0 0}
