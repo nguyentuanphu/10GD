@@ -2626,6 +2626,18 @@ html[data-theme="dark"] .rl-reserved{color:#8fd6b0}
 @media (max-width:480px){.reconcile-choice{margin-left:0}}
 .reconcile-choice .rc-dest{flex:1 1 100%;font-weight:700;color:var(--green,#2f6b45);font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px))}
 html[data-theme="dark"] .reconcile-choice .rc-dest{color:#8fd6b0}
+.reconcile-choice .rc-useby{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;color:var(--muted)}
+.reconcile-choice .rc-useby[hidden]{display:none}
+.recipe-delete-row{margin-top:18px;padding-top:12px;border-top:1px solid var(--line,#e7e0d4);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.recipe-delete-row .btn{min-height:44px}
+.meal-save-lib{margin-top:8px}
+.reconcile-choice .rc-useby .rc-useby-input{min-height:44px;flex:1 1 160px;max-width:220px}
+.shop-seasoning ul{list-style:none;margin:8px 0 0;padding:0}
+.shop-seasoning li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding:8px 0;border-top:1px solid var(--line,#e7e0d4)}
+.shop-seasoning li:first-child{border-top:0}
+.seasoning-status{color:var(--muted)}
+.seasoning-status.out{color:var(--warn,#a4532b);font-weight:700}
+html[data-theme="dark"] .seasoning-status.out{color:#f0b48a}
 .reconcile-open .btn.small{min-height:44px;margin-top:6px;white-space:normal}
 /* v1.7.19 “Đồ trong tủ” sheet: every pantry lot is a full-width row that opens its edit form */
 .pantry-check-list{display:flex;flex-direction:column;gap:6px}.pantry-check-lot{width:100%;min-height:48px;text-align:left;background:transparent;border:1px solid var(--line);border-radius:12px;padding:8px 12px;color:inherit;display:flex;align-items:center;justify-content:space-between;gap:10px}.pantry-check-lot .item-label{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}.pantry-check-lot .hint{flex:none}.modal h3.section-mini{margin:14px 0 6px;font-size:max(calc(14px * var(--fs-mul,1)),var(--fs-floor,0px))}

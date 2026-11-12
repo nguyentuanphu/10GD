@@ -186,7 +186,7 @@ function validImport(s){if(!s||typeof s!=='object')return false;if(!validCatalog
 // still accept a state at seedVersion 7 (stateEdition is not above their APP_EDITION).
 const APP_EDITION=7,CATALOG_EDITION=7;
 function stateEdition(s){return Math.max(Number.isInteger(s?.appEdition)?s.appEdition:0,Number.isInteger(s?.seedVersion)?s.seedVersion:0)}
-function validCatalogMarkers(s){return (s.appEdition===undefined||Number.isInteger(s.appEdition)&&s.appEdition>=1&&s.appEdition<=1000)&&(s.deletedRecipeIds===undefined||Array.isArray(s.deletedRecipeIds)&&s.deletedRecipeIds.length<=5000&&s.deletedRecipeIds.every(id=>typeof id==='string'&&id.length>0&&id.length<=100))}
+function validCatalogMarkers(s){return (s.appEdition===undefined||Number.isInteger(s.appEdition)&&s.appEdition>=1&&s.appEdition<=1000)&&(s.deletedRecipeIds===undefined||Array.isArray(s.deletedRecipeIds)&&s.deletedRecipeIds.length<=5000&&s.deletedRecipeIds.every(id=>typeof id==='string'&&id.length>0&&id.length<=100))&&(s.hiddenRecipeIds===undefined||Array.isArray(s.hiddenRecipeIds)&&s.hiddenRecipeIds.length<=5000&&s.hiddenRecipeIds.every(id=>typeof id==='string'&&id.length>0&&id.length<=100))}
 // Built-in ingredient ids introduced by a newer edition are kept as-is (never dropped) and given a neutral placeholder
 // so this client can read the state until it reloads into the newer code. Names/prices are not invented.
 const FUTURE_INGREDIENT_ID=/^[a-z][a-zA-Z0-9]{1,40}$/;

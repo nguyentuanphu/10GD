@@ -122,6 +122,10 @@ function placeFor(s:any,id:string,rec:any){const lab=(rec.items||[]).filter((i:a
 // v1.7.19 (audit C8): weeks are stored under their Monday, while `start` is the family's menu-week start (any day). The undo
 // record keeps the stored key; records written before keep only `week` and are read through its Monday.
 function mondayKey(d:string){if(!DATE.test(d||''))return d;const x=new Date(d+'T12:00:00');x.setDate(x.getDate()-((x.getDay()+6)%7));return`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`}
+// v1.7.19 — owner decision, 12 Nov 2026 (pop-up): “Gợi ý hạn dùng, cho sửa”. A lot from a receipt gets the same suggested use-by as
+// every other way into the pantry (suggestUseBy, from the purchase date); the confirmation step shows it as an estimate and the
+// family can change or clear it (choices[id].useBy: a date, or '' for none).
+function receiptUseBy(id:string,place:string,rec:any,c:any){if(c&&typeof c.useBy==='string')return DATE.test(c.useBy)?c.useBy:'';return typeof suggestUseBy==='function'&&DATE.test(rec?.date||'')?suggestUseBy(id,place,rec.date):''}
 function apply(s:any,rec:any,week:any,start:string,end:string,ticked:any,choices:any={}){
  const p=plan(s,rec,week,start,end),now=new Date().toISOString(),scope=typeof purchaseScope==='function'?purchaseScope(start,end):start+'/'+end;
  const undo:any={at:now,week:start,weekKey:mondayKey(start),end,bought:{},boughtAt:{},pantryIds:[],choices:{}};if(!week.boughtAt)undo.newBoughtAt=true;if(!week.unitBought)undo.newUnitBought=true;const rows0=shopRows(s,week,start,end);
@@ -135,7 +139,7 @@ function apply(s:any,rec:any,week:any,start:string,end:string,ticked:any,choices
   if(r.status==='stored'){undo.linked??=[];for(const lid of r.lots||[]){const x=s.pantry.find((y:any)=>y.id===lid);if(x&&!x.receiptId){x.receiptId=rec.id;x.boughtOn=rec.date;if(typeof pantryTouch==='function')pantryTouch(x);undo.linked.push(lid)}}continue}
   if(r.extra>0){const c=choices?.[r.ingredient]||{mode:'pantry'};const mode=['pantry','meal','none'].includes(c.mode)?c.mode:'pantry';undo.choices[r.ingredient]=mode==='meal'&&c.meal?{mode,meal:{date:c.meal.date,type:c.meal.type}}:{mode};
    if(mode==='none')continue;
-   const place=placeFor(s,r.ingredient,rec),lot:any={id:typeof uid==='function'?uid():'lot-'+Math.random().toString(36).slice(2),ingredient:r.ingredient,qty:r.units?0:r.extra,place,expiry:''/* a receipt lot is not reviewed here, so no use-by is filled in (v1.7.18 rule, kept) */,boughtOn:rec.date,receiptId:rec.id};
+   const place=placeFor(s,r.ingredient,rec),lot:any={id:typeof uid==='function'?uid():'lot-'+Math.random().toString(36).slice(2),ingredient:r.ingredient,qty:r.units?0:r.extra,place,expiry:receiptUseBy(r.ingredient,place,rec,c),boughtOn:rec.date,receiptId:rec.id};
    if(r.units)lot.purchase={unit:r.units,amount:r.extra,basePerUnit:null,pricePerUnit:null,note:'Từ hoá đơn'};
    if(mode==='meal'&&c.meal&&DATE.test(c.meal.date)&&typeof c.meal.type==='string')lot.forMeal={date:c.meal.date,type:c.meal.type.slice(0,20)};
    if(typeof pantryTouch==='function')pantryTouch(lot);s.pantry.push(lot);undo.pantryIds.push(lot.id)}}
@@ -163,5 +167,5 @@ if(typeof stock==='function'&&typeof shopping==='function'){
   const held=(s.pantry||[]).filter((p:any)=>p.ingredient===id&&p.forMeal&&p.forMeal.date>reserveRange[1]&&(!p.expiry||p.expiry>=today)).reduce((n:number,p:any)=>n+(+p.qty||0),0);return Math.max(0,v-held)};
  const baseShopping=shopping;root.shopping=shopping=function(s:any,w:any,start:string,end:string){const prev=reserveRange;reserveRange=[start,end];try{return baseShopping(s,w,start,end)}finally{reserveRange=prev}};
 }
-root.ReceiptList={QTY_MAX,validQtyEntry,validQtyMemory,recallQty,rememberQty,baseQuantity,needsConversion,listFor,rankList,extraMatch,lineScore,mealsUsing,weekNeed,receiptLines,plan,apply,undo,validForMeal,norm};
+root.ReceiptList={placeFor,receiptUseBy,QTY_MAX,validQtyEntry,validQtyMemory,recallQty,rememberQty,baseQuantity,needsConversion,listFor,rankList,extraMatch,lineScore,mealsUsing,weekNeed,receiptLines,plan,apply,undo,validForMeal,norm};
 })(globalThis);

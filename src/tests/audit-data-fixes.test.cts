@@ -22,7 +22,7 @@ test('C21: measured units scale exactly, spoons go up to ¼, counted units are w
  ok(!wholeCountUnit('kg')&&!wholeCountUnit('l')&&!wholeCountUnit('lạng')&&!wholeCountUnit('g')&&!wholeCountUnit('muỗng canh'),'measured units are not whole-count');
  ok(wholeCountUnit('con')&&wholeCountUnit('quả')&&wholeCountUnit('bó')&&wholeCountUnit('túi')&&wholeCountUnit('cái'),'counted units are whole-count');
  const s=ga(fam()),w=ensureWeek(s,'2026-11-09'),m=w.days['2026-11-10'].dinner;m.recipes=[familyDish('mam',{'family-ing-mam':1},4)];m.servings=1.2;
- ok(mealIngredients(m,s)['family-ing-mam']===.5,'a spoon measure goes up to the next quarter: '+mealIngredients(m,s)['family-ing-mam']);ok(valid(s),'valid')})()`));
+ /* owner decision 12 Nov 2026 (pop-up): spoon and bowl amounts are notes, never bought or taken from the pantry */ok(!('family-ing-mam' in mealIngredients(m,s)),'a spoon measure is not an amount to buy: '+mealIngredients(m,s)['family-ing-mam']);ok(roundNeed(.3,'muỗng canh')===.5,'a spoon amount still shows to the next quarter where it is displayed');ok(valid(s),'valid')})()`));
 
 // ---------------------------------------------------------------- C1 / B3 / B4 / C7: one formula
 for(const pref of MATRIX)test(`C1: a counted ingredient in a recipe with a yield is whole on the list, when cooking and in the pantry (${JSON.stringify(pref)})`,()=>run(`(()=>{

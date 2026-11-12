@@ -231,10 +231,9 @@ function vrRenderReview(p){
  const use=document.getElementById('vr-use');if(use)use.hidden=false;
 }
 // Typed unit → the recipe form's unit (exact spelling first, so "can" (tin) is not "cân" (kg)).
-// v1.7.19 (audit B11): one rule for every way a recipe is entered. A unit the Viết món form stores as written (muỗng canh,
-// muỗng cà phê, chén, tép, củ…) is written into the form the same way, so a dictated “2 muỗng canh nước mắm” counts exactly like
+// v1.7.19 (audit B11): one rule for every way a recipe is entered. A unit the Viết món form counts as written (tép, củ, con…) is written into the form the same way, so a dictated “2 muỗng canh nước mắm” counts exactly like
 // the same line typed in Viết món; it is never converted to ml or g. Other spoken units stay as words (never guessed).
-const VR_COUNTED_AS_WRITTEN:string[]=typeof FAMILY_UNITS!=='undefined'?FAMILY_UNITS.filter((u:string)=>!['g','ml'].includes(u)):['quả','cái','bó','gói','miếng','tép','củ','nhánh','lát','khoanh','cây','nắm','con','đòn','muỗng canh','muỗng cà phê','chén','hộp','lon','chai','vỉ','khay','túi'];
+const VR_COUNTED_AS_WRITTEN:string[]=typeof FAMILY_UNITS!=='undefined'?FAMILY_UNITS.filter((u:string)=>!['g','ml','muỗng canh','muỗng cà phê','chén'].includes(u)):['quả','cái','bó','gói','miếng','tép','củ','nhánh','lát','khoanh','cây','nắm','con','đòn','hộp','lon','chai','vỉ','khay','túi'];
 function vrUnitInfo(u){const l=String(u||'').trim().toLowerCase();if(!l)return null;const e=VR_UNITS.find(e=>e[0]===l)||VR_UNITS.find(e=>(e[1]===l||e[2]===l)&&e[4]===1)||VR_UNITS.find(e=>VR.key(e[0])===VR.key(l));return e?{form:e[3]||(VR_COUNTED_AS_WRITTEN.includes(e[1])?e[1]:null),factor:e[4]}:null}
 function vrCollect(){const p=vrState.parsed||{raw:vrState.text};const ings=[...document.querySelectorAll('.vr-ing')].map(li=>{const name=li.querySelector('.vr-ing-name').value.trim(),q=li.querySelector('.vr-ing-qty').value.trim().replace(',','.'),unit=li.querySelector('.vr-ing-unit').value.trim();const qty=q===''||!Number.isFinite(+q)||+q<=0?null:+q;const u=vrUnitInfo(unit);return{name,qty,unit,formUnit:u?.form||null,factor:u?.factor||1,note:li.dataset.note||''}}).filter(i=>i.name);
  return{title:(document.getElementById('vr-title')?.value||'').trim(),servings:+document.getElementById('vr-servings')?.value||null,time:document.getElementById('vr-time')?.value===''?null:+document.getElementById('vr-time')?.value,ingredients:ings,steps:[...document.querySelectorAll('.vr-steps textarea')].map(t=>t.value.trim()).filter(Boolean),raw:p.raw||vrState.text}}

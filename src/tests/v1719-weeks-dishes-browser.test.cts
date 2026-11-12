@@ -98,10 +98,10 @@ const RUNS=[
    // ── A14 / B14: the typed dish sheet and cooking mode ─────────────────────────────────────────────────────────────────────────
    await E(`(()=>{const m=dayAt(state,sydneyDate()).dinner;showRecipe('typed-qa',m.recipes.find(r=>r.id==='typed-qa'),m)})()`);await page.locator('#modal-root .modal').waitFor();
    const tf=await E(`[...document.querySelectorAll('#modal-root .modal-footer [data-action]')].map(b=>b.dataset.action)`);
-   ok(!tf.includes('delete-recipe-dialog')&&!tf.includes('add-to-meal')&&!tf.includes('start-cooking'),`A14: no library-only or empty cooking button for a dish typed into a meal ${JSON.stringify(tf)}`);ok(tf.includes('meal-dish-to-library'),'A14: the dish can be saved and edited');
+   /* owner redesign, 12 Nov 2026: the same three buttons; from a meal: take off, edit, cook */ok(JSON.stringify(tf)===JSON.stringify(['dish-remove-meal','dish-edit','start-cooking']),`A14: every button works — take off this meal, edit, cook ${JSON.stringify(tf)}`);
    await noOverflow('A14 sheet');await shot('a14-typed-dish-sheet');
-   await page.locator('#modal-root [data-action="meal-dish-to-library"]').click();await page.locator('#family-recipe-form').waitFor();
-   ok(await E(`state.recipes.some(r=>r.id==='typed-qa'&&r.custom&&r.origin==='family')`),'A14: saved to the library with the same id (the meal keeps it)');ok(await E(`document.querySelector('#family-recipe-form').dataset.id==='typed-qa'`),'A14: the editor opens on it');await E('closeModal()');
+   await page.locator('#modal-root [data-action="dish-edit"]').click();await page.locator('#family-recipe-form').waitFor();
+   ok(await E(`document.querySelector('#family-recipe-form').dataset.mealOnly==='1'&&document.querySelector('#family-recipe-form [name="saveLib"]').checked===false`),'A14: the typed dish is edited in its meal; “Lưu vào kho món” is off');ok(!(await E(`state.recipes.some(r=>r.id==='typed-qa')`)),'A14: nothing saved to the library by opening it');await E('closeModal()');
    // B14: a library dish in a meal for many portions — cooking mode shows the same amounts as the dish sheet
    const lib=await E(`(()=>{const m=dayAt(state,sydneyDate()).dinner;m.servings=8;const r=m.recipes.find(x=>x.ingredients?.length&&x.steps?.length);save();return r.id})()`);
    await E(`(()=>{const m=dayAt(state,sydneyDate()).dinner;showRecipe('${lib}',m.recipes.find(r=>r.id==='${lib}'),m)})()`);await page.locator('#modal-root .modal').waitFor();
@@ -113,9 +113,9 @@ const RUNS=[
    ok(new RegExp('8').test(await E(`document.querySelector('#modal-root .cooking-ingredients h4').textContent`)),'B14: and the portions');await noOverflow('B14 cooking');await shot('b14-cooking-amounts');await E('cooking=null;closeModal()');
 
    // ── A21: “Thêm vào bữa ăn” — the meal the family came from; every meal; nothing assumed ───────────────────────────────────────
-   await E(`(()=>{const m=dayAt(state,sydneyDate()).breakfast;m.recipes=[clone(state.recipes.find(r=>r.id==='${lib}'))];showRecipe('${lib}',m.recipes[0],m)})()`);await page.locator('#modal-root [data-action="add-to-meal"]').click();await page.locator('#add-meal-type').waitFor();
+   await E(`(()=>{const r=state.recipes.find(r=>r.id==='${lib}');r.purposes=['breakfast'];save();showRecipe('${lib}')})()`);await page.locator('#modal-root [data-action="add-to-meal"]').click();await page.locator('#add-meal-type').waitFor();
    const a21=await E(`({v:document.querySelector('#add-meal-type').value,opts:[...document.querySelectorAll('#add-meal-type option')].map(o=>o.value).filter(Boolean)})`);
-   ok(a21.v==='breakfast',`A21: preselects the meal it came from (${a21.v})`);ok(['breakfast','snackAm','lunch','snack','dinner'].every(t=>a21.opts.includes(t)),`A21: every meal incl. the snacks ${JSON.stringify(a21.opts)}`);
+   ok(a21.v==='breakfast',`A21: preselects the dish's own meal (${a21.v})`);ok(['breakfast','snackAm','lunch','snack','dinner'].every(t=>a21.opts.includes(t)),`A21: every meal incl. the snacks ${JSON.stringify(a21.opts)}`);
    await page.selectOption('#add-meal-type','snackAm');await page.locator('#modal-root [data-action="submit-form"]').click();await page.waitForTimeout(150);
    ok(await E(`dayAt(state,sydneyDate()).snackAm.recipes.some(r=>r.id==='${lib}')`),'A21: added to the morning snack');
    await E(`(()=>{const r=state.recipes.find(x=>!x.purposes?.length&&x.ingredients?.length);showRecipe(r.id)})()`);await page.locator('#modal-root [data-action="add-to-meal"]').click();await page.locator('#add-meal-type').waitFor();
@@ -180,10 +180,42 @@ const RUNS=[
    await E(`(()=>{const f=document.querySelector('#family-recipe-form');f.category.value='main';f.protein.value='pork';f.yield.value='4'})()`);await page.locator('#modal-root [data-action="submit-form"]').click();await page.waitForTimeout(250);
    const saved=await E(`(()=>{const r=state.recipes.find(x=>x.name==='Thịt kho QA');return r&&{ings:r.ingredients.map(i=>[INGREDIENTS[i.id][0],i.qty,INGREDIENTS[i.id][1]]),source:r.source,cat:r.category}})()`);
    ok(saved&&saved.cat==='main'&&saved.source==='https://cook.example.com/r','B23: saved on Lưu, with its source');
-   ok(saved.ings.some((i:any[])=>i[0]==='fish sauce'&&i[1]===2&&i[2]==='muỗng canh'),'B11: the spoon line counts the same as one typed in Viết món '+JSON.stringify(saved.ings));
+   ok(!saved.ings.some((i:any[])=>/fish sauce/i.test(i[0])||i[2]==='muỗng canh'),'B11 / owner: the spoon line is a note, not an amount to buy '+JSON.stringify(saved.ings));
+   ok(await E(`state.recipes.find(x=>x.name==='Thịt kho QA').missingIngredients.includes('fish sauce 2 muỗng canh')`),'B11: kept in the recipe as written');
    // the same line dictated is written the same way
-   ok(await E(`(()=>{const u=vrUnitInfo('muỗng canh');return VoiceRecipe.formLine({name:'Nước mắm',qty:2,unit:'muỗng canh',formUnit:u.form,factor:u.factor})})()`)==='Nước mắm | 2 | muỗng canh','B11: dictation writes the same line as Viết món');
+   ok(await E(`(()=>{const u=vrUnitInfo('muỗng canh');const line=VoiceRecipe.formLine({name:'Nước mắm',qty:2,unit:'muỗng canh',formUnit:u.form,factor:u.factor});return line==='Nước mắm (2 muỗng canh)'&&spoonNote(line,state)?.id==='fishSauce'})()`),'B11 / owner: dictation keeps the spoon line as a note, linked to the pantry ingredient like Viết món');
 
+   // ── owner decision 12 Nov 2026: spoon and bowl amounts are notes, never bought; the pantry status is still shown ─────────────
+   await E(`(()=>{closeModal();familyRecipeEditor()})()`);await page.locator('#family-recipe-form').waitFor();await page.waitForTimeout(150);
+   await E(`(()=>{const f=document.querySelector('#family-recipe-form');f.name.value='Cá kho muỗng QA';f.category.value='main';f.protein.value='fish';f.yield.value='4';f.ingredients.value='Cá | 400 | g\\nNước mắm | 2 | muỗng canh\\nĐường 1 muỗng cà phê\\n2 tbsp soy sauce';if(f.dataset.rcForm&&typeof rcBuildRows==='function')rcBuildRows(f)})()`);
+   await page.locator('#modal-root [data-action="submit-form"]').click();await page.waitForTimeout(250);
+   const sp=await E(`(()=>{const r=state.recipes.find(x=>x.name==='Cá kho muỗng QA');return{ings:r.ingredients.map(i=>[INGREDIENTS[i.id][0],INGREDIENTS[i.id][1]]),notes:r.missingIngredients,id:r.id}})()`);
+   ok(sp.ings.length===1&&sp.notes.length===3,'owner: every spoon line, typed any way, is kept as a note '+JSON.stringify(sp));
+   await E(`(()=>{state.pantry=[];const m=dayAt(state,sydneyDate()).dinner;m.cooked=false;m.recipes=[clone(state.recipes.find(x=>x.id==='${sp.id}'))];
+    /* an older recipe saved before: a family ingredient counted in muỗng canh */state.ingredientCatalog=state.ingredientCatalog||{};state.ingredientCatalog['family-ing-qaspoon']={name:'Dầu hào',unit:'muỗng canh',group:'dry'};INGREDIENTS['family-ing-qaspoon']=['Dầu hào','muỗng canh','dry',0,'',null];m.recipes[0].ingredients.push({id:'family-ing-qaspoon',qty:1});save()})()`);
+   const rowsIds=await E(`(()=>{for(const d of Object.values(currentWeek().days))for(const t of MEAL_TYPES)if(d[t]&&!(d===dayAt(state,sydneyDate())&&t==='dinner'))d[t].recipes=[];state.familyBatches={};const w=currentWeek(),[a,b]=shopDates();return shopping(state,w,a,b).map(r=>r.id)})()`);ok(rowsIds.length===1,'only the fish is bought '+JSON.stringify(rowsIds));
+   ok(!rowsIds.some((id:string)=>['fishSauce','sugar','soy','family-ing-qaspoon'].includes(id)),'owner: no spoon amount on the shopping list '+JSON.stringify(rowsIds));
+   await go('shopping');const card=await E(`(()=>{const c=document.querySelector('#main .shop-seasoning');return c?[...c.querySelectorAll('li')].map(li=>li.textContent.replace(/\\s+/g,' ').trim()):null})()`);
+   ok(card&&card.length>=3,'owner: Đi chợ lists the spoon ingredients '+JSON.stringify(card));
+   ok(card.some((x:string)=>new RegExp(L('Nước mắm.*hết trong tủ · nhớ mua 1 \\S+','Fish sauce.*none in the pantry · remember to buy 1 \\S+')).test(x)),'owner: none in the pantry → buy one of the usual unit '+JSON.stringify(card));
+   await E(`document.querySelector('#main .shop-seasoning').scrollIntoView({block:'center'})`);await noOverflow('spoon card');await shot('owner-spoon-shopping');
+   await E(`(()=>{state.pantry=[{id:'fs',ingredient:'fishSauce',qty:500,place:'dry',expiry:''}];save();render()})()`);
+   ok(await E(`[...document.querySelectorAll('#main .shop-seasoning li')].some(li=>/${L('Nước mắm','Fish sauce')}/.test(li.textContent)&&/${L('còn trong tủ','in the pantry')}/.test(li.textContent)&&!/${L('hết','none')}/.test(li.textContent))`),'owner: in the pantry → says so');
+   await E(`(()=>{const m=dayAt(state,sydneyDate()).dinner;showRecipe(m.recipes[0].id,m.recipes[0],m)})()`);await page.locator('#modal-root .ing-note-line').first().waitFor();
+   const notes=await E(`[...document.querySelectorAll('#modal-root .ing-note-line')].map(li=>li.textContent.replace(/\\s+/g,' ').trim())`);
+   ok(notes.some((x:string)=>/Nước mắm 2 muỗng canh/.test(x)&&new RegExp(L('còn trong tủ','in the pantry')).test(x))&&notes.some((x:string)=>/Đường 1 muỗng cà phê/.test(x)&&new RegExp(L('hết trong tủ','none in the pantry')).test(x)),'owner: the dish sheet shows the pantry status of each spoon line '+JSON.stringify(notes));
+   await shot('owner-spoon-dish-sheet');await E(`(()=>{closeModal();delete INGREDIENTS['family-ing-qaspoon'];delete state.ingredientCatalog['family-ing-qaspoon'];dayAt(state,sydneyDate()).dinner.recipes=[];save()})()`);
+
+   // ── owner decision 12 Nov 2026: receipt lots get the suggested use-by, editable ───────────────────────────────────────────────
+   const rl=await E(`(()=>{const rec={date:sydneyDate()},pl=ReceiptList.placeFor(state,'egg',{items:[]});return{sug:ReceiptList.receiptUseBy('egg',pl,rec,null),own:ReceiptList.receiptUseBy('egg',pl,rec,{mode:'pantry',useBy:'2026-12-24'}),none:ReceiptList.receiptUseBy('egg',pl,rec,{mode:'pantry',useBy:''}),exp:suggestUseBy('egg',pl,sydneyDate())}})()`);
+   ok(rl.sug===rl.exp&&rl.sug!==''&&rl.own==='2026-12-24'&&rl.none==='','owner: suggested use-by for receipt lots; the family can change or clear it '+JSON.stringify(rl));
+
+   // ── week switches and the start-day choice store only Monday-keyed weeks (storage design; the window follows the family day) ─
+   for(const v of ['planner','expenses']){await go(v);for(const a of ['week-next','week-next','week-prev']){const b=page.locator(`#main [data-action="${a}"]`).first();if(await b.count()){await b.click();await page.waitForTimeout(80)}}
+    ok(await E(allMonday),`${v}: Tuần trước / Tuần sau write only Monday-keyed weeks`);ok(await E(`parseDate(weekStart).getDay()===weekStartDay(state)`),`${v}: the window still starts on the family day`)}
+   await go('planner');if(await page.locator('#week-start-day').count()){await page.selectOption('#week-start-day',String(start===6?0:6));await page.waitForTimeout(150);
+    ok(await E(allMonday),'changing “Tuần bắt đầu” writes only Monday-keyed weeks');ok(await E(`parseDate(weekStart).getDay()===${start===6?0:6}`),'the window moves to the new day');
+    await page.selectOption('#week-start-day',String(start));await page.waitForTimeout(150)}
    // ── round trip ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
    await E('closeModal()');ok(await E(allMonday),'only Monday-keyed weeks are stored');ok(await E('validImport(JSON.parse(JSON.stringify(state)))'),'validImport(state) after every change');
    ok(!errors.length,'no page errors: '+errors.join(' | '));

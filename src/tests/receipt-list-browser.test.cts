@@ -114,12 +114,14 @@ const saveWithTotal=async(page:any)=>{await page.evaluate(()=>{collectReceipt();
    const oilChoice='#modal-root .reconcile-choice[data-rlx="oil"]';await page.locator(`${oilChoice} input[value="none"]`).check();assert.match(await page.locator(`${oilChoice} .rc-dest`).innerText(),/không theo dõi/);
    await shot(page,'mobile-375-reconcile-choices-vi-light');
    const before=await page.evaluate(()=>JSON.stringify({w:currentWeek(),p:(state as any).pantry}));
+   await page.evaluate(()=>{const m:any={};for(const g of document.querySelectorAll('#modal-root .reconcile-choice[data-rlx]') as any){const i=g.querySelector('.rc-useby-input');m[g.dataset.rlx]=i?i.value:null}(window as any).__qaUseBy=m});
+   assert.ok(await page.evaluate(()=>[...document.querySelectorAll('#modal-root .reconcile-choice:not([hidden]) .rc-useby:not([hidden]) .rc-useby-input')].every((i:any)=>i.getBoundingClientRect().height>=44)),'the use-by boxes are ≥ 44 px');
    await page.locator('#modal-root [data-rui="apply"]').click();await page.locator('.receipt-undo').waitFor();
    const after=await page.evaluate(()=>{const s:any=state,w=currentWeek(),r=s.receipts[0],lots=s.pantry.filter((p:any)=>p.receiptId===r.id);const[a,b]=shopDates();const rows=shopping(s,w,a,b);const row=(id:string)=>rows.find((x:any)=>x.id===id);
-    return{egg:[w.bought.egg,row('egg').qty,row('egg').bought],lots:lots.map((p:any)=>[p.ingredient,p.qty,p.forMeal?.type||null,p.expiry]),oilLot:lots.some((p:any)=>p.ingredient==='oil'),kimchi:w.extras[0].done,corn:row('corn').bought,eggHave:row('egg').have}});
+    return{egg:[w.bought.egg,row('egg').qty,row('egg').bought],lots:lots.map((p:any)=>[p.ingredient,p.qty,p.forMeal?.type||null,p.expiry]),oilLot:lots.some((p:any)=>p.ingredient==='oil'),kimchi:w.extras[0].done,corn:row('corn').bought,eggHave:row('egg').have,sug:(window as any).__qaUseBy}});
    assert.equal(after.egg[0],after.egg[1],'eggs: the list amount ticked bought');assert.equal(after.egg[2],true);assert.equal(after.eggHave,0,'the kept eggs are not counted against this week');
    assert.ok(after.lots.some((l:any)=>l[0]==='egg'&&l[2]==='dinner'&&l[1]===30-after.egg[0]),'extra eggs kept for next week’s dinner: '+JSON.stringify(after.lots));
-   assert.equal(after.oilLot,false,'oil: not tracked');assert.equal(after.kimchi,true,'Kimchi ticked on the list');assert.ok(after.lots.every((l:any)=>l[3]===''),'no invented expiry');
+   assert.equal(after.oilLot,false,'oil: not tracked');assert.equal(after.kimchi,true,'Kimchi ticked on the list');/* v1.7.19 owner decision (12 Nov 2026): the suggested use-by, shown and editable in the confirmation step */assert.ok(after.lots.every((l:any)=>l[3]===after.sug[l[0]]),'each lot has the suggested use-by shown in the sheet '+JSON.stringify(after));
    // shopping list and pantry afterwards
    await page.evaluate(()=>{closeModal();view='pantry';location.hash='pantry';render()});await page.locator('#main .rl-reserved').first().waitFor();assert.match(await page.locator('#main .rl-reserved').first().innerText(),/Dành cho bữa tối/);
    await page.locator('#main .rl-reserved').first().scrollIntoViewIfNeeded();await shot(page,'mobile-375-pantry-kept-for-meal-vi-light');await noOverflow(page,'pantry');
