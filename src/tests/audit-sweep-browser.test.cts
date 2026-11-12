@@ -141,7 +141,9 @@ function qaLib(){
   const strip=(t:string)=>names.length?t.replace(W.__qaStrip,' '):t;
   // the voice hint's example sentence deliberately mixes Vietnamese and English (same exception as test:language:browser)
   // and the receipt box's placeholder shows what an Australian supermarket receipt looks like (receipts are printed in English)
-  const MIXED_EXAMPLE=/2 kg pork belly với một bó rau muống|^Chicken breast 500g 8\.50/;
+  // and the CSV import box shows the exact column names the file must use (a file format, not wording to translate; the sheet
+  // explains them in the family's language above the box)
+  const MIXED_EXAMPLE=/2 kg pork belly với một bó rau muống|^Chicken breast 500g 8\.50|^retailer,name,price,size,checkedAt,branch/;
   let allowed:any=null;try{allowed=G('typeof enAllowedViWords==="function"?enAllowedViWords():null')}catch{}
   const viLeft=(t:string)=>t.split(/[^\p{L}]+/u).filter(w=>w&&VI.test(w)&&!(allowed&&allowed.has(w.toLowerCase())));
   const wrong=(t0:string)=>{if(MIXED_EXAMPLE.test(t0))return null;const t=clean(strip(t0));if(t.length<2||!/[a-zA-Zà-ỹ]/.test(t))return null;if(lang==='en'){const l=viLeft(t);return l.length?clean(t0).slice(0,120):null}const m=t.replace(LOAN,' ').match(EN);return m?clean(t0).slice(0,120):null};

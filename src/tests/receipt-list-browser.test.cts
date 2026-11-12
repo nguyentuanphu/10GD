@@ -142,6 +142,20 @@ const saveWithTotal=async(page:any)=>{await page.evaluate(()=>{collectReceipt();
    await shot(page,'mobile-375-second-receipt-remembered-vi-light');
    assert.deepEqual(errors,[],'no page errors (flow)');await context.close()}
 
+  // ---------- 1b. v1.7.19 audit sweep: “Đọc các dòng hóa đơn” never wipes confirmed lines (saved receipt with no text, text that
+  // reads nothing); text that reads lines still replaces them. Failed before the fix: the two lines were lost.
+  {const{context,page,errors}=await open({size:'mobile'});
+   await page.evaluate(()=>{newReceipt();const d:any=receiptDraft;d.raw='';d.items=[{id:'k1',label:'Keep me one',total:7.5,match:'',qty:null,unit:'',confidence:'unknown'},{id:'k2',label:'Keep me two',total:4.8,match:'',qty:null,unit:'',confidence:'unknown'}];receiptEditor()});
+   const labels=()=>page.evaluate(()=>(receiptDraft as any).items.map((i:any)=>i.label));
+   await page.evaluate(()=>{(document.querySelector('#receipt-raw') as any).value=''});await page.locator('#modal-root [data-feature="receipt-parse"]').click();await page.waitForTimeout(200);
+   assert.deepEqual(await labels(),['Keep me one','Keep me two'],'empty receipt text keeps the confirmed lines');
+   assert.match(await page.locator('#toast, .toast').first().innerText(),/Chưa có chữ hóa đơn để đọc/,'empty text says what to do');
+   await page.evaluate(()=>{(document.querySelector('#receipt-raw') as any).value='xin chao'});await page.locator('#modal-root [data-feature="receipt-parse"]').click();await page.waitForTimeout(200);
+   assert.deepEqual(await labels(),['Keep me one','Keep me two'],'text that reads no lines keeps the confirmed lines');
+   await page.evaluate((t:string)=>{(document.querySelector('#receipt-raw') as any).value=t},COSTCO);await page.locator('#modal-root [data-feature="receipt-parse"]').click();await page.locator('#modal-root .receipt-line').first().waitFor();
+   assert.ok(!(await labels()).includes('Keep me one'),'text that reads lines replaces them');
+   assert.ok(await page.evaluate(()=>validImport(clone(state))),'state still loads');
+   assert.deepEqual(errors,[],'no page errors (1b)');console.log('PASS 1b receipt re-read keeps confirmed lines');await context.close()}
   // ---------- 2. sizes, languages and themes: form + reconciliation
   for(const[size,lang,theme]of[['narrow','vi','light'],['mobile','en','dark'],['tablet','vi','light'],['tablet','en','dark'],['desktop','vi','dark'],['desktop','en','light']] as any){
    const{context,page,errors}=await open({size,lang,theme});const tag=`${size}-${SIZES[size].width}-${lang}-${theme}`;
