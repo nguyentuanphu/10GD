@@ -45,3 +45,51 @@ Henry asked on 12 Nov 2026 why he could not see the new unit sheet. These screen
 - `4-them-don-vi-rieng.png`: “Tự thêm đơn vị”, with the optional conversion.
 
 These are not screenshots from a physical phone.
+
+## 4. Unit choice in Viết món and related places (rule 29)
+**Owner decision** (Henry, 12 Nov 2026, Sydney time, pop-up): “Làm, gộp vào v1.7.19”. Rule 29: every place that does the same job changes in the same release. Henry also reported (12 Nov 2026, 16:19 Sydney time, phone screenshot) that the extra item “Gà trống” on Đi chợ › “Đồ dùng khác” showed “1 g” and that tapping it did nothing.
+
+### Inventory: every place where a unit is picked or typed
+| Place (code) | Same job as the buying-unit sheet? | This release |
+|---|---|---|
+| Đi chợ buying-unit sheet (`unit-picker.ts`, `openPurchasePicker`) | Source of the picker | Unchanged for the family. Its markup, search, keyboard and “keep the tapped control still” code is now shared; `test:unit-picker:browser` and `test:units:browser` pass unchanged. |
+| Viết món ingredient rows (`recipe-community.ts`, `rcRowMarkup`) | Yes: unit of a recipe ingredient | **Changed.** The plain list is replaced by a unit button that opens the shared picker. |
+| Family recipe editor (`family-menu-ui.ts`, `familyRecipeEditor`) | Yes, same form | **Changed** through the Viết món rows, which write its ingredient box. No other unit control in that editor. |
+| Đi chợ “+ Mua thêm” extra item (`app.ts`, `add-extra`) | Yes: unit of an item to buy | **Changed.** Shared picker; no unit until one is picked (it silently saved “g” before). |
+| Đi chợ extra item edit (`app.ts`, new `edit-extra`) | Yes | **New** (Henry, 12 Nov). Tap the name or the amount to open an edit sheet with the same fields. |
+| “Chọn nhanh” in the add form (`shopping-planning.ts`, `extra-catalog-ing`) | Fills the same unit | **Changed** to fill the picker's field. |
+| Ladybug self-test “Giấy bếp (thử)” (`ladybug-workflows.ts`) | Uses the add form | **Changed** to set the new field (cuộn). |
+| Pantry add / edit (`app.ts`, `stockForm`; `unit-picker.ts`, `unit-stock-form`) | No unit is picked | **Not changed.** The amount is typed in the ingredient's own unit, shown as text. A lot bought in a buying unit keeps that unit from the purchase. Adding a unit choice would change how pantry amounts are stored, which is a data change for Henry to decide. |
+| Receipt line unit (`family-features.ts`, `receiptLineRows` `.receipt-unit`; read by `receipt-list-ui.ts`, `receipt-match-ui.ts`, `receipt-match-picker.ts`) | Close (unit of a bought line) | **Not changed — question for Henry.** The value goes into pantry amounts and price maths, which only understand g, kg, ml, l, quả and the buying units. A family unit has no path there, so converting it changes what a receipt puts into the pantry. |
+| Notes import (“Nhập danh sách ghi chú”, `family-features.ts` `.note-unit` → `shopping-planning.ts`) | Close (writes buying-unit records) | **Not changed — question for Henry.** Same reason as receipts: it writes buying-unit records and pantry amounts without the conversion step the Đi chợ sheet asks for. |
+| Receipt list “1 X = ? …” question (`receipt-list-ui.ts`, `.rl-per-unit`) | No | Not changed: it asks what one pack weighs in g / ml / quả (a conversion), not the item's unit. |
+| Price Scout pack unit and basis (`price-scout-ui.ts`, `scout-pack-unit`, `scout-basis`) | No | Not changed: pack size of a store product (g, kg, mL, L, each, wash, roll, sheet) and the “per kg / per 100 g” price basis used to compare prices. A family unit has no pack size. |
+| Voice recipe preview (`voice-recipe.ts`, `.vr-ing-unit`) | Close | **Not changed — question for Henry.** It is the check of what was heard (typed text with suggestions, read back by the dictation parser). The rows then open in Viết món, where the shared picker is used. |
+| New ingredient from a receipt (`receipt-match-picker.ts`, `FAMILY_UNITS`) | No | Not changed: it sets the counting unit of a new family ingredient, limited to the units the recipe maths can count. |
+| Voice “add to list”, products “add to list”, scan amount (`personal-core.ts`, `products-ui.ts`, `kitchen-extras.ts`) | No control | Not changed: the unit comes from speech, the product's pack size or the ingredient; nothing is picked. |
+
+### What changed
+- **One picker** (`unit-picker.ts`): `openUnitSheet` opens the v1.7.18 picker as a second sheet on top of the form that asked for it. The form, its scroll position and the focused field stay. It has:
+  - suggestions for the matched ingredient (catalogue or family ingredient), with its own unit first (a rooster counted in con suggests con first), or sensible defaults when the name matches nothing;
+  - “Xem tất cả đơn vị (N)” with groups and search;
+  - “Tự thêm đơn vị”, saved in `state.customUnits` exactly as on Đi chợ (optional conversion);
+  - the family's units, with “Ẩn khỏi gợi ý”;
+  - X, Đóng and Lưu pills with their drawings (rule 25). Escape and X close only the picker.
+- **Viết món:** each row's unit is a button that opens the picker. The recipe units (tép, củ, nhánh, lát, khoanh, cây, nắm, con, đòn, muỗng canh, muỗng cà phê, chén, hộp, lon, chai, vỉ, khay, túi) are their own group, “Đơn vị hay ghi trong công thức”. The amount stays a typed field; “Cộng vào đi chợ” and every other row behaviour are unchanged. The row keeps the exact text chosen; a unit no list knows (“muỗng súp”) shows and saves as written. Closing the picker returns focus to the row's unit, and the editor does not move (rule 24).
+- **Extra items:** the add form has no unit until one is picked. A name that matches an ingredient fills in that ingredient's unit; otherwise “Thêm” shows “Chọn đơn vị trước khi lưu” beside the field and adds nothing. Tapping an item's name or amount opens “Sửa đồ cần mua” with name, amount + unit (shared picker), expected cost and store. “Lưu” saves in place, keeping the id, the bought tick and the store memory. The × delete is unchanged.
+
+### Data implications
+- **No new data and no privacy change.** No new field is stored or sent.
+- `state.customUnits` (already family-wide since v1.7.18) can now also get a unit made from Viết món or an extra item. The record is the same. `ingredient` is set only when the name matched one.
+- Recipes: the saved line is built exactly as before from the row's text. Units outside the counted list stay “kept as written, not added to shopping”, as with units typed before. Nothing is converted or rewritten.
+- Extra items: editing changes only stored fields — name, amount text, cost, currency and store. Saving without changing the amount or unit keeps the stored text exactly (“1 g” stays “1 g” until the family changes it). When the name is changed, an older English copy of the name (`nameEn`, from voice) is dropped so it cannot show the old name. A store that has since been removed stays on the item.
+- Existing extras and recipes are not changed by this release until the family edits them.
+
+### Tests and screenshots
+- New `test:recipe-units:browser` (added to `test:all`), at 320×740, 375×812, 820×1100 and 1280×800 in VI light and EN dark:
+  - **Viết món:** opening from a row; con first; “Xem tất cả” with the recipe units group and search; choosing muỗng canh; an old unknown unit kept; Escape / X change nothing; “Tự thêm đơn vị” saved in `customUnits`; the recipe saved and reopened with the units as written.
+  - **Extras:** no unit until picked, with the inline message; a matched name gets con; picking cuộn; editing from the name and from the amount; “Lưu” without changes keeps “1 g”; changing to con keeps id, tick and store; × still there.
+  - **Every check:** tapped controls and the page stay still (rule 24); pills with drawings side by side (rule 25); chips and secondary buttons words only (rule 27); no emoji; ≥ 44 px targets; no sideways overflow.
+- Updated to use the picker instead of the old list: `recipe-ingredients`, `recipe-community`, `v175-feedback` and `journey` (Viết món rows); `v176-fixes` (extra item unit). Each test still checks the same outcome.
+- Screenshots: `recipe-units/` — `recipe-suggest-*`, `recipe-all-units-*`, `recipe-custom-unit-*`, `recipe-row-chosen-*`, `extra-edit-*`, `extra-edit-con-*`, `extra-needs-unit-*`, at the sizes above.
+- **Limits:** Chromium viewport simulation with QA data in device-only mode. These are not physical phones, tablets or iOS Safari.
