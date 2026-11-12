@@ -162,3 +162,80 @@ Audit of 12 Nov 2026 (`docs/reviews/audit-20261112/`), findings about extra item
 - Chromium viewport simulation, not physical devices.
 - A bought extra is not merged into a matching planned ingredient row on the list. It goes into the pantry as its own lot, and the pantry adds lots together. Merging the two rows on the list would change how the list is worked out, so it is left for Henry to decide.
 - Recipes with a yield and guests are not part of these flows (extras and units), so they were not varied here.
+
+## Meal times and cooking reminders
+
+Owner decision, 12 Nov 2026 (Sydney time), pop-up “Làm đủ 4 ý, gộp v1.7.19”. Henry: “Trong bếp nhà mình nên có option chọn giờ ăn để dựa vào đó còn gửi noti báo nấu ăn etc”.
+
+**What changed**
+- **Bếp của nhà mình → Thực đơn → Giờ ăn** (`src/frontend/meal-times.ts`): one time per meal the family uses. It sits inside the Thực đơn card because My kitchen keeps exactly four cards (owner decision, 1 Nov 2026); “Đổi giờ ăn” and `kitchenModal('mealtimes')` scroll straight to it.
+  - Meals shown: the meals chosen in the guided setup (`enabledMeals`); lunch and dinner for the older two-meal menu (`familyPlanner === false`); breakfast, lunch and dinner when nothing was chosen. A meal that already has a time is always shown.
+  - A meal without a time says “Chưa đặt — không nhắc nấu” and gets no cooking reminder (rule 32). “Bỏ giờ” clears a time. “Lưu giờ ăn” saves.
+  - View-only members see the times but cannot change them.
+  - The old “Giờ ăn tối” field in Thực đơn is removed; meal times are edited in this one place (rule 29).
+- **Cooking reminder for every planned meal with a time** (`src/netlify/lib/push.mts`).
+  - Wording: VI “Đến giờ nấu bữa trưa T2 9/11 — bắt đầu lúc 10:15”, body “Ăn lúc 12:30 · 1 món · lâu nhất … · tổng … phút”. EN “Time to cook lunch Mon 9/11 — start at 10:15”.
+  - Start = meal time − the longest dish (preparation + cooking) − 15 min, rounded down to the quarter hour, never before 08:00. Same `cookTiming` in the app and on the server; a unit test checks that both give the same answers.
+  - When the 08:00 bound would put the start at or after the meal (an early breakfast), no reminder is sent; the app says “bữa này sớm hơn giờ app bắt đầu nhắc (08:00), nên chuẩn bị từ hôm trước”.
+  - Dinner with no cooking time on any dish keeps the 17:00 “chuẩn bị nấu” reminder (`prepReminderTime`), now labelled “Bữa tối chưa ghi thời gian nấu”.
+  - Dedupe: one key per meal and day (`prep/<date>/<meal>`; dinner keeps `prep/<date>` so a reminder already sent on the day of the update is not sent again).
+- **Thaw reminder the evening before** (`thaw` type).
+  - At 20:00 in the family's time zone (default; the family can change it in Nhắc nhở → Giờ nhắc chung, `thawReminderTime`), once for tomorrow's planned meals that need an ingredient kept in the freezer (a pantry lot in Ngăn đông with an amount, not expired before that day).
+  - Dishes cooked ahead, served from leftovers or part of a weekend batch are left out, as on the shopping list. Cooked meals are left out.
+  - VI “Rã đông tối nay cho ngày mai T3 10/11” / “Chuyển đồ ngăn đông xuống ngăn mát cho bữa tối 18:30: Gà kho gừng.”; EN “Thaw tonight for tomorrow Tue 10/11” / “Move freezer food to the fridge for dinner 18:30: Gà kho gừng.” No emoji. Dish names are used because the server has no ingredient names (nothing new is sent to it).
+  - It is sent for planned meals with or without a meal time, because the trigger is the freezer item.
+- **Each device still chooses.** Per-device types: “Nhắc giờ nấu” (`prep`, relabelled) and the new “Nhắc rã đông” (`thaw`). Both are on by default for a device that has not saved its choices; a device registered before this release gets thaw reminders until it turns them off (server rule for unknown types). Shopper devices get neither.
+- **Daily cap.** The cooking and thaw reminders do not use up the 2 automatic reminders a device gets per day (otherwise breakfast, lunch and dinner reminders would silently drop). Wording in Nhắc nhở updated. *To confirm with Henry.*
+- **Nhắc nhở & thông báo** (`push-settings-ui.ts`, and the older `push-ui.ts` / `app.ts` sheets it replaces at start-up): a read-only “Giờ ăn” list (“Chưa đặt” for a meal without a time) and “Đổi giờ ăn”, which opens Bếp của nhà mình at Giờ ăn. No meal-time field there.
+- **Meal cards** show the family's time next to the meal name (“Bữa tối · 18:30”); no time when not set. The older two-meal card no longer says “Bữa trưa · 12:00”; its “Dọn cơm” task uses the meal time or “Lúc ăn”.
+- **Today's start-cooking line** goes on the next meal today that has a time and is still to cook (the first not yet eaten, else the last one).
+
+**Related places (rule 29)**
+
+| Place | Uses a meal time? | Change |
+|---|---|---|
+| `personal-ui.ts` kitchen hub, `kitchenMenuBody` | dinner field | Field removed; Giờ ăn added inside the Thực đơn card |
+| `app.ts` settings-form submit | wrote `dinnerTime` | No longer writes it (meal-times form does) |
+| `app.ts` `mealCard` (two-meal Today) | “12:00”, `dinnerTime` | Reads `mealTimeOf` |
+| `app.ts` `prepTasks` | `dinnerTime` / “12:00” | Reads `mealTimeOf`; “Lúc ăn” when not set |
+| `app.ts` `remindersModal` (replaced at start-up) | dinner field | Read-only summary |
+| `family-menu-ui.ts` `familyMealMarkup` | none | Shows the meal time |
+| `cook-timing.ts` | `dinnerTime` | Next timed meal; no 18:30 default |
+| `push.mts` scheduled reminders | `dinnerTime` | Every meal; thaw; cap; types |
+| `push-settings-ui.ts`, `push-ui.ts` | none (reminder times only) | Summary + link; thaw time; labels |
+| `personal-core.ts` `validPersonalState` | — | Validates `mealTimes`, `thawReminderTime` |
+| `sync-merge-core.ts` | — | No change: preferences merge field by field (tested) |
+| `family.mts` `validState`, push-subscribe | — | No change; `pushTypes` now has `thaw` |
+| `studio.mts` / `studio.ts` family reminder line | `prepReminderTime` only | **Not changed**: showing meal times to the operator console would be new family data there (rule 28). Question for Henry |
+| `rsvp-page.ts` guest calendar times (08:00 / 12:00 / 18:30) | fixed times | **Not changed**: using the family's times would send them to guests (new data flow). Question for Henry |
+| `family-flow.ts` `flowNextMealType` | hour cut-offs, not meal times | Not changed |
+| `household-ui.ts` calendar 19:00, `availability-*` from/to | not meal times | Not changed |
+| `voice-commands.ts`, `ladybug-autoplay.ts`, `ladybug-workflows.ts` | none found | Nothing to change |
+
+**Data shape (internal; no privacy change)**
+- `state.preferences.mealTimes = {breakfast?, snackAm?, lunch?, snack?, dinner?}`, each `'HH:MM'` or `''` (the family cleared it). A missing key means not set, except dinner.
+- Dinner: `preferences.dinnerTime` stays (older devices read and validate it as HH:MM). Saving a dinner time writes both. Clearing dinner writes `mealTimes.dinner = ''` and keeps `dinnerTime`. Any other dinner value is read from `dinnerTime`, so a change made on an older device still counts.
+- Older states (only `dinnerTime`) need no migration: dinner reads from `dinnerTime`, other meals are “Chưa đặt”.
+- `preferences.thawReminderTime` (optional `'HH:MM'`).
+- Stored in the family state like `dinnerTime` today. Nothing new is sent anywhere else; privacy pages unchanged.
+
+**Tests**
+- New `tests/meal-times.test.mjs` (in `npm test`): data shape and the older `dinnerTime`; app and server read the same; `setMealTimes` and the validator; start per meal; early breakfast; a day swept every 15 minutes (lunch 10:15 and dinner 17:30, no breakfast or untimed snack, no duplicates on a second pass); no time → nothing; daylight-saving days (4 Oct 2026, 4 Apr 2027) and the day before; a Việt Nam family time zone; a week stored from Saturday; thaw only for freezer items (not fridge, expired, used up, cooked, batch), at 20:00 and at a chosen time, VI/EN, once; per-device off; older device gets thaw; shopper gets neither; cap not used up.
+- Changed: `cook-timing.test` (new dinner title, explained); `alerts-online.test` state gets a `dinnerTime` like every saved state (without one there is now no reminder, as rule 32 asks).
+- New `test:meal-times:browser` (in `test:all`): 320×740 VI light, 375×812 VI dark, 375×812 EN light (phone in Los Angeles), 820×1100 EN dark, 1280×800 VI light (phone in Ho Chi Minh City), 1280×800 EN dark; weeks starting Monday and Saturday. It opens Giờ ăn, checks the meals listed, “Chưa đặt”, 44 px targets, drawing only on Lưu, no emoji, no sideways scroll; fills, clears (tapped control stays), saves; `validImport`; two sync merges; meal cards; Today's start line; Nhắc nhở summary, no meal-time field there, the link opens Giờ ăn; view-only; Thực đơn save keeps the times.
+- Screenshots: `docs/reviews/v1.7.19/meal-times/`.
+
+**Local runs** (12 Nov 2026, Sydney time, on this branch before commit): `check` OK, `typecheck` OK, `npm test` OK (with `meal-times.test`, `cook-timing.test`, `push.test`, `notifications.test`, `alerts-online.test`), `test:meal-times:browser` OK, `test:browser` (kitchen hub) OK, `test:v1717:browser` OK, `test:emoji-art:browser` OK, `test:alerts-online:browser` OK, `test:urgent-reasons:browser` OK, `test:sync-merge:browser` OK, `test:text-size:browser` OK, `test:audit-data:browser` OK, `test:journey:browser` OK.
+- `test:language:browser` FAILS, on the base commit too (a27f771, checked in a clean copy): the English Viết món unit hint says “lạng” (`unit-picker.ts`, from the unit-picker work). Not caused by this change; not fixed here.
+
+**Limits**
+- Chromium viewport simulation, not physical phones. The time field looks like the browser's own (12-hour in this Chromium).
+- Push delivery is mocked in tests; no real phone received a reminder.
+- Not varied here: currency (no money in these screens), recipes with a yield and guests (the start time uses dish times, not portions).
+
+**Questions for Henry**
+1. Thaw reminder time: 20:00 the evening before by default (the family can change it in Nhắc nhở → Giờ nhắc chung). OK?
+2. Cooking and thaw reminders do not count towards the 2 automatic reminders per device per day. OK, or keep the cap?
+3. A meal before about 08:15 (breakfast) gets no cooking reminder, because reminders never start before 08:00; the app says to get ready the day before. Keep the 08:00 bound?
+4. Thaw reminders also come for planned meals without a time (the trigger is the freezer). OK?
+5. Studio's family reminder line and the guest invitation calendar times were not changed (both would show meal times to someone outside the family's own data). Change them?
