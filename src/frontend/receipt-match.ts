@@ -18,7 +18,8 @@
 const round=(n,d=2)=>{const f=10**d;return Math.round(n*f)/f};
 const fold=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D');
 const norm=s=>fold(s).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-const money=n=>'$'+Math.abs(+n||0).toFixed(2);
+// v1.7.19 (audit B13): So Giá and matching amounts are Australian store prices (AUD), written with the app's formatter
+const money=n=>typeof aud==='function'?aud(Math.abs(+n||0),'AUD'):'$'+Math.abs(+n||0).toFixed(2);
 const median=a=>{const v=a.filter(Number.isFinite).slice().sort((x,y)=>x-y);if(!v.length)return null;const m=v.length>>1;return v.length%2?v[m]:(v[m-1]+v[m])/2};
 const R=(code,vi,en)=>({code,vi,en});
 

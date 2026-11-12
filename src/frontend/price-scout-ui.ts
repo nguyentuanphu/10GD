@@ -60,7 +60,7 @@ function scoutFreshLabel(o){const f=PS.freshness(o);const cap=scoutCaptured(PS.c
  return{cls:f.status+(cap?.old?' scout-old':''),text:age+(cap?.old?' · '+scoutT('cũ','old'):'')}}
 function scoutStatusLine(){const parts=[];if(scoutData.state)parts.push('📍 '+esc(scoutData.postcode)+' · '+scoutData.state);
  parts.push(scoutOnline()?(scoutAccount()?'🟢 '+scoutT('Đồng bộ gia đình','Family sync'):'📱 '+scoutT('Chỉ trên thiết bị này','This device only')):'⚪ '+scoutT('Offline · dùng bản lưu trên máy','Offline · using the copy on this device'));
- if(scoutAccount()&&scoutData.pool?.at)parts.push(scoutT('Cập nhật ','Updated ')+new Date(scoutData.pool.at).toLocaleTimeString(appLanguage==='en'?'en-AU':'vi-VN',{hour:'2-digit',minute:'2-digit'}));
+ if(scoutAccount()&&scoutData.pool?.at)parts.push(scoutT('Cập nhật ','Updated ')+appTimeLabel(scoutData.pool.at,{date:false,zone:true}));
  if(scoutData.pending.length)parts.push('⏳ '+scoutData.pending.length+' '+scoutT('giá chờ đồng bộ','prices waiting to sync'));
  return parts.join(' · ')}
 function scoutCaptureButtons(){if(scoutViewer())return`<p class="hint">${scoutT('Tài khoản chỉ xem: bạn xem được giá của gia đình nhưng không thêm giá.','View-only account: you can see family prices but not add them.')}</p>`;

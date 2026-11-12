@@ -162,3 +162,44 @@ Audit of 12 Nov 2026 (`docs/reviews/audit-20261112/`), findings about extra item
 - Chromium viewport simulation, not physical devices.
 - A bought extra is not merged into a matching planned ingredient row on the list. It goes into the pantry as its own lot, and the pantry adds lots together. Merging the two rows on the list would change how the list is worked out, so it is left for Henry to decide.
 - Recipes with a yield and guests are not part of these flows (extras and units), so they were not varied here.
+
+## Audit fixes — language, Sydney time and money (W4)
+This section was merged with the release branch at a27f771 (YY's extras and unit-picker work, and W2's fixes). The literal scan and the EN sweep were re-run on the merged code.
+
+Audit of 12 Nov 2026 (Sydney time), findings D11–D21 and B13, B17, B19–B22. Branch `agent-w4/fixes`. **Privacy / data change: none.** What is sent off the device is unchanged. The errand push body is untouched; only the text the family shares or copies follows the app language. `dist/privacy.html`, `dist/feedback-privacy.html` and the ladybug filing are not touched.
+
+**Test:** `test:v1719-language:browser` (`src/tests/v1719-language-browser.test.cts`, added to `test:all`). It covers the following:
+- EN sweep of every screen and of every reachable sheet the audit named.
+- A check of every hard-coded sheet title, error, placeholder and accessible label in the code (115 literals).
+- Share text in EN and VI.
+- VI developer words.
+- Sydney time on `Asia/Ho_Chi_Minh` and `America/New_York` devices, with the clock fixed at 12:00 Sydney.
+- VND in global search.
+- Accent-insensitive search.
+- `validImport` round trip.
+
+Before the fixes, the first run of this suite listed more than 600 problems. It now passes. Screenshots are in `language-time-money/`: EN pantry edit, where to buy and stores, at 320×740, 375×812, 820×1100 and 1280×800, light and dark. This is Chromium viewport simulation, not physical phones.
+
+| Finding | What changed | Test |
+|---|---|---|
+| D12 (Henry) | Pantry edit sheet: "Edit pantry food", "Delete this batch"; the buying-unit lot sheet is translated too (`unit-picker.ts`) | EN sheet sweep |
+| D11, B22 | Stores, add/edit store, "Where to buy X?" for items and extras: every title, label, placeholder and button in English; dynamic titles use `uiText` with the English ingredient name | EN sheet sweep |
+| D13 | Shopping rows: "Used in N meals · Your amount · Less than the recipes need"; "Bought/Remove X" labels; the family's purchase note is marked as family content | EN screen sweep, with a custom amount seeded |
+| D14 (language part) | `textShopping` and the family week share are in the app's language (English day and dish names; family dishes and notes stay as written). The errand share and copy use `requestShareText`. The emoji lines keep their structure for W5. | EN/VI share check |
+| D15 | All 95 literals have English (dictionary block in `language.ts`, plus `uiText` where names are built in); the suite now scans every `modal(` title, `throw Error(` message, placeholder and aria-label in the code | literal check |
+| D16 | "Gợi ý thực đơn khác" replaces "/ Generate mới"; "hóa đơn" replaces "receipt"; the CSV sheet explains each column name in Vietnamese | VI sheet check |
+| D17 | Errand result sheets: "Đã lưu yêu cầu, nhưng chưa gửi được thông báo tới điện thoại người nhận" (+ EN) | literal check |
+| D18 | Studio → Góp ý says "kho lỗi của nhóm làm app" / "the app team's issue list" and "cài đặt máy chủ". Only the wording changed; nothing sent changes. | source check |
+| D16 (start-up page) | Decided by the lead on 12 Nov 2026. The start-up failure page uses the saved language. It shows “VI / EN” only when no language is saved yet, or only a guessed one. | `startup.test`: a new saved-language case for EN and VI; the existing “Thử lại / Retry” check for the no-language case still holds |
+| D19, D20, D21, B21 | One helper, `appTimeLabel` / `sydneyParts` / `sydneyHour` (`core.ts`), in the family's zone (Sydney by default, the same zone as `sydneyDate`). It is used by the sync-conflict sheet, So Giá "Updated", receipt tick/capture/created times, extension last seen, trusted-device expiry, ladybug times, the voice check, the greeting's default hour and the automatic dark theme. Studio sign-up labels, capture times and "Computed" are in Sydney time with "giờ Sydney". | TZ check + source scan for device-zone formatting |
+| B13 | Global search receipts, receipt matching and receipt quality use `aud(n, currency)`. VND shows "125.000 ₫". Receipt matching keeps a discount's minus sign. | VND check |
+| B17 | `searchHit` (same `normalizeText` as global search) for the meal picker, the recipe list and the weekend soup search | accent check |
+| B19 | The guest total no longer switches to a decimal comma; portions use one style | source check |
+| B20 | The dry place is "Pantry shelf" everywhere (dictionary and global search) | pantry places check |
+
+**Not fixed, and why**
+- **Legacy sheets that cannot be opened in family mode:** week advice, day suggestion, the weekend soup picker, the old meal editor and the old recipe form. Their titles, labels and messages are translated. Their long body text is not, because no screen opens them any more (checked in the browser: no control for them on any screen). The code is kept.
+- **Usage statistics' hour buckets (`usage-analytics.ts`):** these use the device hour. That is stored and sent data, so it is left alone under the no-data-change rule.
+- **So Giá / voice price amounts:** these stay in AUD on purpose, because they are Australian supermarket prices.
+- **Week-start uses near the greeting (`monday(date)`):** these belong to the week-start group (W2/W3).
+- **B19 amount precision:** the precision in `pantryBuyingDisplay` and the "suất" / "suất chuẩn" wording are left to the amounts and maths group.

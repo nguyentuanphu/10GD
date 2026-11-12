@@ -460,7 +460,7 @@ function voiceLocalCheckRows(r){const rows=[];const dev=r?.device||voiceLocalDev
  const wasm=r.mem?.wasmPeakMB||r.mem?.wasmMB||null;rows.push([vlT('Bộ nhớ cao nhất (mô hình)','Peak memory (model)'),typeof wasm==='number'?`${wasm.toLocaleString()} MB`:r.ok?vlT('Trình duyệt không cho đọc','Not exposed by this browser'):'—']);
  if(typeof r.pageMB==='number')rows.push([vlT('Bộ nhớ trang (JS)','Page memory (JS)'),`${r.pageMB.toLocaleString()} MB`]);
  if(typeof r.uaMB==='number')rows.push([vlT('Bộ nhớ trình duyệt đo được','Browser-measured memory'),`${r.uaMB.toLocaleString()} MB`]);
- if(r.at)rows.push([vlT('Lúc','When'),new Date(r.at).toLocaleString(typeof appLanguage!=='undefined'&&appLanguage==='en'?'en-AU':'vi-VN')]);
+ if(r.at)rows.push([vlT('Lúc','When'),typeof appTimeLabel==='function'?appTimeLabel(r.at,{year:true,zone:true}):new Date(r.at).toLocaleString('vi-VN',{timeZone:'Australia/Sydney'})]);
  return rows}
 function voiceLocalCheckText(r){return[vlT('Kiểm tra giọng chính xác','Accurate voice check')+' · '+VOICE_LOCAL_MEM_VERSION,...voiceLocalCheckRows(r).map(([k,v])=>k+': '+v),'UA: '+(typeof navigator!=='undefined'?String(navigator.userAgent).slice(0,200):'')].join('\n')}
 const voiceLocalCheckUi={running:false,phase:'',started:0,timer:0,last:null};
