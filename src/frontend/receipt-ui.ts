@@ -277,10 +277,14 @@ function mealLabel(m){let day=m.date;try{day=new Intl.DateTimeFormat(lang()==='e
 function destText(c){return!c||c.mode==='pantry'?T(' → cất kho',' → pantry'):c.mode==='none'?T(' → không theo dõi',' → not tracked'):T(' → dành cho ',' → kept for ')+(c.meal?(lang()==='en'?mealLabel(c.meal):mealLabel(c.meal).toLowerCase()):T('một bữa','a meal'))}
 function statusText(r,c=null,dest=true){const destText2=(c)=>dest?destText(c):'';if(r.noConv)return T('Chưa quy đổi được · giữ theo ','No conversion · kept as ')+amt(r,r.extra)+destText2(c);if(r.status==='stored')return T('Đã cất vào tủ lúc đi chợ · không cộng thêm','Already put away after shopping · not added again');return r.status==='short'?T('Còn thiếu ','Still short ')+amt(r,r.short):r.status==='enough'?T('Đủ','Enough'):r.status==='enough-extra'?T('Đủ · dư ','Enough · extra ')+amt(r,r.extra)+destText2(c):(r.onList?T('Dư ','Extra '):T('Ngoài danh sách · ','Not on the list · '))+amt(r,r.extra)+destText2(c)}
 function boughtText(r){return r.same?`${r.parts.length} × ${amt(r,r.parts[0])} = ${amt(r,r.bought)}`:r.parts.length>1?r.parts.map(p=>amt(r,p)).join(' + ')+' = '+amt(r,r.bought):amt(r,r.bought)}
-function weekRange(){return[weekStart,addDays(weekStart,6)]}
+/* v1.7.19 (Tự chạy thử, Rà soát 12/11; rule 34): a receipt is checked against the family's menu week that holds the receipt's own
+   date (the family's start day), not the week on screen */
+function receiptWeekStart(rec){const d=DAY.test(rec?.date||'')?rec.date:(typeof sydneyDate==='function'?sydneyDate():weekStart);return typeof planStartOf==='function'?planStartOf(state,d):weekStart}
+function weekRange(rec){const s=receiptWeekStart(rec);return[s,addDays(s,6)]}
+function receiptWeek(rec){const s=receiptWeekStart(rec);return typeof planWeek==='function'?planWeek(state,s):currentWeek()}
 function reconcileSheet(id){
  const rec=state.receipts.find(r=>r.id===id);if(!rec)return;
- const[start,end]=weekRange(),week=currentWeek(),plan=reconcilePlan(state,rec,week,start,end);
+ const[start,end]=weekRange(rec),week=receiptWeek(rec),plan=reconcilePlan(state,rec,week,start,end);
  // v1.7.18: what is on the list comes first (“Đủ”), then extras. The extra part goes to the pantry by default; per line it can be
  // kept for a later planned meal or not tracked (spending only). Undo covers every choice.
  const done=rec.reconciled?.choices||{},from=DAY.test(rec.date||'')&&rec.date>(typeof sydneyDate==='function'?sydneyDate():'')?rec.date:(typeof sydneyDate==='function'?sydneyDate():rec.date);
@@ -343,7 +347,7 @@ document.addEventListener('click',async event=>{
   else if(a==='dup-view'){receiptDraft=null;closeModal();await openReceipt(id)}
   else if(a==='reconcile'){collectReceipt();reconcileSheet(id)}
   else if(a==='open-lines'){closeModal();await openReceipt(id);const first=document.querySelector('#modal-root .rl-box .rl-options');first?.closest('.receipt-line')?.scrollIntoView({block:'start'})}
-  else if(a==='apply'){const rec=state.receipts.find(r=>r.id===id);if(!rec)return;const ticked=[...document.querySelectorAll('[data-rui-tick]')].filter(x=>(x as any).checked).map(x=>(x as any).dataset.ruiTick);const choices={};for(const g of document.querySelectorAll('#modal-root .reconcile-choice[data-rlx]') as any){const v=g.querySelector('input[type=radio]:checked')?.value||'pantry';const ms=g.querySelector('.rc-meal')?.value||'';const[date,type]=ms.split('|');choices[g.dataset.rlx]=v==='meal'&&date?{mode:'meal',meal:{date,type}}:{mode:v==='meal'?'pantry':v};const ub=g.querySelector('.rc-useby-input');if(ub)choices[g.dataset.rlx].useBy=ub.value||''}const[start,end]=weekRange();applyReconcile(state,rec,currentWeek(),start,end,ticked,choices);if(typeof log==='function')log(T('Cập nhật đi chợ & kho từ hoá đơn ','Shopping & pantry updated from receipt ')+rec.store);save();closeModal();render();undoBar(id)}
+  else if(a==='apply'){const rec=state.receipts.find(r=>r.id===id);if(!rec)return;const ticked=[...document.querySelectorAll('[data-rui-tick]')].filter(x=>(x as any).checked).map(x=>(x as any).dataset.ruiTick);const choices={};for(const g of document.querySelectorAll('#modal-root .reconcile-choice[data-rlx]') as any){const v=g.querySelector('input[type=radio]:checked')?.value||'pantry';const ms=g.querySelector('.rc-meal')?.value||'';const[date,type]=ms.split('|');choices[g.dataset.rlx]=v==='meal'&&date?{mode:'meal',meal:{date,type}}:{mode:v==='meal'?'pantry':v};const ub=g.querySelector('.rc-useby-input');if(ub)choices[g.dataset.rlx].useBy=ub.value||''}const[start,end]=weekRange(rec);applyReconcile(state,rec,receiptWeek(rec),start,end,ticked,choices);if(typeof log==='function')log(T('Cập nhật đi chợ & kho từ hoá đơn ','Shopping & pantry updated from receipt ')+rec.store);save();closeModal();render();undoBar(id)}
   else if(a==='undo'){const rec=state.receipts.find(r=>r.id===id);if(rec&&undoReconcile(state,rec)){save(T('Đã hoàn tác cập nhật đi chợ & kho.','Shopping & pantry update undone.'));document.querySelector('.receipt-undo')?.remove();if(document.querySelector('.reconcile-modal'))closeModal();render()}}
  }catch(e){toast(e.message||String(e),true)}
 });

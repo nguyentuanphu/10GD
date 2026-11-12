@@ -171,7 +171,7 @@ function tidy(line){
 // Last money amount at the end of the line (with an optional GST/marker flag after it).
 function priceOf(line,aldi){
  const s=String(line);let last=null;
- for(const m of s.matchAll(/(-)?\s?\$?\s?(\d{1,4})[.,](\d{2})(-)?(?![\d%])/g))last=m;
+ /* v1.7.19 (Tự chạy thử, Rà soát 12/11): đồng prices have 5–7 digits (“35000.00”); 4 digits cut the price and left a digit in the name */for(const m of s.matchAll(/(-)?\s?\$?\s?(\d{1,7})[.,](\d{2})(-)?(?![\d%])/g))last=m;
  let tail=last?s.slice(last.index+last[0].length):'';
  if(last&&/^\d/.test(s.slice(last.index+last[0].length)))last=null;
  if(aldi){const g=s.match(/(-)?(\d{1,4})[.,](\d{2})[8B]\s*\W{0,2}$/);if(g&&(!last||g.index>=last.index-1)){last=g;tail=' B'}
@@ -293,7 +293,7 @@ const JUNK_MULTI_RE=/^\W*\S{1,4}\s+(\d{1,2})\s*(?:[@©®§&]\s*\$?|\s[068Oo]\s+\
 // price OCR clipped (“10.4”) uses the unit price when the quantity is 1; nothing is guessed when neither reads.
 function costcoLines(lines){
  const letters=l=>(String(l).replace(/\b[1Il|i]?[xX×]\b/g,'').match(/[A-Za-z]/g)||[]).length;
- const money=/(\d{1,4})[.,](\d{2})(?!\d)/g;
+ const money=/(\d{1,7})[.,](\d{2})(?!\d)/g;
  const detail=l=>{const t=String(l);if(letters(t)>4)return null;const all=[...t.matchAll(money)];if(!all.length)return null;
   const last=all[all.length-1],after=t.slice(last.index+last[0].length);
   // the line price is the last amount when it reads cleanly at the end; otherwise (clipped “10.4”, junk) the unit price with qty 1
@@ -307,7 +307,7 @@ function costcoLines(lines){
   const cnt=t.match(/TOTAL\s+NUMBER\s+O\w*\s+\w*\s*\(?SOLD\s*=?\s*(\d{1,3})/i);if(cnt){out.push(cnt[1]+' items');continue}
   if(/^\W*REDEEM\s+REWARDS?\b/i.test(t)){const d=lines[i+1]&&detail(lines[i+1]);const v=d?d.v:amountIn(t);if(v!=null){out.push('COSTCOREWARD '+Math.abs(v).toFixed(2));if(d)i++}continue}
   const isName=letters(t)>=3&&!detail(t);
-  if(isName){/* a lone digit far to the right is the price column's clipped edge (“E/C APPLE JUICE 4L      9”), not part of the name */const name=t.replace(/(\d{1,4}[.,]\d{2})\s*-?\s*&?\W*$/,'').replace(/\s{3,}\d{1,2}\W*$/,'').replace(/^\W+/,'').trim(),own=t.match(/(\d{1,4})[.,](\d{2})\s*(-)?\s*&?\W*$/);
+  if(isName){/* a lone digit far to the right is the price column's clipped edge (“E/C APPLE JUICE 4L      9”), not part of the name */const name=t.replace(/(\d{1,7}[.,]\d{2})\s*-?\s*&?\W*$/,'').replace(/\s{3,}\d{1,2}\W*$/,'').replace(/^\W+/,'').trim(),own=t.match(/(\d{1,7})[.,](\d{2})\s*(-)?\s*&?\W*$/);
    const d=lines[i+1]?detail(lines[i+1]):null,tpd=/^\W*TPD\b/i.test(name);
    if(d||own){const v=own&&(tpd||!d)?+(own[1]+'.'+own[2]):d.v,neg=tpd||(own&&own[3]==='-')||(d&&d.neg);
     out.push(neg?`TPDDISC ${name} ${v.toFixed(2)}`:`${name} ${v.toFixed(2)}`);if(d)i++;continue}

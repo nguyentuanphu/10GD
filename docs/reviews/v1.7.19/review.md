@@ -471,3 +471,18 @@ Owner, 12 Nov 2026 (Sydney time): “i knew there would be this issues so thats 
 | Every scenario: round trip | `validImport` + four sync merges after each of the 40 scenarios | C4, C5, C9, C18, C22, C24, rule 33 | `autoplay-audit` (breakers: a merge that drops receipts fails `wf-receipt`; a refused state fails `pages` and `wf-extra` at the round-trip step) |
 
 **Tests** (`src/tests/autoplay-audit-browser.test.cts`, `npm run test:autoplay-audit:browser`, added to `test:all`): “Chạy tất cả” at 375×812 VI (every scenario passes on the sample family; the family's data, the device and the network untouched); the audit group at 375×812 EN, 820×1100 VI/EN and 1280×800 VI/EN; 15 deliberate bugs, each caught by the step that names it. Screenshots in `docs/reviews/v1.7.19/autoplay-audit/`. Chromium viewport simulation, not a physical phone. The meal-time scenario checks the app's own start-time sum; the push server (`lib/push.mts`) is not called from the app.
+
+### Lead: review of the Tự chạy thử helper and the bugs it found (13 Nov 2026, Sydney time)
+
+Read the diff of `agent-autoplay/audit` da3a876 before merging (rule 30): the scenarios and the round trip run on the sample
+family or a copy, in memory; nothing new is saved, synced or sent (no privacy change). Bugs the helper reported but left open,
+now fixed here with tests:
+
+| Bug | Fix | Test |
+|---|---|---|
+| Receipt prices of 5–7 digits (đồng, “35000.00”) read as a 4-digit price with a digit left in the name | `receipt-parse.ts`: money patterns read up to 7 digits; the real-receipt fixtures still pass | `receipt-list` 1c |
+| The receipt check compared the receipt with the week on screen, not the menu week of its own date | `receipt-ui.ts` `receiptWeekStart` / `receiptWeek` (family's start day, the stored week the list uses) for the sheet and for applying it | `receipt-list` 1c |
+| Phone emoji inside dropdown options, where no drawing can show (rule 19): “Mua thêm” (🌱), voice recipe pickers (🏠 📚), the member picker (member emoji), menu variety (🍝 🥗 ✨) | words instead (“Món nhà mình / Family dish”, “tủ đang có / in the pantry”); family data unchanged | `emoji-art`, `autoplay-audit` |
+
+Not covered by the helper's scenarios (recorded): a phone time zone other than Sydney (the audit sweep covers it with its
+Ho Chi Minh pass); physical phones.
