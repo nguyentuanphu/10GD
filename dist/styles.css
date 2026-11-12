@@ -2190,6 +2190,10 @@ body:has(#modal-root .modal>.modal-footer.floating-footer) #toast.visible{transf
 .pack-cell{display:inline-flex!important;align-items:center;justify-content:center;min-width:44px!important;min-height:44px}
 .pack-table-wrap table{min-width:max-content}
 .ing-editor-row .ing-qty{min-width:56px}
+.btn,.text-btn,button.icon{min-width:44px}
+/* v1.7.19 audit sweep N4: at 320 px in English the shopping-mode buttons wrap their words instead of pushing the page wider */
+@media (max-width:400px){.shop-mode-actions{min-width:0!important;max-width:100%}.shop-mode-actions .btn{white-space:normal!important;min-width:0!important;overflow-wrap:anywhere}}
+#modal-root .modal-content p a[href],#modal-root .modal-content small a[href]{padding-block:13px}
 .day-strip{grid-template-columns:repeat(7,minmax(44px,1fr))!important;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}
 .day-strip::-webkit-scrollbar{display:none}
 select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=file]):not([type=color]){min-height:44px!important}
