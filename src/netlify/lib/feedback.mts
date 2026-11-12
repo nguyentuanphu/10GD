@@ -169,7 +169,7 @@ export async function prune(getStoreFn:any,now=Date.now(),max=20000){const S=fee
 // ---------- push to the Studio owner on new feedback (no feedback text on the lock screen) ----------
 const TYPE_WORD:any={bug:['Lỗi','Bug'],looks:['Hiển thị sai','Looks wrong'],words:['Chữ / dịch','Words'],idea:['Ý tưởng','Idea'],other:['Khác','Other']};
 export function ownerMessage(rec:any){const t=TYPE_WORD[rec.type]||TYPE_WORD.other,where=rec.ctx?.route?' · #'+rec.ctx.route:'';return{type:'feedback',key:'feedback-new',tag:'feedback-new',url:'/#today',title:'Góp ý mới',enTitle:'New feedback',body:`${t[0]}${where}. Mở Studio → Góp ý.`,enBody:`${t[1]}${where}. Open Studio → Feedback.`}}
-export const replyMessage={type:'feedback',key:'feedback-reply',tag:'feedback-reply',url:'/#today',title:'Có trả lời góp ý của bạn',enTitle:'Your feedback has a reply',body:'Chạm con bọ rùa → Góp ý của tôi.',enBody:'Tap the ladybug → My feedback.'};
+export const replyMessage={type:'feedback',key:'feedback-reply',tag:'feedback-reply',url:'/#today?lb=mine',title:'Có trả lời góp ý của bạn',enTitle:'Your feedback has a reply',body:'Chạm để đọc câu trả lời.',enBody:'Tap to read the reply.'};/* v1.7.19 (owner pop-up, 12 Nov 2026): the tap opens the ladybug on “Góp ý của tôi” */
 
 // v1.7.6: the GitHub issue a report was filed as (lib/feedback-github.mts); kept on the report for Studio's link
 export async function setGithub(getStoreFn:any,id:string,gh:{number:number,url:string},now:number){if(!/^[a-f0-9]{18}$/.test(String(id||''))||!Number.isInteger(gh?.number))return null;

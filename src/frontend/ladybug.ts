@@ -281,7 +281,7 @@ function wire(){
 // ---------- start (after load, when idle; never blocks startup) ----------
 let started=false;
 function start(){if(started)return;started=true;
- apply();void refresh().then(()=>flush());
+ apply();void refresh().then(()=>{flush();openMineFromLink()});
  addEventListener('online',()=>{void refresh().then(()=>flush())});addEventListener('offline',()=>{paint();if(layer)render()});
  addEventListener('bep-connectivity',()=>{if(online()){void refresh().then(()=>flush())}if(layer)render()});
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&status?.at&&Date.now()-status.at>STATUS_EVERY)void refresh()});
@@ -291,6 +291,12 @@ function start(){if(started)return;started=true;
 // v1.7.16 (owner, 8 Nov 2026: “cái nào không dùng được nó sẽ tự pick lỗi”; pop-up: send automatically): the self-test sends what
 // failed as one report, through the same outbox as a report the family writes (kept on the device when offline)
 function autoReport(note:string,shot?:string|null){const ctx=context();ctx.queued=!online();(ctx as any).selfTest=true;return enqueue({clientId:rid(18),type:'bug',note:String(note).slice(0,1000),ctx,errors:errors.map(scrub),shot:shot||null})}
+// v1.7.19 (owner pop-up, 12 Nov 2026: “mở thẳng Góp ý của tôi”): a reply notification links to #today?lb=mine — open the
+// ladybug on that tab once we know it is shown for this person, and leave a plain #today behind
+let mineLinkAtLoad=/^#today\?lb=mine$/.test(location.hash);
+function openMineFromLink(){if(!mineLinkAtLoad&&!/^#today\?lb=mine$/.test(location.hash))return;mineLinkAtLoad=false;try{history.replaceState(history.state,'',location.pathname+location.search+'#today')}catch{}
+ const go=()=>{if(visible()){apply();openSheet('mine')}};if(status?.visible)go();else void refresh().then(go)}
+addEventListener('hashchange',openMineFromLink);
 (globalThis as any).bepLadybug={autoReport,refresh,flush,open:openSheet,close:closeSheet,outbox,reset:resetPos,minimize:setMin,layout,setPosition:(side:string,y:number)=>{saved={side,y};put(K.pos,saved);layout()},state:()=>({visible:visible(),mounted:!!btn,minimized,saved,status,yielded,queued:outbox().length,sheet:!!layer,tab}),capture:captureScreen};
 const idle=(f:any)=>typeof (globalThis as any).requestIdleCallback==='function'?(globalThis as any).requestIdleCallback(f,{timeout:3000}):setTimeout(f,1200);
 if(document.readyState==='complete')idle(start);else addEventListener('load',()=>idle(start),{once:true});

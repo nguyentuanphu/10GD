@@ -46,6 +46,10 @@ mode='410';r=await call('push-test',{deviceId:'device-grandma-01'});assert.equal
 const long='Nhờ mua rau thơm, hành lá 🥬🧄🍜 '.repeat(200),payload=pushPayload({type:'urgent',title:'Bố nhắn khẩn 🚨',body:long,url:'/#today'},'vi');assert(Buffer.byteLength(payload)<=PUSH_PAYLOAD_LIMIT);const parsed=JSON.parse(payload);assert(parsed.body.endsWith('…'));assert(!/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/.test(parsed.body),'no split surrogate pair');assert.equal(trimToBytes('ngắn',100),'ngắn');
 r=await call('alert-send',{id:'alert-long-000001',message:'😊'.repeat(240),targets:['dad']});assert.equal(r.data.push.reason,'sent');assert(sent.at(-1).bytes<=PUSH_PAYLOAD_LIMIT);
 console.log('PASS 403 needs re-registration, 410 removal, delivery_failed count and byte-safe payload trimming');
+{const {replyMessage}=await import('../netlify/lib/feedback.mjs');const vi=JSON.parse(pushPayload({...replyMessage},'vi')),en=JSON.parse(pushPayload({...replyMessage},'en'));
+ assert.equal(vi.url,'/#today?lb=mine','feedback reply opens “Góp ý của tôi”');assert.equal(en.url,'/#today?lb=mine');assert.equal(vi.body,'Chạm để đọc câu trả lời.');assert.equal(en.body,'Tap to read the reply.');
+ for(const bad of ['/#today?lb=other','/#today?lb=mine&x=1','/#studio?lb=mine'])assert.equal(JSON.parse(pushPayload({type:'feedback',title:'x',body:'y',url:bad},'vi')).url,'/#shopping',bad+' is not passed on (server fallback)')}
+console.log('PASS feedback reply link opens “Góp ý của tôi”; other links are not passed on');
 // Urgent message persistence: an index write failure still saves + pushes; a same-id retry re-indexes it. Push failure is never 503.
 failIndex=true;r=await call('alert-send',{id:'alert-flaky-00001',message:'Tắt bếp giúp mẹ',targets:['dad']});assert.equal(r.status,200);assert.equal(r.data.saved,true);assert.equal(r.data.indexed,false);
 failIndex=false;assert(!(await call('alerts')).data.alerts.some(a=>a.id==='alert-flaky-00001'));

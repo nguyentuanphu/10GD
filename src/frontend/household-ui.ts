@@ -114,7 +114,7 @@ document.addEventListener('submit',async event=>{const form=event.target;if(!['a
 // v1.7.9 system check: when the phone cannot move the open app to a notification's page itself, the service worker posts the
 // link here. It used to accept only "/#planner", so the new "/#planner?d=2026-11-07" links were dropped and the tap only
 // brought the app forward. Same screens and date form as the server allows.
-function pushOpenHash(url){return typeof url==='string'&&/^\/#(today|shopping|planner|expenses|pantry)(\?d=\d{4}-\d{2}-\d{2})?$/.test(url)?url.slice(2):null}
+function pushOpenHash(url){return typeof url==='string'&&/^\/#(today|shopping|planner|expenses|pantry)(\?(?:d=\d{4}-\d{2}-\d{2}|lb=mine))?$/.test(url)?url.slice(2):null}
 document.addEventListener('click',event=>{const summary=event.target.closest('details.family-urgent>summary');if(!summary)return;const details=summary.parentElement;setTimeout(()=>{const unread=urgentUnread();try{familyStorage.setItem('bep-urgent-panel',details.open?'open':unread.length?'closed:'+unread[0].id:'closed')}catch{}},0)});
 render();
 const requestWithAccessCheck=familyRequest;
