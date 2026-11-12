@@ -2,6 +2,13 @@
 
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
+## 12 Nov 2026 (later)
+- **Unit picker, remaining places (rule 29):** the receipt line unit, the notes-import unit and the voice recipe preview also use the shared unit picker. A family unit with a conversion is added to the pantry through that conversion. A unit without a conversion is stored as a bought lot in that unit, with no guessed grams. (Pop-up answer: "Đổi cả 3 chỗ".)
+- **Bought extras that are on the menu list:** a bought extra's amount counts towards the planned list row for the same ingredient, so the row shows "Đủ" and nothing is bought twice. If the family deliberately bought more than the list needs, ask whether to put the extra in the pantry. (Pop-up answer: "Như recommend, nhưng nếu user cố tình mua dư thì hỏi để cất vào pantry".)
+- **Product calls by the fix agents** (not yet confirmed by Henry):
+  - measuring spoons and bowls (muỗng, chén) round up to ¼;
+  - GBP/EUR receipts are kept and valid but not added to the AUD/VND spending totals.
+
 ## 12 Nov 2026
 - **Audit fixes:** fix all 105 findings of the whole-app audit in ONE release, v1.7.19. No privacy change. (Pop-up answer: "Làm hết 1 lượt".)
 - **Week start:** the week's start day is a family setting, because each family shops on a different day. Never assume Monday. Every place must read weeks by the family's start day (`planStartOf`, `weekStartDay`).

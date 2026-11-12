@@ -22,8 +22,10 @@ function flowMisplacedSheet(){const lots=flowMisplaced();if(!lots.length){closeM
 let shopMode=false;try{shopMode=sessionStorage.getItem('bep-shop-mode')==='1'}catch(e){}
 const shopOpen=new Set<string>();
 function setShopMode(on:boolean){shopMode=on;try{on?sessionStorage.setItem('bep-shop-mode','1'):sessionStorage.removeItem('bep-shop-mode')}catch(e){}shopOpen.clear();document.body.classList.toggle('shop-mode',on&&view==='shopping')}
-function shopModeLeft(){return [...document.querySelectorAll('#main .shopping-group .shop-row input.check[data-change="bought"]')].filter((c:any)=>!c.checked).length}
-function shopModeBar(){const left=shopModeLeft(),total=document.querySelectorAll('#main .shopping-group .shop-row input.check[data-change="bought"]').length;
+// v1.7.19 audit A8: extra items count too (the progress pill already counts them), so “Đã mua đủ” waits for them
+const SHOP_MODE_TICKS='#main .shopping-group .shop-row input.check[data-change="bought"],#main .shopping-group .shop-row input.check[data-change="extra-done"]';
+function shopModeLeft(){return [...document.querySelectorAll(SHOP_MODE_TICKS)].filter((c:any)=>!c.checked).length}
+function shopModeBar(){const left=shopModeLeft(),total=document.querySelectorAll(SHOP_MODE_TICKS).length;
  return `<div class="shop-mode-bar" role="status" aria-live="polite"><span><b>${flowT('Đang đi chợ','Shopping')}</b><small>${left?flowT(`còn ${left} / ${total} món`,`${left} of ${total} left`):flowT('Đã mua đủ','All bought')}</small></span><span class="shop-mode-actions"><button class="btn kitchen-glow shop-exit" type="button" data-flow="shop-exit">${flowT('Thoát','Leave')}</button><button class="btn primary kitchen-glow shop-finish" type="button" data-flow="shop-done">${flowT('Đi chợ xong','Finished shopping')}</button></span></div>`}
 function shopModeDecorate(){document.body.classList.toggle('shop-mode',shopMode&&view==='shopping');if(view!=='shopping')return;const main=document.getElementById('main');if(!main)return;
  if(!shopMode){if(!main.querySelector('.shop-mode-start')&&main.querySelector('.shopping-group')){const h=afterTitle(main);h?.insertAdjacentHTML('afterend',`<div class="shop-mode-start"><button class="btn primary" type="button" data-flow="shop-start">${flowT('Bắt đầu đi chợ','Start shopping')}</button><small>${flowT('Danh sách to, dễ đánh dấu theo quầy','A big list to tick off, aisle by aisle')}</small></div>`)}return}
@@ -42,7 +44,7 @@ document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('[dat
   case'keep-lot':{const p=state.pantry.find((x:any)=>x.id===b.dataset.id);if(p){p.placeOk=true;save(flowT('Giữ ở Tủ khô.','Kept on the shelf.'))}render();flowMisplacedSheet();break}
   case'shop-start':setShopMode(true);scrollTo({top:0,behavior:'instant' as ScrollBehavior});render();break;
   case'shop-exit':setShopMode(false);render();break;
-  case'shop-done':{const bought=document.querySelectorAll('#main .shopping-group .shop-row input.check[data-change="bought"]:checked').length;setShopMode(false);render();if(bought){const put=document.querySelector('#main [data-action="store-purchases"]') as any;if(put)put.click()}break}
+  case'shop-done':{const bought=document.querySelectorAll('#main .shopping-group .shop-row input.check[data-change="bought"]:checked').length+(typeof storableBoughtExtras==='function'?storableBoughtExtras(currentWeek()).length:0);setShopMode(false);render();if(bought){const put=document.querySelector('#main [data-action="store-purchases"]') as any;if(put)put.click()}break}
  }}catch(err:any){toast(err.message,true)}});
 addEventListener('hashchange',()=>{if(shopMode&&view!=='shopping')document.body.classList.remove('shop-mode')});
 
