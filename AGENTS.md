@@ -74,3 +74,32 @@ This is an agent workflow rule, not a claim that GitHub branch protection or hos
 ## Change every related place — owner instruction, 12 November 2026 (Sydney time)
 
 29. When a feature changes, update every place in the app that does the same job or shows the same thing, in the same release (for example, the buying-unit sheet on Đi chợ and the unit choice in Viết món, receipts, the pantry and added items). Before the plan or the change, list every related place found in the code. Say which ones are changed and why any is left out, and ask Henry about any left out. Every related place gets the same browser checks. Henry, 12 Nov 2026: “Lần sau khi update thì phải update những cái liên quan chứ không thể update một nơi mà nơi khác liên quan bỏ qua như vậy.”
+
+## Lessons from the 12 November 2026 audit — owner instruction (Sydney time)
+
+Henry, 12 Nov 2026: “Vậy bài học ở đây sau khi bị nhiều lỗi là gì thêm vào skill và những thứ khác để không bị lặp lại.” The whole-app audit (`docs/reviews/audit-20261112/`) found 105 problems, 22 of them serious, in released code. Rules 30–36 hold for every release from now on, and the `release-check` skill (`.claude/skills/release-check/SKILL.md`) is the checklist the agent follows before it says a release is ready.
+
+30. **The agent who reports to Henry checks the work itself.** A helper agent's report is not evidence. Before merging a helper's work, the lead agent reads the diff and opens every changed screen in the browser with realistic data and with empty data. It also checks the related places (rule 29) itself.
+31. **Every control does what it says.** Every button, chip, link and sheet that a release adds or changes is tapped in a browser test:
+    - with data and with nothing to show;
+    - a number on a control equals what it opens;
+    - a sheet never opens empty without saying why and what to do;
+    - anything the family can add, they can also edit and undo, the same way as similar items.
+32. **No silent defaults.** A form never saves a value the family did not choose or the app could not know. This covers units, amounts, prices, places, people, stores and dates.
+    - When the app cannot know, the value stays empty or “Chưa rõ”, and the family is asked.
+    - A suggestion comes only from matched data, such as the ingredient's own unit.
+    - An unknown price is never shown as $0.
+33. **Whatever the app saves, it can load.** Every state the app writes must pass its own validators, sync merge and backup import. The browser tests that change data end with a round trip through `validImport` and the sync merge.
+34. **Test the family's own settings, not just the defaults.** Each release that touches the area is tested with:
+    - a menu week that starts on a day other than Monday (each family chooses its own shopping day; never assume Monday);
+    - English;
+    - a phone whose time zone is not Sydney;
+    - a currency other than AUD;
+    - recipes with their own yield;
+    - guests;
+    - a second device syncing.
+35. **Look before saying ready.** For any release with interface or data changes:
+    - Run the audit sweep: `test:audit:browser` (taps every control on every screen in VI and EN, with empty and full data) plus a review of every changed place against rules 29–34.
+    - List what was found in the release record.
+    - Fix serious findings before asking for DEPLOY; list the rest for Henry.
+36. **When Henry finds a bug, find its family.** Search the code for the same pattern everywhere, fix all of them in the same release, and add a test that would have caught each one.
