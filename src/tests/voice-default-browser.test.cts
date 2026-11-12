@@ -140,6 +140,10 @@ async function main(){
   for(const [size,lang,theme] of [['mobile','vi','light'],['tablet','vi','light'],['desktop','vi','light'],['mobile','en','dark'],['tablet','en','dark'],['desktop','en','dark'],['narrow','vi','light'],['mobile','vi','dark'],['mobile','en','light']]){
    const {page,context,errors,go}=await open({viewport:sizes[size],lang,theme,ios:size!=='desktop',stall:true});await go();
    await chip(page).waitFor({timeout:10000});
+   /* v1.7.19: the small fake files (all but the stalled decoder) keep arriving after the chip shows, and each one reports its
+      real byte count. Wait until that progress has settled before setting the realistic numbers, so a late file cannot
+      overwrite them (CI 12 Nov: “0/0 MB”). The check on the chip text is unchanged. */
+   await page.waitForFunction(()=>{const a=(0,eval)('voiceAuto'),w=window as any;if(!a.job)return false;const k=a.job.done+'/'+a.job.total;if(w.__vlLast===k&&Date.now()-w.__vlSince>600)return true;if(w.__vlLast!==k){w.__vlLast=k;w.__vlSince=Date.now()}return false},null,{timeout:15000,polling:100});
    await page.evaluate(()=>{const a=(0,eval)('voiceAuto');a.job.done=120*1048576;a.job.total=279299677;(0,eval)('voiceAutoUpdateProgress()')});
    const t=await chip(page).innerText();
    if(lang==='vi')assert.match(t,/Đang tải bộ giọng chính xác · 120\/266 MB/);else assert.match(t,/Downloading accurate voice · 120\/266 MB[\s\S]*Pause/);

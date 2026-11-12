@@ -70,6 +70,49 @@ Object.assign(EN_UI,{
 'Đồ đã quá hạn nhập không được trừ khỏi danh sách mua. Khi đánh dấu “Đã nấu”, app chỉ trừ lượng tồn đang được ghi nhận và còn hạn.':'Items past their entered expiry are not deducted from the shopping list. When a meal is marked “Cooked”, only recorded, unexpired stock is deducted.',
 'So sánh hai lần mua gần nhất của cùng nguyên liệu tại cùng cửa hàng, theo dữ liệu bạn xác nhận. Quy cách, nhãn hàng và khuyến mãi có thể khác nhau; đây là biến động giá ghi nhận, không phải chỉ số lạm phát.':'Compares the two most recent purchases of the same ingredient at the same store, from data you confirmed. Pack size, brand and promotions may differ; this is recorded price change, not an inflation index.'
 });
+// v1.7.19 audit fixes (D11, D12, D15, B20, B22; Henry’s report “Chỉnh thực phẩm” / “Xóa lô này” in English): every sheet
+// title, label, placeholder, accessible name and error message that was still Vietnamese in English mode. Written for the
+// situation (rule 26), not word for word. The pantry’s dry place is “Pantry shelf” everywhere, as in put-away (B20).
+Object.assign(EN_UI,{
+'Tủ khô':'Pantry shelf',
+// pantry edit (Henry’s report)
+'Chỉnh thực phẩm':'Edit pantry food','Xóa lô này':'Delete this batch','Xóa / đã dùng hết':'Delete / used up','Chưa rõ — để trống':'Not known — leave blank',
+// stores and where to buy (D11, B22)
+'Cửa hàng & địa điểm thường mua':'Your usual shops and markets','Các cửa hàng bạn thường đi sẽ hiện ngay khi chọn nơi mua trên danh sách Đi chợ và tự động ghi nhớ cho lần sau.':'The shops you usually go to appear when you choose where to buy on the shopping list, and the app remembers your choice for next time.',
+'Bản đồ ↗':'Map ↗','Sửa':'Edit','Chưa có cửa hàng. Thêm chi nhánh hoặc chợ nhà mình hay mua.':'No shops yet. Add the branch or market your family usually goes to.',
+'Sửa cửa hàng':'Edit shop','Thêm nơi mua đồ':'Add a place to shop','Tên cửa hàng / chợ':'Shop or market name','Địa chỉ / chi nhánh (tùy chọn)':'Address or branch (optional)',
+'Ví dụ: Coles, Woolworths, chợ Việt…':'For example: Coles, Woolworths, the Vietnamese market…','Số nhà, đường, suburb hoặc tên trung tâm':'Street address, suburb or shopping centre',
+'Địa chỉ chỉ do bạn nhập. Nút bản đồ sẽ mở tìm kiếm địa chỉ đó để bạn kiểm tra.':'Only you enter the address. The map button searches for it so you can check it.','Lưu cửa hàng':'Save shop',
+'Chỗ thường dùng (chạm để chọn & tự nhớ cho lần tới)':'Your usual shops (tap one to choose it; the app remembers it for next time)','Chỗ thường dùng (chạm để chọn & nhớ cho lần tới)':'Your usual shops (tap one to choose it; the app remembers it for next time)',
+'Hoặc chọn từ danh sách cửa hàng':'Or choose from your shop list','Ghi chú riêng cho lần mua này':'Note for this purchase only','Ví dụ: quầy thịt, lấy bó nhỏ, mua nếu còn tươi…':'For example: meat counter, a small bunch, only if it looks fresh…','Lưu nơi mua':'Save where to buy',
+// members, notes import, request an item, push
+'Thành viên nhà mình':'Your family members','Thêm người hoặc bớt đúng thành viên. Khẩu phần của các bữa chưa nấu sẽ tính lại; bữa đã nấu giữ lượng đã dùng.':'Add someone or remove the right person. Portions for meals not yet cooked are worked out again; cooked meals keep what was used.',
+'Bớt người này':'Remove this person','Sửa tên / khẩu phần':'Edit name / portion','Thêm người':'Add a person',
+'Nhập từ ghi chú điện thoại':'Import from your phone’s notes','iPhone Notes / Google Keep / Samsung Notes: sao chép nội dung và dán bên dưới, hoặc xuất tệp .txt / .md / .csv rồi chọn tệp. App không tự truy cập ứng dụng ghi chú của bạn.':'iPhone Notes / Google Keep / Samsung Notes: copy the text and paste it below, or export a .txt / .md / .csv file and choose it. The app never opens your notes app by itself.',
+'Bạn muốn nhập vào đâu?':'Where should it go?','Danh sách đi chợ':'Shopping list','Thực đơn tuần đang xem':'The week you are viewing','Một công thức trong Kho món ăn':'A recipe in your dishes','Nội dung ghi chú':'Note text','↑ Chọn tệp ghi chú':'↑ Choose a notes file',
+'Android: khi đã cài PWA, bạn cũng có thể thử Chia sẻ văn bản → Bếp Nhà nếu hệ điều hành hiển thị app.':'Android: once the app is installed, you can also try Share text → FamTray if your phone offers it.','Xem trước, chưa nhập':'Preview first (nothing is imported yet)',
+'Kiểm tra trước khi nhập':'Check before importing','Kiểm tra thực đơn nhập':'Check the imported menu','Kiểm tra chênh lệch hóa đơn':'Check the receipt difference','Hai thiết bị vừa thay đổi dữ liệu':'Two devices just changed the data',
+'Nhập một yêu cầu rõ ràng. App thêm vào danh sách mua và giữ nội dung cho người mua; bạn chọn gửi push hoặc chia sẻ nếu chưa có thiết bị nhận.':'Write a clear request. The app adds it to the shopping list and keeps it for whoever shops; you choose to send a notification, or share it if nobody has a phone set up yet.',
+'Tùy nơi / chưa chọn':'Any shop / not chosen','chưa có thiết bị push':'no phone set up for notifications',
+'Tài khoản gia đình dùng chung mật khẩu; tên người gửi do bạn chọn, không phải xác thực tài khoản cá nhân. Yêu cầu thường cần bật “Việc đi chợ chưa xong”; yêu cầu khẩn cần bật “Nhờ mua thêm ngay”. Người nhận chọn giờ yên lặng và quyền cho phép khẩn đi qua.':'The family account shares one password; you choose the sender’s name, it is not a personal sign-in. Normal requests need “Shopping not finished” switched on; urgent ones need “Buy this now”. Each person chooses quiet hours and whether urgent requests may come through.',
+'Push: nhắc việc & người nhận':'Notifications: reminders and who gets them','Ví dụ: iPhone của Mẹ':'For example: Mum’s iPhone','Ví dụ: rau mùi, đùi gà, sữa cho bé…':'For example: coriander, chicken thighs, baby milk…','Ví dụ: bó nhỏ, không có thì mua hành lá thay; cần cho bữa tối nay.':'For example: a small bunch, or spring onions if there is none; needed for tonight’s dinner.',
+// other sheet titles, placeholders and labels (D15)
+'Nhắc việc bếp núc':'Kitchen reminders','Cùng nấu':'Cook together','Món ăn tự nhập':'Your own dish','Đã lên thực đơn':'Menu planned','Xóa công thức khỏi kho?':'Delete this recipe from your dishes?','Thêm món ăn vào bữa':'Add a dish to this meal',
+'Khôi phục bản sao lưu?':'Restore this backup?','Cần kiểm tra dữ liệu đã lưu':'Your saved data needs a check','Cuối tuần, ăn món nước nhé?':'A noodle soup for the weekend?','Một tuần ăn thế nào cho đỡ nghĩ?':'A week of meals without the thinking',
+'Gợi ý bữa trưa':'Lunch ideas','Gợi ý bữa tối':'Dinner ideas','Ghi chú: Bố về muộn 15 phút…':'Note: Dad is 15 minutes late…','Thời gian nấu':'Cooking time','Ví dụ: Gà hấp hành':'For example: Steamed chicken with spring onion','Sơ chế, ướp, chuẩn bị dụng cụ…':'Prep, marinating, getting the tools ready…',
+'Nguyên liệu công thức':'Recipe ingredient','Định lượng nguyên liệu':'Ingredient amount','Bỏ nguyên liệu':'Remove ingredient','Số phút hẹn giờ':'Timer minutes','Tìm bún, phở, cháo, gà, tôm…':'Search noodles, pho, congee, chicken, prawns…','Tìm món nước':'Search noodle soups','Thời gian món nước':'Noodle soup cooking time',
+// error messages shown in toasts (D15)
+'Dữ liệu không đúng định dạng':'The data is not in the right format','Tệp quá lớn (tối đa 5 MB).':'The file is too big (5 MB at most).','Tệp không đúng định dạng sao lưu Bếp Nhà.':'This file is not a FamTray backup.',
+'Chọn thành viên, ngày và bữa hợp lệ.':'Choose a family member, a day and a meal.','Lịch chưa hợp lệ.':'The schedule is not valid.','Lịch không hợp lệ.':'The schedule is not valid.','Lượng mua không hợp lệ':'The amount to buy is not valid','Không tìm thấy bữa.':'That meal could not be found.',
+'Ảnh tối đa 20 MB. Hãy chụp lại gần và rõ nét.':'Photos can be 20 MB at most. Take it again, closer and sharper.','Chức năng này cần kết nối mạng. Dữ liệu trên máy vẫn được giữ.':'This needs an internet connection. Your data on this device is kept.',
+'Đồng bộ chưa lưu được dữ liệu.':'Family sync could not save the data yet.','Dữ liệu Đồng bộ không đúng định dạng.':'The family sync data is not in the right format.','Không tải được bản trực tuyến.':'The online copy could not be loaded.','Ảnh chưa tải trực tuyến.':'The photo has not been uploaded yet.',
+'Mẻ không tồn tại hoặc đã nấu.':'That batch does not exist or is already cooked.','Chưa có khẩu phần cho mẻ.':'The batch has no portions yet.','Mẻ chưa đủ định lượng nguyên liệu; sửa công thức và tạo lại feast trước khi nấu.':'The batch is missing ingredient amounts; fix the recipe and plan the feast again before cooking.',
+'Bữa đã dùng mẻ này còn đang đánh dấu đã nấu. Bỏ đánh dấu các bữa đó trước, rồi mới bỏ đánh dấu cả mẻ.':'Meals that use this batch are still marked cooked. Unmark those meals first, then unmark the batch.','Cần nấu mẻ trước và bảo đảm còn đủ phần cho bữa này.':'Cook the batch first and make sure enough is left for this meal.',
+'Tối đa 12 món/bữa.':'12 dishes per meal at most.','Tên nguyên liệu không hợp lệ.':'The ingredient name is not valid.','Quầy: meat / veg / dry':'Aisle: meat / veg / dry','Kho nguyên liệu không hợp lệ.':'The ingredient list is not valid.','Khẩu phần không hợp lệ.':'The portion is not valid.','Món ăn không hợp lệ.':'The dish is not valid.',
+'Chọn AUD hoặc VND.':'Choose AUD or VND.','Giá không hợp lệ.':'The price is not valid.','Thêm từ 1 đến 12 thành viên.':'Add 1 to 12 family members.','Kiểm tra tên, số lượng và đơn vị từng dòng.':'Check the name, amount and unit on each line.',
+'Chọn ngày.':'Choose a day.','Chọn phản hồi hợp lệ.':'Choose an answer.','Tối đa 12 người.':'12 people at most.','Cần ít nhất một người.':'At least one person is needed.','Chưa có bản xem trước.':'There is no preview yet.','Chỉ xem.':'View only.','Tối đa 12 món.':'12 dishes at most.','Kiểm tra số suất.':'Check the number of portions.',
+'Nguyên liệu không tồn tại.':'That ingredient does not exist.','Cửa hàng không tồn tại.':'That shop does not exist.','Đơn vị hoặc số lượng mua chưa hợp lệ.':'The buying unit or amount is not valid.','Lượng quy đổi sang quả cần là số nguyên.':'The amount in pieces must be a whole number.'
+});
 const EN_TOKENS=Object.keys(EN_UI).sort((a,b)=>b.length-a.length);
 const englishTextNodes=new WeakMap(),englishAttributes=new WeakMap();
 // v1.7.5: never show half-translated sentences. Family-entered names are protected with placeholders; if any
@@ -101,6 +144,8 @@ const EN_SENTENCE_RULES=[
  [/^Mục tiêu (\$[\d.,]+)$/,'Target $1'],
  [/^hạn trong (\d+) ngày$/,'expiring within $1 days']
 ];
+// v1.7.19 (audit D15): sentences with a number or currency in them
+EN_SENTENCE_RULES.push([/^([\d.,]+) suất chuẩn \/ bữa$/,'$1 standard portions per meal'],[/^Dự kiến tổng tiền \(?(AUD|VND)\)?(?: \(tùy chọn\))?$/,(m:string,c:string)=>'Estimated total ('+c+')'+(m.includes('tùy chọn')?' (optional)':'')]);
 let EN_ALLOWED_VI_WORDS=null;
 function enAllowedViWords(){if(EN_ALLOWED_VI_WORDS)return EN_ALLOWED_VI_WORDS;const set=new Set(),add=v=>{if(typeof v!=='string')return;for(const w of v.split(/[^\p{L}]+/u))if(w&&VI_LETTER.test(w))set.add(w.toLowerCase())};for(const v of Object.values(EN_UI))add(v);for(const v of Object.values(INGREDIENT_EN))add(v);for(const o of [VI_PROTEIN_EN,VI_STYLE_EN,typeof VI_VEG_EN!=='undefined'?VI_VEG_EN:{},typeof VI_NOODLE_EN!=='undefined'?VI_NOODLE_EN:{}])for(const v of Object.values(o))add(v);return EN_ALLOWED_VI_WORDS=set}
 function englishLeftover(out){const allowed=enAllowedViWords();return out.split(/[^\p{L}]+/u).some(w=>w&&VI_LETTER.test(w)&&!allowed.has(w.toLowerCase()))}

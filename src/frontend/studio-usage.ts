@@ -74,7 +74,7 @@ function render(){
  const d=data,k=d.kpis,maxU=Math.max(1,...d.series.map((s:any)=>s.users));
  host.innerHTML=head+`
  ${d.collecting===false?`<p class="note">${T('Đang tắt thu thập cho mọi người (Cài đặt → Thống kê sử dụng ẩn danh).','Collection is switched off for everyone (Settings → Anonymous usage statistics).')}</p>`:''}
- <p class="note">${T('Người dùng = tài khoản nếu đã đăng nhập, nếu không thì một máy ẩn danh. Xem danh sách gia đình hoặc chi tiết một gia đình được ghi vào nhật ký kiểm tra.','A user is an account when signed in, otherwise one anonymous device. Opening the family list or one family’s detail is written to the audit log.')} · ${T('Tính lúc','Computed')} ${esc(new Date(d.computedAt).toLocaleTimeString(loc(),{hour:'2-digit',minute:'2-digit'}))}</p>
+ <p class="note">${T('Người dùng = tài khoản nếu đã đăng nhập, nếu không thì một máy ẩn danh. Xem danh sách gia đình hoặc chi tiết một gia đình được ghi vào nhật ký kiểm tra.','A user is an account when signed in, otherwise one anonymous device. Opening the family list or one family’s detail is written to the audit log.')} · ${T('Tính lúc','Computed')} ${esc(new Date(d.computedAt).toLocaleTimeString(loc(),{timeZone:'Australia/Sydney',hour:'2-digit',minute:'2-digit'})+T(' giờ Sydney',' Sydney time'))}</p>
  <div class="us-kpis">
   <div class="us-kpi"><b>${num(k.dau)}</b><span>${T('Người dùng hôm nay (DAU)','Daily active (DAU)')}</span></div>
   <div class="us-kpi"><b>${num(k.wau)}</b><span>${T('7 ngày (WAU)','7 days (WAU)')}</span></div>
