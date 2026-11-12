@@ -13,7 +13,7 @@
 //    in a fresh page state, and every control inside each sheet that opens (two levels);
 //  - after each tap checks: page errors, sheet content, “(n)” counts, page jumps (rule 24), sheet footers (rule 25), drawings
 //    (rule 27), language, emoji (rule 19), ≥ 44 px targets, sideways overflow, Sydney time (rule 22), the validImport /
-//    JSON / sync-merge round trip (rule 33), weeks keyed by the family's start day (rule 34) and, for every sheet that saves,
+//    JSON / sync-merge round trip (rule 33), weeks read through the family's start day and stored under their Monday, never a hidden copy (rule 34) and, for every sheet that saves,
 //    a save without touching any field (rule 32: no silent defaults).
 // Output: one line per failure — screen › control › check: detail — grouped over the passes where it happened.
 // Environment: AUDIT_PASSES=id,id (subset), AUDIT_SCREENS=today,shopping (subset), AUDIT_CONCURRENCY (default 3),
@@ -173,7 +173,7 @@ function qaLib(){
  const roundTrip=()=>{const out:any={};try{out.valid=G('validImport(state)')===true}catch(e:any){out.valid='error '+e.message}
   try{out.json=G('validImport(JSON.parse(JSON.stringify(state)))')===true}catch(e:any){out.json='error '+e.message}
   try{out.merge=G('typeof mergeFamilyStates!=="function"?"no merge":validImport(mergeFamilyStates(JSON.parse(window.__qaSnap),JSON.parse(JSON.stringify(state)),JSON.parse(window.__qaSnap)).state)')}catch(e:any){out.merge='error '+e.message}
-  try{const base=JSON.parse(W.__qaSnap);out.newWeeks=Object.keys(G('state').weeks||{}).filter(k=>!(base.weeks||{})[k]).map(k=>({k,start:G(`planStartOf(state,${JSON.stringify(k)})`)})).filter((x:any)=>x.k!==x.start).map((x:any)=>x.k)}catch(e:any){out.newWeeks=[]}
+  try{const base=JSON.parse(W.__qaSnap);out.newWeeks=Object.keys(G('state').weeks||{}).filter(k=>!(base.weeks||{})[k]).map(k=>({k,start:G(`monday(${JSON.stringify(k)})`)})).filter((x:any)=>x.k!==x.start).map((x:any)=>x.k)}catch(e:any){out.newWeeks=[]}
   return out};
  const NOISY=/(^|\.)(updatedAt|createdAt|savedAt|at|ts|time|stamp|activity|syncMeta|revision|rev|lastSaved|checkedAt|seen|lastUsed|lastOpened|recent[A-Za-z]*|history|log|usage|_[a-z]+)(\.|$)/;
  const flat=(o:any,p:string,out:Map<string,any>)=>{if(o===null||typeof o!=='object'){out.set(p,o);return}if(Array.isArray(o)){o.forEach((v:any,i:number)=>flat(v,p+'.'+(v&&typeof v==='object'&&v.id!=null?'#'+v.id:i),out));return}for(const [k,v] of Object.entries(o))flat(v,p?p+'.'+k:k,out)};
@@ -232,7 +232,7 @@ async function runPass(browser:any,P:any){
  // seed
  const seedRes=await page.evaluate(({P,SEED,KNOWN_TS}:any)=>{const G=(s:string)=>(0,eval)(s);(window as any).__seedArg={P,SEED,KNOWN_TS};return G(`(()=>{const {P,SEED,KNOWN_TS}=window.__seedArg;
   state.preferences.onboardingComplete=true;if(P.weekStartDay!=null)state.preferences.weekStartDay=P.weekStartDay;weekStart=planStartOf(state,selectedDate);
-  if(P.weekStartDay!=null){for(const k of Object.keys(state.weeks))if(planStartOf(state,k)!==k)delete state.weeks[k]}
+  /* weeks are stored under their Monday whatever the start day (core.ts dayAt / menuWeekKey); the start day only places the 7-day window */
   const w=currentWeek();
   if(P.data==='empty'){for(const wk of Object.values(state.weeks))for(const day of Object.values(wk.days||{}))for(const m of Object.values(day))if(m&&Array.isArray(m.recipes)){m.recipes=[];m.cooked=false}for(const wk of Object.values(state.weeks))wk.extras=[];state.pantry=[];state.receipts=[]}
   else{familyGenerate(state,weekStart,{sourceMode:'library'});
@@ -283,7 +283,7 @@ async function runPass(browser:any,P:any){
  const dataChecks=async(screen:string,ctl:string,after:string)=>{const rt=await Q('roundTrip');const F=(check:string,detail:string)=>({pass:P.id,screen,control:ctl,check,detail:`${after}: ${detail}`});
   check(rt.valid===true,F('round trip (rule 33)',`validImport(state) is ${rt.valid}`));check(rt.json===true,F('round trip (rule 33)',`JSON.stringify → parse → validImport is ${rt.json}`));
   check(rt.merge===true||rt.merge==='no merge',F('round trip (rule 33)',`sync merge → validImport is ${rt.merge}`));
-  check(!rt.newWeeks.length,F('week start (rule 34)',`wrote a week keyed ${rt.newWeeks.join(', ')}, which is not the family's start day`))};
+  check(!rt.newWeeks.length,F('week start (rule 34)',`wrote a week keyed ${rt.newWeeks.join(', ')}, which is not the Monday the app stores weeks under — a hidden copy of the family's week (audit B1)`))};
 
  // forms: save without touching any field (rule 32)
  const formCheck=async(screen:string,ctl:string,si:any,ctx:string[])=>{if(!si?.save||formChecked.has(si.title))return;formChecked.add(si.title);
