@@ -79,6 +79,8 @@ function receiptItemText(text,parsed){const raws=(parsed.items||[]).filter((i:an
 function fillDraft(text,{keepStore=true}={}){
  const d=receiptDraft;if(!d)return null;
  const prevRetailer=keepStore&&!RP.detectRetailer(String(text||'')).id?d.extra?.retailer:null,parsed=RP.parseReceipt(text,prevRetailer?{retailer:prevRetailer}:{});const built=draftFromParsed(parsed,text);
+ /* v1.7.19 (audit sweep, rule 36): reading text or a photo that gives no lines never wipes the lines already on the receipt */
+ if(!built.items.length&&(d.items||[]).length){toast(T('Không đọc được dòng nào; các dòng đang có vẫn giữ nguyên.','No lines could be read; the lines already here stay as they are.'),true);return parsed}
  d.raw=receiptItemText(text,parsed)||RP.redact(text);d.items=built.items;d.meta=built.meta;
  d.store=keepStore&&d.store?d.store:parsed.store||d.store||'';
  if(parsed.date)d.date=parsed.date;
