@@ -2649,3 +2649,8 @@ html[data-theme="dark"] .field-error{color:#ff9a86}
 .extra-edit-name:focus-visible{outline:3px solid #c87649;outline-offset:2px}
 #main .shop-row:has([data-change="extra-done"]) .qty{cursor:pointer}
 @media (prefers-reduced-motion:reduce){.unit-sheet-layer{animation:none}}
+/* v1.7.19 audit A6 / B5: the extra item's × is drawn like a planned row's and is a full 44 px target */
+.shop-row .extra-delete{min-width:44px;min-height:44px;color:var(--muted)}
+.shop-row .extra-delete .btn-art{width:26px;height:26px;margin:0}
+.shop-row .extra-stored{color:var(--green,#2f6b45)}
+#store-purchases-why{display:block;margin-top:4px}

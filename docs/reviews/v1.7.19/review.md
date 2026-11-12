@@ -57,7 +57,8 @@ These are not screenshots from a physical phone.
 | Family recipe editor (`family-menu-ui.ts`, `familyRecipeEditor`) | Yes, same form | **Changed** through the Viết món rows, which write its ingredient box. No other unit control in that editor. |
 | Đi chợ “+ Mua thêm” extra item (`app.ts`, `add-extra`) | Yes: unit of an item to buy | **Changed.** Shared picker; no unit until one is picked (it silently saved “g” before). |
 | Đi chợ extra item edit (`app.ts`, new `edit-extra`) | Yes | **New** (Henry, 12 Nov). Tap the name or the amount to open an edit sheet with the same fields. |
-| “Chọn nhanh” in the add form (`shopping-planning.ts`, `extra-catalog-ing`) | Fills the same unit | **Changed** to fill the picker's field. |
+| “Chọn nhanh” in the add form (`shopping-planning.ts`, `extra-catalog-ing`) | Fills the same unit | **Changed** to fill the picker's field, with no invented amount (audit C3). |
+| “Nhờ mua thêm” request (`push-ui.ts`, `errand-form`) | Yes: adds the same extra item | **Changed** (audit A5). Same amount + unit picker and the same extra record as “Mua thêm”; it had a free-text “Số lượng / cách mua”. |
 | Ladybug self-test “Giấy bếp (thử)” (`ladybug-workflows.ts`) | Uses the add form | **Changed** to set the new field (cuộn). |
 | Pantry add / edit (`app.ts`, `stockForm`; `unit-picker.ts`, `unit-stock-form`) | No unit is picked | **Not changed.** The amount is typed in the ingredient's own unit, shown as text. A lot bought in a buying unit keeps that unit from the purchase. Adding a unit choice would change how pantry amounts are stored, which is a data change for Henry to decide. |
 | Receipt line unit (`family-features.ts`, `receiptLineRows` `.receipt-unit`; read by `receipt-list-ui.ts`, `receipt-match-ui.ts`, `receipt-match-picker.ts`) | Close (unit of a bought line) | **Not changed — question for Henry.** The value goes into pantry amounts and price maths, which only understand g, kg, ml, l, quả and the buying units. A family unit has no path there, so converting it changes what a receipt puts into the pantry. |
@@ -93,3 +94,38 @@ These are not screenshots from a physical phone.
 - Updated to use the picker instead of the old list: `recipe-ingredients`, `recipe-community`, `v175-feedback` and `journey` (Viết món rows); `v176-fixes` (extra item unit). Each test still checks the same outcome.
 - Screenshots: `recipe-units/` — `recipe-suggest-*`, `recipe-all-units-*`, `recipe-custom-unit-*`, `recipe-row-chosen-*`, `extra-edit-*`, `extra-edit-con-*`, `extra-needs-unit-*`, at the sizes above.
 - **Limits:** Chromium viewport simulation with QA data in device-only mode. These are not physical phones, tablets or iOS Safari.
+
+## Audit fixes — extras and units
+Audit of 12 Nov 2026 (`docs/reviews/audit-20261112/`), findings about extra items (“Mua thêm”, “Đồ dùng khác”, “Nhờ mua thêm”) and the Viết món unit. Henry chose to fix every finding in v1.7.19 with no privacy change.
+
+| Finding | What changed | Test |
+|---|---|---|
+| A2 / B7 | Tap an extra's name or amount → “Sửa đồ cần mua” (name, amount + unit, price, store); saved in place, keeping id, tick, store, errand link. | `recipe-units` |
+| A3 / C3 | No unit until one is chosen or the name matches an ingredient (con for a rooster, ml for a sauce); quick pick no longer invents “2” / “500”. | `recipe-units`, `extras-audit` |
+| A4 / C13 | The price starts empty and is optional; empty is saved as unknown (“Chưa rõ giá”, “≥” on the total). Notes import now marks an unknown price unknown instead of a known 0. | `extras-audit` |
+| A5 | “Nhờ mua thêm” uses the same amount + unit fields and builds the same extra record as “Mua thêm” (shared code in `app.ts`: `EXTRA_FORMS`, `extraRecordFields`). It also added the request to the Monday week; it now goes into the family's own plan week. | `extras-audit` (week starting Saturday) |
+| A6 / B5 | × asks “Bỏ … khỏi giỏ?” (Giữ lại first, pills), then “Hoàn tác” puts the item back at the same place. The × has the same drawing as a planned row's × and a 44 px target. | `extras-audit` |
+| A8 | Shopping mode counts extras in “còn … món” and does not say “Đã mua đủ” while one is unticked; “Đi chợ xong” offers to put away ticked extras too. | `extras-audit` |
+| A9 / B6 | New extras keep `ingredient` (when chosen or matched), `amount` and `unit` as data next to the text. “Cất đồ đã mua vào tủ” includes ticked extras that are ingredients. Old text-only extras are read (name match + “2 l”), never rewritten. A unit that converts (l → ml, kg → g) adds that amount. Any other unit (“2 gói”) is stored as a bought lot with no invented weight. Non-ingredients are named as not put away. Each extra is put away once (`storedOn`). | `extras-audit` |
+| A10 | With nothing to put away, the aside link is disabled and says why. The toolbar button and the link appear for ticked extras too. | `extras-audit` |
+| A11 | “Chọn nhanh từ danh sách nguyên liệu (tùy chọn)”: no hard-coded 58. | `extras-audit` |
+| A12 | The skip sheet names the button as it reads on screen (“Đồ trong tủ” …). | `extras-audit` |
+| B8 | An extra's “Mua … ở đâu?” sheet matches an ingredient's: chips, store list with “Chưa chọn” to clear, a note for this purchase, “Luôn nhớ …” choice, Thêm cửa hàng / Lưu nơi mua footer, VI / EN. | `extras-audit` |
+| C2 | Picking a catalogue suggestion in Viết món keeps the unit the family chose; it fills the unit only when the row had none. | `extras-audit` |
+
+**Data (internal, not privacy):**
+- New fields on extra items: `ingredient`, `amount`, `unit`, `storedOn` and `storeNote`.
+- Pantry lots can now come from extras.
+- “Mua thêm” saves an empty price as `costUnknown`.
+- Nothing new is sent off the device. Privacy pages are unchanged.
+- Old states load unchanged; `extras-audit` ends each run with `validImport` and a sync-merge round trip.
+
+**Tests:**
+- New `test:extras-audit:browser` (in `test:all`): 320×740, 375×812, 820×1100, 1280×800, VI light / EN dark.
+- EN runs use VND and a phone in Los Angeles time. Every run uses a week starting on Saturday.
+- Screenshots in `docs/reviews/v1.7.19/extras/`.
+
+**Limits and not fixed:**
+- Chromium viewport simulation, not physical devices.
+- A bought extra is not merged into a matching planned ingredient row on the list. It goes into the pantry as its own lot, and the pantry adds lots together. Merging the two rows on the list would change how the list is worked out, so it is left for Henry to decide.
+- Recipes with a yield and guests are not part of these flows (extras and units), so they were not varied here.
