@@ -2627,3 +2627,5 @@ html[data-theme="dark"] .rl-reserved{color:#8fd6b0}
 .reconcile-choice .rc-dest{flex:1 1 100%;font-weight:700;color:var(--green,#2f6b45);font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px))}
 html[data-theme="dark"] .reconcile-choice .rc-dest{color:#8fd6b0}
 .reconcile-open .btn.small{min-height:44px;margin-top:6px;white-space:normal}
+/* v1.7.19 “Đồ trong tủ” sheet: every pantry lot is a full-width row that opens its edit form */
+.pantry-check-list{display:flex;flex-direction:column;gap:6px}.pantry-check-lot{width:100%;min-height:48px;text-align:left;background:transparent;border:1px solid var(--line);border-radius:12px;padding:8px 12px;color:inherit;display:flex;align-items:center;justify-content:space-between;gap:10px}.pantry-check-lot .item-label{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}.pantry-check-lot .hint{flex:none}.modal h3.section-mini{margin:14px 0 6px;font-size:max(calc(14px * var(--fs-mul,1)),var(--fs-floor,0px))}
