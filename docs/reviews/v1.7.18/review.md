@@ -91,3 +91,46 @@ Henry, 12 Nov 2026: *“Tôi nhớ lần trước rất nhiều loại lượng 
 - Unit chips keep the v1.5 unit line icons (not the shared art-kit style, and rule 27 says chips are words only). They were not changed in this release; replacing or dropping them is a separate screen-by-screen decision for Henry.
 - A family unit can be hidden but not renamed; a typed conversion is not edited from the sheet afterwards (a later purchase can still enter its own conversion).
 - Local runs, 12 Nov 2026 (Sydney, ~13:30–14:30 AEDT), commit on branch `agent-vv/unit-picker`: check, typecheck, `npm test`, test:unit-picker (3 consecutive passes), units, browser, recipe-ingredients, catalog, sync-merge, offline, journey, v176-fixes, v1712-fixes, v1712-flow, language, emoji-art, recipe-community, text-size browser suites — all OK. Full `test:all` and GitHub CI not run here.
+
+## 7. Receipts the app has not seen: send text + photo hints (owner, 12 Nov 2026: “Do everything in this round”)
+Plan `docs/plans/receipts-v1.7.19-20261112.md` — A and B moved into v1.7.18 (no version bump). C (AI reading of the photo) is not wanted and not built.
+
+### B. Photo quality hint (`src/frontend/receipt-quality.ts`) — nothing leaves the phone
+Right after a photo is read, ONE card appears in the receipt sheet when any of these hold, with the specific reason(s):
+- the lines read do not add up to the printed total / payment (difference ≥ $0.05) — “Các dòng đọc được còn thiếu $7.00 so với tổng in”;
+- the printed item count differs from the lines read;
+- reading confidence < 70% (“ảnh có thể mờ, tối hoặc nghiêng”);
+- no TOTAL / payment line;
+- the price column looks cut off (2+ item lines without a price, a clipped price filled from the total, or a priceless line with the crop frame ending before 90% of the photo width).
+
+What to do: “Chụp lại: để hoá đơn thẳng, đủ sáng, thấy cả cột giá và dòng TOTAL.” — **Chụp lại** (main action, new “camera” drawing; opens the camera / photo picker like “Chụp hoá đơn”) and **Vẫn dùng bản này** (words only; the card shrinks to one line in place, the page does not move — rule 24). Never blocks saving. Uses only what the reader already measures (difference, printed count, OCR confidence, crop frame).
+
+### A. “Gửi chữ hoá đơn để sửa cách đọc” (`src/frontend/receipt-share.ts`)
+- Shown at the end of the receipt sheet (secondary, words only) once the family changed anything the reader produced — a line name, price, amount, a removed / added line, the store, date or total — right after a photo, and on a saved receipt (its reading kept on this phone at save time, or its saved item text read again). EN: “Send the text so the app reads it better”.
+- Opens **Xem trước chữ sẽ gửi**: the text read from the photo with sensitive lines removed, the reader's lines next to the corrected lines (changes marked), store, retailer id, date, total, reading confidence, app build, language, and the exact JSON. No image. Offline: the send button is off and the sheet says so.
+- Removed **on the phone** before the preview (same rules again on the server): card / PAN / AID / ARQC / TVR / terminal / approval / bank / account / reference lines (`ReceiptParse.isSensitive` + extra rules), membership / loyalty numbers (“Goldstar 79354396400”), receipt / transaction / invoice numbers (“No: P2611070038”), staff names, people's mobile numbers and e-mail, long card-length digit runs. Kept: items (item codes on priced lines), totals, the shop's ABN, address and the shop phone printed after “Ph / Tel”.
+- **Gửi chữ đã che số** (main, new “send-text” drawing) posts only on the family's tap → toast “Đã gửi — cảm ơn, lần sau app đọc hoá đơn này tốt hơn. Mã: xxxxxx”; the sheet then says it was sent (also on the saved receipt).
+
+**Server** (`src/netlify/lib/receipt-reports.mts`, ops in `functions/feedback.mts`, store `bep-receipt-reports`):
+- `POST feedback?op=receipt-report` — account (session cookie) or device-only (the same random device token as in-app feedback); not tied to who sees the feedback ladybug. ≤ 40 KB (413), validated (400), 3 / minute and 20 / day per sender, 60 / day per network address (hashed) (429), same clientId stored once.
+- Kept: the redacted text (re-checked), read and corrected lines, store, retailer id, dates, total, build, language, confidence, warning codes, a read-vs-corrected diff, status, and a one-way sender key + “account yes/no”. Never a username, family, e-mail, IP address or photo.
+- Studio (owner / admin / moderator, CSRF on changes, audited): `studio-receipts` (list), `studio-receipt` (detail, no sender key), `studio-receipt-status` (mới / đã thêm test / bỏ qua), `studio-receipt-delete` (deletion on request — the family quotes the 6-character code).
+- Retention: 180 days, removed by the existing daily `feedback-cleanup` run (dedupe keys 30 days, rate counters 2 days).
+
+**Studio → Nội dung & cộng đồng → Hoá đơn gửi về** (`src/frontend/studio-receipts.ts`): list (received time in Sydney time, store, retailer id, receipt date, “đọc N dòng → sửa còn M · K dòng khác”, fields fixed), opening one shows the details, the read-vs-corrected diff (Sửa tên / Sửa giá / Sửa lượng / Gia đình thêm / Gia đình bỏ), the redacted text, status, **Tải chữ hoá đơn** (a ready fixture entry for `src/tests/fixtures/receipts.cts` with `expect` from the family's corrections) and delete.
+
+**Privacy page** (`dist/privacy.html`, VI + EN): new section 7a — what is sent, never the photo, which numbers are removed on the phone, stored in Australia without account / IP, kept 180 days, how to ask for deletion (the code). The hosting vendor is not named.
+
+### Evidence (Chromium viewport simulation — not physical devices)
+`docs/reviews/v1.7.18/receipt-feedback/`: hint card, send button, preview, sent toast, offline preview, Studio list + diff — at 320×740, 375×812, 820×1100 and 1280×800, VI light and EN dark (25 screenshots). The reader in the browser suite is a stand-in returning synthetic text so the reasons are exact; the real on-device reader is covered by `test:receipt-ocr:browser`. All receipts and numbers in tests are synthetic.
+
+### Tests
+- `tests/receipt-feedback.test.mjs` (in `npm test`): phone and server redaction (and every receipt fixture still reads to the same items and total after redaction), preview body / diff, hint reasons (balanced none; short, over, count, low confidence, no total, cut-off), the server op (device-only + account, once per clientId, 400 / 413 / 429, nothing private stored), Studio owner-only + CSRF + audit, 180-day cleanup.
+- `tests/receipt-feedback-browser.test.cjs` (new `test:receipt-feedback:browser`, in `test:all`): hint for a short receipt and none for a balanced one, “Chụp lại” opens the picker, “Vẫn dùng bản này” keeps the page still, correction → preview (no card / member / receipt / phone numbers, no image) → send to the real handler → toast, the preview's JSON equals what was posted, saved receipt, offline, Studio list / diff / status / fixture download; no overflow, ≥ 44 px, no emoji, drawings only on main buttons, sheet footer side by side, at 4 sizes VI / EN light / dark.
+- `test:studio-nav:browser` updated: the content group now lists `receipts`.
+- Local run, 12 Nov 2026 ~14:00–14:24 Sydney time, on this branch before commit: check, typecheck, `npm test` (incl. receipt-feedback: 8 groups), test:receipt-feedback:browser, test:receipt-ocr:browser, test:generic-receipts:browser, test:browser, test:studio-nav:browser, test:ladybug:browser, test:offline:browser, test:artwork:browser, test:emoji-art:browser — all OK. GitHub CI follows on push.
+
+### Limits
+- Browser viewport simulation only, not physical phones. The browser suite uses a stand-in reader; real photos were not used (none are committed).
+- Redaction is rule-based: an unusual layout could still carry a number the rules do not recognise; the preview shows the family exactly what goes, and the server repeats the check. The shop phone printed after “Ph / Tel” is kept as public shop information.
+- Turning a report into a fixture + test is still a developer step (download → add → run tests → mark “Đã thêm test”).
