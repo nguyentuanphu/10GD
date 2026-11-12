@@ -73,7 +73,7 @@ for(const lang of ['vi','en'])for(const mode of ['light','dark'])for(const [size
  assert.match(await page.locator('#main').innerText(),/3[.,]10/,`${label}: Spending shows the receipt`);
  // 5. Quick-add a new dish → its recipe page opens → saved, and the meal has it
  const tomorrow:string=await E('addDays(sydneyDate(),1)');await E(`view='planner';selectedDate=${JSON.stringify(tomorrow)};weekStart=planStartOf(state,${JSON.stringify(tomorrow)});render();familyEditMeal(${JSON.stringify(tomorrow)},'lunch')`);
- const dish=`Cá kho thử ${lang} ${mode} ${size}`;await page.locator('#quick-dish-name').fill(dish);await tap(page.locator('[data-fm="quick-add-dish"]'));await page.locator('#family-recipe-form').waitFor();
+ const dish=`Cá kho thử ${lang} ${mode} ${size}`;await page.locator('#quick-dish-name').fill(dish);/* v1.7.19 (A22): the family chooses the dish role */await page.selectOption('#quick-dish-cat','main');await tap(page.locator('[data-fm="quick-add-dish"]'));await page.locator('#family-recipe-form').waitFor();
  const r0=page.locator('#rc-ing-list .rc-ing-row').first();await r0.locator('.rc-ing-name-input').fill('Cá thu');await r0.locator('.rc-ing-qty').fill('400');await pickRcUnit(page,r0,'g');await check('new dish');await shot('10-new-dish');
  await tap(page.locator('[data-action="submit-form"][data-id="family-recipe-form"]'));await page.waitForFunction(()=>!document.querySelector('#family-recipe-form'));
  assert.equal(await E(`currentWeek().days[${JSON.stringify(tomorrow)}]?.lunch.recipes.find(r=>r.name===${JSON.stringify(dish)})?.ingredients.length`),1,`${label}: the new dish is in the meal with its ingredient`);

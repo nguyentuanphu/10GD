@@ -165,7 +165,7 @@ function undoCook(state,meal){undoCookAhead(state,meal);for(const item of meal.c
 // once, for this meal and those portions; the dish in the later meal is marked cooked ahead (no second deduction, not on the
 // shopping list), and a later meal whose every dish was cooked ahead counts as cooked. Undo gives everything back.
 const COOK_AHEAD_DAYS=3,COOK_AHEAD_ORDER=['breakfast','snackAm','lunch','snack','dinner'];
-function mealAt(state,date,type){for(const w of Object.values(state.weeks||{})){const m=(w as any)?.days?.[date]?.[type];if(m)return m}return null}
+function mealAt(state,date,type){const own=state.weeks?.[monday(date)]?.days?.[date]?.[type];if(own)return own;for(const w of Object.values(state.weeks||{})){const m=(w as any)?.days?.[date]?.[type];if(m)return m}return null}
 function cookAheadCandidates(state,date,type){const src=mealAt(state,date,type);if(!src||src.cooked)return [];const ids=new Set(src.recipes.filter(r=>!r.cookedAhead&&!r.batchId).map(r=>r.id));if(!ids.size)return [];const out=[];
  for(let i=0;i<=COOK_AHEAD_DAYS;i++){const d=addDays(date,i);for(const t of COOK_AHEAD_ORDER){if(i===0&&COOK_AHEAD_ORDER.indexOf(t)<=COOK_AHEAD_ORDER.indexOf(type))continue;const m=mealAt(state,d,t);if(!m||m.cooked||m===src)continue;const shared=m.recipes.filter(r=>ids.has(r.id)&&!r.cookedAhead&&!r.batchId);if(shared.length&&mealServings(m,state)>0)out.push({date:d,type:t,recipeIds:[...new Set(shared.map(r=>r.id))],names:[...new Set(shared.map(r=>r.name))]})}}return out}
 function dishNeeds(meal,state,dishes){const out={};for(const r of dishes)addDishIngredients(out,meal,state,r);return roundNeeds(out)}
@@ -186,7 +186,7 @@ function validImport(s){if(!s||typeof s!=='object')return false;if(!validCatalog
 // still accept a state at seedVersion 7 (stateEdition is not above their APP_EDITION).
 const APP_EDITION=7,CATALOG_EDITION=7;
 function stateEdition(s){return Math.max(Number.isInteger(s?.appEdition)?s.appEdition:0,Number.isInteger(s?.seedVersion)?s.seedVersion:0)}
-function validCatalogMarkers(s){return (s.appEdition===undefined||Number.isInteger(s.appEdition)&&s.appEdition>=1&&s.appEdition<=1000)&&(s.deletedRecipeIds===undefined||Array.isArray(s.deletedRecipeIds)&&s.deletedRecipeIds.length<=5000&&s.deletedRecipeIds.every(id=>typeof id==='string'&&id.length>0&&id.length<=100))}
+function validCatalogMarkers(s){return (s.appEdition===undefined||Number.isInteger(s.appEdition)&&s.appEdition>=1&&s.appEdition<=1000)&&(s.deletedRecipeIds===undefined||Array.isArray(s.deletedRecipeIds)&&s.deletedRecipeIds.length<=5000&&s.deletedRecipeIds.every(id=>typeof id==='string'&&id.length>0&&id.length<=100))&&(s.hiddenRecipeIds===undefined||Array.isArray(s.hiddenRecipeIds)&&s.hiddenRecipeIds.length<=5000&&s.hiddenRecipeIds.every(id=>typeof id==='string'&&id.length>0&&id.length<=100))}
 // Built-in ingredient ids introduced by a newer edition are kept as-is (never dropped) and given a neutral placeholder
 // so this client can read the state until it reloads into the newer code. Names/prices are not invented.
 const FUTURE_INGREDIENT_ID=/^[a-z][a-zA-Z0-9]{1,40}$/;
@@ -216,10 +216,27 @@ function retireReferenceRecipes(s){if(!s||!Array.isArray(s.recipes)||typeof RETI
  const removed=[],keep=[];for(const r of s.recipes){if(r&&RETIRED_REFERENCE_IDS.has(r.id)&&!r.custom&&!r.favorite&&!r.photo&&r.origin!=='family'&&!used.has(r.id))removed.push(r.id);else keep.push(r)}
  if(removed.length){s.recipes=keep;mergeDeletedRecipeIds(s,removed)}return removed.length}
 // Add the reference collection once; preserve authored edits, menus and deliberate deletions (tombstones) afterwards.
-function upgradeReferenceCatalog(s,knownDeleted){if(!s||!Array.isArray(s.recipes))return 0;mergeDeletedRecipeIds(s,knownDeleted);if(typeof repairArtworkReferenceState==='function')repairArtworkReferenceState(s);const version=s.seedVersion||1;let added=0;if(version<5){const ids=new Set(s.recipes.map(r=>r.id)),gone=new Set(s.deletedRecipeIds||[]);for(const[edition,recipes]of [[4,WESTERN_HEALTHY_RECIPES],[5,PLANT_RECIPES]])if(version<edition)for(const r of recipes)if(!ids.has(r.id)&&!gone.has(r.id)){s.recipes.push(clone(r));ids.add(r.id);added++}s.seedVersion=5}if((s.seedVersion||1)<CATALOG_EDITION&&typeof RETIRED_REFERENCE_IDS!=='undefined'){retireReferenceRecipes(s);s.seedVersion=CATALOG_EDITION}recordDeletedReferenceRecipes(s);if(!(s.appEdition>=APP_EDITION))s.appEdition=APP_EDITION;return added}
+function upgradeReferenceCatalog(s,knownDeleted){if(!s||!Array.isArray(s.recipes))return 0;mergeDeletedRecipeIds(s,knownDeleted);if(typeof repairArtworkReferenceState==='function')repairArtworkReferenceState(s);const version=s.seedVersion||1;let added=0;if(version<5){const ids=new Set(s.recipes.map(r=>r.id)),gone=new Set(s.deletedRecipeIds||[]);for(const[edition,recipes]of [[4,WESTERN_HEALTHY_RECIPES],[5,PLANT_RECIPES]])if(version<edition)for(const r of recipes)if(!ids.has(r.id)&&!gone.has(r.id)){s.recipes.push(clone(r));ids.add(r.id);added++}s.seedVersion=5}if((s.seedVersion||1)<CATALOG_EDITION&&typeof RETIRED_REFERENCE_IDS!=='undefined'){retireReferenceRecipes(s);s.seedVersion=CATALOG_EDITION}recordDeletedReferenceRecipes(s);if(typeof mergeGhostWeeks==='function')mergeGhostWeeks(s);if(!(s.appEdition>=APP_EDITION))s.appEdition=APP_EDITION;return added}
 
 // The menu week starting at `start`: the stored week itself when it starts on Monday; otherwise a view whose `days` are the
 // 7 stored day objects (edits change the stored days) and whose other fields (extras, bought marks…) are those of the week
 // holding the first day. Nothing new is written by building the view.
 function planWeek(state,start){if(monday(start)===start)return ensureWeek(state,start);const dates=[0,1,2,3,4,5,6].map(i=>addDays(start,i)),anchor=ensureWeek(state,monday(start)),second=ensureWeek(state,monday(dates[6]));if(anchor.familyMode&&!second.familyMode)second.familyMode=true;const days={};for(const d of dates)days[d]=ensureWeek(state,monday(d)).days[d];
  return new Proxy(anchor,{get(t,k){return k==='days'?days:k==='__planStart'?start:t[k]},set(t,k,v){if(k==='days')return true;t[k]=v;return true}})}
+// v1.7.19 (audit B1/B2/C8; owner, 12 Nov 2026: each family chooses the first day of its week because each shops on a different
+// day — never assume Monday). One accessor per job: a day is read and written in the stored week of its Monday (dayAt); the bought
+// marks, extras and other fields of the menu week holding `date` live in the stored week keyed menuWeekKey (what planWeek and
+// currentWeek() use). planStartOf only places the 7-day window on screen; it is never a storage key.
+function dayAt(state,date){return ensureWeek(state,monday(date)).days[date]}
+function menuWeekKey(state,date){return monday(planStartOf(state,date))}
+// Earlier releases wrote guests, leftovers and some plans into a second stored copy keyed by the menu week's first day when that
+// day was not Monday. Fold each copy back into the Monday-keyed days, keeping what the family entered there, then drop the copy.
+function mergeGhostWeeks(state){if(!state?.weeks||typeof state.weeks!=='object')return 0;let n=0;
+ for(const key of Object.keys(state.weeks)){if(!/^\d{4}-\d{2}-\d{2}$/.test(key)||monday(key)===key)continue;const g=state.weeks[key];delete state.weeks[key];n++;if(!g||typeof g!=='object')continue;
+  for(const[date,gday]of Object.entries(g.days||{})){if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!gday||typeof gday!=='object')continue;const day=dayAt(state,date);if(!day)continue;
+   for(const[t,gm]of Object.entries(gday as any)as any[]){if(!gm||typeof gm!=='object'||!Array.isArray(gm.recipes))continue;const m=day[t];if(!m){day[t]=gm;continue}
+    const have=new Set(guestGroups(m).map(x=>JSON.stringify(x)));for(const x of guestGroups(gm)){const j=JSON.stringify(x);if(!have.has(j)){m.guests=[...guestGroups(m),x];have.add(j)}}
+    if(m.cooked)continue;if(!m.recipes.length&&g.familyMode&&gm.recipes.length){m.recipes=gm.recipes;continue}
+    for(const r of gm.recipes)if(r?.fromLeftover&&!m.recipes.some(x=>x.id===r.id&&x.fromLeftover))m.recipes.push(r)}}
+  const anchor=ensureWeek(state,monday(key));if(Array.isArray(g.extras))for(const e of g.extras)if(e?.id&&!anchor.extras.some(x=>x.id===e.id))anchor.extras.push(e)}
+ return n}

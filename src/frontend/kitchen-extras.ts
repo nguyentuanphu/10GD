@@ -15,7 +15,7 @@ const ingLabel=(id:string)=>typeof shopIngName==='function'?shopIngName(id):(ING
 const signIn=()=>`<p class="hint">${kT('Cần tài khoản gia đình.','Needs a family account.')} <a href="/login">${kT('Đăng nhập','Sign in')}</a></p>`;
 
 // ── 1. recipe import ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-const UNIT:Record<string,[string,number]>={g:['g',1],gr:['g',1],gram:['g',1],grams:['g',1],gam:['g',1],kg:['g',1000],kgs:['g',1000],kilo:['g',1000],ml:['ml',1],l:['ml',1000],litre:['ml',1000],liter:['ml',1000],litres:['ml',1000],liters:['ml',1000],lít:['ml',1000],tbsp:['ml',15],tablespoon:['ml',15],tablespoons:['ml',15],tsp:['ml',5],teaspoon:['ml',5],teaspoons:['ml',5],cup:['ml',250],cups:['ml',250],quả:['quả',1],trái:['quả',1],lạng:['g',100],each:['quả',1],pc:['quả',1],pcs:['quả',1],piece:['quả',1],pieces:['quả',1],whole:['quả',1],large:['quả',1],medium:['quả',1],small:['quả',1]};
+const UNIT:Record<string,[string,number]>={g:['g',1],gr:['g',1],gram:['g',1],grams:['g',1],gam:['g',1],kg:['g',1000],kgs:['g',1000],kilo:['g',1000],ml:['ml',1],l:['ml',1000],litre:['ml',1000],liter:['ml',1000],litres:['ml',1000],liters:['ml',1000],lít:['ml',1000],tbsp:['muỗng canh',1],tablespoon:['muỗng canh',1],tablespoons:['muỗng canh',1],tsp:['muỗng cà phê',1],teaspoon:['muỗng cà phê',1],teaspoons:['muỗng cà phê',1],quả:['quả',1],trái:['quả',1],lạng:['g',100],each:['quả',1],pc:['quả',1],pcs:['quả',1],piece:['quả',1],pieces:['quả',1],whole:['quả',1],large:['quả',1],medium:['quả',1],small:['quả',1]};
 const FRAC:Record<string,number>={'½':.5,'¼':.25,'¾':.75,'⅓':1/3,'⅔':2/3,'⅛':.125};
 // v1.7.16: many Vietnamese pages write “Tên: lượng” (“Hành tím: 25g”, “Bò tái:1,2kg”, “Chanh: 1 quả”); turn that into the usual
 // “lượng đơn vị tên” first, so it is read the same way (exact names only, amounts as written — never guessed)
@@ -28,26 +28,35 @@ function importLine(raw:string){const line=importCanon(raw);const m=line.match(/
  if(!(q>0))return null;let unitWord=(m[2]||'').toLowerCase().replace(/\.$/,''),rest=m[3];if(unitWord&&!UNIT[unitWord]){rest=m[2]+' '+rest;unitWord=''}
  const name=rest.replace(/\(.*?\)/g,' ').split(/,| - | – /)[0].replace(/\b(of|fresh|chopped|sliced|diced|minced|finely|roughly)\b/gi,' ').replace(/\s+/g,' ').trim();if(!name)return null;
  // an exact name or alias only (a near match is left for the family to choose — never a wrong ingredient)
+ // v1.7.19 (audit B11): spoons are kept as written in the Viết món unit, exactly like a line the family types (never turned into ml)
+ if(unitWord&&UNIT[unitWord]&&IMPORT_AS_WRITTEN.includes(UNIT[unitWord][0]))return{name,qty:Math.round(q*100)/100,unit:UNIT[unitWord][0]};
  const exact=typeof voiceExactIngredient==='function'?voiceExactIngredient(name,state):'';const guess:any=typeof inferIngredient==='function'?inferIngredient(name,state):null;
  // v1.7.16 (owner, 8 Nov 2026: “nhiều chỗ đọc định lượng không đúng”): a spoken alias is not enough for a recipe page — “Hành tím”
  // became Hành tây and “Húng quế” + “Ngò rí” were added up as Rau thơm. The ingredient's own name (VI or EN) must be in the line
  // (“pork belly” → Thịt heo / Pork, “Thịt heo ba chỉ” → Thịt heo); a match the family taught the app still counts.
  const id=guess?.confidence==='learned'&&INGREDIENTS[guess.match]?guess.match:[exact,guess?.confidence==='name'?guess.match:''].find(x=>x&&INGREDIENTS[x]&&nameFits(x,name))||'';if(!id)return null;
  const base=INGREDIENTS[id][1];const u=unitWord?UNIT[unitWord]:['quả',1];if(!u||u[0]!==base)return null;const qty=Math.round(q*u[1]*100)/100;return qty>0&&qty<1e6?{id,qty}:null}
-function recipeFromImport(r:any){const ings:any[]=[],missing:string[]=[];for(const line of r.ingredients||[]){const hit=importLine(line);if(hit){const same=ings.find(x=>x.id===hit.id);if(same)same.qty=Math.round((same.qty+hit.qty)*100)/100;else ings.push(hit)}else missing.push(String(line).slice(0,200))}
- const servings=r.servings>0&&r.servings<=50?Math.round(r.servings):4;
- return{id:'imp-'+Math.random().toString(36).slice(2,10),name:String(r.name).slice(0,150),category:'main',protein:'mixed',time:r.time>0&&r.time<=600?Math.round(r.time):30,servings,yield:servings,purposes:typeof defaultPurposesForCategory==='function'?defaultPurposesForCategory('main'):['dinner'],
-  ingredients:ings,missingIngredients:missing,prep:'',steps:(r.steps||[]).map((s:any)=>String(s).slice(0,500)).slice(0,40),custom:true,origin:'family',favorite:false,source:typeof r.source==='string'?r.source.slice(0,500):undefined}}
+const IMPORT_AS_WRITTEN=['muỗng canh','muỗng cà phê'];
+// v1.7.19 (audit B23 / B11): an imported page becomes a draft in Viết món, not a saved recipe. Its lines are written the way the
+// family would type them (“Thịt heo | 500 | g”, “fish sauce | 2 | muỗng canh”), so the Viết món save applies one rule to every
+// way a recipe is entered; lines the app cannot match stay as written for the family. Dish type, protein and servings are left
+// for the family when the page does not say (never main / mixed / 4 by default).
+function recipeFromImport(r:any){const ings:any[]=[],missing:string[]=[],lines:string[]=[];const asNote=(line:string)=>{const p=typeof rcParseLine==='function'?rcParseLine(line):null;return p&&String(p.qty??'').trim()?`${p.name} | ${p.qty} | ${p.unit||''} | note`:line};
+ for(const raw of r.ingredients||[]){const line=String(raw).slice(0,200),hit:any=importLine(line);if(hit?.id){const same=ings.find(x=>x.id===hit.id);if(same)same.qty=Math.round((same.qty+hit.qty)*100)/100;else ings.push(hit)}else if(hit?.unit){lines.push(`${hit.name.replace(/\|/g,' ')} | ${hit.qty} | ${hit.unit}`)}else{missing.push(line);lines.push(asNote(line))}}
+ const servings=r.servings>0&&r.servings<=50?Math.round(r.servings):null;
+ return{id:'',name:String(r.name).slice(0,150),time:r.time>0&&r.time<=600?Math.round(r.time):30,servings:servings??undefined,yield:servings??undefined,purposes:[],
+  ingredients:ings,missingIngredients:missing,formLines:ings.map(i=>`${INGREDIENTS[i.id][0]} | ${+(+i.qty).toFixed(3)} | ${INGREDIENTS[i.id][1]}`).concat(lines),prep:'',steps:(r.steps||[]).map((s:any)=>String(s).slice(0,500)).slice(0,40),custom:true,origin:'family',favorite:false,source:typeof r.source==='string'?r.source.slice(0,500):undefined}}
 function importSheet(msg=''){modal(kT('Nhập món từ link','Import a recipe from a link'),account()?`<p class="hint">${kT('Dán link trang công thức (ví dụ một trang nấu ăn). App đọc tên món, nguyên liệu, các bước, khẩu phần và thời gian; món mở ra trong Viết món để bạn xem lại trước khi dùng.','Paste a recipe page link. The app reads the name, ingredients, steps, servings and time; the dish opens in Write recipe for you to check.')}</p>
   <label class="field"><span>${kT('Link trang công thức','Recipe page link')}</span><input id="kimp-url" type="url" inputmode="url" autocomplete="off" placeholder="https://…"></label><p class="hint" id="kimp-status" role="status" aria-live="polite">${esc(msg)}</p>
   <p class="hint">${kT('Nguyên liệu app chưa ghép được sẽ giữ nguyên chữ, đánh dấu “chưa ghép” để bạn chọn; app không tự đoán định lượng.','Ingredients the app cannot match stay as written, marked “not matched” for you to choose; amounts are never guessed.')}</p>`:signIn(),
   `<button class="btn" type="button" data-action="close-modal">${kT('Đóng','Close')}</button>${account()?`<button class="btn primary" type="button" data-kx="import-go">${kT('Nhập món','Import')}</button>`:''}`);(document.getElementById('kimp-url') as HTMLInputElement|null)?.focus()}
+// Opens the imported draft in Viết món; nothing is saved until the family taps Lưu.
+async function importOpenDraft(rec:any){await Promise.resolve(familyRecipeEditor(undefined,rec));toast(kT(`Đã đọc “${rec.name}”: ${rec.ingredients.length} nguyên liệu ghép được, ${rec.missingIngredients.length} dòng chưa ghép. Xem lại rồi bấm Lưu.`,`Read “${rec.name}”: ${rec.ingredients.length} ingredients matched, ${rec.missingIngredients.length} lines to match. Check it, then tap Save.`))}
 async function importGo(){const input=document.getElementById('kimp-url') as HTMLInputElement|null,st=document.getElementById('kimp-status');const url=(input?.value||'').trim();if(!/^https?:\/\//i.test(url)){if(st)st.textContent=kT('Dán link bắt đầu bằng https://','Paste a link starting with https://');return}
  if(!navigator.onLine){if(st)st.textContent=kT('Cần mạng để mở trang này.','Needs internet to open the page.');return}if(st)st.textContent=kT('Đang đọc trang…','Reading the page…');
  try{const res=await fetch('/.netlify/functions/family?op=recipe-import',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});const data=await res.json().catch(()=>({}));
   if(!res.ok||!data.recipe){if(st)st.textContent=kT(data.error||'Chưa nhập được món này.',data.errorEn||'Could not import this recipe.');return}
-  const rec=recipeFromImport(data.recipe);state.recipes.unshift(rec);save(kT(`Đã nhập “${rec.name}”: ${rec.ingredients.length} nguyên liệu ghép được, ${rec.missingIngredients.length} dòng chưa ghép.`,`Imported “${rec.name}”: ${rec.ingredients.length} ingredients matched, ${rec.missingIngredients.length} lines to match.`));
-  closeModal();render();setTimeout(()=>familyRecipeEditor(rec.id),0)}catch{if(st)st.textContent=kT('Chưa nhập được. Kiểm tra mạng rồi thử lại.','Could not import. Check the connection and try again.')}}
+  const rec=recipeFromImport(data.recipe);closeModal();await importOpenDraft(rec)}catch{if(st)st.textContent=kT('Chưa nhập được. Kiểm tra mạng rồi thử lại.','Could not import. Check the connection and try again.')}}
 
 // ── 2. barcode into the pantry ───────────────────────────────────────────────────────────────────────────────────────────────────
 let scanStream:MediaStream|null=null,scanTimer:any=null,scanBusy=false;
@@ -117,5 +126,5 @@ const close0=typeof closeModal==='function'?closeModal:null;if(close0){closeModa
 const feats=(globalThis as any).APP_FEATURES;if(Array.isArray(feats)){const at=feats.findIndex((f:any)=>f.id==='receipt');feats.splice(at<0?feats.length:at,0,
  {id:'import',art:'link-in',vi:'Nhập món từ link',en:'Import a recipe from a link',dvi:'Dán link trang công thức; app đọc nguyên liệu và các bước, mở ra để bạn xem lại.',den:'Paste a recipe page link; the app reads the ingredients and steps and opens it for you to check.',kw:'nhap mon tu link import recipe url trang web cong thuc',go:()=>{location.hash='recipes';setTimeout(importSheet,80)}},
  {id:'barcode',art:'barcode',vi:'Quét mã vạch vào tủ',en:'Scan a barcode into the pantry',dvi:'Quét mã trên bao bì để thêm đồ vào tủ; app nhớ mã nhà mình đã ghép.',den:'Scan the code on a pack to add it to the pantry; the app remembers codes your family matched.',kw:'quet ma vach barcode scan tu do pantry',go:()=>{location.hash='pantry';setTimeout(scanSheet,80)}})}
-(globalThis as any).KitchenExtras={importLine,recipeFromImport,importSheet,scanSheet,gotCode,parseQuantity,stepTimers,timerDone};
+(globalThis as any).KitchenExtras={importLine,recipeFromImport,importOpenDraft,importSheet,scanSheet,gotCode,parseQuantity,stepTimers,timerDone};
 })();

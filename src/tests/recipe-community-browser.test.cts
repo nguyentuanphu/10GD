@@ -103,10 +103,11 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   await tap(page.locator('[data-action="submit-form"][data-id="family-recipe-form"]'));await waitModalGone(page);await page.waitForFunction(()=>!!state.recipes.find((x:any)=>x.name==='Gà kho gừng QA')?.photo,null,{timeout:5000}).catch(()=>{});
   const saved=await page.evaluate(()=>{const r=state.recipes.find((x:any)=>x.name==='Gà kho gừng QA');return{ing:r.ingredients,named:r.ingredients.map((i:any)=>[INGREDIENTS[i.id][0],i.qty,INGREDIENTS[i.id][1]]),missing:r.missingIngredients,photo:r.photo?.key}});
   // v1.7.5: ticked rows are all counted — catalogue units converted exactly (0,5 kg → 500 g), kitchen units as written
-  assert.deepEqual(saved.named.map((x:any)=>x[0]),['Thịt gà','Nước mắm','Tỏi','Hành lá'],'every ticked row counted in the family’s order');
-  assert.deepEqual(saved.named.slice(1,3),[['Nước mắm',2,'muỗng canh'],['Tỏi',3,'tép']],'kitchen units kept as written, never converted to grams');
+  // v1.7.19 owner decision (12 Nov 2026, pop-up): spoon and bowl amounts are notes, never bought — “Nước mắm 2 muỗng canh” stays in the recipe as written
+  assert.deepEqual(saved.named.map((x:any)=>x[0]),['Thịt gà','Tỏi','Hành lá'],'every ticked row counted in the family’s order, spoon amounts as notes');
+  assert.deepEqual(saved.named.slice(1,2),[['Tỏi',3,'tép']],'kitchen units kept as written, never converted to grams');assert.ok(saved.missing.includes('Nước mắm 2 muỗng canh'),'the spoon line kept as written '+JSON.stringify(saved.missing));
   assert.deepEqual(saved.ing[0],{id:'chicken',qty:500},'catalogue ingredient counted (0,5 kg → 500 g)');
-  assert.deepEqual(saved.missing,[],'nothing left as a note while every row is ticked');
+  assert.deepEqual(saved.missing,['Nước mắm 2 muỗng canh'],'only the spoon line is a note (owner decision, 12 Nov 2026); every other ticked row is counted');
   assert.match(saved.photo,/^recipe-/);
   const blob=await page.evaluate(async(k:string)=>{const v:any=await localPhoto(k);return v?{size:v.blob.size,type:v.blob.type,uploaded:v.uploaded}:null},saved.photo);assert.ok(blob&&blob.size>1000&&blob.type==='image/jpeg'&&blob.uploaded===false,'photo stored on the device '+JSON.stringify(blob));
   await page.waitForFunction(()=>[...document.querySelectorAll('img.rc-recipe-photo')].some((i:any)=>i.src.startsWith('blob:')&&!i.hidden));

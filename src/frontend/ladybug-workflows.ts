@@ -11,7 +11,7 @@
  const ing=(id:string)=>(INGREDIENTS as any)[id];
  const idOf=(...names:string[])=>{for(const n of names){const id=Object.keys(INGREDIENTS).find(x=>String(ing(x)[0]).toLowerCase()===n.toLowerCase());if(id)return id}return ''};
  const tomorrow=()=>addDays(sydneyDate(),1);
- const weekOf=(d:string)=>ensureWeek(state,planStartOf(state,d));
+ const weekOf=(d:string)=>planWeek(state,planStartOf(state,d));
  const mealOf=(d:string,t:string)=>weekOf(d).days[d]?.[t];
  const need=(id:string,start:string,end:string)=>{const w=weekOf(start);const row=shopping(state,w,start,end).find((r:any)=>r.id===id&&!r.skip);return row?(+row.need||+row.qty||+row.toBuy||0):0};
  const toBuy=(start:string,end:string)=>shopping(state,weekOf(start),start,end).filter((r:any)=>shoppingHasAmount(r)&&!r.skip);
@@ -148,7 +148,7 @@
   await part(aT('Nhập món từ link','Import from the link'),async()=>{await go('recipes');await tap('#main [data-kx="import-open"]');await type('#modal-root #kimp-url','https://vi-du.example/pho-bo');await tap('#modal-root [data-kx="import-go"]');await waitFor('#family-recipe-form')});
   await part(aT('Ghép “Bò tái” với Thịt bò, cộng vào đi chợ','Match “Bò tái” to Beef, add to shopping'),async()=>{const li=[...document.querySelectorAll('#family-recipe-form .rc-ing-row')].find(l=>(l.querySelector('.rc-ing-name-input') as HTMLInputElement).value==='Bò tái') as HTMLElement;expect(li,aT('Không có dòng “Bò tái”.','No “Bò tái” line.'));
    setVal(li.querySelector('.rc-ing-name-input'),String(ing(beef)[0]));setVal(li.querySelector('.rc-ing-qty'),'1200');setVal(li.querySelector('.rc-ing-unit'),'g');const sh=li.querySelector('.rc-ing-shop-input') as HTMLInputElement;if(!sh.checked)sh.click();await sleep(100)});
-  await part(aT('Lưu món','Save the dish'),async()=>{await submit('family-recipe-form');await waitGone('#family-recipe-form',6000);r=state.recipes.find((x:any)=>x.name==='Phở bò thử');expect(r?.ingredients?.some((i:any)=>i.id===beef&&i.qty===1200),aT(`Món không có 1200 g thịt bò: ${JSON.stringify(r?.ingredients)}`,`No 1200 g beef: ${JSON.stringify(r?.ingredients)}`))});
+  await part(aT('Lưu món','Save the dish'),async()=>{/* v1.7.19 (B23): an imported page leaves the dish type, protein and servings it does not give for the family */const f=document.querySelector('#family-recipe-form') as any;if(f&&!f.category.value)await pick('#family-recipe-form [name="category"]','noodle');if(f&&!f.protein.value)await pick('#family-recipe-form [name="protein"]','beef');if(f&&!f.yield.value)setVal(f.yield,'4');await submit('family-recipe-form');await waitGone('#family-recipe-form',6000);r=state.recipes.find((x:any)=>x.name==='Phở bò thử');expect(r?.ingredients?.some((i:any)=>i.id===beef&&i.qty===1200),aT(`Món không có 1200 g thịt bò: ${JSON.stringify(r?.ingredients)}`,`No 1200 g beef: ${JSON.stringify(r?.ingredients)}`))});
   const d=tomorrow();await part(aT('Xếp vào bữa trưa mai','Put it on tomorrow’s lunch'),async()=>{const t=mealOf(d,'lunch')?'lunch':'dinner';await addToMeal(d,t,r)});
   await part(aT('Đi chợ có thịt bò đúng lượng','Shopping has the beef'),async()=>{const t=mealOf(d,'lunch')?.recipes?.some((x:any)=>x.id===r.id)?'lunch':'dinner',m=mealOf(d,t),want=1200*mealServings(m,state)/familyYield(r);expect(need(beef,d,d)+0.6>=want,aT(`Thịt bò: cần ${Math.round(want)} g, danh sách ${Math.round(need(beef,d,d))} g.`,`Beef ${need(beef,d,d)} of ${want}.`))})});
 

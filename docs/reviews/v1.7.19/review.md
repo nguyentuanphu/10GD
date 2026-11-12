@@ -309,3 +309,59 @@ Owner decision, 12 Nov 2026 (Sydney time), pop-up “Làm đủ 4 ý, gộp v1.7
 4. Early breakfast: “Để tuỳ chọn” — “Không nhắc nấu trước” in Giờ ăn, starting at 08:00, used by the app and the server. Done.
 5. Studio reminder line and guest calendar: unchanged (no privacy or data change).
 6. Thaw for meals without a time: kept (the trigger is the freezer item).
+
+## Audit fixes — weeks, dishes and recipes, pantry entry, empty states
+
+Branch `agent-w3/fixes` (from 016f9ed). Henry, 12 Nov 2026: the first day of the week is a family choice; never assume Monday.
+Weeks stay stored under their Monday. New accessors in `core.ts`: `dayAt(state,date)` (a day, always in its Monday-keyed week) and
+`menuWeekKey(state,date)` (the stored week that holds the bought marks / extras of the family's menu week, as `planWeek` uses).
+`planStartOf` only places the 7-day window. `mealAt` now reads the Monday-keyed day first. `mergeGhostWeeks` (run in
+`upgradeReferenceCatalog`, i.e. on every load and sync load) folds the hidden copies earlier releases wrote back into the real days
+(guests, served leftovers, plans made only in the copy, list lines), then removes them; running it again changes nothing.
+
+| Finding | What changed | Test |
+|---|---|---|
+| B1 | Guest sheet, guest save loop, next meal, guest meal types, upcoming guests (`family-menu-ui.ts`), next meal, RSVP guests, leftover serve, upcoming (`family-flow.ts`) use `dayAt`. Ghost weeks merged on load. | week-start.test (Sat/Sun/Mon), v1719 browser (guest sheet, Sat and Sun) |
+| B2 + sweep | Search reads `weeks[monday(d)]`; receipt matching / receipt weeks use `menuWeekKey` / `planWeek` (deduped by stored week); voice undo (`voice-commands.ts`, `personal-ui.ts`) stores the stored key. Sweep also fixed: “Nấu mỗi bữa” planning wrote into a hidden Saturday copy (`personal-core.ts` → `planWeek`); sync load created a ghost (`family-features.ts:47`); “Nhờ mua thêm” put the line in the wrong menu week for Mon–Fri dates of a Sat-start week (`push-ui.ts`); after voice / errand the view jumped to a Monday week; setup preview; ladybug workflow `weekOf`; “Tuần này ai bận” labels use the family week. | week-start.test, v1719 (search Sat/Sun, voice undo EN) |
+| C8 | Reconcile undo record keeps `weekKey` (Monday of the menu-week start); older records are read through their Monday. | week-start.test (Sat/Sun/Mon, old record) |
+| A7 | Đi chợ with no dish planned in the range: “Chưa có món nào trong thực đơn những ngày này” + “Mở Thực đơn tuần”. “Đã đủ” only when meals exist. | v1719 |
+| A16 | Tủ stat cards and the “cần dùng sớm” count use the lots the list shows. | v1719 |
+| A13 | Dish × and “Bỏ hết món” show an undo bar (dish back in its place, typed dishes included); the page stays still (these buttons opt out of the generic hold, whose selector cannot tell one meal's dishes apart). | v1719 (scroll checked) |
+| A14 | Dish sheet: library-only buttons only for library dishes; a typed meal-only dish gets “Sửa và lưu vào kho món” (saves it with the same id, opens Viết món); “Chế độ nấu” only when the dish has steps; “Xóa khỏi kho” no longer claims success when nothing was deleted; add-to-meal errors are specific. | v1719 |
+| B14 | “Chế độ nấu” gets the meal (date/type), uses the meal's dish and shows the same scaled ingredient list and portions as the dish sheet. | v1719 (text equal to the sheet) |
+| A15 / B10 / C25 | One rule `pantryLotDefaults(state,id)` (place from `suggestStorePlace`, use-by from `suggestUseBy`). Tủ “Thêm thực phẩm”: no ingredient or place preselected; choosing one fills place and use-by (editable); counted units step by ¼; wrong amount / no ingredient says why; `storedOn` set. Voice “còn N …” adjusts existing lots (use first reduced first, more → a new lot with the shared suggestion), keeps use-by and buying units; lots in another unit → asks to edit in Tủ; undo restores the lots. | v1719 |
+| A21 | “Thêm vào bữa ăn” lists every meal (incl. Bữa phụ sáng / chiều); preselects the meal it came from, else the dish's own meal tags, else “— Chọn bữa”. | v1719 |
+| A22 | “Vai trò món” starts empty; suggested only from the typed name (canh/soup, phở/bún/mì, rau/gỏi, chè) or a known dish; asks when empty. | v1719 |
+| A23 | Staples-only pantry: the card explains instead of offering an empty sheet; an empty suggestion sheet explains and links to Tủ / Kho món (links close the sheet). | v1719 |
+| A24 | “Người nhờ mua” uses the linked member, “Ai đang dùng máy này?” or the reminder profile; otherwise “— Chọn người nhờ mua”, required. | v1719 (helper) |
+| A19 | Giá → “Lưu từ hóa đơn” with no lines explains and offers “Chụp / nhập hóa đơn”. | v1719 |
+| A20 | One label “Chụp / nhập hóa đơn”; the aside button only shows when receipts exist. | v1719 |
+| B23 | Import from a link opens Viết món as an unsaved draft (title “Xem lại món trước khi lưu”); dish type, protein and servings the page does not give are left to choose; saved only on Lưu, with its source. | v1719, v1715 and v1716 updated |
+| B11 | One rule = the Viết món save. Import writes lines as the family would type them; tbsp / tsp become “muỗng canh / muỗng cà phê” as written (never 15 / 5 ml; cup is kept as words); dictation writes Viết món units (muỗng canh, tép, củ…) as structured lines instead of notes. No quantity is invented. | v1719, v1715 |
+
+Quick add in journey, v176-fixes and authenticated-startup now chooses the dish role (A22). Tests that asserted the old behaviour and were changed to the correct one: v1715 (import saved before review, “2 tbsp” → 30 ml fish sauce), v1716 (read the auto-saved import), and the ladybug import workflow now picks the dish type / protein as the family would.
+
+Owner decisions, 12 Nov 2026 (pop-up), applied in this branch:
+
+- **Spoon and bowl amounts** — “Chỉ ghi chú, không mua — và vẫn báo là còn trong tủ hay không”. A line in muỗng canh, muỗng cà phê, muỗng, chén, bát, cốc, cup, tbsp, tsp… is kept in the recipe as written and is never added to Đi chợ or taken from the pantry, for Viết món, a page import, dictation and recipes saved earlier (a family ingredient counted in muỗng canh is filtered out of the meal and batch needs). The dish sheet and a card on Đi chợ (“Gia vị theo muỗng, chén”) say “còn trong tủ” or “hết trong tủ · nhớ mua 1 chai/gói…” — the family's remembered buying unit, else the usual unit for that kind of food; a name the app cannot match says “kiểm tra trong tủ”. Never a guessed amount. (This replaces the earlier choice in this branch to count spoon lines as written.)
+- **Receipt lots** — “Gợi ý hạn dùng, cho sửa”. A lot from a receipt gets the same suggested use-by as every other way into the pantry (`suggestUseBy` from the purchase date and place); the confirmation step shows “Hạn dùng (ước tính, sửa được)” for each extra, and the family can change or clear it. receipt-list, receipt-list-browser and receipt-ocr-browser were updated to this decision (they asserted an empty use-by).
+
+Week-start sweep (W6, `agent-w6/fixes` 00388a6): its rule-34 check expects stored week keys to equal the family's start day, and its setup deletes Monday-keyed weeks when the week starts on Saturday. Storage is keyed by Monday by design (core.ts, audit B1: “every reader and writer of a day uses one accessor that keys by Monday”), so “Tuần trước / Tuần sau” and changing “Tuần bắt đầu” writing Monday keys is correct. v1719 now checks both on Thực đơn and Chi tiêu with Saturday and Sunday starts: only Monday-keyed weeks are written and the window stays on the family day. The sweep's check should be `monday(k)===k` (no hidden copies), and its setup should not delete Monday weeks.
+
+Evidence: `docs/reviews/v1.7.19/weeks-dishes/` — 320×740, 375×812, 820×1100, 1280×800, light and dark, VI and EN, Sat and Sun week starts, phone time zones Sydney, Ho Chi Minh, Los Angeles. Chromium viewport simulation, not physical devices. Every run ends with `validImport(state)` true.
+
+Local runs, 12 Nov 2026 about 18:35 Sydney time: check, typecheck, `npm test` (incl. week-start), browser suites v1719-weeks, v1715, v1716, v1717, v1714, v1712-fixes, v1712-flow, voice-commands, receipt-list, recipe-ingredients, pantry-check, journey, language, emoji-art, v176-fixes, ladybug, rsvp, menu-reactions, authenticated-startup — all OK. An app.ts first draw before the language helper loaded crashed `#shopping` start-up during this work; new app.ts render strings use a load-safe helper.
+
+## Audit fixes — dish sheet redesign (owner, 12 Nov 2026, pop-up)
+
+Henry: “Isn't it an added step to edit the dish but unable to delete? What's your plan here so it will be more streamlined and easier to understand and work on the dish?”
+
+| What | Change | Test |
+|---|---|---|
+| Same three buttons everywhere | `recipeSheetFooter` in `app.ts` serves every path to `showRecipe` (library card, global search, Hôm nay and Thực đơn meal cards, insights; the menu-reaction, community, voice and sync wrappers only add sections). Main (primary, drawn): from a meal “Nấu món này” (cooking mode with that meal's scaled amounts; a dish without steps still opens with its amounts), from the library “Thêm vào bữa”. Then “Sửa món”, then one remove. The duplicate “Sửa món ăn” bar at the top of the sheet is gone. Short labels on phones, full wording in `aria-label`. | v1719-dish-sheet (footer per path, pills side by side ≥ 44 px, drawing only on the main one) |
+| Sửa món | Family dish: edited in place. Catalogue dish: edited as the family's copy; on save the copy takes its place in the library (the original is hidden, not lost) and, from a meal, the copy replaces it in that meal. Dish typed into a meal: edited in that meal (“Sửa món trong bữa này”), with “Lưu vào kho món” off by default; ticked, it is also saved to the library. | v1719-dish-sheet |
+| Remove | From a meal “Bỏ khỏi bữa” (undo bar); library family dish “Xoá khỏi kho” (undo bar, no confirm); library catalogue dish “Ẩn khỏi kho” (undo bar) — hidden dishes leave the library and suggestions (`allowedRecipe`), appear under Kho món › “Đã ẩn (n)”, and their sheet offers “Hiện lại”. Meals that have a deleted or hidden dish keep it. | v1719-dish-sheet |
+| Viết món | “Xoá món” at the bottom for family dishes, same undo. | v1719-dish-sheet |
+| Data | `state.hiddenRecipeIds` (optional list of ids, ≤ 5000) in `validCatalogMarkers` / `validImport`; the sync merge treats it as a set (hide on one device and show on another both apply). | v1719-dish-sheet (validImport, both merge orders) |
+
+Evidence: `docs/reviews/v1.7.19/dish-sheet/` — 320×740, 375×812, 820×1100, 1280×800, light and dark, VI and EN, week starting on Saturday. Chromium viewport simulation.

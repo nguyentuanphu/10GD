@@ -98,10 +98,10 @@ check('reconcile: list part bought, extra → pantry / kept for a later meal / n
  assert.equal(row('milk').onList,false);assert.equal(row('milk').status,'extra');
  const meals=L.mealsUsing(s,'beef',start);assert.deepEqual(J(meals.map((m:any)=>[m.date,m.type])),[[A.addDays(start,2),'dinner'],[A.addDays(next,2),'dinner']]);
  const later=meals[1];const before=J({w,pantry:s.pantry});
- L.apply(s,rec,w,start,end,null,{beef:{mode:'meal',meal:{date:later.date,type:later.type}},oil:{mode:'none'}});
+ /* v1.7.19: the confirmation step always sends the use-by shown (the suggestion, or the family's own date); here the family set one past next week's meal */L.apply(s,rec,w,start,end,null,{beef:{mode:'meal',meal:{date:later.date,type:later.type},useBy:A.addDays(later.date,1)},oil:{mode:'none'}});
  assert.equal(w.bought.egg,eggNeed);assert.equal(w.bought.beef,beefNeed);assert.equal(w.bought.corn,100);assert.ok(w.boughtAt.egg&&w.boughtAt.corn);
  const lot=(id:string)=>s.pantry.filter((x:any)=>x.ingredient===id&&x.receiptId==='qa-rc');
- assert.deepEqual(J(lot('egg').map((x:any)=>[x.qty,x.boughtOn,x.expiry,x.forMeal??null])),[[30-eggNeed,start,'',null]],'extra eggs → pantry (default), no invented expiry');
+ /* v1.7.19 owner decision (12 Nov 2026, “Gợi ý hạn dùng, cho sửa”): a receipt lot gets the shared use-by suggestion from the purchase date */assert.deepEqual(J(lot('egg').map((x:any)=>[x.qty,x.boughtOn,x.expiry,x.forMeal??null])),[[30-eggNeed,start,L.receiptUseBy('egg',lot('egg')[0].place,rec,null),null]],'extra eggs → pantry (default), with the suggested use-by');assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(lot('egg')[0].expiry),'a date is suggested for eggs');
  assert.deepEqual(J(lot('beef').map((x:any)=>[x.qty,x.forMeal])),[[1000-beefNeed,{date:later.date,type:'dinner'}]],'extra beef kept for next week’s dinner');
  assert.equal(lot('oil').length,0,'“Không theo dõi”: no pantry lot');assert.equal(lot('milk')[0].qty,2000,'not on the list → pantry');
  assert.deepEqual(J(rec.reconciled.choices),{egg:{mode:'pantry'},beef:{mode:'meal',meal:{date:later.date,type:'dinner'}},oil:{mode:'none'},milk:{mode:'pantry'}});

@@ -27,6 +27,9 @@ function storeFoodKind(id){if(id==='egg')return 'egg';const g=INGREDIENTS[id]?.[
 function storeMustBeCold(id){return ['meat','veg','chilled','egg'].includes(storeFoodKind(id))}
 function suggestUseBy(id,place,today=sydneyDate()){const d=STORE_USE_BY[storeFoodKind(id)]?.[place];return d?addDays(today,d):''}
 function misplacedLots(s){return (s.pantry||[]).filter(p=>(p.qty>0||p.purchase?.amount>0)&&p.place==='dry'&&INGREDIENTS[p.ingredient]&&storeMustBeCold(p.ingredient))}
+// v1.7.19 (audit A15 / B10 / C25): one rule for every way into the pantry (Tủ “Thêm thực phẩm”, putting away, barcode, receipt,
+// voice): the place is suggested from the ingredient (the family's own choice first), and the use-by from the ingredient and place.
+function pantryLotDefaults(s,id,today=sydneyDate()){const place=suggestStorePlace(s,id);return{place,expiry:suggestUseBy(id,place,today)}}
 function suggestStorePlace(s,id){const m=s?.preferences?.storePlaces?.[id];if(STORE_PLACES.includes(m)&&!(m==='dry'&&storeMustBeCold(id)))return m;if(storeMustBeCold(id))return 'fridge';if(/^family-ing-/.test(id)||INGREDIENTS[id]?.[2]==='other'){const x=typeof guessFood==='function'?guessFood(INGREDIENTS[id]?.[0]):null;if(x)return x.place}const g=INGREDIENTS[id]?.[2];return (g==='dry'&&!STORE_COLD_DRY.includes(id))||g==='other'?'dry':'fridge'}
 function storeShoppingPurchases(s,w,start,end,place,perItem=null,useBy=null){const rows=shopping(s,w,start,end).filter(r=>shoppingHasAmount(r)&&r.bought&&!r.skip&&!r.boughtByExtra/* v1.7.19: covered by a bought extra, which is put away itself */);if(perItem){s.preferences??={};s.preferences.storePlaces??={}}
  // v1.7.19 audit C11: a row a receipt already put in the pantry (a pack matched to a weighed receipt line) is not stored again
