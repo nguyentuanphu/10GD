@@ -128,6 +128,7 @@ function extractSize(name){
    const end=m.index;let start=end;while(start>0&&end-start<6&&new RegExp(`[${NUMCH}]`).test(text[start-1]))start--;
    const run=text.slice(start,end);const lone=start===0||/[\s(/]/.test(text[start-1]||' ');if(!run||!/[0-9]/.test(run)&&!(lone&&run.length<=2&&/[lI|!iOo]/.test(run)))continue;
    if(/per$/i.test(text.slice(Math.max(0,start-3),start)))continue;// "PERKG"
+   if(!/[0-9]/.test(run)&&/^oil$/i.test(text.slice(start,end+m[0].length))&&!/[0-9]/.test(text.slice(end+m[0].length,end+m[0].length+1)))continue;// v1.7.18: the word “OIL” (Costco “CAN OIL”) is not “01 L”
    const u=unitOf(m[1]);if(!u)continue;
    let q=null,from=start;
    if(lone){q=repairNumber(run,true);if(!q||!plausible(+q,u)){const opts=pickGlued(text.slice(0,start),run).filter(o=>plausible(+o.q,u));const pick=opts.find(o=>o.known)||opts[0];if(pick){q=pick.q;from=end-pick.digits.length}else q=null}}
@@ -272,11 +273,44 @@ const MULTI_RE=/^\W*(?:[qo]ty\s*)?(\d{1,3})\s*(?:[@©®§&]\s*\$?|\s[068Oo]\s+\$
 const GLUED_MULTI_RE=/^\W*(?:\S{1,4}\s+)?(\d{1,2}[0@][0-9@$S§]{1,3}\d{0,2}[.,]\d{1,2})(?:\s+\S{1,3}){0,3}\W*$/;
 // “SHER 2 8 $3.00”, “Ene. 2 @ $3.15”: a count line behind a short speck token
 const JUNK_MULTI_RE=/^\W*\S{1,4}\s+(\d{1,2})\s*(?:[@©®§&]\s*\$?|\s[068Oo]\s+\$)\s?(\d+[.,]\d{1,2})(?!\d)/;
+
+// v1.7.18 (owner, 12 Nov 2026: “Unable to read this receipt from Costco at all”): Costco prints each item on two lines —
+//   MOO CHOCOLATE MILK
+//   21886      1x   24.99     24.99 &
+// (name, then item code · quantity · unit price · line price · “&” = GST). An instant saving (“TPD …”) follows its item
+// with a price ending in “-”; “TOTAL NUMBER OF ITEMS SOLD = n” is a count, not a total; “REDEEM REWARDS … -” is a
+// member reward paid against the bill. The pairs are joined into one “NAME price” line the general reader understands,
+// savings become “TPDDISC …” lines that reduce the item above, the count becomes “n items”. A detail line whose
+// price OCR clipped (“10.4”) uses the unit price when the quantity is 1; nothing is guessed when neither reads.
+function costcoLines(lines){
+ const letters=l=>(String(l).replace(/\b[1Il|i]?[xX×]\b/g,'').match(/[A-Za-z]/g)||[]).length;
+ const money=/(\d{1,4})[.,](\d{2})(?!\d)/g;
+ const detail=l=>{const t=String(l);if(letters(t)>4)return null;const all=[...t.matchAll(money)];if(!all.length)return null;
+  const last=all[all.length-1],after=t.slice(last.index+last[0].length);
+  // the line price is the last amount when it reads cleanly at the end; otherwise (clipped “10.4”, junk) the unit price with qty 1
+  const tailOk=/^\s*-?\s*&?\s*[-~]?\W{0,3}$/.test(after),neg=/^\s*-|-\s*&?\W{0,3}$/.test(after)||/\d-\s*&?\W*$/.test(t);
+  const qty=t.match(/\b(\d{1,2})\s*[xX×]\b/),one=!qty||qty[1]==='1';
+  let v=null;if(tailOk&&all.length>=1)v=+(last[1]+'.'+last[2]);else if(one&&all.length>=1)v=+(all[0][1]+'.'+all[0][2]);
+  return v==null?null:{v,neg,gst:/&/.test(after)}};
+ const out=[];
+ for(let i=0;i<lines.length;i++){const l=lines[i],t=String(l).trim();
+  if(/^\W*[*xXkKmMnNjJ]{6,}|bottom\s+of\s+basket|\bBOB\s+count\b/i.test(t)&&!/\d[.,]\d{2}/.test(t))continue;
+  const cnt=t.match(/TOTAL\s+NUMBER\s+O\w*\s+\w*\s*\(?SOLD\s*=?\s*(\d{1,3})/i);if(cnt){out.push(cnt[1]+' items');continue}
+  if(/^\W*REDEEM\s+REWARDS?\b/i.test(t)){const d=lines[i+1]&&detail(lines[i+1]);const v=d?d.v:amountIn(t);if(v!=null){out.push('COSTCOREWARD '+Math.abs(v).toFixed(2));if(d)i++}continue}
+  const isName=letters(t)>=3&&!detail(t);
+  if(isName){/* a lone digit far to the right is the price column's clipped edge (“E/C APPLE JUICE 4L      9”), not part of the name */const name=t.replace(/(\d{1,4}[.,]\d{2})\s*-?\s*&?\W*$/,'').replace(/\s{3,}\d{1,2}\W*$/,'').replace(/^\W+/,'').trim(),own=t.match(/(\d{1,4})[.,](\d{2})\s*(-)?\s*&?\W*$/);
+   const d=lines[i+1]?detail(lines[i+1]):null,tpd=/^\W*TPD\b/i.test(name);
+   if(d||own){const v=own&&(tpd||!d)?+(own[1]+'.'+own[2]):d.v,neg=tpd||(own&&own[3]==='-')||(d&&d.neg);
+    out.push(neg?`TPDDISC ${name} ${v.toFixed(2)}`:`${name} ${v.toFixed(2)}`);if(d)i++;continue}
+  }
+  out.push(l)}
+ return out}
 function parseReceipt(text,opts={}){
  const raw=String(text||'').slice(0,40000);
- const lines=raw.split(/\r?\n/).map(tidy).filter(Boolean);
+ let lines=raw.split(/\r?\n/).map(tidy).filter(Boolean);
  const det=opts.retailer&&RETAILERS[opts.retailer]?{id:opts.retailer,name:RETAILERS[opts.retailer].name,currency:RETAILERS[opts.retailer].currency}:detectRetailer(raw);
  const aldi=det.id==='aldi';
+ if(det.id==='costco')lines=costcoLines(raw.split(/\r?\n/).filter(x=>x.trim())).map(tidy).filter(Boolean);/* before tidy(): the column gaps tell edge noise from names */
  const items=[],totals=[],head=[];const payAmounts=[];let section='head',pending=null,refund=false,multiple=false,printedCount=null,lastItem=null;
  const add=it=>{items.push(it);if(it.kind==='item')lastItem=it;return it};
  // v1.7.10: the second half of a wrapped name (“/ NGAN”, “G / BUNCH”, “RMAL”, “EACH”, “PURPLE”, “/ 3 FOR”) is not a new product
@@ -303,6 +337,8 @@ function parseReceipt(text,opts={}){
    pending=null;if(section!=='pay')section=tot.p>=4?'pay':tot.p>=2?'sub':section;continue}
   const cnt=line.match(/^\W{0,2}?(-?\d{1,3})\s*[iIl1T|]tems?\b\W*$/i);if(cnt){printedCount=+cnt[1];continue}
   // adjustments that may appear anywhere after the items (ALDI prints them after the bank block)
+  if(det.id==='costco'&&/^COSTCOREWARD\s/.test(line)){const v=amountIn(line);if(v!=null)add(adjust('discount','Redeem rewards',-Math.abs(v)));continue}
+  if(det.id==='costco'&&/^TPDDISC\s/.test(line)){const v=amountIn(line);if(v!=null&&lastItem){lastItem.discount=round((lastItem.discount||0)-Math.abs(v));lastItem.raw+=' / '+line.slice(8)}else if(v!=null)add(adjust('discount',line.slice(8),-Math.abs(v)));continue}
   if(/surcharge/i.test(line)&&!/^\W*total\s+surcharge/i.test(line)){const v=amountIn(line);if(v!=null&&section!=='head')add(adjust('surcharge',line,v));continue}
   if(/^\W*total\s+surcharge/i.test(line))continue;
   if(/^\W*round(ing)?\b/i.test(line)){const v=amountIn(line);if(v!=null&&Math.abs(v)>=0.005)add(adjust('rounding',line,v));continue}
