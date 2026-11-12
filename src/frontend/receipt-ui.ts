@@ -18,12 +18,19 @@ const ingName=id=>hasIng(id)?INGREDIENTS[id][0]:id;
 const baseUnit=id=>hasIng(id)?INGREDIENTS[id][1]:null;
 const money=(n,c)=>typeof aud==='function'?aud(n,c):(+n).toFixed(2);
 const qtyText=(n,u)=>typeof fmtQty==='function'?fmtQty(n,u):n+' '+u;
+const RL=(globalThis as any).ReceiptList;
+const DAY=/^\d{4}-\d{2}-\d{2}$/;
+// v1.7.18: the shopping list a receipt is matched against — the receipt's week and the week in view
+function receiptWeeks(date){const out=[];const add=(w,start,end)=>{if(w&&!out.some(x=>x.week===w))out.push({week:w,start,end})};
+ try{if(DAY.test(date||'')&&typeof planStartOf==='function'){const k=planStartOf(state,date);add(state.weeks?.[k],k,addDays(k,6))}}catch{}
+ try{const[a,b]=typeof shopDates==='function'?shopDates():[weekStart,addDays(weekStart,6)];add(currentWeek(),a,b)}catch{}
+ return out}
 
 // ------------------------------------------------------------ parse → draft
 function formQuantity(it,match){
  const count=it.multi?it.multi.count:1;
  if(it.weight)return{qty:it.weight.qty,unit:'kg'};
- if(baseUnit(match)==='quả'){if(it.pack&&it.pack>1)return{qty:it.pack*count,unit:'quả'};if(it.each)return{qty:count,unit:'quả'}}
+ const bu=baseUnit(match);if(bu&&RP.COUNTED_BASE.includes(bu)){if(it.pack&&it.pack>1&&!it.size)return{qty:it.pack*count,unit:bu};if(it.each)return{qty:count,unit:bu}}
  if(it.size&&it.size.unit!=='pk')return{qty:Math.round(it.size.qty*count*1000)/1000,unit:it.size.unit};
  if(it.each)return{qty:count,unit:'cái'};
  return{qty:null,unit:''};
@@ -42,17 +49,25 @@ function lineHint(it){
  if(it.priceRepaired)h.push(T('giá cắt mép, điền theo tổng in — kiểm tra','clipped price filled from the printed total — check'));
  if(it.priceMissing&&it.price==null)h.push(T('chưa đọc được giá — nhập tay','price not read — enter it'));
  if(it.kind==='item'&&it.generic)h.push(T('Hoá đơn không ghi tên món — ghép ở “Ghép giá với giỏ đi chợ”, app không tự đoán','The receipt prints no item name — match it in “Match prices to the shopping basket”; nothing is guessed'));
+ if(it.kind==='item'&&it.prepared&&!it.nonFood&&!it.snack)h.push(T('món làm sẵn — không tự ghép với nguyên liệu tươi','ready-made — not matched to a raw ingredient by itself'));
  if(it.kind==='item'&&(it.nonFood||it.snack))h.push(it.nonFood?T('không phải thực phẩm — chỉ tính chi tiêu','not food — spending only'):T('đồ ăn vặt — không đối ứng nguyên liệu','snack — not matched to an ingredient'));
  return h;
 }
 function draftFromParsed(parsed,text){
  const memory=state.aliases||{};
+ // v1.7.18: memory → this week's shopping list → the whole catalogue → none (receipt-list.ts)
+ const cands=RL?RL.listFor(state,receiptWeeks(parsed.date||receiptDraft?.date||(typeof sydneyDate==='function'?sydneyDate():''))):{ids:[],extras:[]};
  const items=parsed.items.map(it=>{
-  let m=RP.matchIngredient(it,{ingredients:INGREDIENTS,aliases:typeof INGREDIENT_ALIASES!=='undefined'?INGREDIENT_ALIASES:{},memory,retailer:parsed.retailer});
-  if(!m.match&&it.kind==='item'&&!it.snack&&!it.nonFood&&!it.generic&&typeof inferIngredient==='function'){const old=inferIngredient(it.name,state);if(old.confidence==='learned')m={match:old.match,confidence:'learned'}}
-  const q=formQuantity(it,m.match),value=it.price==null?0:Math.round(((it.price||0)+(it.discount||0))*100)/100;
-  const extra={lineKind:it.kind};if(it.code)extra.code=it.code;if(it.size)extra.size=it.size;if(it.weight){extra.weightKg=it.weight.qty;extra.perKg=it.perKg}if(it.multi)extra.multi=it.multi;if(it.discount)extra.discount=it.discount;if(it.nonFood)extra.nonFood=true;if(it.generic){extra.generic=true;extra.genericKey=it.genericKey||'price';if(it.plu)extra.plu=it.plu}
-  return{id:uid(),label:(it.name||(it.generic?(it.weight?`${it.weight.qty} kg @ ${(+it.perKg).toFixed(2)}/kg`:(it.price!=null?(+it.price).toFixed(2):'?')):'')).slice(0,200),total:value,match:it.kind==='item'?(m.match.startsWith?.('recipe:')?'':m.match):'',confidence:m.confidence==='suggested'?'suggested':'',qty:q.qty,unit:q.unit,include:true,extra,hint:lineHint(it),memKeys:it.kind==='item'?RP.memoryKeys(it,parsed.retailer):[]};
+  let m=RP.matchIngredient(it,{ingredients:INGREDIENTS,aliases:typeof INGREDIENT_ALIASES!=='undefined'?INGREDIENT_ALIASES:{},memory,retailer:parsed.retailer,list:cands.ids});let src=m.source||'',basket=null;const prepared=m.prepared||null;
+  if(!m.match&&it.kind==='item'&&!it.snack&&!it.nonFood&&!it.generic&&typeof inferIngredient==='function'){const old=inferIngredient(it.name,state);if(old.confidence==='learned'){m={match:old.match,confidence:'learned'};src='memory'}}
+  if(!m.match&&it.kind==='item'&&!it.snack&&!it.nonFood&&!it.generic&&RL){const x=RL.extraMatch(it,cands.extras);if(x){basket={key:'x:'+RL.norm(x.name),id:x.id,name:x.name};m={match:'other',confidence:'suggested'};src='list'}}
+  if(!m.match&&it.kind==='item'&&it.nonFood&&!it.generic){m={match:'other',confidence:''};src='nonfood'}
+  const mk=it.kind==='item'?RP.memoryKeys(it,parsed.retailer):[];let q=formQuantity(it,m.match);const askQty=q.qty==null&&it.kind==='item'&&!it.generic;let per,qtyFrom='';
+  if(askQty&&RL){const r=RL.recallQty(state,mk);if(r){const count=it.multi?it.multi.count:1;q={qty:Math.round(r.qty*count*1000)/1000,unit:r.unit};per=r.per;qtyFrom='memory'}}
+  const value=it.price==null?0:Math.round(((it.price||0)+(it.discount||0))*100)/100;
+  const extra:any={lineKind:it.kind};if(it.code)extra.code=it.code;if(it.size)extra.size=it.size;if(it.weight){extra.weightKg=it.weight.qty;extra.perKg=it.perKg}if(it.multi)extra.multi=it.multi;if(it.discount)extra.discount=it.discount;if(it.nonFood)extra.nonFood=true;if(it.generic){extra.generic=true;extra.genericKey=it.genericKey||'price';if(it.plu)extra.plu=it.plu}if(basket)extra.basket=basket;if(per)extra.per=per;
+  const hint=lineHint({...it,prepared});if(qtyFrom)hint.push(T('lượng nhớ từ lần mua trước ở cửa hàng này','amount remembered from the last time at this store'));
+  return{id:uid(),label:(it.name||(it.generic?(it.weight?`${it.weight.qty} kg @ ${(+it.perKg).toFixed(2)}/kg`:(it.price!=null?(+it.price).toFixed(2):'?')):'')).slice(0,200),total:value,match:it.kind==='item'?(m.match.startsWith?.('recipe:')?'':m.match):'',confidence:m.confidence==='suggested'?'suggested':'',qty:q.qty,unit:q.unit,include:true,extra,hint,memKeys:mk,src,prepared,askQty,qtyFrom,expanded:it.expanded||''};
  });
  return{items,meta:{retailer:parsed.retailer,storeNo:parsed.storeNo,time:parsed.time,printedCount:parsed.printedCount,countRead:parsed.countRead,printedTotal:parsed.printedTotal,refund:parsed.refund,warnings:parsed.warnings,txRaw:parsed.txRaw,store:parsed.store,date:parsed.date,currency:parsed.currency}};
 }
@@ -195,13 +210,15 @@ receiptEditor=function(){
 };
 
 // Editing a saved receipt keeps its receipt facts (refund, printed time / count, hash, reconciliation).
-const RECORD_KEYS=['retailer','refund','printed','source','receiptKey','reconciled'],LINE_KEYS=['lineKind','code','size','weightKg','perKg','multi','discount','nonFood','generic','genericKey','plu','unknown','covers','basket','splitFrom'];
+const RECORD_KEYS=['retailer','refund','printed','source','receiptKey','reconciled'],LINE_KEYS=['lineKind','code','size','weightKg','perKg','multi','discount','nonFood','generic','genericKey','plu','unknown','covers','basket','splitFrom','per'];
 const oldOpen=openReceipt;
 openReceipt=async function(id){
  await oldOpen(id);const r=state.receipts.find(x=>x.id===id),d=receiptDraft;if(!r||!d||d.id!==id)return;
  d.extra={};for(const k of RECORD_KEYS)if(r[k]!==undefined)d.extra[k]=r[k];d.refund=!!r.refund;d.dupDecided=true;
  for(const it of d.items){const src=(r.items||[]).find(x=>x.id===it.id);if(!src)continue;const e={};for(const k of LINE_KEYS)if(src[k]!==undefined)e[k]=src[k];it.extra=e;
   it.hint=lineHint({kind:e.lineKind||'item',weight:e.weightKg?{qty:e.weightKg}:null,perKg:e.perKg,multi:e.multi,discount:e.discount,nonFood:e.nonFood,generic:e.generic});
+  // v1.7.18: a choice made when the receipt is opened again is remembered for this store too
+  if((!e.lineKind||e.lineKind==='item')&&!e.generic){it.memKeys=RP.memoryKeys({name:it.label,code:e.code||null},r.retailer||null);it.askQty=!e.size&&!e.weightKg}
    // v1.7.2: a generic line saved as "Đồ khác (chưa rõ)" opens unmatched again, so it can still be matched
    if(e.generic&&e.unknown&&it.match==='other')it.match=''}
  receiptEditor();
@@ -223,10 +240,16 @@ saveReceipt=async function(confirmed=false){
  }
  if(d.extra&&d.extra.receiptKey===undefined)delete d.extra.receiptKey;
  const id=d.id,editing=d.editing,pairs=d.items.filter(i=>i.match&&i.memKeys?.length).map(i=>[i.memKeys,i.match]);
+ const lines=d.items.map(i=>({id:i.id,keys:i.memKeys||[],ask:!!i.askQty,qty:i.qty,unit:i.unit,per:i.extra?.per,count:i.extra?.multi?.count||1,match:i.match}));
  await oldSave(confirmed);
  const rec=receiptDraft===null&&state.receipts.find(r=>r.id===id);if(!rec)return;
  // remember the family's confirmed mapping (retailer + code / name → ingredient)
  let learned=0;for(const[keys,match]of pairs)for(const k of keys)if(state.aliases[k]!==match){state.aliases[k]=match;learned++}
+ // v1.7.18: an amount in a bottle / pack / the family's unit counts in the ingredient's base unit when it can be converted
+ // (registry units, “1 chai ≈ 1.5 L” entered once); an amount the receipt did not print is remembered for this store item
+ if(RL)for(const l of lines){const it=(rec.items||[]).find(x=>x.id===l.id);if(!it||!hasIng(it.ingredient))continue;
+  if(it.quantity==null){const q=RL.baseQuantity(it.enteredQty,it.enteredUnit,it.ingredient,{per:it.per,s:state});if(q>0&&q<=1e6){it.quantity=q;learned++}}
+  if(l.ask&&l.keys.length&&+l.qty>0&&l.unit&&l.unit!=='pack')learned+=RL.rememberQty(state,l.keys,{qty:+l.qty/l.count,unit:l.unit,per:l.per})}
  if(learned)save();
  if(!editing&&!rec.refund&&(rec.currency||'AUD')===currentCurrency(state))reconcileSheet(rec.id);
 };
@@ -241,50 +264,42 @@ function duplicateSheet(dup){
  (document.querySelector('[data-rui="dup-cancel"]') as any)?.focus();
 }
 
-// ------------------------------------------------------------ reconciliation (pure-ish, testable)
-function weekNeed(s,week,start,end){const rows=typeof shopping==='function'?shopping(s,week,start,end):[];const out={};for(const r of rows){if(r.skip)continue;const already=+(week.bought?.[r.id]||0);out[r.id]=Math.max(0,(+r.qty||0)-already)}return out}
-function receiptLines(rec){return(rec.items||[]).filter(i=>i.ingredient&&hasIng(i.ingredient)&&(!i.lineKind||i.lineKind==='item')).map(i=>({ingredient:i.ingredient,quantity:Number.isFinite(i.quantity)&&i.quantity>0?i.quantity:null,label:i.label,id:i.id}))}
-// v1.7.14 (owner, 8 Nov 2026: “nếu đã cho vào kho sau đó mới scan receipt thì sẽ báo là mua thêm”): what was ticked bought and put
-// away from the shopping list around the receipt's date is the same shopping — those lots are linked to the receipt, not added again
-const sydDay=(iso:string)=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso))}catch{return''}};
-function storedFromShopping(s,id,rec){const d=/^\d{4}-\d{2}-\d{2}$/.test(rec?.date||'')?rec.date:null;if(!d)return[];const near=(day:string)=>!!day&&day>=addDays(d,-1)&&day<=addDays(d,3);
- const ticked=Object.values(s.weeks||{}).some((w:any)=>near(sydDay(w?.boughtAt?.[id]||'')));
- return(s.pantry||[]).filter((p:any)=>p.ingredient===id&&!p.receiptId&&(p.storedOn?near(p.storedOn):ticked&&!p.boughtOn))}
-function reconcilePlan(s,rec,week,start,end){
- const need=weekNeed(s,week,start,end),lines=receiptLines(rec);
- const rows=RP.reconcile(lines.filter(l=>l.quantity),id=>need[id]??0).map(r=>{const row={...r,onList:Object.hasOwn(need,r.ingredient)};if(row.extra>0){const lots=storedFromShopping(s,r.ingredient,rec);if(lots.length){row.status='stored';row.extra=0;row.lots=lots.map((p:any)=>p.id)}}return row});
- return{rows,unknown:lines.filter(l=>!l.quantity)};
-}
-function placeFor(id,rec){const lab=(rec.items||[]).filter(i=>i.ingredient===id).map(i=>i.label).join(' ');if(/\b(frz|frozen|frzn)\b/i.test(lab))return'freezer';if(typeof suggestStorePlace==='function')return suggestStorePlace(state,id);return INGREDIENTS[id][2]==='dry'&&!['egg','tofu','milk','yogurt','cream','butter','parmesan','mozzarella','feta'].includes(id)?'dry':'fridge'}
-// Marks the covered part bought on this week's list and adds the extra to the pantry with the
-// purchase date (no expiry is invented). Returns the undo record stored on the receipt.
-function applyReconcile(s,rec,week,start,end,ticked){
- const plan=reconcilePlan(s,rec,week,start,end),now=new Date().toISOString();
- const undo={at:now,week:start,end,bought:{},boughtAt:{},pantryIds:[]};
- for(const r of plan.rows){if(ticked&&!ticked.includes(r.ingredient))continue;
-  if(r.covered>0){week.bought??={};week.boughtAt??={};undo.bought[r.ingredient]=Object.hasOwn(week.bought,r.ingredient)?week.bought[r.ingredient]:null;undo.boughtAt[r.ingredient]=week.boughtAt[r.ingredient]??null;week.bought[r.ingredient]=Math.round(((+week.bought[r.ingredient]||0)+r.covered)*1000)/1000;week.boughtAt[r.ingredient]=now}
-  if(r.status==='stored'){undo.linked??=[];for(const lid of r.lots||[]){const p=s.pantry.find((x:any)=>x.id===lid);if(p&&!p.receiptId){p.receiptId=rec.id;p.boughtOn=rec.date;pantryTouch(p);undo.linked.push(lid)}}continue}
-  if(r.extra>0){const p={id:uid(),ingredient:r.ingredient,qty:r.extra,place:placeFor(r.ingredient,rec),expiry:'',boughtOn:rec.date,receiptId:rec.id};pantryTouch(p);s.pantry.push(p);undo.pantryIds.push(p.id)}}
- rec.reconciled=undo;return undo;
-}
-function undoReconcile(s,rec){
- const u=rec.reconciled;if(!u)return false;const week=s.weeks?.[u.week];
- if(week){for(const[id,v]of Object.entries(u.bought)){if(v==null)delete week.bought[id];else week.bought[id]=v}for(const[id,v]of Object.entries(u.boughtAt||{})){if(!week.boughtAt)continue;if(v==null)delete week.boughtAt[id];else week.boughtAt[id]=v}}
- const ids=new Set(u.pantryIds);s.pantry=s.pantry.filter(p=>!ids.has(p.id));for(const lid of u.linked||[]){const p=s.pantry.find((x:any)=>x.id===lid);if(p&&p.receiptId===rec.id){delete p.receiptId;delete p.boughtOn}}delete rec.reconciled;return true;
-}
-function statusText(r){const u=baseUnit(r.ingredient);if(r.status==='stored')return T('Đã cất vào tủ lúc đi chợ · không cộng thêm','Already put away after shopping · not added again');return r.status==='short'?T('Còn thiếu ','Still short ')+qtyText(r.short,u):r.status==='enough'?T('Đủ','Enough'):r.status==='enough-extra'?T('Đủ · dư ','Enough · extra ')+qtyText(r.extra,u)+T(' → cất kho',' → pantry'):T('Dư ','Extra ')+qtyText(r.extra,u)+T(' → cất kho',' → pantry')}
-function boughtText(r){const u=baseUnit(r.ingredient);return r.same?`${r.parts.length} × ${qtyText(r.parts[0],u)} = ${qtyText(r.bought,u)}`:r.parts.length>1?r.parts.map(p=>qtyText(p,u)).join(' + ')+' = '+qtyText(r.bought,u):qtyText(r.bought,u)}
+// ------------------------------------------------------------ reconciliation (pure logic in receipt-list.ts)
+function weekNeed(s,week,start,end){return RL.weekNeed(s,week,start,end)}
+function reconcilePlan(s,rec,week,start,end){return RL.plan(s,rec,week,start,end)}
+function applyReconcile(s,rec,week,start,end,ticked,choices){return RL.apply(s,rec,week,start,end,ticked,choices)}
+function undoReconcile(s,rec){return RL.undo(s,rec)}
+const unitAmt=(n,u)=>typeof unitAmountLabel==='function'?unitAmountLabel(n,u):n+' '+u;
+const amt=(r,n)=>r.units?unitAmt(n,r.units):qtyText(n,baseUnit(r.ingredient));
+function mealLabel(m){let day=m.date;try{day=new Intl.DateTimeFormat(lang()==='en'?'en-AU':'vi-VN',{weekday:'short',day:'numeric',month:'numeric'}).format(parseDate(m.date))}catch{}return(typeof mealName==='function'?mealName(m.type):m.type)+' '+day}
+function destText(c){return!c||c.mode==='pantry'?T(' → cất kho',' → pantry'):c.mode==='none'?T(' → không theo dõi',' → not tracked'):T(' → dành cho ',' → kept for ')+(c.meal?(lang()==='en'?mealLabel(c.meal):mealLabel(c.meal).toLowerCase()):T('một bữa','a meal'))}
+function statusText(r,c=null,dest=true){const destText2=(c)=>dest?destText(c):'';if(r.status==='stored')return T('Đã cất vào tủ lúc đi chợ · không cộng thêm','Already put away after shopping · not added again');return r.status==='short'?T('Còn thiếu ','Still short ')+amt(r,r.short):r.status==='enough'?T('Đủ','Enough'):r.status==='enough-extra'?T('Đủ · dư ','Enough · extra ')+amt(r,r.extra)+destText2(c):(r.onList?T('Dư ','Extra '):T('Ngoài danh sách · ','Not on the list · '))+amt(r,r.extra)+destText2(c)}
+function boughtText(r){return r.same?`${r.parts.length} × ${amt(r,r.parts[0])} = ${amt(r,r.bought)}`:r.parts.length>1?r.parts.map(p=>amt(r,p)).join(' + ')+' = '+amt(r,r.bought):amt(r,r.bought)}
 function weekRange(){return[weekStart,addDays(weekStart,6)]}
 function reconcileSheet(id){
  const rec=state.receipts.find(r=>r.id===id);if(!rec)return;
  const[start,end]=weekRange(),week=currentWeek(),plan=reconcilePlan(state,rec,week,start,end);
- const rows=plan.rows.map(r=>`<label class="reconcile-row reconcile-${r.status}"><input type="checkbox" class="check" data-rui-tick="${esc(r.ingredient)}" ${rec.reconciled?'disabled':'checked'}><span class="reconcile-name"><b>${esc(ingName(r.ingredient))}</b><small>${esc(T('Mua','Bought'))}: ${esc(boughtText(r))}${r.onList&&r.need>0?' · '+esc(T('Cần tuần này','Needed this week'))+': '+esc(qtyText(r.need,baseUnit(r.ingredient))):''}</small></span><span class="reconcile-status">${esc(statusText(r))}</span></label>`).join('');
- const unknown=plan.unknown.length?`<div class="reconcile-unknown"><p><b>${esc(T('Chưa rõ lượng — nhập tay nếu muốn cập nhật','Amount unknown — enter it by hand to include'))}</b></p><ul>${plan.unknown.map(l=>`<li>${esc(l.label)} → ${esc(ingName(l.ingredient))}</li>`).join('')}</ul></div>`:'';
+ // v1.7.18: what is on the list comes first (“Đủ”), then extras. The extra part goes to the pantry by default; per line it can be
+ // kept for a later planned meal or not tracked (spending only). Undo covers every choice.
+ const done=rec.reconciled?.choices||{},from=DAY.test(rec.date||'')&&rec.date>(typeof sydneyDate==='function'?sydneyDate():'')?rec.date:(typeof sydneyDate==='function'?sydneyDate():rec.date);
+ const ordered=plan.rows.map((r,i)=>({r,i})).sort((a,b)=>(+!a.r.onList)-(+!b.r.onList)||a.i-b.i).map(x=>x.r);
+ const rows=ordered.map((r,i)=>{const meals=r.extra>0&&!rec.reconciled?RL.mealsUsing(state,r.ingredient,from):[];
+  const choice=r.extra>0&&!rec.reconciled?`<div class="reconcile-choice" role="radiogroup" data-rlx="${esc(r.ingredient)}" aria-label="${esc(T('Phần dư của ','Extra of ')+ingName(r.ingredient))}"><span class="rc-label">${esc(T('Phần dư','Extra'))}</span>`+
+   `<label class="rc-opt"><input type="radio" name="rc-${i}" value="pantry" checked><span>${esc(T('Cất kho','Pantry'))}</span></label>`+
+   `<label class="rc-opt${meals.length?'':' rc-off'}"><input type="radio" name="rc-${i}" value="meal" ${meals.length?'':'disabled'}><span>${esc(T('Dành cho bữa…','Keep for a meal…'))}</span></label>`+
+   `<label class="rc-opt"><input type="radio" name="rc-${i}" value="none"><span>${esc(T('Không theo dõi','Don’t track'))}</span></label>`+
+   (meals.length?`<select class="input rc-meal" aria-label="${esc(T('Bữa dùng phần dư','Meal that uses the extra'))}" hidden>${meals.map(m=>`<option value="${esc(m.date+'|'+m.type)}">${esc(mealLabel(m)+(m.names.length?' · '+m.names.join(', '):''))}</option>`).join('')}</select>`:`<small class="rc-note">${esc(T('Chưa có bữa sắp tới dùng món này','No upcoming meal uses this yet'))}</small>`)+`<small class="rc-dest">${esc(destText(null).trim())}</small></div>`:'';
+  return`<label class="reconcile-row reconcile-${r.status}" data-rlx-row="${esc(r.ingredient)}"><input type="checkbox" class="check" data-rui-tick="${esc(r.ingredient)}" ${rec.reconciled?'disabled':'checked'}><span class="reconcile-name"><b>${esc(ingName(r.ingredient))}</b><small>${esc(T('Mua','Bought'))}: ${esc(boughtText(r))}${r.onList&&r.need>0?' · '+esc(T('Cần tuần này','Needed this week'))+': '+esc(amt(r,r.need)):''}</small></span><span class="reconcile-status">${esc(statusText(r,done[r.ingredient],!!rec.reconciled))}</span></label>`+choice}).join('')+
+  (plan.extras||[]).map(e=>`<label class="reconcile-row reconcile-enough"><input type="checkbox" class="check" data-rui-tick="${esc('x:'+e.id)}" ${rec.reconciled||e.done?'disabled':'checked'}><span class="reconcile-name"><b data-user-content>${esc(e.name)}</b><small>${esc(T('Trên hoá đơn','On the receipt'))}: ${esc(e.label)}</small></span><span class="reconcile-status">${esc(e.done?T('Đã đánh dấu mua','Ticked bought'):T('Trong danh sách → đã mua','On the list → bought'))}</span></label>`).join('');
+ // v1.7.18: lines not matched yet — open the receipt to choose (Chọn từ danh sách đi chợ, Tìm món khác, …); the choice is remembered
+ const open=(rec.items||[]).filter(i=>!i.ingredient&&!i.recipe&&i.kind==='pending'&&(!i.lineKind||i.lineKind==='item')&&!i.generic);
+ const pending=open.length&&!rec.reconciled?`<div class="reconcile-unknown reconcile-open"><p><b>${esc(T(`${open.length} dòng chưa ghép`,`${open.length} line${open.length>1?'s':''} not matched yet`))}</b> · ${esc(T('vẫn tính vào chi tiêu','still counted in spending'))}</p><ul>${open.slice(0,6).map(l=>`<li>${esc(l.label)}</li>`).join('')}${open.length>6?'<li>…</li>':''}</ul><button class="btn small" data-rui="open-lines" data-id="${esc(rec.id)}">${esc(T('Mở hoá đơn để ghép','Open the receipt to match'))}</button></div>`:'';
+ const unknown=plan.unknown.length?`<div class="reconcile-unknown"><p><b>${esc(T('Chưa rõ lượng — mở hoá đơn, nhập lượng một lần; lần sau app tự điền','Amount unknown — open the receipt and enter it once; next time it fills in by itself'))}</b></p><ul>${plan.unknown.map(l=>`<li>${esc(l.label)} → ${esc(ingName(l.ingredient))}</li>`).join('')}</ul></div>`:'';
  const body=`<p class="hint">${esc(T(`So hoá đơn ${rec.store} (${rec.date}) với danh sách đi chợ tuần ${start.slice(8)}/${start.slice(5,7)}–${end.slice(8)}/${end.slice(5,7)} (bữa đã lên × khẩu phần, trừ đồ trong tủ).`,`Compares the ${rec.store} receipt (${rec.date}) with the shopping list for the week ${start.slice(8)}/${start.slice(5,7)}–${end.slice(8)}/${end.slice(5,7)} (planned meals × portions, minus the pantry).`))}</p>`+
-  (rows?`<div class="reconcile-list">${rows}</div>`:`<div class="callout">${esc(T('Chưa có dòng nào đối ứng nguyên liệu với khối lượng rõ ràng.','No line is matched to an ingredient with a known amount.'))}</div>`)+unknown+
+  (rows?`<div class="reconcile-list">${rows}</div>`:`<div class="callout">${esc(T('Chưa có dòng nào đối ứng nguyên liệu với khối lượng rõ ràng.','No line is matched to an ingredient with a known amount.'))}</div>`)+unknown+pending+
   `<p class="hint">${esc(T('Phần đã có trong danh sách được đánh dấu đã mua (mua thiếu thì giữ phần còn lại). Phần dư được thêm vào tủ với ngày mua; hạn dùng để trống. Mua hàng không bao giờ trừ tủ.','The part on the list is marked bought (a partial buy keeps the rest on the list). Extra goes into the pantry with the purchase date; expiry is left blank. A purchase never subtracts from the pantry.'))}</p>`+
   (rec.reconciled?`<p class="callout">${esc(T('Đã cập nhật đi chợ & kho từ hoá đơn này.','Shopping & pantry were already updated from this receipt.'))}</p>`:'');
- const actions=rec.reconciled?`<button class="btn" data-action="close-modal">${esc(T('Đóng','Close'))}</button><button class="btn primary" data-rui="undo" data-id="${esc(rec.id)}">${esc(T('Hoàn tác cập nhật','Undo the update'))}</button>`:`<button class="btn" data-action="close-modal">${esc(T('Để sau','Later'))}</button><button class="btn primary" data-rui="apply" data-id="${esc(rec.id)}" ${plan.rows.length?'':'disabled'}>${esc(T('Cập nhật đi chợ & kho','Update shopping & pantry'))}</button>`;
+ const actions=rec.reconciled?`<button class="btn" data-action="close-modal">${esc(T('Đóng','Close'))}</button><button class="btn primary" data-rui="undo" data-id="${esc(rec.id)}">${esc(T('Hoàn tác cập nhật','Undo the update'))}</button>`:`<button class="btn" data-action="close-modal">${esc(T('Để sau','Later'))}</button><button class="btn primary" data-rui="apply" data-id="${esc(rec.id)}" ${plan.rows.length||plan.extras?.length?'':'disabled'}>${esc(T('Cập nhật đi chợ & kho','Update shopping & pantry'))}</button>`;
  modal(T('Đối chiếu đi chợ & tủ thực phẩm','Check against shopping & pantry'),body,actions,true);
  document.querySelector('.modal')?.classList.add('reconcile-modal');
 }
@@ -325,10 +340,15 @@ document.addEventListener('click',async event=>{
   else if(a==='dup-save'){if(receiptDraft){receiptDraft.dupDecided=true;receiptDraft.allowDuplicate=true;await saveReceipt(false)}}
   else if(a==='dup-view'){receiptDraft=null;closeModal();await openReceipt(id)}
   else if(a==='reconcile'){collectReceipt();reconcileSheet(id)}
-  else if(a==='apply'){const rec=state.receipts.find(r=>r.id===id);if(!rec)return;const ticked=[...document.querySelectorAll('[data-rui-tick]')].filter(x=>(x as any).checked).map(x=>(x as any).dataset.ruiTick);const[start,end]=weekRange();applyReconcile(state,rec,currentWeek(),start,end,ticked);if(typeof log==='function')log(T('Cập nhật đi chợ & kho từ hoá đơn ','Shopping & pantry updated from receipt ')+rec.store);save();closeModal();render();undoBar(id)}
+  else if(a==='open-lines'){closeModal();await openReceipt(id);const first=document.querySelector('#modal-root .rl-box .rl-options');first?.closest('.receipt-line')?.scrollIntoView({block:'start'})}
+  else if(a==='apply'){const rec=state.receipts.find(r=>r.id===id);if(!rec)return;const ticked=[...document.querySelectorAll('[data-rui-tick]')].filter(x=>(x as any).checked).map(x=>(x as any).dataset.ruiTick);const choices={};for(const g of document.querySelectorAll('#modal-root .reconcile-choice[data-rlx]') as any){const v=g.querySelector('input[type=radio]:checked')?.value||'pantry';const ms=g.querySelector('.rc-meal')?.value||'';const[date,type]=ms.split('|');choices[g.dataset.rlx]=v==='meal'&&date?{mode:'meal',meal:{date,type}}:{mode:v==='meal'?'pantry':v}}const[start,end]=weekRange();applyReconcile(state,rec,currentWeek(),start,end,ticked,choices);if(typeof log==='function')log(T('Cập nhật đi chợ & kho từ hoá đơn ','Shopping & pantry updated from receipt ')+rec.store);save();closeModal();render();undoBar(id)}
   else if(a==='undo'){const rec=state.receipts.find(r=>r.id===id);if(rec&&undoReconcile(state,rec)){save(T('Đã hoàn tác cập nhật đi chợ & kho.','Shopping & pantry update undone.'));document.querySelector('.receipt-undo')?.remove();if(document.querySelector('.reconcile-modal'))closeModal();render()}}
  }catch(e){toast(e.message||String(e),true)}
 });
 
-Object.assign(globalThis,{ReceiptUI:{draftFromParsed,fillDraft,reconcilePlan,applyReconcile,undoReconcile,weekNeed,duplicateSheet,reconcileSheet,SALT}});
+// v1.7.18: choosing what happens to an extra updates its line in place (the tapped choice stays where it is)
+document.addEventListener('change',e=>{const t=e.target as any,g=t?.closest?.('.reconcile-choice[data-rlx]');if(!g)return;const id=g.dataset.rlx,rec=state.receipts.find(r=>r.id===document.querySelector('#modal-root [data-rui="apply"]')?.getAttribute('data-id'));if(!rec)return;
+ const v=g.querySelector('input[type=radio]:checked')?.value||'pantry',sel=g.querySelector('.rc-meal');if(sel)sel.hidden=v!=='meal';const[date,type]=(sel?.value||'').split('|');
+ const dst=g.querySelector('.rc-dest');if(dst)dst.textContent=destText(v==='meal'?{mode:'meal',meal:date?{date,type}:null}:{mode:v}).trim()});
+Object.assign(globalThis,{ReceiptUI:{receiptWeeks,statusText,draftFromParsed,fillDraft,reconcilePlan,applyReconcile,undoReconcile,weekNeed,duplicateSheet,reconcileSheet,SALT}});
 })();

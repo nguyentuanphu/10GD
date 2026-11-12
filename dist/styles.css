@@ -2568,3 +2568,37 @@ html[data-theme="dark"] .ap-item{background:var(--surface,#18221d)}html[data-the
 .cook-timing{margin:4px 0 0;font-size:.88em;color:var(--green);font-weight:600;overflow-wrap:anywhere}
 html[data-theme="dark"] .cook-timing{color:#8fd6b0}
 .ap-group{margin:14px 0 8px;font-size:1em}.ap-group small{color:var(--muted);font-weight:500}
+/* v1.7.18: receipt ↔ shopping list — per-line match state, one-tap choices, amount asked once, extra → pantry / meal / not tracked */
+.rl-summary{margin:6px 0 8px;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--muted);overflow-wrap:anywhere}
+.rl-box{grid-column:1/-1;margin-top:8px}
+.rl-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0}
+.rl-head small{color:var(--muted);font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));overflow-wrap:anywhere;min-width:0}
+.rl-state{display:inline-block;padding:3px 9px;border-radius:999px;font-weight:700;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));background:var(--mint,#e6f3ea);color:var(--green,#2f6b45);white-space:nowrap}
+.rl-check{background:#fff1df;color:#8a4b14}.rl-none,.rl-later{background:#f3ece6;color:#6b4a3a}.rl-other{background:#eef3fb;color:#23406b}
+html[data-theme="dark"] .rl-state{background:var(--surface-3,#26372e);color:var(--text)}
+html[data-theme="dark"] .rl-check{background:#4a3416;color:#ffe2bf}html[data-theme="dark"] .rl-none,html[data-theme="dark"] .rl-later{background:#3b2e27;color:#f3dccd}html[data-theme="dark"] .rl-other{background:#1f2c40;color:#d7e4fb}
+.rl-options,.rl-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.rl-options .btn.small,.rl-list .btn.small{min-height:44px;white-space:normal;text-align:left;line-height:1.25;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));max-width:100%}
+.rl-list{padding:8px;border:1px dashed var(--line);border-radius:10px}
+.rl-qty{margin-top:8px;padding:8px 10px;border-radius:10px;background:#f7f4ea}
+html[data-theme="dark"] .rl-qty{background:var(--surface-2)}
+.rl-ask,.rl-have{margin:0;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));overflow-wrap:anywhere}
+.rl-have{font-weight:700;margin-top:4px}
+.rl-per{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 6px}
+.rl-per .input{min-height:44px;width:auto;max-width:9em;flex:0 1 7em}
+.reconcile-choice{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:-2px 0 4px 52px}
+.reconcile-choice .rc-label{font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));color:var(--muted);font-weight:700}
+.rc-opt{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:4px 12px;border:1px solid var(--line);border-radius:999px;background:var(--white,#fffefa);cursor:pointer;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px))}
+.rc-opt input{width:18px;height:18px;margin:0}
+.rc-opt:has(input:checked){border-color:var(--green,#2f6b45);background:var(--mint,#e6f3ea);box-shadow:inset 0 0 0 1px var(--green,#2f6b45)}
+.rc-opt.rc-off{opacity:.55;cursor:not-allowed}
+html[data-theme="dark"] .rc-opt{background:var(--surface-2);color:var(--text);border-color:var(--border-strong)}
+html[data-theme="dark"] .rc-opt:has(input:checked){background:var(--surface-3,#26372e)}
+.reconcile-choice .rc-meal{min-height:44px;flex:1 1 100%;max-width:100%}
+.reconcile-choice .rc-note{flex:1 1 100%;color:var(--muted)}
+.rl-reserved{font-weight:700;color:var(--green,#2f6b45)}
+html[data-theme="dark"] .rl-reserved{color:#8fd6b0}
+@media (max-width:480px){.reconcile-choice{margin-left:0}}
+.reconcile-choice .rc-dest{flex:1 1 100%;font-weight:700;color:var(--green,#2f6b45);font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px))}
+html[data-theme="dark"] .reconcile-choice .rc-dest{color:#8fd6b0}
+.reconcile-open .btn.small{min-height:44px;margin-top:6px;white-space:normal}
