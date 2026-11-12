@@ -99,7 +99,7 @@ const runs:[number,number,'vi'|'en','light'|'dark',string,number][]=[
    assert.ok(await page.locator('#mt-lunch').isDisabled()&&await page.locator('#modal-root .modal-footer [data-sheet-role="save"]').count()===0,`${label}: view-only: times shown, not editable`);
    await E(`(()=>{accountSession=window.__as;closeModal()})()`);
    // the Thực đơn form still saves without touching meal times
-   await E(`kitchenModal('menu')`);await page.locator('#settings-form').waitFor();await E(`document.querySelector('[data-action="submit-form"][data-id="settings-form"]').click()`);await page.waitForTimeout(200);
+   await E(`kitchenModal('menu')`);await page.locator('#settings-form').waitFor();await E(`document.querySelector('[data-action="submit-form"][data-id~="settings-form"]').click()`);await page.waitForTimeout(200);
    const after:any=await E(`({dt:state.preferences.dinnerTime,mt:state.preferences.mealTimes,valid:validImport(clone(state))})`);assert.ok(after.dt==='18:30'&&after.mt.lunch==='12:30'&&after.valid,`${label}: saving Thực đơn keeps the meal times ${JSON.stringify(after)}`);
    await E('closeModal()');
    assert.deepEqual(errors,[],`${label}: no page errors`);console.log('PASS',label);await context.close()}
