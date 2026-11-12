@@ -94,11 +94,11 @@ New suites: `tests/audit-data-fixes.test.cjs` (in `npm test`), `npm run test:aud
 | “Nhờ mua thêm” request (`push-ui.ts`, `errand-form`) | Yes: adds the same extra item | **Changed** (audit A5). Same amount + unit picker and the same extra record as “Mua thêm”; it had a free-text “Số lượng / cách mua”. |
 | Ladybug self-test “Giấy bếp (thử)” (`ladybug-workflows.ts`) | Uses the add form | **Changed** to set the new field (cuộn). |
 | Pantry add / edit (`app.ts`, `stockForm`; `unit-picker.ts`, `unit-stock-form`) | No unit is picked | **Not changed.** The amount is typed in the ingredient's own unit, shown as text. A lot bought in a buying unit keeps that unit from the purchase. Adding a unit choice would change how pantry amounts are stored, which is a data change for Henry to decide. |
-| Receipt line unit (`family-features.ts`, `receiptLineRows` `.receipt-unit`; read by `receipt-list-ui.ts`, `receipt-match-ui.ts`, `receipt-match-picker.ts`) | Close (unit of a bought line) | **Not changed — question for Henry.** The value goes into pantry amounts and price maths, which only understand g, kg, ml, l, quả and the buying units. A family unit has no path there, so converting it changes what a receipt puts into the pantry. |
-| Notes import (“Nhập danh sách ghi chú”, `family-features.ts` `.note-unit` → `shopping-planning.ts`) | Close (writes buying-unit records) | **Not changed — question for Henry.** Same reason as receipts: it writes buying-unit records and pantry amounts without the conversion step the Đi chợ sheet asks for. |
+| Receipt line unit (`family-features.ts`, `receiptLineRows` `.receipt-unit`; read by `receipt-list-ui.ts`, `receipt-match-ui.ts`, `receipt-match-picker.ts`) | Yes | **Changed** (Henry, 12 Nov: “Đổi cả 3 chỗ”). Shared picker with suggestions for the matched ingredient; “gói / hộp chưa rõ lượng” kept as its own choice. A family unit with a conversion is counted through it (`receipt-list.ts` `baseQuantity`). A unit without one becomes a bought lot in that unit (“Chưa quy đổi được · giữ theo 1 túi”), never grams. |
+| Notes import (“Nhập danh sách ghi chú”, `family-features.ts` `.note-unit` → `shopping-planning.ts`) | Yes | **Changed** (“Đổi cả 3 chỗ”). Shared picker per row. A family unit's conversion, or a fixed one such as chục = 10 quả, is used as the buying-unit conversion; otherwise it stays unknown. |
 | Receipt list “1 X = ? …” question (`receipt-list-ui.ts`, `.rl-per-unit`) | No | Not changed: it asks what one pack weighs in g / ml / quả (a conversion), not the item's unit. |
 | Price Scout pack unit and basis (`price-scout-ui.ts`, `scout-pack-unit`, `scout-basis`) | No | Not changed: pack size of a store product (g, kg, mL, L, each, wash, roll, sheet) and the “per kg / per 100 g” price basis used to compare prices. A family unit has no pack size. |
-| Voice recipe preview (`voice-recipe.ts`, `.vr-ing-unit`) | Close | **Not changed — question for Henry.** It is the check of what was heard (typed text with suggestions, read back by the dictation parser). The rows then open in Viết món, where the shared picker is used. |
+| Voice recipe preview (`voice-recipe.ts`, `.vr-ing-unit`) | Yes | **Changed** (“Đổi cả 3 chỗ”). Shared picker with the recipe units group; the heard unit stays as written until the family changes it. |
 | New ingredient from a receipt (`receipt-match-picker.ts`, `FAMILY_UNITS`) | No | Not changed: it sets the counting unit of a new family ingredient, limited to the units the recipe maths can count. |
 | Voice “add to list”, products “add to list”, scan amount (`personal-core.ts`, `products-ui.ts`, `kitchen-extras.ts`) | No control | Not changed: the unit comes from speech, the product's pack size or the ingredient; nothing is picked. |
 
@@ -160,7 +160,7 @@ Audit of 12 Nov 2026 (`docs/reviews/audit-20261112/`), findings about extra item
 
 **Limits and not fixed:**
 - Chromium viewport simulation, not physical devices.
-- A bought extra is not merged into a matching planned ingredient row on the list. It goes into the pantry as its own lot, and the pantry adds lots together. Merging the two rows on the list would change how the list is worked out, so it is left for Henry to decide.
+- (Decided by Henry later the same day; see the next section.)
 - Recipes with a yield and guests are not part of these flows (extras and units), so they were not varied here.
 
 ## Audit fixes — language, Sydney time and money (W4)
@@ -203,6 +203,112 @@ Before the fixes, the first run of this suite listed more than 600 problems. It 
 - **So Giá / voice price amounts:** these stay in AUD on purpose, because they are Australian supermarket prices.
 - **Week-start uses near the greeting (`monday(date)`):** these belong to the week-start group (W2/W3).
 - **B19 amount precision:** the precision in `pantryBuyingDisplay` and the "suất" / "suất chuẩn" wording are left to the amounts and maths group.
+
+## Henry's answers, 12 Nov 2026 (Sydney time): the last unit places, and bought extras on the list
+**1. “Đổi cả 3 chỗ”.** The receipt line unit, the notes-import unit and the voice recipe preview use the shared unit picker (see the §4 inventory).
+- A family unit **with** a conversion goes into the pantry through it. Example: 2 “túi QA” (1 túi ≈ 500 ml) become 1000 ml.
+- A unit **without** one is kept as a bought lot in that unit. Example: “1 túi” of a rooster has no grams; the receipt sheet says “Chưa quy đổi được · giữ theo 1 túi”.
+- Only “gói / hộp chưa rõ lượng” still asks for the amount.
+
+**2. “Như recommend, nhưng nếu user cố tình mua dư thì hỏi để cất vào pantry”.**
+- A ticked extra of an ingredient that is also on the menu list counts towards that row (`extraCoverPlan`):
+  - when it covers the row, the row reads “Đủ — đã mua 1 con ở “Đồ dùng khác””; it counts as bought, and its tick is locked to the extra;
+  - otherwise the row says what is still short.
+- Nothing is bought or put away twice: “Cất đồ” stores the extra, not the row.
+- Ticking an extra that is more than the list needs asks once, “Mua dư Gà trống?”, with two choices: “Không cất phần dư” or “Cất phần dư vào tủ”.
+- The put-away sheet shows the split (“1 con cho thực đơn · dư 1 con”) with a “Cất cả phần dư … vào tủ” tick, set from that answer and still changeable.
+
+**Data (internal, not privacy):**
+- Extra items may carry `surplus` (`'pantry'` or `'skip'`).
+- Receipt lines keep the unit as chosen.
+- No new data leaves the device.
+
+**Tests:** new `test:unit-places:browser` (in `test:all`).
+- Sizes and looks: 320×740, 375×812, 820×1100 and 1280×800, in VI light and EN dark. Every run uses a week starting on Saturday; the EN runs also use VND and a phone in Los Angeles time.
+- Receipt and notes import: the picker opens over the sheet, suggests con first, the family-unit conversion is used, and a no-conversion lot is kept.
+- Voice preview: the heard unit is kept until the family picks one in the picker.
+- Bought extras on the list: short, then “Đủ”, the surplus question, and the put-away amounts with and without the extra part.
+- Every run ends with `validImport` and a sync-merge round trip.
+- Updated to drive the picker instead of the old list or text box: `receipt-list`, `v1716` and `v1714` (receipt line unit); `voice-price` (voice preview unit). Each still checks the same result.
+- Screenshots: `docs/reviews/v1.7.19/unit-places/`. Chromium viewport simulation, not physical devices.
+
+## Meal times and cooking reminders
+
+Owner decision, 12 Nov 2026 (Sydney time), pop-up “Làm đủ 4 ý, gộp v1.7.19”. Henry: “Trong bếp nhà mình nên có option chọn giờ ăn để dựa vào đó còn gửi noti báo nấu ăn etc”.
+
+**What changed**
+- **Bếp của nhà mình → Thực đơn → Giờ ăn** (`src/frontend/meal-times.ts`): one time per meal the family uses. It sits inside the Thực đơn card because My kitchen keeps exactly four cards (owner decision, 1 Nov 2026); “Đổi giờ ăn” and `kitchenModal('mealtimes')` scroll straight to it.
+  - Meals shown: the meals chosen in the guided setup (`enabledMeals`); lunch and dinner for the older two-meal menu (`familyPlanner === false`); breakfast, lunch and dinner when nothing was chosen. A meal that already has a time is always shown.
+  - A meal without a time says “Chưa đặt — không nhắc nấu” and gets no cooking reminder (rule 32). “Bỏ giờ” clears a time. “Lưu giờ ăn” saves.
+  - Two family settings sit next to the meal times (Henry, 12 Nov 2026 pop-up: “Tuỳ chọn cho user”, “Để tuỳ chọn”): “Nhắc rã đông lúc (tối hôm trước)” (`thawReminderTime`, starts at 20:00) and “Không nhắc nấu trước” (`cookEarliestTime`, starts at 08:00; the family may set e.g. 06:00). Both show their starting value, are editable and required; nothing is written while they stay at the starting value.
+  - View-only members see the times but cannot change them.
+  - The old “Giờ ăn tối” field in Thực đơn is removed; meal times are edited in this one place (rule 29).
+- **Cooking reminder for every planned meal with a time** (`src/netlify/lib/push.mts`).
+  - Wording: VI “Đến giờ nấu bữa trưa T2 9/11 — bắt đầu lúc 10:15”, body “Ăn lúc 12:30 · 1 món · lâu nhất … · tổng … phút”. EN “Time to cook lunch Mon 9/11 — start at 10:15”.
+  - Start = meal time − the longest dish (preparation + cooking) − 15 min, rounded down to the quarter hour, never before the family's “Không nhắc nấu trước” (08:00 until changed). The app and the server read the same setting. Same `cookTiming` in the app and on the server; a unit test checks that both give the same answers.
+  - When that bound would put the start at or after the meal (an early breakfast), no reminder is sent; the app says “bữa này sớm hơn giờ “Không nhắc nấu trước” (08:00), nên chuẩn bị từ hôm trước”. Each phone's quiet hours (21:00–07:00 unless changed) still apply, so a 06:45 reminder reaches only phones whose quiet hours end earlier; the Giờ ăn note says so.
+  - Dinner with no cooking time on any dish keeps the 17:00 “chuẩn bị nấu” reminder (`prepReminderTime`), now labelled “Bữa tối chưa ghi thời gian nấu”.
+  - Dedupe: one key per meal and day (`prep/<date>/<meal>`; dinner keeps `prep/<date>` so a reminder already sent on the day of the update is not sent again).
+- **Thaw reminder the evening before** (`thaw` type).
+  - At the family's thaw time (`thawReminderTime`, 20:00 until changed in Giờ ăn) in the family's time zone, once for tomorrow's planned meals that need an ingredient kept in the freezer (a pantry lot in Ngăn đông with an amount, not expired before that day).
+  - Dishes cooked ahead, served from leftovers or part of a weekend batch are left out, as on the shopping list. Cooked meals are left out.
+  - VI “Rã đông tối nay cho ngày mai T3 10/11” / “Chuyển đồ ngăn đông xuống ngăn mát cho bữa tối 18:30: Gà kho gừng.”; EN “Thaw tonight for tomorrow Tue 10/11” / “Move freezer food to the fridge for dinner 18:30: Gà kho gừng.” No emoji. Dish names are used because the server has no ingredient names (nothing new is sent to it).
+  - It is sent for planned meals with or without a meal time, because the trigger is the freezer item.
+- **Each device still chooses.** Per-device types: “Nhắc giờ nấu” (`prep`, relabelled) and the new “Nhắc rã đông” (`thaw`). Both are on by default for a device that has not saved its choices; a device registered before this release gets thaw reminders until it turns them off (server rule for unknown types). Shopper devices get neither.
+- **Daily cap.** The cooking and thaw reminders do not use up the 2 automatic reminders a device gets per day (otherwise breakfast, lunch and dinner reminders would silently drop). Wording in Nhắc nhở updated. *To confirm with Henry.*
+- **Nhắc nhở & thông báo** (`push-settings-ui.ts`, and the older `push-ui.ts` / `app.ts` sheets it replaces at start-up): a read-only “Giờ ăn” list (“Chưa đặt” for a meal without a time, plus the thaw time and “Không nhắc nấu trước”) and “Đổi giờ ăn”, which opens Bếp của nhà mình at Giờ ăn. No meal-time, thaw-time or earliest-time field there.
+- **Meal cards** show the family's time next to the meal name (“Bữa tối · 18:30”); no time when not set. The older two-meal card no longer says “Bữa trưa · 12:00”; its “Dọn cơm” task uses the meal time or “Lúc ăn”.
+- **Today's start-cooking line** goes on the next meal today that has a time and is still to cook (the first not yet eaten, else the last one).
+
+**Related places (rule 29)**
+
+| Place | Uses a meal time? | Change |
+|---|---|---|
+| `personal-ui.ts` kitchen hub, `kitchenMenuBody` | dinner field | Field removed; Giờ ăn added inside the Thực đơn card |
+| `app.ts` settings-form submit | wrote `dinnerTime` | No longer writes it (meal-times form does) |
+| `app.ts` `mealCard` (two-meal Today) | “12:00”, `dinnerTime` | Reads `mealTimeOf` |
+| `app.ts` `prepTasks` | `dinnerTime` / “12:00” | Reads `mealTimeOf`; “Lúc ăn” when not set |
+| `app.ts` `remindersModal` (replaced at start-up) | dinner field | Read-only summary |
+| `family-menu-ui.ts` `familyMealMarkup` | none | Shows the meal time |
+| `cook-timing.ts` | `dinnerTime` | Next timed meal; no 18:30 default |
+| `push.mts` scheduled reminders | `dinnerTime` | Every meal; thaw; cap; types |
+| `push-settings-ui.ts`, `push-ui.ts` | none (reminder times only) | Summary + link; thaw time; labels |
+| `personal-core.ts` `validPersonalState` | — | Validates `mealTimes`, `thawReminderTime` |
+| `sync-merge-core.ts` | — | No change: preferences merge field by field (tested) |
+| `family.mts` `validState`, push-subscribe | — | No change; `pushTypes` now has `thaw` |
+| `studio.mts` / `studio.ts` family reminder line | `prepReminderTime` only | **Not changed**: showing meal times to the operator console would be new family data there (rule 28). Question for Henry |
+| `rsvp-page.ts` guest calendar times (08:00 / 12:00 / 18:30) | fixed times | **Not changed**: using the family's times would send them to guests (new data flow). Question for Henry |
+| `family-flow.ts` `flowNextMealType` | hour cut-offs, not meal times | Not changed |
+| `household-ui.ts` calendar 19:00, `availability-*` from/to | not meal times | Not changed |
+| `voice-commands.ts`, `ladybug-autoplay.ts`, `ladybug-workflows.ts` | none found | Nothing to change |
+
+**Data shape (internal; no privacy change)**
+- `state.preferences.mealTimes = {breakfast?, snackAm?, lunch?, snack?, dinner?}`, each `'HH:MM'` or `''` (the family cleared it). A missing key means not set, except dinner.
+- Dinner: `preferences.dinnerTime` stays (older devices read and validate it as HH:MM). Saving a dinner time writes both. Clearing dinner writes `mealTimes.dinner = ''` and keeps `dinnerTime`. Any other dinner value is read from `dinnerTime`, so a change made on an older device still counts.
+- Older states (only `dinnerTime`) need no migration: dinner reads from `dinnerTime`, other meals are “Chưa đặt”.
+- `preferences.thawReminderTime` and `preferences.cookEarliestTime` (optional `'HH:MM'`; 20:00 and 08:00 when absent).
+- Stored in the family state like `dinnerTime` today. Nothing new is sent anywhere else; privacy pages unchanged.
+
+**Tests**
+- New `tests/meal-times.test.mjs` (in `npm test`): data shape and the older `dinnerTime`; app and server read the same; `setMealTimes` and the validator; start per meal; early breakfast; a day swept every 15 minutes (lunch 10:15 and dinner 17:30, no breakfast or untimed snack, no duplicates on a second pass); no time → nothing; daylight-saving days (4 Oct 2026, 4 Apr 2027) and the day before; a Việt Nam family time zone; a week stored from Saturday; thaw only for freezer items (not fridge, expired, used up, cooked, batch), at 20:00 and at a chosen time, VI/EN, once; per-device off; older device gets thaw; shopper gets neither; cap not used up.
+- Changed: `cook-timing.test` (new dinner title, explained); `alerts-online.test` state gets a `dinnerTime` like every saved state (without one there is now no reminder, as rule 32 asks).
+- New `test:meal-times:browser` (in `test:all`): 320×740 VI light, 375×812 VI dark, 375×812 EN light (phone in Los Angeles), 820×1100 EN dark, 1280×800 VI light (phone in Ho Chi Minh City), 1280×800 EN dark; weeks starting Monday and Saturday. It opens Giờ ăn, checks the meals listed, “Chưa đặt”, 44 px targets, drawing only on Lưu, no emoji, no sideways scroll; fills, clears (tapped control stays), saves; `validImport`; two sync merges; meal cards; Today's start line; Nhắc nhở summary, no meal-time field there, the link opens Giờ ăn; view-only; Thực đơn save keeps the times.
+- Screenshots: `docs/reviews/v1.7.19/meal-times/`.
+
+**Local runs** (12 Nov 2026 19:21 Sydney time, after merging `claude/bold-pascal-riryi0` at 14899a4, before commit): `check` OK, `typecheck` OK, `npm test` OK (with `meal-times.test`, `cook-timing.test`, `push.test`, `notifications.test`, `alerts-online.test`), `test:meal-times:browser` OK, `test:language:browser` OK, `test:v1719-language:browser` OK, `test:browser` (kitchen hub) OK, `test:audit-data:browser` OK, `test:extras-audit:browser` OK, `test:unit-places:browser` OK, `test:v1717:browser` OK (v1717, urgent-reasons, alerts-online and sync-merge from the run on 8251ef2), `test:urgent-reasons:browser` OK, `test:alerts-online:browser` OK, `test:sync-merge:browser` OK.
+
+**Limits**
+- Chromium viewport simulation, not physical phones. The time field looks like the browser's own (12-hour in this Chromium).
+- Push delivery is mocked in tests; no real phone received a reminder.
+- Not varied here: currency (no money in these screens), recipes with a yield and guests (the start time uses dish times, not portions).
+
+**Henry's answers** (12 Nov 2026, Sydney time, pop-up)
+1. Thaw time: “Tuỳ chọn cho user” — a family setting in Giờ ăn, starting at 20:00; Nhắc nhở shows it read-only. Done.
+2. Daily cap: “Nhắc nấu và rã đông không tính” — kept.
+3. New devices: “Bật sẵn, tắt được” — kept.
+4. Early breakfast: “Để tuỳ chọn” — “Không nhắc nấu trước” in Giờ ăn, starting at 08:00, used by the app and the server. Done.
+5. Studio reminder line and guest calendar: unchanged (no privacy or data change).
+6. Thaw for meals without a time: kept (the trigger is the freezer item).
 
 ## Audit fixes — owner rules polish (rules 8, 19–27) and small UI items
 
