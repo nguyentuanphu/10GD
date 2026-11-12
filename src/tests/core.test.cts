@@ -18,7 +18,14 @@ let before=JSON.stringify(s.pantry);const missing=consumeMeal(s,m);check(m.cooke
 const locked=w.days[date].lunch;locked.locked=true;const saved=JSON.stringify(locked.recipes);s.preferences.avoid='tôm';s.preferences.maxTime=30;const result=generateWeek(s,w);check(JSON.stringify(locked.recipes)===saved,'generator preserves locked meals');
 for(const day of Object.values(w.days))for(const type of ['lunch','dinner']){const mm=day[type];if(mm.locked)continue;check(mm.recipes.every(r=>r.time<=30&&!r.ingredients.some(i=>i.id==='shrimp')),'generator applies time and avoidance rules')}
 check(validImport(JSON.parse(JSON.stringify(s))),'exported state can be reimported');let bad=JSON.parse(JSON.stringify(s));bad.pantry[0].qty=-3;check(!validImport(bad),'negative inventory rejected on import');
-check(fmtQty(1500,'g')==='1.5 kg','grams present as kilograms');check(addDays('2026-10-31',1)==='2026-11-01','calendar crosses month boundary');check(monday('2026-11-01')==='2026-10-26','Sunday belongs to the preceding Monday');
+check(fmtQty(1500,'g')==='1.5 kg','grams present as kilograms');
+/* Issue #38: counted units (con, cái, bó, …) are bought in whole numbers after scaling, like 'quả'. */
+{INGREDIENTS.qaCon=['Gà ta QA','con','meat',0,'',null];INGREDIENTS.qaBo=['Hành lá QA','bó','veg',0,'',null];
+ const cm=clone(m);cm.cooked=false;cm.recipes=[{id:'qa38',name:'QA',ingredients:[{id:'qaCon',qty:1},{id:'qaBo',qty:1},{id:'chicken',qty:500}],servings:4,yield:4}];cm.servings=3.2;
+ const need=mealIngredients(cm,s);check(need.qaCon===1&&need.qaBo===1,'counted units round up after scaling (1 con stays 1, not 0.8)');
+ check(need.chicken===400,'weighed units still scale exactly');
+ cm.servings=4.4;check(mealIngredients(cm,s).qaCon===2,'counted units round up, never down (1.1 con buys 2)');
+ delete INGREDIENTS.qaCon;delete INGREDIENTS.qaBo}check(addDays('2026-10-31',1)==='2026-11-01','calendar crosses month boundary');check(monday('2026-11-01')==='2026-10-26','Sunday belongs to the preceding Monday');
 `,ctx);
 vm.runInContext(`
 let soupState=defaults(),soupWeek=ensureWeek(soupState,monday(sydneyDate()));
