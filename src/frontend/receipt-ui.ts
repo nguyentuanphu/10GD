@@ -282,6 +282,7 @@ function boughtText(r){return r.same?`${r.parts.length} × ${amt(r,r.parts[0])} 
 function receiptWeekStart(rec){const d=DAY.test(rec?.date||'')?rec.date:(typeof sydneyDate==='function'?sydneyDate():weekStart);return typeof planStartOf==='function'?planStartOf(state,d):weekStart}
 function weekRange(rec){const s=receiptWeekStart(rec);return[s,addDays(s,6)]}
 function receiptWeek(rec){const s=receiptWeekStart(rec);return typeof planWeek==='function'?planWeek(state,s):currentWeek()}
+(globalThis as any).ReceiptWeek={range:weekRange,week:receiptWeek};
 function reconcileSheet(id){
  const rec=state.receipts.find(r=>r.id===id);if(!rec)return;
  const[start,end]=weekRange(rec),week=receiptWeek(rec),plan=reconcilePlan(state,rec,week,start,end);

@@ -2187,8 +2187,11 @@ body:has(#modal-root .modal>.modal-footer.floating-footer) #toast.visible{transf
 .mr-dish-link,.store-pill{min-height:44px!important}
 .text-btn,.mr-dish-link{display:inline-flex!important;align-items:center}
 .store-pill{display:inline-flex;align-items:center}
+/* v1.7.19 (rules 8 + 20 together): each day is a 44 × 44 px target and the week never scrolls sideways. On a phone the days sit in a
+   grid under each name: all 7 in one row where they fit (375 px and wider); on the narrowest phones the grid wraps instead of
+   shrinking the targets. */
 .pack-cell{display:inline-flex!important;align-items:center;justify-content:center;min-width:44px!important;min-height:44px}
-.pack-table-wrap table{min-width:max-content}
+@media(max-width:560px){.pack-table tr{grid-template-columns:repeat(auto-fill,minmax(44px,1fr))!important}.pack-table .pack-cell{width:100%}}
 .ing-editor-row .ing-qty{min-width:56px}
 .btn,.text-btn,button.icon{min-width:44px}
 /* v1.7.19 audit sweep N4: at 320 px in English the shopping-mode buttons wrap their words instead of pushing the page wider */
