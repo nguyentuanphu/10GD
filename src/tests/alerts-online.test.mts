@@ -124,7 +124,7 @@ console.log('PASS push batch: parallel reads, no second family read, urgent opti
  const now=new Date();const clock=new Intl.DateTimeFormat('en-GB',{timeZone:'Australia/Sydney',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(now);
  const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
  const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));const week=d.toISOString().slice(0,10);
- const state={version:1,members:[{id:'dad',name:'Bố'}],recipes:[],pantry:[],receipts:[],preferences:{prepReminderTime:clock},weeks:{[week]:{days:{[date]:{dinner:{recipes:[{name:'Canh chua'}],cooked:false}}}}}};
+ const state={version:1,members:[{id:'dad',name:'Bố'}],recipes:[],pantry:[],receipts:[],preferences:{prepReminderTime:clock,dinnerTime:'18:30'/* v1.7.19: a dinner without a time gets no reminder (rule 32); every saved state has one */},weeks:{[week]:{days:{[date]:{dinner:{recipes:[{name:'Canh chua'}],cooked:false}}}}}};
  await fx.store.setJSON('state',{version:1,members:[{id:'dad',name:'Bố'}],recipes:[],weeks:{},pantry:[],preferences:{},receipts:[]});
  assert.equal((await h(req('push-subscribe','POST',{deviceId:'v17-rem-device',memberId:'dad',subscription:sub(30),quietStart:'00:00',quietEnd:'00:00'}))).status,200);
  const etag=(await (await h(req('state','GET'))).json()).etag;
