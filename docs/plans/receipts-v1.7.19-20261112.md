@@ -1,7 +1,12 @@
 # v1.7.19 plan — receipts the app has not seen yet (owner, 12 Nov 2026, Sydney time)
 
 Owner chose A and B (pop-up, 12 Nov 2026): “There will be other receipts that you have not tested — how will you be able to read those?”
-Not chosen: C (AI reading of the photo). Ships after v1.7.18. Release rules in AGENTS.md apply (plan → build → tests → DEPLOY).
+Not chosen: C (AI reading of the photo). Release rules in AGENTS.md apply (plan → build → tests → DEPLOY).
+
+**Update — owner, 12 Nov 2026 (Sydney time): “Do everything in this round”. A and B moved into v1.7.18** (no version bump; C is still not wanted).
+What was built is recorded in `docs/reviews/v1.7.18/review.md` section 7: phone-side redaction + preview + send (`receipt-share.ts`), hint card
+(`receipt-quality.ts`), server op `feedback?op=receipt-report` with Studio ops (`lib/receipt-reports.mts`, kept 180 days), Studio page
+“Hoá đơn gửi về” (`studio-receipts.ts`), privacy page section 7a.
 
 ## A. “Gửi chữ hoá đơn để sửa cách đọc” (send the receipt text to fix the reader)
 - After the family corrects a receipt (lines, prices, store, date), one tap sends to Studio: the OCR text, the corrected lines, the reader's version, store / retailer id and app build.
