@@ -51,3 +51,15 @@ On the phone the app read the 9 items but took **SUB TOTAL $133.77** as the amou
 - A price that OCR misread by one digit (“$13.95” for $13.35) is **not** changed: it stays as read and the difference with the total is reported, so every kept price is one printed on the receipt.
 
 **Tests:** new `receipt-parse.test` case with the phone's text and the local OCR text (no photo kept): 9 items, total $133.75, difference $0 on the phone text; it fails on main. All 47 receipt cases, `receipt-ocr` and `generic-receipts` browser suites pass.
+
+## 6. Cuong Thien Marrickville receipt (owner, 12 Nov 2026, 13:33: “This one still not reading correctly”)
+The phone read 18 lines but named the shop “ERE RESILIENT” / “Cuong Thien PTY ©”. The app's OCR of the full photo (run locally, photo not kept) also turned the wrapped “… CAI THUONG HA / I / BIG BUNCH” + “2 @ $1.80” into an extra item, and “6 @ $1.20” (read “66 $1.20”) into an unnamed line.
+
+**Fixes (`receipt-parse.ts`):**
+- The company line is recognised without its “LTD” (“PTY LT ie”, “PTY ©” — the end lost at the paper's edge), so the store is “Cuong Thien Marrickville”, not header noise.
+- “I / BIG BUNCH” read as “1 / 81g BUNCH” is the end of a wrapped name, not a new item.
+- “66 $1.20” under a $7.20 item is 6 @ $1.20 (the @ read as 6), only when count × price equals the item above — as the existing “68 $1.20” rule.
+
+**Result on the local OCR text:** 17 of 18 lines with names and prices, store Cuong Thien Marrickville, total $76.30; the KNORR line whose name and price OCR lost is reported as “Short by $5.65”, never invented (the phone's own OCR did read it).
+
+**Tests:** new `receipt-parse.test` case from that OCR text (receipt number blanked); fails on main. 48 receipt cases, `receipt-ocr`, `generic-receipts` browser suites pass.

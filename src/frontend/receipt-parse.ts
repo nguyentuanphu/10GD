@@ -258,7 +258,7 @@ function findStore(lines,head,retailer){
  suburb=suburb.replace(/\s+/g,' ').trim();
  let store=retailer?.name?(retailer.name.replace(/ UK$/,'')+(suburb?' '+suburb:'')):'';
  // v1.7.10: local shops print the company (“HP MEATS PTY LTD”, “CUONG THIEN PTY LTD”) and “MARRICKVILLE NSW 2204”
- if(!store){const co=head.map(l=>l.match(/([A-Z][A-Z0-9&'.-]*(?:\s+[A-Z0-9&'.-]+){0,4}?)\s+P[TI]Y\.?\s*L[TI][DP]\b/)).find(Boolean);
+ if(!store){const co=head.map(l=>l.match(/([A-Z][A-Z0-9&'.-]*(?:\s+[A-Z0-9&'.-]+){0,4}?)\s+P[TI]Y\b\.?(?:\s*L[TI][DP]?\b)?/)).find(Boolean);// v1.7.18: “PTY LT ie”, “PTY ©” (LTD lost at the paper's edge) still name the company
   if(co){const name=co[1].replace(/^(?:[A-Z]\s+|[^A-Z]+)/,'').trim();const sub=lines.slice(0,14).map(l=>l.match(new RegExp(`([A-Z][A-Z' ]{2,28}?)\\s+(${STATES})\\s+\\d{4}\\b`))).find(Boolean);
    if(name.length>=2){store=name.split(/\s+/).map(w=>w.length<=2?w:titleCase(w)).join(' ')+(sub&&!suburb?' '+titleCase(sub[1].trim()):'');if(sub&&!suburb)suburb=titleCase(sub[1].trim())}}}
  if(!store){const first=head.find(l=>/[A-Za-z]{3}/.test(l)&&l.length<50&&!/\d[.,]\d{2}/.test(l)&&!SKIP_RE.test(norm(l))&&!isSensitive(l));store=first?first.trim():''}
@@ -314,7 +314,8 @@ function parseReceipt(text,opts={}){
  const items=[],totals=[],head=[];const payAmounts=[];let section='head',pending=null,refund=false,multiple=false,printedCount=null,lastItem=null;
  const add=it=>{items.push(it);if(it.kind==='item')lastItem=it;return it};
  // v1.7.10: the second half of a wrapped name (“/ NGAN”, “G / BUNCH”, “RMAL”, “EACH”, “PURPLE”, “/ 3 FOR”) is not a new product
- const contPending=()=>{if(!pending||pending.head)return false;const t=cleanLabel(pending.text,det.id).label;const words=t.match(/[A-Za-z]{2,}/g)||[];return /^\W*\/|^(?:\S{1,3}\s+)?(?:N?O?R?MAL|NORMAL|EACH|BUNCH|BIG\s+BUNCH|NGAN|PURPLE|\d\s*FOR)\b/i.test(t)||words.length<=1&&t.length<=12};
+ // v1.7.18: “I / BIG BUNCH” (the end of “CAI THUONG HA·I”) read as “1 / 81g BUNCH” is a wrap too
+ const contPending=()=>{if(!pending||pending.head)return false;const t=cleanLabel(pending.text,det.id).label;const words=t.match(/[A-Za-z]{2,}/g)||[];return /^\W*\/|^[1Il|]\s*\/\s*\S|^(?:\S{1,3}\s+)?(?:N?O?R?MAL|NORMAL|EACH|BUNCH|BIG\s+BUNCH|NGAN|PURPLE|\d\s*FOR)\b/i.test(t)||words.length<=1&&t.length<=12};
  const sameAs=(v,price)=>price!=null&&Math.abs(round(v)-price)<0.015;
  // An unpriced line that names a product with a printed size (torn / clipped receipt) stays as a line
  // without a price, so nothing is silently lost; the price is never guessed.
@@ -386,7 +387,7 @@ function parseReceipt(text,opts={}){
     for(const cl of [1,2])for(let k=cl;k<d.length&&!hit;k++){const c=+d.slice(0,cl),m=d.slice(k).match(/^[0@48$S§]{0,3}?(\d{1,3}[.,]\d{1,2})$/);if(m&&c>=2&&sameAs(c*+m[1].replace(',','.'),lastItem.price))hit={count:c,each:+m[1].replace(',','.')}}
     if(hit){lastItem.multi=hit;lastItem.raw+=' / '+line;if(pending)lastItem.raw+=' / '+pending.text;if(lastItem.size)lastItem.qty=round(lastItem.size.qty*hit.count,3);else if(lastItem.each||lastItem.qty==null){lastItem.qty=hit.count;lastItem.unit='each'}pending=null;continue}}}
   // v1.7.14: “68 $1.20” = 6 @ $1.20 (the @ read as 8, the space kept) — only when count × price equals the item just read
-  {const g8=line.match(/^\W*(\d)[8@]\s+\$\s?(\d{1,3}[.,]\d{2})\W*$/);if(g8&&lastItem&&lastItem.price!=null&&!lastItem.multi&&+g8[1]>=2&&sameAs(+g8[1]*+g8[2].replace(',','.'),lastItem.price)){const count=+g8[1];lastItem.multi={count,each:+g8[2].replace(',','.')};lastItem.raw+=' / '+line;if(pending)lastItem.raw+=' / '+pending.text;if(lastItem.size)lastItem.qty=round(lastItem.size.qty*count,3);else if(lastItem.each||lastItem.qty==null){lastItem.qty=count;lastItem.unit='each'}pending=null;continue}}
+  {const g8=line.match(/^\W*(\d)[8@6aA&]\s+\$\s?(\d{1,3}[.,]\d{2})\W*$/)/* v1.7.18: also “66 $1.20” */;if(g8&&lastItem&&lastItem.price!=null&&!lastItem.multi&&+g8[1]>=2&&sameAs(+g8[1]*+g8[2].replace(',','.'),lastItem.price)){const count=+g8[1];lastItem.multi={count,each:+g8[2].replace(',','.')};lastItem.raw+=' / '+line;if(pending)lastItem.raw+=' / '+pending.text;if(lastItem.size)lastItem.qty=round(lastItem.size.qty*count,3);else if(lastItem.each||lastItem.qty==null){lastItem.qty=count;lastItem.unit='each'}pending=null;continue}}
   const mm=line.match(MULTI_RE)||line.match(JUNK_MULTI_RE);
   if(mm&&!/[a-z]{3}/i.test(line.replace(/^\W*\S{1,4}\s+(?=\d)/,'').replace(/each|[qo]ty|ea\b/ig,''))){const count=+mm[1],each=+mm[2].replace(',','.'),p=priceOf(line.slice(mm.index+mm[0].length),aldi);
    let target=null;

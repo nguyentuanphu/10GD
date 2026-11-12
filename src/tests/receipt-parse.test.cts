@@ -233,5 +233,19 @@ check('butcher receipt: SUB TOTAL stays a subtotal, CASH is the amount paid, spe
  const rnd=b.items.find((x:any)=>x.kind==='rounding');assert.equal(rnd.price,-0.02,'“~$0.02” is a minus');
  assert.ok(b.warnings.some((w:any)=>w.code==='over'),'the misread $13.95 is still reported, not silently changed');
 });
+// v1.7.18 (owner, 12 Nov 2026, 13:33, Cuong Thien Marrickville: “still not reading correctly”): the app's OCR of the photo (receipt
+// number blanked, no photo kept). The wrapped “… CAI THUONG HA / I / BIG BUNCH” with its “2 @ $1.80” is one item, “66 $1.20” is
+// 6 @ $1.20 of the noodles above, and the company line without its “LTD” (“PTY LT ie”, phone: “PTY ©”) still names the store.
+check('Cuong Thien grocer: wrapped “I / BIG BUNCH” is no item, “66 $1.20” = 6 @ $1.20, store named without “LTD”',()=>{
+ const OCR="* CUONG THIEN PTY LT   ie\n|             A.B.N. 24 684 946 089            b\n              Tel: (02) 9573 0330              i\n           307-309 ILLAWARRA ROAD\n|             MARRICKVILLE NSW 2204  ____= \u00a9\n|                  TAX INVOICE       on\nDate: 07/11/2026         No: P0000000000   :\nCashier: QUYMA           Register: POSY*  B\n| ==s==sssszmmmmssssssszosssssmssssISeoo\n\u00a9 08. BUK CHOY - CAI THUONG HA       $5.00\n1/3 FOR\n08. BUK CHOY - CAI THUONG HA       $3.60 \u00a9\n1 / BIG BUNCH                             ;\n2 @ $1.60                |\n01. CORIANDER - NGO / SYD          $1.20\n04. SHALLOT - HANH LA / NOR       $1.99 |\nMAL                                     |\n\"MELON HAIRY - BI DAD/KG / NO       $4.99\nRMAL                                                               |\n1.000kg @ $4.99/kg\nCUCUMBER GREEN (0Z) /KG / NO       $1.89\nRMAL\n0.950kg @ $1.89/kg\nTOMATO LOOSE /KG / ROUND          $4.37\n0.730kg @ $5.99/kg\nCHOLIMEX XOT BO KHO 1808            $3.40\n~~ CHOLIMEX XOT BO KHO 180G            $3.40\n~~ ROSE GLUTINOUS RICE TKG             $3.75\n   RTL THIN EGG NOODLES 500       $7.98\n| 1 a\n|      GIA VI HAT NEM CAQ C           :\nNAM HUONG 380G           \u201ci       Eh\nFRESH PURPLE GARLIC - 200G /       $5.00\nPURPLE ~~\nVT CRISP FRIED POWDER MIX BO       $1.30\nT CHIEN GION- 1506                        |\nVT CRISP FRIED PONDER MIX BO       $1.30\nT CHIEN GION- 1506\nMILIKET MI 4 TOM DAC BIET /        $7.20\nEACH\n66 $1.20\nSKYLUCK THIN EGG NOODLES 500       $7.98\nG\n2 @ $3.99\nTFC BUN TUOI 4006                  $6.30\n2 @ $3.15\nSUB HE    $76.30\nMASTERCARD!     90\nBALANCE:      $0.00\n";
+ const r=R.parseReceipt(OCR),g=goods(r);
+ assert.equal(r.store,'Cuong Thien Marrickville');assert.equal(r.printedTotal,76.3);
+ assert.ok(!g.some((x:any)=>/BUNCH/.test(x.name)&&x.price===3.2),'“1 / 81g BUNCH” + “2 @ $1.60” is not an item of its own');
+ assert.ok(g.every((x:any)=>x.name),'no unnamed line from “66 $1.20”');
+ const mi=g.find((x:any)=>/MILIKET/.test(x.name));assert.deepEqual(J(mi.multi),{count:6,each:1.2});
+ assert.equal(g.length,17,'17 of 18 lines; the KNORR line whose name and price OCR lost is reported as a shortfall, never invented');
+ assert.ok(r.warnings.some((w:any)=>w.code==='short'));
+ const b=R.parseReceipt('CUONG THIEN PTY ©\nA.B.N. 24 684 946 085\nMARRICKVILLE NSW 2204\nTAX INVOICE\nBUK CHOY   $5.00\nTOTAL: $5.00\n');assert.equal(b.store,'Cuong Thien Marrickville');
+});
 console.log(`receipt parser tests passed (${n})`);
 })().catch(e=>{console.error(e);process.exit(1)});
