@@ -71,7 +71,7 @@ function applyTargets(index,keys,{record=true}={}){
  else if(info.length===1){const t=info[0];if(t.kind==='ingredient'){it.match=t.id;if(it.extra.weightKg&&!it.qty){it.qty=it.extra.weightKg;it.unit='kg'}}else{it.match='other';it.extra.basket={key:t.key,id:t.id,name:t.name}}delete it.extra.unknown}
  else{it.match='other';it.extra.covers=info.map(t=>({key:t.key,kind:t.kind,id:t.id,name:t.name}));delete it.extra.unknown}
  it.confidence='';setSelect(index,it.match);
- const qty=document.querySelector(`.receipt-line[data-index="${index}"] .receipt-qty`),unit=document.querySelector(`.receipt-line[data-index="${index}"] .receipt-unit`);if(qty&&it.qty!=null&&qty.value==='')qty.value=it.qty;if(unit&&it.unit&&!unit.value)unit.value=it.unit;
+ const qty=document.querySelector(`.receipt-line[data-index="${index}"] .receipt-qty`),unit=document.querySelector(`.receipt-line[data-index="${index}"] .receipt-unit`);if(qty&&it.qty!=null&&qty.value==='')qty.value=it.qty;if(unit&&it.unit&&!unit.value){if(unit.tagName==='INPUT'&&typeof unitFieldSet==='function')unitFieldSet(unit,it.unit,{silent:true});else unit.value=it.unit}
  return true;
 }
 function undo(){const prev=rm.undo.pop();if(!prev||!receiptDraft)return;collectReceipt();receiptDraft.items=prev;rm.sel=null;receiptEditor();say(T('Đã hoàn tác.','Undone.'))}

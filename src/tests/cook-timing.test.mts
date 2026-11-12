@@ -29,7 +29,7 @@ ok(true,'the app and the server make the same sum');
  const sent:any[]=[];const send=async(_s:any,p:string)=>{sent.push(JSON.parse(p));return{statusCode:201}};
  await scheduledReminders(store,new Date('2026-11-09T04:00:00Z')/* 15:00 Sydney */,{send});ok(!sent.some(p=>p.type==='prep'),'not at 15:00');
  await scheduledReminders(store,new Date('2026-11-09T05:15:00Z')/* 16:15 Sydney */,{send});const p=sent.find(x=>x.type==='prep');
- ok(p&&/bắt đầu nấu lúc 16:15/.test(p.title)&&/3 món · lâu nhất Phở bò 120 phút \(chuẩn bị 30 \+ nấu 90\) · tổng 130 phút · 1 món chưa ghi thời gian/.test(p.body),`at 16:15 the reminder says how long it takes (${p?.title} — ${p?.body})`);
+ ok(p&&p.title==='Đến giờ nấu bữa tối T2 9/11 — bắt đầu lúc 16:15'&&/^Ăn lúc 18:30 · 3 món · lâu nhất Phở bò 120 phút \(chuẩn bị 30 \+ nấu 90\) · tổng 130 phút · 1 món chưa ghi thời gian/.test(p.body),`at 16:15 the reminder says how long it takes (${p?.title} — ${p?.body})`);
  await scheduledReminders(store,new Date('2026-11-09T05:20:00Z'),{send});ok(sent.filter(x=>x.type==='prep').length===1,'sent once');
  // no time on any dish: the old 17:00 reminder with the dish names
  const st2={...state,weeks:{[week]:{days:{[date]:{dinner:meal(['canh'])}}}}};data.set('state',st2);for(const k of [...data.keys()])if(k.startsWith('push/sent/'))data.delete(k);sent.length=0;

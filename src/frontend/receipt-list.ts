@@ -41,6 +41,7 @@ function baseQuantity(qty:any,unit:any,id:string,{per=null,s=null}:any={}){
  if(u&&b&&u.dim&&u.dim===b.dim&&u.factor&&b.factor&&!u.fixed)return round(q*u.factor/b.factor);
  if(u?.fixed&&Number.isFinite(u.fixed[base]))return round(q*u.fixed[base]);
  if(+per>0)return round(q*+per);
+ /* v1.7.19 (owner, “Đổi cả 3 chỗ”): a family unit with a conversion the family entered counts through it */if(s&&typeof customUnitFactor==='function'){const f=customUnitFactor(s,id,unit);if(+f>0)return round(q*+f)}
  const pref=s?.purchaseUnitPreferences?.[id];if(pref&&+pref.basePerUnit>0&&(pref.unit===unit||typeof sameUnit==='function'&&sameUnit(pref.unit,unit)))return round(q*+pref.basePerUnit);
  return null;
 }
@@ -110,6 +111,9 @@ function plan(s:any,rec:any,week:any,start:string,end:string){
    const prev=rows.find((x:any)=>x.ingredient===l.ingredient&&x.units);const done=week.unitBought?.[scope]?.[r.id]&&r.bought;
    if(prev){prev.parts.push(+l.enteredQty);prev.bought=round(prev.bought+(+l.enteredQty))}
    else rows.push({ingredient:l.ingredient,units:r.purchase.unit,parts:[+l.enteredQty],bought:+l.enteredQty,need:done?0:+r.purchase.amount,onList:true});continue}
+  /* v1.7.19 (owner, “Đổi cả 3 chỗ”): a unit with no conversion is kept as a bought lot in that unit (“2 túi lưới”), never turned into
+    grams; it goes to the pantry like any extra unless the family chooses otherwise. Only “gói / hộp chưa rõ lượng” stays unknown. */
+  if(+l.enteredQty>0&&u&&u!=='pack'&&String(u).length<=40){const prev=rows.find((x:any)=>x.ingredient===l.ingredient&&x.units===u&&x.noConv);if(prev){prev.parts.push(+l.enteredQty);prev.bought=round(prev.bought+(+l.enteredQty))}else rows.push({ingredient:l.ingredient,units:u,parts:[+l.enteredQty],bought:+l.enteredQty,need:0,onList:false,noConv:true});continue}
   unknown.push(l)}
  for(const row of rows.filter((x:any)=>x.units)){row.covered=Math.min(row.bought,row.need);row.extra=round(row.bought-row.covered);row.short=round(Math.max(0,row.need-row.bought));row.status=row.need<=0?'extra':row.short>0?'short':row.extra>0?'enough-extra':'enough';row.same=row.parts.length>1&&row.parts.every((p:any)=>p===row.parts[0])}
  // the family's own list lines (“Kimchi”) matched on the receipt

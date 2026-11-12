@@ -3,6 +3,19 @@
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
 ## 12 Nov 2026 (later)
+- **Dish sheet** (pop-up answers, Henry wrote in English): the same three buttons everywhere.
+  - Main action: "Nấu món này" when opened from a meal, "Thêm vào bữa" when opened from the library.
+  - "Sửa món" edits any dish directly. A catalogue dish becomes a family copy automatically. A dish typed into a meal is edited in place, with "Lưu vào kho món" NOT ticked by default.
+  - "Xoá" means "Bỏ khỏi bữa này" from a meal and "Xoá khỏi kho" from the library, both with undo. Built-in catalogue dishes are hidden ("Ẩn khỏi kho") and can be shown again. "Xoá món" is also inside Viết món.
+  - Ships in v1.7.19.
+- **Reminder details** (pop-up answers):
+  - The thaw-reminder time is chosen by the family in "Giờ ăn" (starting value 20:00).
+  - Cooking and thaw reminders do not count towards the 2-per-day automatic limit.
+  - New devices have "Nhắc giờ nấu" and "Nhắc rã đông" on; they can be turned off.
+  - The earliest cooking-reminder time is a family setting, "Không nhắc trước …" (starting value 08:00).
+  - The Studio reminder line and the guest-invitation calendar do not show meal times; that would be a privacy change.
+- **Spoon and bowl amounts** (muỗng canh, muỗng cà phê, chén, cup) are notes only and are not added to the shopping list. The app still says whether that ingredient is in the pantry, and reminds the family to buy one bottle or pack when there is none. (Pop-up answer: "Như recommend, và vẫn báo là còn trong tủ hay không".)
+- **Receipt lots** get a suggested use-by date, like every other way into the pantry. It is shown and editable in the receipt confirmation step and marked as an estimate. (Pop-up answer: "Gợi ý hạn dùng, cho sửa".)
 - **Meal times and cooking reminders** (pop-up answer: "Làm đủ 4 ý, gộp v1.7.19"):
   1. "Bếp của nhà mình" gets a "Giờ ăn" section with a time for each meal the family uses (sáng, phụ sáng, trưa, phụ chiều, tối). A meal with no time shows "Chưa đặt" and gets no reminder.
   2. Every planned meal that has a time gets "Đến giờ nấu [bữa] — bắt đầu lúc …", not only dinner. The start is the meal time minus the longest dish's cooking time minus 15 minutes.
