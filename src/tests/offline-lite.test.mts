@@ -80,3 +80,12 @@ console.log('PASS lazy catalog kept offline (single version), Studio offline pag
 const old=cacheFor('bep-family-v21-plant-catalog');await old.put('/artwork/dishes-v7.webp',new Response(new Uint8Array(10)));await old.put('/index.html',new Response('old'));
 await run('activate',{});assert.ok(!stores.has('bep-family-v21-plant-catalog'),'old app cache retired');assert.ok(await cacheFor('bep-pack-sheets-v1').match('/artwork/dishes-v7.webp'),'old sheets kept, not downloaded again');
 console.log('PASS upgrade keeps previously precached sheets as the detailed-artwork download');
+// 8. v1.7.18: a notification keeps its dated link (#planner?d=…) through the worker and opens it on tap; unknown links fall back to Today.
+{const shown:any[]=[];self.registration.showNotification=async(title:string,opts:any)=>{shown.push(opts)};
+ const pushEvent=(url:string)=>({data:{json:()=>({type:'calendar',title:'t',body:'b',url})}});
+ for(const [sent,expect] of [['/#planner?d=2026-11-07','/#planner?d=2026-11-07'],['/#today?d=2026-11-12','/#today?d=2026-11-12'],['/#shopping','/#shopping'],['/#studio','/#today'],['https://evil.example/','/#today']] as const){
+  shown.length=0;await run('push',pushEvent(sent));assert.equal(shown[0]?.data?.url,expect,'push keeps '+sent)}
+ const opened:string[]=[];clientsList=[];self.clients.openWindow=async(u:string)=>{opened.push(u)};
+ await run('notificationclick',{notification:{close(){},data:{url:'/#planner?d=2026-11-07'}}});
+ assert.equal(opened[0],origin+'/#planner?d=2026-11-07','tap opens the dated screen');
+ console.log('PASS notification links keep their screen and day (push → tap)')}

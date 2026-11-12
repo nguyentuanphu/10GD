@@ -52,7 +52,7 @@ const makeStore=()=>{const data=new Map<string,any>([['push/vapid-keys',webPush.
  const prev=base(),next=base();next.availability={ti:{'2026-11-03':{dinner:busy('ti')}}};
  let r=await notifyAvailabilityChange(store,prev,next,{now:MORNING,send});
  assert.equal(r.accepted,3);assert.deepEqual(sent.map(s=>s.to).sort(),['big','dad','mum'],'everyone with a device except the reporter');
- assert.equal(sent.find(s=>s.to==='mum').payload.body,'Cậu Tí báo bận bữa tối 3/11 — vẫn nấu phần');assert.equal(sent.find(s=>s.to==='dad').payload.title,'Family calendar: Cậu Tí');assert.equal(sent[0].payload.type,'calendar');assert.equal(sent[0].payload.url,'/#today');
+ assert.equal(sent.find(s=>s.to==='mum').payload.body,'Cậu Tí báo bận bữa tối 3/11 — vẫn nấu phần');assert.equal(sent.find(s=>s.to==='dad').payload.title,'Family calendar: Cậu Tí');assert.equal(sent[0].payload.type,'calendar');assert.equal(sent[0].payload.url,'/#today?d=2026-11-03','v1.7.18: opens Today on the day that changed');
  ok('sent once to the other members, not to the reporter; language per device');
  sent.length=0;r=await notifyAvailabilityChange(store,prev,next,{now:new Date(MORNING.getTime()+60000),send});assert.equal(r.reason,'duplicate');assert.equal(sent.length,0);
  const resaved=structuredClone(next);resaved.availability.ti['2026-11-03'].dinner.updatedAt=Date.now();r=await notifyAvailabilityChange(store,next,resaved,{now:MORNING,send});assert.equal(r.reason,'no_change');assert.equal(sent.length,0);
