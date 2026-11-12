@@ -3,6 +3,8 @@
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
 ## 12 Nov 2026 (later)
+- **Spoon and bowl amounts** (muỗng canh, muỗng cà phê, chén, cup) are notes only and are not added to the shopping list. The app still says whether that ingredient is in the pantry, and reminds the family to buy one bottle or pack when there is none. (Pop-up answer: "Như recommend, và vẫn báo là còn trong tủ hay không".)
+- **Receipt lots** get a suggested use-by date, like every other way into the pantry. It is shown and editable in the receipt confirmation step and marked as an estimate. (Pop-up answer: "Gợi ý hạn dùng, cho sửa".)
 - **Meal times and cooking reminders** (pop-up answer: "Làm đủ 4 ý, gộp v1.7.19"):
   1. "Bếp của nhà mình" gets a "Giờ ăn" section with a time for each meal the family uses (sáng, phụ sáng, trưa, phụ chiều, tối). A meal with no time shows "Chưa đặt" and gets no reminder.
   2. Every planned meal that has a time gets "Đến giờ nấu [bữa] — bắt đầu lúc …", not only dinner. The start is the meal time minus the longest dish's cooking time minus 15 minutes.
