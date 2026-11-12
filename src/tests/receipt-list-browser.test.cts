@@ -164,7 +164,7 @@ const saveWithTotal=async(page:any)=>{await page.evaluate(()=>{collectReceipt();
    const r:any=await page.evaluate(()=>{const p=parseReceiptText('TRUNG GA 10 QUA 35000.00\nTOTAL 35000.00',state);return p.items.map((i:any)=>({label:i.label,total:i.total}))});
    assert.equal(r.length,1,'one line for 35000.00 '+JSON.stringify(r));assert.equal(r[0].total,35000,'price read whole '+JSON.stringify(r));assert.ok(!/QUA 3$/.test(r[0].label),'no price digit left in the name '+JSON.stringify(r));
    const w:any=await page.evaluate(()=>{state.preferences.weekStartDay=6;const today=sydneyDate(),own=planStartOf(state,today);weekStart=addDays(own,7);selectedDate=weekStart;const rec={id:'qa-wk',date:today};
-    const RW=(globalThis as any).ReceiptWeek;return{own,range:RW.range(rec),sameWeek:RW.week(rec)===planWeek(state,own),shown:weekStart}});
+    const RW=(globalThis as any).ReceiptWeek;return{own,range:RW.range(rec),sameWeek:(()=>{const wk=RW.week(rec),pw=planWeek(state,own),ds=Object.keys(pw.days);return ds.length===7&&ds.every((d:string)=>wk.days[d]===pw.days[d]&&wk.days[d]===dayAt(state,d))})(),shown:weekStart}});
    assert.equal(w.range[0],w.own,'receipt checked against its own menu week, not the one on screen '+JSON.stringify(w));assert.ok(w.sameWeek,'the same stored week the list uses '+JSON.stringify(w));
    assert.deepEqual(errors,[],'no page errors (1c)');console.log('PASS 1c đồng prices and the receipt week');await context.close()}
   // ---------- 2. sizes, languages and themes: form + reconciliation

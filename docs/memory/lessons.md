@@ -2,6 +2,17 @@
 
 Each lesson records what went wrong, what it cost, and the habit and rule that prevent it. Newest first. All dates are Sydney time.
 
+## 13 Nov 2026: v1.7.19 merge and CI
+1. **A wording fix crashed start-up on a new device.**
+   - What happened: the lead agent wrapped the planner banner in `tr()`. The planner is drawn once during start-up, before `language.js` loads, so a new device opening on Thực đơn saw “Chưa mở được Bếp Nhà”. Only `test:menu-reactions` caught it, on CI.
+   - Habit: in `app.ts` render paths use `uiText(vi,en)` (guarded), never bare `tr()`. Enforced by the new `test:fresh-start:browser` (every screen, nothing stored).
+2. **Helper agents' tests were green; the merged branch was not.**
+   - What happened: W5's general sheet keep-in-place passed W5's own suite but broke the unit picker, receipt lines and Viết món amounts (a typed “2” was lost); none of those suites was in W5's run, and every CI run on the merged code was cancelled by the next push.
+   - Habit: after merging helper work, run the suites of every screen the change can reach, not only the helper's; let one CI run finish before pushing again when nothing urgent is waiting (rules 30, 35).
+3. **Old tests still expected the old behaviour after an owner decision.**
+   - What happened: the spoon-amount decision and the dish-sheet redesign changed behaviour; W3 updated its own suites, but `recipe-ingredients` still expected a spoon line as an amount and the old edit button.
+   - Habit: when a decision changes behaviour, grep all tests for the old selector or wording (rule 29 applies to tests too).
+
 ## 12 Nov 2026: the v1.7.18 release and the whole-app audit
 1. **Changed one place and left its twins.**
    - What happened: the buying-unit sheet changed on Đi chợ, but Viết món kept the old list.

@@ -168,23 +168,27 @@ async function openApp({viewport=sizes.mobile,ua=IPHONE,touch=true,lang='vi',the
   await saveForm(page,tap);
   const saved=await page.evaluate((id:string)=>{const r=state.recipes.find((x:any)=>x.id===id);return{ing:r.ingredients.map((i:any)=>INGREDIENTS[i.id][0]+' '+i.qty+' '+INGREDIENTS[i.id][1]),missing:r.missingIngredients}},id);
   // v1.7.5: a name-only line opens ticked, so once it has an amount it is counted — kitchen measures as written
-  assert.deepEqual(saved.ing,['Thịt Ba Chỉ 500 g','Tôm 300 g','Bánh phở (sợi to) 500 g','Bánh tráng 1 gói','Rau xà lách 200 g','Dầu phụng 2 muỗng canh'],'every amount and unit kept, including changes without input events');
-  assert.deepEqual(saved.missing,['Rau thơm (ăn kèm)'],'the untouched row (no amount) stays flagged, never guessed');
+  // owner, 12 Nov 2026 (pop-up): spoon and bowl amounts are notes only — kept in the dish as written, never an amount to buy
+  assert.deepEqual(saved.ing,['Thịt Ba Chỉ 500 g','Tôm 300 g','Bánh phở (sợi to) 500 g','Bánh tráng 1 gói','Rau xà lách 200 g'],'every amount and unit kept, including changes without input events '+JSON.stringify(saved));
+  assert.ok(saved.missing.includes('Rau thơm (ăn kèm)'),'the untouched row (no amount) stays flagged, never guessed '+JSON.stringify(saved.missing));
+  assert.ok(saved.missing.some((m:string)=>/Dầu phụng/.test(m)&&/\b2\b/.test(m)&&/muỗng canh/.test(m)),'the spoon line is kept in the dish as written, amount included '+JSON.stringify(saved.missing));
+  assert.equal(saved.missing.length,2,'nothing else flagged '+JSON.stringify(saved.missing));
   // reload → reopen keeps them
   await page.reload();await page.locator('#main .page-heading').waitFor();await page.waitForFunction(()=>typeof rcEnabled==='function'&&typeof recipeIngredientRows==='function');await page.waitForTimeout(400);
   // straight after the reload the recipe library is not loaded yet, so the editor opens asynchronously (v1.7.2: without rows)
-  await openDish(page,tap);await tap(page.locator('#modal-root .recipe-edit-btn'));await page.locator('#family-recipe-form #rc-ing-list').waitFor();
+  await openDish(page,tap);/* v1.7.19 owner: “Sửa món” is in the sheet footer */await tap(page.locator('#modal-root .modal-footer [data-action="dish-edit"]'));await page.locator('#family-recipe-form #rc-ing-list').waitFor();
   assert.deepEqual(await rows.evaluateAll((a:any[])=>a.map(li=>[li.querySelector('.rc-ing-name-input').value,li.querySelector('.rc-ing-qty').value,li.querySelector('.rc-ing-unit').value].join('/'))),
-   ['Thịt Ba Chỉ/500/g','Tôm/300/g','Bánh phở (sợi to)/500/g','Bánh tráng/1/gói','Rau xà lách/200/g','Dầu phụng/2/muỗng canh','Rau thơm (ăn kèm)//'],'reopened form shows the saved amounts');
+   /* v1.7.19 (owner, spoon amounts are notes): amounts to buy first, then the lines kept as written, each group in the order typed */
+   ['Thịt Ba Chỉ/500/g','Tôm/300/g','Bánh phở (sợi to)/500/g','Bánh tráng/1/gói','Rau xà lách/200/g','Rau thơm (ăn kèm)//','Dầu phụng/2/muỗng canh'],'reopened form shows the saved amounts');
   await rows.first().locator('.rc-ing-qty').scrollIntoViewIfNeeded();await shot(page,'mobile-edit-form-reopened-vi-light');
   // unchanged save of the reopened form keeps the recipe exactly
   const before=await page.evaluate((id:string)=>JSON.stringify(state.recipes.find((x:any)=>x.id===id)),id);await saveForm(page,tap);
   assert.equal(await page.evaluate((id:string)=>JSON.stringify(state.recipes.find((x:any)=>x.id===id)),id),before,'unchanged save keeps the recipe');
-  await openDish(page,tap);d=await detail(page);assert.equal(d.counted.length,6);assert.deepEqual(d.notes,['Rau thơm (ăn kèm) | chưa có lượng']);
-  await setLook(page,'en','dark');await openDish(page,tap);d=await detail(page);assert.deepEqual(d.notes,['Rau thơm (ăn kèm) | no amount yet']);
-  assert.match(await page.locator('#modal-root .recipe-edit-btn').innerText(),/Edit recipe/);await noOverflow(page,'EN dark');await shot(page,'mobile-detail-edit-button-en-dark');
-  // a library recipe offers "Save as family dish" from its detail
-  const libId=await page.evaluate(()=>state.recipes.find((x:any)=>!ownRecipe(x)).id);await page.evaluate((i:string)=>showRecipe(i),libId);assert.match(await page.locator('#modal-root .recipe-edit-btn').innerText(),/Save as family dish/);
+  await openDish(page,tap);d=await detail(page);/* owner, 12 Nov 2026: the spoon line is shown as written and not bought */assert.equal(d.counted.length,5,JSON.stringify(d));assert.deepEqual(d.notes,['Rau thơm (ăn kèm) | chưa có lượng','Dầu phụng 2 muỗng canh | không tính đi chợ'],JSON.stringify(d));
+  await setLook(page,'en','dark');await openDish(page,tap);d=await detail(page);assert.equal(d.notes.length,2,JSON.stringify(d));assert.equal(d.notes[0],'Rau thơm (ăn kèm) | no amount yet');assert.match(d.notes[1],/^Dầu phụng 2 muỗng canh \| [a-z]/i,JSON.stringify(d));assert.doesNotMatch(d.notes[1],/không tính/,'English wording '+JSON.stringify(d));
+  assert.match(await page.locator('#modal-root .modal-footer [data-action="dish-edit"]').innerText(),/Edit/);await noOverflow(page,'EN dark');await shot(page,'mobile-detail-edit-button-en-dark');
+  // a library recipe offers Edit from its detail (the family's copy)
+  const libId=await page.evaluate(()=>state.recipes.find((x:any)=>!ownRecipe(x)).id);await page.evaluate((i:string)=>showRecipe(i),libId);/* v1.7.19 owner: a catalogue dish has the same “Edit”; saving makes the family's copy (v1719-dish-sheet tests the copy) */assert.match(await page.locator('#modal-root .modal-footer [data-action="dish-edit"]').innerText(),/Edit/);
   assert.deepEqual(errors,[],'no page errors');await context.close()}
  console.log('PASS (f) name-only rows: card counts 7, detail lists every row, edit entry in detail + meal card, amounts typed on the decimal keypad and changed without input events survive save → reload → reopen');
 
@@ -200,7 +204,7 @@ async function openApp({viewport=sizes.mobile,ua=IPHONE,touch=true,lang='vi',the
   const B=await openApp({account:true,ua:IPAD,viewport:sizes.tablet});
   await B.page.waitForFunction((id:string)=>state.recipes.some((x:any)=>x.id===id),id,{timeout:10000});
   await openDish(B.page,B.tap);const d=await detail(B.page);
-  assert.deepEqual(d.counted.map((x:string)=>x.split(' = ')[0]),['Mì Quảng','Tôm','Thịt heo'],'device B: catalogue lines');assert.deepEqual(d.notes,NOTES.map(n=>n+' | không tính đi chợ'),'device B: kept lines');
+  assert.deepEqual(d.counted.map((x:string)=>x.split(' = ')[0]),['Mì Quảng','Tôm','Thịt heo'],'device B: catalogue lines');/* owner, 12 Nov 2026: a spoon line of a pantry item also says whether the pantry has it (none here: remember to buy one) */assert.deepEqual(d.notes,['Tỏi 3 tép | không tính đi chợ','Nước mắm 2 muỗng canh | hết trong tủ · nhớ mua 1 chai'],'device B: kept lines');
   assert.deepEqual(B.errors,[]);await B.context.close()}
  console.log('PASS (e) two signed-in devices: rows saved on one device show on the other after the family sync');
  await browser.close();
