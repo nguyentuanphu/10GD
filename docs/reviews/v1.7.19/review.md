@@ -396,3 +396,41 @@ Branch `agent-w5/fixes`, 12 Nov 2026 (Sydney time). New suite `test:owner-rules:
 - **B16 (rest):** the Xóa/Xoá and Hủy/Huỷ spelling is unchanged. In non-Studio code the counts are Xóa 29 vs Xoá 38, and Hủy 19 vs Huỷ 18. Many of these strings are W4's translation keys, so changing them now would break the English lookups during the merge. The same applies to the native `confirm()` calls that remain: removing a meal is W3's area, and clearing a transcript happens inside a sheet, where a second sheet cannot be opened.
 - **B18:** the hard-coded “58 nguyên liệu” label is in the add-extra form (YY).
 - **Not changed:** Studio (owner-only) still has ✕, ✓ and ↻ text buttons. `community-prices.mts` keeps its badge-icon emoji; they are data and are drawn in the app.
+
+## Lead agent: merge, own checks and the audit sweep (13 Nov 2026, Sydney time)
+
+**Merges.** `agent-w3/fixes`, then `agent-w5/fixes` (b0d8ce3), then `agent-w6/fixes` (de81bfa). The minified one-line files
+(`app.ts`, `family-menu-ui.ts`, `products-ui.ts`, `push-ui.ts`) were merged token by token (split at `;` `{` `}`), so both sides'
+edits were kept; the one overlap (A19, the empty “Lưu từ hóa đơn” sheet, fixed by both) keeps W3's text with W5's `type="button"`.
+
+**Own look (rule 30)**, Chromium 375×812 VI with a planned Saturday-start week and guests, 375×812 EN with no data,
+1280×800 EN, phone time zone Los Angeles:
+- Dish sheet from a meal: “Bỏ khỏi bữa · Sửa món · Nấu món này”, amounts for that meal (2.5 portions). From the library:
+  “Ẩn khỏi kho · Sửa món · Thêm vào bữa”, amounts for the dish's own yield. Matches the 12 Nov decision.
+- Tủ › Thêm thực phẩm: nothing preselected; saving untouched is blocked. Đồ trong tủ with an empty pantry explains and offers
+  “Thêm thực phẩm”. Đi chợ shows the Saturday-start week (7/11 – 13/11). Giờ ăn: “Chưa đặt — không nhắc nấu”, thaw 20:00,
+  “Không nhắc nấu trước” 08:00.
+- Small items for later (not fixed here): at 375 px the “Nơi cất” select's first option is cut (“— Chọn nguyên…”); the browser's
+  own “Please select an item in the list.” follows the phone's language, not the app's; the catalogue labels some cháo as
+  “Món sợi”.
+
+**Audit sweep (`test:audit:browser`).** W6 recorded 195 failures on the code of its time. After the W3 and W5 merges: 9. Fixed:
+
+| Finding | Cause and fix |
+|---|---|
+| Spending price history, add-to-meal sheet, delete pantry lot, cooking mode in Vietnamese while the app is in English | strings wrapped in VI/EN; the cooking-mode line also lost a 🔆 phone emoji (rule 19) |
+| “Lưu sản phẩm” size placeholder in English while the app is in Vietnamese | VI/EN placeholder |
+| “Đọc các dòng hóa đơn” page jump | **data loss**: re-reading empty receipt text, or text or a photo that reads no lines, wiped the receipt's confirmed lines. `receipt-ui.ts` `fillDraft` (every caller: text, photo, So Giá screenshot) and `family-features.ts` now keep the lines and say so. New test: `receipt-list` 1b. |
+| CSV import box shows English column names | not a bug: the exact file header the import requires; recorded as a format exception in the sweep with its reason |
+| Sweep rule-34 check expected weeks stored under the family's start day | the storage design (`core.ts` 226–229) stores weeks under their Monday; the check now fails any week written under another key (a hidden copy, audit B1), and the Saturday pass no longer deletes real weeks |
+
+Found while fixing (rule 36): the add-to-meal hint, the planner banner, the edit-meal hint and the weekly advice still said two
+dishes of a group split the portion automatically; the 6 Nov 2026 decision (`dishFactor`) is that each dish cooks for the whole
+meal. All four corrected, VI and EN.
+
+**Regression from W5 found by the lead's runs, not by W5's:** W5's general sheet keep-in-place (b58f9d4) adjusted controls in
+sheets that already keep their own (unit picker, receipt lines), moving them twice — `test:unit-picker` and `test:receipt-list`
+failed (bisected: 30bcb59 passes, b58f9d4 fails). It now covers only the controls the sweep found moving (N1–N3). W5's untested
+WIP (517aa60) was reverted.
+
+Sweep result, 13 Nov 2026 about 05:45 Sydney time, commit cebfffd: **passed**, 20,127 checks, 2,211 taps, 10 passes.
