@@ -43,8 +43,8 @@ const runs:[number,number,'vi'|'en','light'|'dark',string,number][]=[
    assert.equal(await page.locator('#settings-form [name="dinnerTime"]').count(),0,`${label}: the old dinner-time field is gone from Thực đơn (one place only)`);
    assert.equal(await page.locator('#mt-thaw').inputValue(),'20:00',`${label}: the thaw time starts at 20:00, visible and editable`);assert.equal(await page.locator('#mt-earliest').inputValue(),'08:00',`${label}: “Không nhắc nấu trước” starts at 08:00`);
    assert.equal(await page.locator('label[for="mt-earliest"]').innerText(),T('Không nhắc nấu trước','No cooking reminder before'));assert.equal(await page.locator('label[for="mt-thaw"]').innerText(),T('Nhắc rã đông lúc (tối hôm trước)','Thaw reminder at (the evening before)'));
-   for(const sel of ['#mt-thaw','#mt-earliest','#mt-breakfast','#mt-lunch','#mt-dinner','[data-mt-row="dinner"] [data-mt="clear"]','[data-mt="save"]']){const b=(await page.locator(sel).boundingBox())!;assert.ok(b.height>=44,`${label}: ${sel} is a ≥ 44 px target (${b.height})`)}
-   assert.equal(await page.locator('[data-mt="save"] svg.btn-art').count(),1,`${label}: Lưu giờ ăn (main action) has its drawing`);
+   for(const sel of ['#mt-thaw','#mt-earliest','#mt-breakfast','#mt-lunch','#mt-dinner','[data-mt-row="dinner"] [data-mt="clear"]','#modal-root .modal-footer [data-sheet-role="save"]']){const b=(await page.locator(sel).boundingBox())!;assert.ok(b.height>=44,`${label}: ${sel} is a ≥ 44 px target (${b.height})`)}
+   /* v1.7.19 audit D9 (rule 25): Giờ ăn is saved by My kitchen's one floating-footer Lưu (pill with its tick drawing), not a Lưu in the sheet body */assert.equal(await page.locator('#kitchen-mealtimes [data-mt="save"]').count(),0,`${label}: no Lưu inside the sheet body`);{const f:any=await page.locator('#modal-root .modal-footer [data-sheet-role="save"]').evaluate((b:any)=>{const r=b.getBoundingClientRect();return{svg:!!b.querySelector('svg'),inView:r.bottom<=innerHeight&&r.top>=0}});assert.ok(f.svg&&f.inView,`${label}: the footer Lưu is drawn and visible without scrolling ${JSON.stringify(f)}`)}
    assert.equal(await page.locator('[data-mt="clear"] svg.btn-art').count(),0,`${label}: Bỏ giờ (secondary) is words only`);
    assert.ok(!/\p{Extended_Pictographic}/u.test(await card.innerText()),`${label}: no emoji`);
    await noOverflow('Giờ ăn');await card.scrollIntoViewIfNeeded();await page.screenshot({path:name('kitchen-meal-times-before')});
@@ -55,8 +55,8 @@ const runs:[number,number,'vi'|'en','light'|'dark',string,number][]=[
    assert.ok(Math.abs((await clear.boundingBox())!.y-y0)<=1,`${label}: Bỏ giờ stays where it was`);assert.equal(await page.locator('#mt-dinner').inputValue(),'',`${label}: Bỏ giờ empties dinner`);
    assert.equal(await clear.isDisabled(),true,`${label}: nothing left to clear`);
    const before:any=await E('clone(state)');
-   const save=page.locator('[data-mt="save"]');await save.evaluate((el:any)=>el.scrollIntoView({block:'center'}));const s0=(await save.boundingBox())!.y;await save.click();await page.waitForTimeout(250);
-   {const s1=(await save.boundingBox())!.y;assert.ok(Math.abs(s1-s0)<=1,`${label}: Lưu giờ ăn does not move the sheet (${s0} → ${s1}, connected=${await save.isConnected?.()})`)}
+   const save=page.locator('#modal-root .modal-footer [data-sheet-role="save"]');await save.click();await page.waitForTimeout(250);
+   assert.match(await page.locator('#toast').innerText(),/./,`${label}: the save says so in a toast`);
    const p:any=await E(`({thaw:state.preferences.thawReminderTime,early:state.preferences.cookEarliestTime,mt:state.preferences.mealTimes,dt:state.preferences.dinnerTime,d:mealTimeOf(state,'dinner'),valid:validImport(clone(state))})`);
    assert.ok(p.thaw==='19:30'&&p.early==='06:00',`${label}: thaw time and earliest cooking time saved ${JSON.stringify(p)}`);assert.deepEqual(p.mt,{breakfast:'07:00',lunch:'12:30',dinner:''},`${label}: saved shape ${JSON.stringify(p.mt)}`);
    assert.ok(p.dt==='18:30'&&p.d==='',`${label}: dinner “Chưa đặt”; dinnerTime kept valid for older devices`);assert.ok(p.valid,`${label}: validImport accepts the new shape`);
@@ -65,7 +65,7 @@ const runs:[number,number,'vi'|'en','light'|'dark',string,number][]=[
    assert.ok(merged.mt?.lunch==='12:30'&&merged.mt?.dinner===''&&merged.budget===777&&merged.valid,`${label}: the sync merge keeps the meal times and the other device's change ${JSON.stringify(merged)}`);
    const merged2:any=await E(`(()=>{const base=${JSON.stringify(before)},remote=clone(base);remote.preferences.mealTimes={snack:'15:30'};remote.preferences.updatedAt=Date.now()-5;const m=mergeFamilyStates(base,clone(state),remote);return{mt:m.state.preferences.mealTimes,valid:validImport(clone(m.state))}})()`);
    assert.ok(merged2.mt?.lunch==='12:30'&&merged2.mt?.snack==='15:30'&&merged2.valid,`${label}: two devices setting different meals: both times kept ${JSON.stringify(merged2)}`);
-   await card.scrollIntoViewIfNeeded();await page.screenshot({path:name('kitchen-meal-times-saved')});
+   await E(`kitchenModal('mealtimes')`);await card.waitFor();assert.equal(await page.locator('#mt-lunch').inputValue(),'12:30',`${label}: the saved time shows when My kitchen opens again`);await card.scrollIntoViewIfNeeded();await page.screenshot({path:name('kitchen-meal-times-saved')});
    await E('closeModal()');await page.waitForTimeout(150);
    assert.equal(await clock('breakfast'),' · 07:00',`${label}: the breakfast card shows 07:00`);assert.equal(await clock('lunch'),' · 12:30',`${label}: the lunch card shows 12:30`);assert.equal(await clock('dinner'),'',`${label}: no time on the dinner card once cleared`);
 
@@ -96,10 +96,10 @@ const runs:[number,number,'vi'|'en','light'|'dark',string,number][]=[
    await page.screenshot({path:name('reminders-link-opens-kitchen')});
    // view-only access cannot change them
    await E(`(()=>{window.__as=accountSession;accountSession={household:{role:'viewer'}};document.getElementById('modal-root').innerHTML=kitchenMealTimesBody()})()`);await page.locator('#meal-times-form').waitFor();
-   assert.ok(await page.locator('#mt-lunch').isDisabled()&&await page.locator('[data-mt="save"]').count()===0,`${label}: view-only: times shown, not editable`);
+   assert.ok(await page.locator('#mt-lunch').isDisabled()&&await page.locator('#modal-root .modal-footer [data-sheet-role="save"]').count()===0,`${label}: view-only: times shown, not editable`);
    await E(`(()=>{accountSession=window.__as;closeModal()})()`);
    // the Thực đơn form still saves without touching meal times
-   await E(`kitchenModal('menu')`);await page.locator('#settings-form').waitFor();await E(`document.querySelector('[data-action="submit-form"][data-id="settings-form"]').click()`);await page.waitForTimeout(200);
+   await E(`kitchenModal('menu')`);await page.locator('#settings-form').waitFor();await E(`document.querySelector('[data-action="submit-form"][data-id~="settings-form"]').click()`);await page.waitForTimeout(200);
    const after:any=await E(`({dt:state.preferences.dinnerTime,mt:state.preferences.mealTimes,valid:validImport(clone(state))})`);assert.ok(after.dt==='18:30'&&after.mt.lunch==='12:30'&&after.valid,`${label}: saving Thực đơn keeps the meal times ${JSON.stringify(after)}`);
    await E('closeModal()');
    assert.deepEqual(errors,[],`${label}: no page errors`);console.log('PASS',label);await context.close()}

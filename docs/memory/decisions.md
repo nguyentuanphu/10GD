@@ -2,6 +2,10 @@
 
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
+## 12 Nov 2026 (evening, new chat)
+- **Audit scenarios in "Tự chạy thử" (autoplay):** Henry: "i knew there would be this issues so thats why i asked you to create the autoplay to test all the scenarios, now based on what you learn and what you have audited, incoporate it in the autoplay". The ladybug "Tự chạy thử" (`ladybug-autoplay.ts`, `ladybug-workflows.ts`) gets scenarios for the audit's lessons (rules 29–34): week starting on a day other than Monday, English, money in another currency, recipe yield, guests, no silent defaults, counts equal what they open, no empty sheets, add/edit/undo parity, the dish sheet, meal times and reminders, spoon amounts as notes, extras, and the validImport / sync-merge round trip after every workflow. Ships in v1.7.19. Same safety as before: sample family or a copy, nothing saved or sent except the failure report.
+- **Agents:** run at most 2 helper agents at a time ("chay 2 agents 1 luc thoi").
+
 ## 12 Nov 2026 (later)
 - **Dish sheet** (pop-up answers, Henry wrote in English): the same three buttons everywhere.
   - Main action: "Nấu món này" when opened from a meal, "Thêm vào bữa" when opened from the library.

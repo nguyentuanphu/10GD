@@ -46,3 +46,9 @@ function parseProductCSV(text){
  text=text.replace(/^\uFEFF/,'');for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'){if(quoted&&text[i+1]==='"'){cell+='"';i++}else quoted=!quoted}else if(c===','&&!quoted){row.push(cell);cell=''}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cell);if(row.some(v=>v.trim()))rows.push(row);row=[];cell=''}else cell+=c}
  if(quoted)throw Error('Unclosed CSV quote');row.push(cell);if(row.some(v=>v.trim()))rows.push(row);if(rows.length>2001)throw Error('Maximum 2000 products');const headers=(rows.shift()||[]).map(x=>x.trim().toLowerCase());if(!['retailer','name','price','size','checkedat'].every(k=>headers.includes(k)))throw Error('Required columns: retailer,name,price,size,checkedAt');return rows.map((r,index)=>{const v=Object.fromEntries(headers.map((h,i)=>[h,(r[i]||'').trim()]));const p={id:'import-'+index,retailer:v.retailer,name:v.name,price:v.price===''?null:Number(v.price),size:v.size,branch:v.branch||'',barcode:v.barcode||'',checkedAt:v.checkedat,url:v.url||'',source:'csv'};if(!validProduct(p))throw Error('Invalid product at CSV row '+(index+2));return p})
 }
+
+// v1.7.19 (audit B9): one list of the chains the app knows (the family's own places come first), offered wherever a store is typed
+// or chosen. Display only — saved values and validators are unchanged.
+const STORE_CHAINS=['Coles','Woolworths','ALDI','Harris Farm','IGA','Costco'];
+function storeChoiceNames(st:any=(typeof state!=="undefined"?state:null)){const own=((st&&st.stores)||[]).map((s:any)=>String(s.name||'').trim()).filter(Boolean);const seen=new Set<string>();return [...own,...STORE_CHAINS].filter(n=>{const k=n.toLowerCase();if(seen.has(k))return false;seen.add(k);return true})}
+(globalThis as any).storeChoiceNames=storeChoiceNames;

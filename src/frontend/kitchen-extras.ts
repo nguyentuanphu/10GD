@@ -111,7 +111,7 @@ if(typeof renderCooking==='function'){const base=renderCooking;renderCooking=fun
 // the kitchen / voice buttons stay right under the title (owner, 7 Nov 2026), so these rows go after them
 function decorate(){const main=document.getElementById('main');if(!main)return;const title=main.querySelector('.page-heading');const dock=title?.nextElementSibling;
  const head=dock&&dock.classList.contains('kitchen-action-dock')?dock:title;
- if(view==='recipes'&&head&&!main.querySelector('[data-kx="import-open"]'))head.insertAdjacentHTML('afterend',`<div class="kx-row"><button class="btn" type="button" data-kx="import-open">${kT('Nhập món từ link','Import from a link')}</button></div>`);
+ if(view==='recipes'&&head&&!main.querySelector('[data-kx="import-open"]'))head.insertAdjacentHTML('afterend',`<div class="kx-row"><button class="btn" type="button" data-kx="import-open">${kT('Nhập món từ link','Import from a link')}</button>${account()?'':`<small class="hint kx-needs-account">${kT('Cần tài khoản gia đình — chạm để xem cách kết nối.','Needs a family account — tap to see how to connect.')}</small>`}</div>`);
  if(view==='pantry'&&head&&!main.querySelector('[data-kx="scan-open"]'))head.insertAdjacentHTML('afterend',`<div class="kx-row"><button class="btn primary" type="button" data-kx="scan-open">${kT('Quét mã vạch','Scan a barcode')}</button></div>`)}
 {const base=render;render=function(this:any,...a:any[]){const r=base.apply(this,a);try{decorate()}catch(e){console.warn('kitchen extras',e)}return r}}
 document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('[data-kx]');if(!b)return;e.preventDefault();const k=b.dataset.kx;

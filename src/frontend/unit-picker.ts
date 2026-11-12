@@ -163,3 +163,16 @@ const UNIT_ROW_FIELDS:any[]=[];
 function registerUnitRowField(prefix:string,o:(input:any)=>any){UNIT_ROW_FIELDS.push({prefix,o})}
 document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('[data-unit-open]');if(!b||typeof openUnitSheet!=='function')return;const id=b.dataset.unitOpen,f=UNIT_ROW_FIELDS.find(x=>id.startsWith(x.prefix));if(!f)return;e.preventDefault();const input=document.getElementById(id) as any;if(!input)return;const o=f.o(input)||{};
  openUnitSheet({...o,value:input.value,returnEl:b,onChoose:(u:string)=>unitFieldSet(input,u,{byUser:true,labels:o.labels||{}})})});
+
+// v1.7.19 (audit B18): every long list of ingredients gets the same search box, so no form makes the family scroll 58+ names.
+// Any <select> whose options are the app's ingredients (more than 15) gains a search field above it; typing (accents optional:
+// “thit” finds “Thịt”) narrows the list and picks the first match. The select, its name and the saved value stay as they were.
+function ingSearchFold(t:string){return String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/Đ/g,'d').toLowerCase()}
+function ingSearchEnhance(root:ParentNode=document){if(typeof INGREDIENTS==='undefined')return;
+ for(const sel of root.querySelectorAll<HTMLSelectElement>('select:not([data-ing-search])')){const opts=[...sel.options].filter(o=>o.value);if(opts.length<=15||opts.filter(o=>(INGREDIENTS as any)[o.value]).length<opts.length*0.8)continue;
+  sel.dataset.ingSearch='1';const en=typeof appLanguage!=='undefined'&&appLanguage==='en';const box=document.createElement('input');box.type='search';box.className='input ing-search';box.setAttribute('autocomplete','off');
+  box.placeholder=en?'Search ingredients…':'Tìm nguyên liệu…';box.setAttribute('aria-label',en?'Search ingredients':'Tìm nguyên liệu');if(sel.id)box.setAttribute('aria-controls',sel.id);sel.before(box)}}
+document.addEventListener('input',e=>{const box=e.target as HTMLInputElement;if(!box?.classList?.contains('ing-search'))return;const sel=box.nextElementSibling as HTMLSelectElement;if(!sel||sel.tagName!=='SELECT')return;
+ const q=ingSearchFold(box.value.trim());let first:HTMLOptionElement|null=null;for(const o of sel.options){const hit=!q||!o.value||ingSearchFold(o.textContent||'').includes(q)||ingSearchFold(o.value).includes(q);o.hidden=!hit;if(hit&&o.value&&!first)first=o}
+ if(q&&first&&sel.value!==first.value){sel.value=first.value;sel.dispatchEvent(new Event('change',{bubbles:true}))}});
+if(typeof document!=='undefined'){let ingQueued=false;new MutationObserver(()=>{if(ingQueued)return;ingQueued=true;queueMicrotask(()=>{ingQueued=false;try{ingSearchEnhance()}catch{}})}).observe(document.body,{childList:true,subtree:true})}

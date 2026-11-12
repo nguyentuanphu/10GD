@@ -2176,6 +2176,28 @@ html[data-theme="dark"] #modal-root .modal:has(.recipe-detail-hero)>.modal-foote
 /* taps on the floating footer's see-through fade and gaps reach the field behind it; only its buttons catch taps */
 #modal-root .modal>.modal-footer.floating-footer{pointer-events:none}
 #modal-root .modal>.modal-footer.floating-footer>*{pointer-events:auto}
+/* v1.7.19 audit D10: while a sheet with a floating footer is open, the toast shows at the top so it never covers Đóng / Lưu */
+body:has(#modal-root .modal>.modal-footer.floating-footer) #toast{bottom:auto;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-90px)}
+body:has(#modal-root .modal>.modal-footer.floating-footer) #toast.visible{transform:translateX(-50%) translateY(0)}
+/* v1.7.19 audit D22–D24 (rules 8, 20): every tap target is at least 44 × 44 px */
+.dish-remove-btn,.topbar button.icon,.topbar .notification,button.icon,.icon-step,.pack-all-btn,.rc-icon,.mr-close,.vr-del,.scout-del{min-width:44px!important;min-height:44px!important}
+#app-language,#app-language button,.language-control button,[data-set-app-lang]{min-height:44px}
+@media (max-width:340px){#app-language{min-width:44px;padding-left:6px;padding-right:6px}#app-language svg{display:none}}
+.chip,a.chip,[role="tab"],.text-btn,summary{min-height:44px}
+.mr-dish-link,.store-pill{min-height:44px!important}
+.text-btn,.mr-dish-link{display:inline-flex!important;align-items:center}
+.store-pill{display:inline-flex;align-items:center}
+.pack-cell{display:inline-flex!important;align-items:center;justify-content:center;min-width:44px!important;min-height:44px}
+.pack-table-wrap table{min-width:max-content}
+.ing-editor-row .ing-qty{min-width:56px}
+.btn,.text-btn,button.icon{min-width:44px}
+/* v1.7.19 audit sweep N4: at 320 px in English the shopping-mode buttons wrap their words instead of pushing the page wider */
+@media (max-width:400px){.shop-mode-actions{min-width:0!important;max-width:100%}.shop-mode-actions .btn{white-space:normal!important;min-width:0!important;overflow-wrap:anywhere}}
+#modal-root .modal-content p a[href],#modal-root .modal-content small a[href]{padding-block:13px}
+.day-strip{grid-template-columns:repeat(7,minmax(44px,1fr))!important;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}
+.day-strip::-webkit-scrollbar{display:none}
+select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=file]):not([type=color]){min-height:44px!important}
+label:has(>input[type=checkbox]),label:has(>input[type=radio]){min-height:44px;min-width:44px}
 /* v1.7.11: So Giá is for signed-in families; without an account one short card asks for a free account */
 .scout-account-card{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
 .scout-account-card>div{flex:1 1 200px;min-width:0}.scout-account-card h3{margin:0 0 4px}.scout-account-card p{margin:0}
