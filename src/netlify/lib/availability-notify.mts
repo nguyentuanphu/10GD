@@ -56,7 +56,7 @@ export async function notifyAvailabilityChange(store:any,prev:any,next:any,{acco
   const claim=await store.setJSON(marker,{at:now.toISOString()},{onlyIfNew:true});if(!claim.modified)return{reason:'duplicate',key};
   let slot:string|null=null;for(let n=0;n<maxPerDay;n++){const k='push/availability-daily/'+clock.date+'/'+n,c=await store.setJSON(k,{at:now.toISOString()},{onlyIfNew:true});if(c.modified){slot=k;break}}
   if(!slot)return{reason:'daily_limit',key};
-  const result=await sendPushBatch(store,{type:'calendar',title:message.title,enTitle:message.enTitle,body:message.body,enBody:message.enBody,url:'/#today',tag:'family-calendar-'+key.slice(0,16)},{targets,subject,family:next,now,...(send?{send}:{})});
+  const result=await sendPushBatch(store,{type:'calendar',title:message.title,enTitle:message.enTitle,body:message.body,enBody:message.enBody,url:'/#today?d='+changes.map(c=>c.date).sort()[0],tag:'family-calendar-'+key.slice(0,16)},{targets,subject,family:next,now,...(send?{send}:{})});
   // Nothing delivered: free the daily slot; a delivery failure may be retried by the next identical save.
   if(!result.accepted){try{await store.delete(slot);if(result.reason==='delivery_failed')await store.delete(marker)}catch{}}
   return{...result,key,targets}}

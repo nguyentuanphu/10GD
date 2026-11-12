@@ -3,7 +3,7 @@
 // non-measured registry unit (VI stored label); the original ten stay first so older lists keep their order.
 const BUYING_UNITS=[...new Set(['cái','miếng','bó','gói','hộp','khay','túi','chai','con','quả',...(typeof UNIT_REGISTRY!=='undefined'?UNIT_REGISTRY.filter(u=>u.dim!=='mass'&&u.dim!=='volume').map(u=>u.vi):[])])];
 function validPurchaseUnitRecord(p){return !!p&&typeof p==='object'&&!Array.isArray(p)&&typeof p.unit==='string'&&p.unit.trim().length>0&&p.unit.length<=40&&Number.isFinite(p.amount)&&p.amount>=0&&p.amount<=1e6&&(p.basePerUnit===null||Number.isFinite(p.basePerUnit)&&p.basePerUnit>0&&p.basePerUnit<=1e6)&&(p.pricePerUnit===null||Number.isFinite(p.pricePerUnit)&&p.pricePerUnit>=0&&p.pricePerUnit<=1e6)&&(p.note===undefined||typeof p.note==='string'&&p.note.length<=150)}
-function validUnitState(s){if(!s||typeof s!=='object')return false;if(s.purchaseUnitPreferences!==undefined&&(!s.purchaseUnitPreferences||typeof s.purchaseUnitPreferences!=='object'||Array.isArray(s.purchaseUnitPreferences)||!Object.entries(s.purchaseUnitPreferences).every(([id,p])=>Object.hasOwn(INGREDIENTS,id)&&validPurchaseUnitRecord(p))))return false;for(const w of Object.values(s.weeks||{})){if(w.buyingUnits!==undefined){if(!w.buyingUnits||typeof w.buyingUnits!=='object'||Array.isArray(w.buyingUnits))return false;for(const [scope,rows]of Object.entries(w.buyingUnits)){if(!/^\d{4}-\d{2}-\d{2}\/\d{4}-\d{2}-\d{2}$/.test(scope)||!rows||typeof rows!=='object'||Array.isArray(rows)||!Object.entries(rows).every(([id,p])=>Object.hasOwn(INGREDIENTS,id)&&validPurchaseUnitRecord(p)))return false}}if(w.unitBought!==undefined&&(!w.unitBought||typeof w.unitBought!=='object'||Array.isArray(w.unitBought)||!Object.values(w.unitBought).every(rows=>rows&&typeof rows==='object'&&!Array.isArray(rows)&&Object.entries(rows).every(([id,v])=>Object.hasOwn(INGREDIENTS,id)&&typeof v==='string'&&v.length<1000))))return false}if(!Array.isArray(s.pantry))return false;return s.pantry.every(p=>p.purchase===undefined||validPurchaseUnitRecord(p.purchase))}
+function validUnitState(s){if(!s||typeof s!=='object')return false;if(s.purchaseUnitPreferences!==undefined&&(!s.purchaseUnitPreferences||typeof s.purchaseUnitPreferences!=='object'||Array.isArray(s.purchaseUnitPreferences)||!Object.entries(s.purchaseUnitPreferences).every(([id,p])=>Object.hasOwn(INGREDIENTS,id)&&validPurchaseUnitRecord(p))))return false;for(const w of Object.values(s.weeks||{})){if(w.buyingUnits!==undefined){if(!w.buyingUnits||typeof w.buyingUnits!=='object'||Array.isArray(w.buyingUnits))return false;for(const [scope,rows]of Object.entries(w.buyingUnits)){if(!/^\d{4}-\d{2}-\d{2}\/\d{4}-\d{2}-\d{2}$/.test(scope)||!rows||typeof rows!=='object'||Array.isArray(rows)||!Object.entries(rows).every(([id,p])=>Object.hasOwn(INGREDIENTS,id)&&validPurchaseUnitRecord(p)))return false}}if(w.unitBought!==undefined&&(!w.unitBought||typeof w.unitBought!=='object'||Array.isArray(w.unitBought)||!Object.values(w.unitBought).every(rows=>rows&&typeof rows==='object'&&!Array.isArray(rows)&&Object.entries(rows).every(([id,v])=>Object.hasOwn(INGREDIENTS,id)&&typeof v==='string'&&v.length<1000))))return false}if(!validCustomUnits(s.customUnits))return false;if(!Array.isArray(s.pantry))return false;return s.pantry.every(p=>p.purchase===undefined||validPurchaseUnitRecord(p.purchase))}
 function purchaseUnitOptions(s,id){return [...new Set([...BUYING_UNITS,s.purchaseUnitPreferences?.[id]?.unit,...Object.values(s.weeks||{}).flatMap(w=>Object.values(w.buyingUnits||{}).map(rows=>rows[id]?.unit))].filter(Boolean))]}
 function buyingUnitFactor(id,p){if(!p)return null;if(p.unit===INGREDIENTS[id][1])return 1;return p.basePerUnit||null}
 function unitSignature(p){return JSON.stringify([p.unit,p.amount,p.basePerUnit,p.pricePerUnit,p.note||''])}
@@ -35,3 +35,62 @@ function storeShoppingPurchases(s,w,start,end,place,perItem=null,useBy=null){con
 function pantryUnitWord(unit:string,n:number){const en=typeof appLanguage!=='undefined'&&appLanguage==='en'&&typeof VOICE_UNIT_EN!=='undefined'?(VOICE_UNIT_EN as any)[unit]:null;return en?en[Math.abs(n)===1?0:1]:unit}
 function pantryBuyingDisplay(p){if(!p.purchase)return fmtQty(p.qty,INGREDIENTS[p.ingredient][1]);const n=+p.purchase.amount.toFixed(2);return `${n} ${pantryUnitWord(p.purchase.unit,n)}`}
 function pantryBuyingNote(p){if(!p.purchase)return'';if(p.qtyEstimated&&p.qty>0){const t=typeof tr==='function'?tr:(v:string)=>v;return t(`≈ ${fmtQty(p.qty,INGREDIENTS[p.ingredient][1])} · ước tính đủ cho các bữa đã lên lịch`,`≈ ${fmtQty(p.qty,INGREDIENTS[p.ingredient][1])} · estimated to cover the planned meals`)}const t2=typeof tr==='function'?tr:(v:string)=>v;return p.qty>0?t2(`≈ ${fmtQty(p.qty,INGREDIENTS[p.ingredient][1])} theo quy đổi đã nhập`,`≈ ${fmtQty(p.qty,INGREDIENTS[p.ingredient][1])} from the conversion entered`):t2('Chưa rõ khối lượng · chưa trừ được khỏi nhu cầu tính bằng '+INGREDIENTS[p.ingredient][1],'Weight not known yet · not taken off what the meals need in '+INGREDIENTS[p.ingredient][1])}
+// v1.7.18 (owner, 12 Nov 2026: “lượng có rất nhiều nên cần thể hiện màn hình để chọn… Có nên cho lựa chọn tự cho thêm lượng vào không?”;
+// pop-ups: “Gợi ý + Xem tất cả”, custom units with an optional conversion). Family-made buying units live in
+// state.customUnits = [{id, name, base?, perBase?, ingredient?, createdAt, hidden?}] — one id-keyed list for the whole family
+// (sync merges it by id like every keyed list). “1 name ≈ perBase base” is only what the family typed; without it a purchase
+// stays as written and pantry/price maths treat the amount as unknown. A unit is never deleted (stored purchases keep it);
+// hiding only takes it out of the suggestions.
+const CUSTOM_UNIT_MAX=200;
+function validCustomUnit(u:any){if(!u||typeof u!=='object'||Array.isArray(u))return false;if(typeof u.id!=='string'||!/^cu-[a-z0-9-]{1,48}$/.test(u.id))return false;if(typeof u.name!=='string'||!u.name.trim()||u.name.length>40)return false;
+ const hasBase=u.base!==undefined&&u.base!==null,hasPer=u.perBase!==undefined&&u.perBase!==null;if(hasBase!==hasPer)return false;
+ if(hasBase&&(typeof u.base!=='string'||!u.base.trim()||u.base.length>40||!Number.isFinite(u.perBase)||u.perBase<=0||u.perBase>1e6))return false;
+ if(u.ingredient!==undefined&&(typeof u.ingredient!=='string'||!u.ingredient||u.ingredient.length>120))return false;
+ if(typeof u.createdAt!=='string'||u.createdAt.length>40)return false;if(u.hidden!==undefined&&typeof u.hidden!=='boolean')return false;return true}
+function validCustomUnits(list:any){if(list===undefined)return true;if(!Array.isArray(list)||list.length>CUSTOM_UNIT_MAX)return false;const ids=new Set();for(const u of list){if(!validCustomUnit(u)||ids.has(u.id))return false;ids.add(u.id)}return true}
+const customUnitKey=(name:any)=>String(name??'').normalize('NFC').trim().toLowerCase().replace(/\s+/g,' ');
+function familyCustomUnits(s:any):any[]{return Array.isArray(s?.customUnits)?s.customUnits.filter(validCustomUnit):[]}
+function customUnitByName(s:any,name:any){const k=customUnitKey(name);return k?familyCustomUnits(s).find(u=>customUnitKey(u.name)===k)||null:null}
+/** Saves a family unit (or returns the one with the same name; null for a name that is already an app unit). A conversion is added only when the family typed one;
+ *  an existing conversion is never overwritten by a blank. Returns the stored record. */
+function addCustomUnit(s:any,{name,base=null,perBase=null,ingredient=null,now=new Date().toISOString(),id=null}:any={}){const n=String(name??'').trim().replace(/\s+/g,' ');if(!n||n.length>40)throw Error(typeof tr==='function'?tr('Tên đơn vị cần từ 1 đến 40 ký tự.','A unit name needs 1 to 40 characters.'):'Tên đơn vị cần từ 1 đến 40 ký tự.');
+ if(typeof findUnit==='function'&&findUnit(n))return null;/* a name the app already knows (túi lưới → túi) is that unit, not a new one */
+ const conv=base&&Number.isFinite(+perBase)&&+perBase>0&&+perBase<=1e6?{base:String(base).slice(0,40),perBase:+perBase}:null;
+ const found=customUnitByName(s,n);if(found){if(conv&&found.base==null){found.base=conv.base;found.perBase=conv.perBase}if(found.hidden)delete found.hidden;return found}
+ s.customUnits=Array.isArray(s.customUnits)?s.customUnits:[];if(s.customUnits.length>=CUSTOM_UNIT_MAX)throw Error(typeof tr==='function'?tr('Nhà mình đã có quá nhiều đơn vị riêng; ẩn bớt trước khi thêm.','Your family already has too many units of its own.'):'Quá nhiều đơn vị riêng.');
+ const rec:any={id:id||'cu-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),name:n,createdAt:now};if(conv){rec.base=conv.base;rec.perBase=conv.perBase}if(ingredient&&typeof ingredient==='string')rec.ingredient=ingredient.slice(0,120);s.customUnits.push(rec);return rec}
+function setCustomUnitHidden(s:any,id:string,hidden:boolean){const u=familyCustomUnits(s).find(x=>x.id===id);if(!u)return false;if(hidden)u.hidden=true;else delete u.hidden;return true}
+/** Conversion of a family unit into this ingredient's recipe unit, or null when the family gave none for that unit. */
+function customUnitFactor(s:any,id:string,unit:any){const u=customUnitByName(s,unit),base=INGREDIENTS[id]?.[1];return u&&u.base!=null&&base&&u.base===base?u.perBase:null}
+// What kind of thing an ingredient is, for the units suggested first. Name hints first (family ingredients have few
+// groups), then the ingredient's group. Only decides the order of suggestions; it never changes amounts.
+const UNIT_KIND_SUGGEST:Record<string,string[]>={meat:['kg','g','con','miếng','khay'],veg:['bó','kg','củ','cây','g','nắm'],fruit:['quả','kg','túi','hộp'],egg:['quả','vỉ','chục','hộp'],drink:['chai','lon','lốc','thùng'],dairy:['hộp','chai','l','ml'],sauce:['chai','lọ','ml','l'],dry:['gói','hộp','túi','kg','g','bao'],other:['cái','gói','hộp','túi']};
+const UNIT_SOLD_BY_WEIGHT=new Set(['meat','veg','fruit','dry','other']),UNIT_SOLD_BY_VOLUME=new Set(['drink','dairy','sauce']);
+function unitKindFor(id:string){const i=INGREDIENTS[id];if(!i)return 'other';const t=' '+String(i[0]||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/gi,'d').toLowerCase().replace(/[^a-z0-9]+/g,' ')+' ',has=(re:RegExp)=>re.test(t),base=i[1],g=i[2];
+ if(id==='egg'||has(/ (trung|eggs?) /))return 'egg';
+ if(has(/ (nuoc ngot|nuoc suoi|nuoc ep|nuoc tang luc|bia|beer|soda|coca|pepsi|sprite|fanta|juice|soft drinks?) /))return 'drink';
+ if(has(/ (sua|milk|yogurt|yoghurt|cream) /))return 'dairy';
+ if(has(/ (nuoc mam|nuoc tuong|xi dau|dau an|dau hao|dau me|tuong ot|tuong|sot|xot|sauce|oil|giam|vinegar|mat ong|honey) /)||base==='ml'&&g==='dry')return 'sauce';
+ if(base==='quả'&&g==='veg'||['apple','orange','avocado','lime','lemon','pineapple'].includes(id)||has(/ (tao|cam|chuoi|xoai|dua hau|nho|buoi|apple|orange|banana|lemon|lime|mango|grapes?|pears?) /))return 'fruit';
+ if(g==='meat')return 'meat';if(g==='veg')return 'veg';
+ const guess=typeof guessFood==='function'?guessFood(i[0]):null;if(guess?.group==='meat')return 'meat';if(guess?.group==='veg')return 'veg';if(g==='dry')return 'dry';return 'other'}
+/** Can this ingredient be bought in `unit`? Weight units are offered for anything sold by weight, even when the recipe
+ *  counts it (a chicken bought by the kilo); the conversion back to the recipe unit then stays unknown until the family
+ *  enters one. Volume units only for drinks, milk and sauces. Family units always fit. */
+function unitAllowedFor(id:string,unit:any){const base=INGREDIENTS[id]?.[1];if(!base||!unit)return false;const u=typeof findUnit==='function'?findUnit(unit):null;if(!u)return true;const b=findUnit(base),kind=unitKindFor(id);
+ if(u.dim==='mass'||u.dim==='volume'){if(b?.dim===u.dim)return true;if(b?.dim==='mass'||b?.dim==='volume')return false;return u.dim==='mass'?UNIT_SOLD_BY_WEIGHT.has(kind):UNIT_SOLD_BY_VOLUME.has(kind)}
+ if(u.fixed&&!u.fixed[base]&&b?.dim==='count')return false;return true}
+function unitIsWeightOrVolume(unit:any){const u=typeof findUnit==='function'?findUnit(unit):null;return !!u&&(u.dim==='mass'||u.dim==='volume')}
+/** The 6–8 buying units shown first for one ingredient: what this purchase uses now, the family's remembered unit,
+ *  units this ingredient was bought in before, the recipe unit, weight units when it is sold by weight, the family's own
+ *  units, units that suit the kind of ingredient, then units recently used on this device. Stored VI labels. */
+function suggestedBuyingUnits(s:any,id:string,{current=null,recent=[],max=8}:any={}):string[]{const base=INGREDIENTS[id]?.[1];if(!base)return[];const kind=unitKindFor(id),b=typeof findUnit==='function'?findUnit(base):null,out:string[]=[];
+ const canon=(x:any)=>{const u=typeof findUnit==='function'?findUnit(x):null;return u?u.vi:String(x??'').trim()};
+ const hiddenCustom=(x:any)=>{const c=customUnitByName(s,x);return !!c&&!!c.hidden};
+ const add=(x:any,force=false)=>{if(!x||x==='__custom'||out.length>=max)return;const v=canon(x);if(!v||v.length>40)return;if(out.some(y=>y===v||typeof sameUnit==='function'&&sameUnit(y,v)))return;if(!force&&(!unitAllowedFor(id,v)||hiddenCustom(v)))return;out.push(v)};
+ const history:string[]=[];for(const w of Object.keys(s?.weeks||{}).sort().reverse())for(const rows of Object.values(s.weeks[w]?.buyingUnits||{}) as any[]){const u=rows?.[id]?.unit;if(u&&!history.includes(u))history.push(u)}
+ const custom=familyCustomUnits(s).filter(u=>!u.hidden),linked=custom.filter(u=>u.ingredient===id||u.base===base&&base!=='g'&&base!=='ml');
+ add(current,true);add(s?.purchaseUnitPreferences?.[id]?.unit,true);history.slice(0,2).forEach(x=>add(x));add(base,true);
+ if(b?.dim==='mass')add('kg');else if(b?.dim==='volume')add('l');else{if(UNIT_SOLD_BY_WEIGHT.has(kind)&&kind!=='other'){add('kg');add('g')}else if(UNIT_SOLD_BY_VOLUME.has(kind)){add('l');add('ml')}}
+ linked.forEach(u=>add(u.name));(UNIT_KIND_SUGGEST[kind]||UNIT_KIND_SUGGEST.other).forEach(x=>add(x));history.slice(2).forEach(x=>add(x));custom.forEach(u=>add(u.name));(recent||[]).forEach((x:any)=>add(x));
+ for(const x of ['gói','túi','hộp','cái'])if(out.length<6)add(x);return out}

@@ -55,7 +55,8 @@ async function main(){
  const shot=async(page:any,name:string)=>{await page.screenshot({path:`${out}/${name}.png`,fullPage:false});shots.push(name)};
  const scrollToRows=async(page:any)=>{await page.evaluate(()=>{const el=document.querySelector('.shopping-group');if(el)scrollTo(0,el.getBoundingClientRect().top+scrollY-70)});await page.waitForTimeout(150)};
  const visibleChips=(page:any)=>page.evaluate(()=>[...document.querySelectorAll('#purchase-unit-choice .unit-chip')].filter((c:any)=>!c.hidden&&c.offsetParent!==null&&c.closest('.unit-chip-group:not([hidden])')).map((c:any)=>c.dataset.unitChoice));
- const openPicker=async(page:any)=>{await page.locator('[data-action="purchase-quantity"]').first().click();await page.waitForSelector('#purchase-unit-choice .unit-chip');await page.waitForTimeout(100)};
+ // v1.7.18: the sheet shows suggested units first; the full grouped list (search, keyboard) opens with “Xem tất cả đơn vị”
+ const openPicker=async(page:any)=>{await page.locator('[data-action="purchase-quantity"]').first().click();await page.waitForSelector('.unit-suggest .unit-chip');if(!await page.locator('#purchase-unit-choice').count())await page.locator('[data-unit-action="show-all"]').click();await page.waitForSelector('#purchase-unit-choice .unit-chip');await page.waitForTimeout(100)};
  try{
   // 1. Shopping rows: icon + text label for registry units; custom units get the generic icon.
   for(const [lang,theme] of [['vi','light'],['en','dark'],['vi','dark'],['en','light']]){
@@ -84,8 +85,9 @@ async function main(){
    assert.match(heads,lang==='vi'?/Cân\/đo.*Đếm.*Bao bì.*Rau củ/:/Weigh \/ measure.*Count.*Packaging.*Produce/,'category headings follow the UI language');
    const small=await page.evaluate(()=>[...document.querySelectorAll('#purchase-unit-choice .unit-chip,#unit-search')].filter((e:any)=>e.offsetParent&&e.getBoundingClientRect().height<43.5).map((e:any)=>e.textContent));
    assert.deepEqual(small,[],`${size}: unit chips are at least 44px tall`);
-   const iconless=await page.evaluate(()=>[...document.querySelectorAll('#purchase-unit-choice .unit-chip')].filter((c:any)=>!c.querySelector('svg[aria-hidden="true"]')||!c.textContent.trim()).length);
-   assert.equal(iconless,0,'every chip has a decorative icon and a text label');
+   // owner rule 27 (7 Nov 2026) replaced the v1.5 chip icons: chips are words only, every chip still has its text label
+   const notWordsOnly=await page.evaluate(()=>[...document.querySelectorAll('#purchase-unit-choice .unit-chip')].filter((c:any)=>!!c.querySelector('svg')||!c.textContent.trim()).length);
+   assert.equal(notWordsOnly,0,'every chip has a text label and no drawing (rule 27)');
    if(lang==='en')assert.ok(await page.locator('.unit-chip[data-unit-choice="lọ"]',{hasText:'jar'}).count()>0,'EN chip label for lọ is "jar"');
    else assert.ok(await page.locator('.unit-chip[data-unit-choice="lọ"]',{hasText:'lọ'}).count()>0);
    await overflow(page,`picker ${lang} ${theme} ${size}`);
@@ -112,7 +114,7 @@ async function main(){
     // Custom unit with no registry match: generic icon, typed name carried into the field.
     await page.fill('#unit-search','nửa con');assert.equal(await page.locator('.unit-search-empty').isVisible(),true,'no-match hint shown');
     await page.locator('.unit-chip[data-unit-choice="__custom"]').click();await page.waitForSelector('#purchase-custom-unit');assert.equal(await page.inputValue('#purchase-custom-unit'),'nửa con');
-    assert.equal(await page.locator('.unit-chip[data-unit-choice="__custom"] svg[data-unit-icon="custom"]').count(),1,'custom unit has the generic icon');
+    assert.equal(await page.locator('.unit-chip[data-unit-choice="__custom"] svg').count(),0,'custom unit chip is words only (rule 27)');
     if(lang==='vi'&&theme==='light')await shot(page,'picker-custom-vi-light-mobile');
    }
    assert.deepEqual(errors,[]);await context.close();

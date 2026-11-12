@@ -70,6 +70,9 @@ let usageInflight=null;
 function usageFlush(opts={}){if(opts.beacon)return usageSend(opts);if(usageInflight)return usageInflight;usageInflight=usageSend(opts).finally(()=>{usageInflight=null});return usageInflight}
 async function usageSend({beacon=false,fetchFn}={}){
  if(!usageEnabled())return false;
+ // v1.7.18: nothing is sent while the “Tự chạy thử” self-test panel is open — the 5-minute flush could fall between opening the
+ // panel and starting the run (CI, desktop EN), outside the run's own sandbox; the counts wait for the next flush
+ if(typeof document!=='undefined'&&(document.getElementById('ap-panel')||document.documentElement.classList.contains('ap-running')))return false;
  // v1.7: the app's offline flag can lag behind a restored network until the connectivity checker confirms it.
  if(!usageOnline()){const c=(globalThis as any).BepConnectivity;if(beacon||!c||(typeof navigator!=='undefined'&&navigator.onLine===false))return false;if(!(await c.wake().catch(()=>false))||!usageOnline())return false}
  const st=usageLoad(),install=usageInstall();if(!install)return false;

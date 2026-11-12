@@ -318,7 +318,7 @@ async function familyDetail(id:string){try{const d=await api('family',{id}),f=d.
 // ---------- v1.7.2 navigation: grouped menu, lazy page modules, old hashes ----------
 // Pages that live in their own script are listed here with their menu label; the script is downloaded only when
 // the page opens (or the pointer / keyboard focus rests on its link), then it replaces this entry with the real page.
-const MODULES:any={scout:['studio-scout.js','Mạng So Giá','Price Check network','◎'],voice:['studio-voice.js','Giọng nói','Voice','🎙'],usage:['studio-usage.js','Mức sử dụng','Usage','📈'],recipes:['studio-recipes.js','Món ăn cộng đồng','Community recipes','🍲'],feedback:['studio-feedback.js','Góp ý','Feedback','🐞'],unplaced:['studio-unplaced.js','Giá chưa gắn món','Unplaced prices','⧉'],scanlist:['studio-scanlist.js','Danh sách quét','Scan list','☷']};
+const MODULES:any={scout:['studio-scout.js','Mạng So Giá','Price Check network','◎'],voice:['studio-voice.js','Giọng nói','Voice','🎙'],usage:['studio-usage.js','Mức sử dụng','Usage','📈'],recipes:['studio-recipes.js','Món ăn cộng đồng','Community recipes','🍲'],feedback:['studio-feedback.js','Góp ý','Feedback','🐞'],receipts:['studio-receipts.js','Hoá đơn gửi về','Receipts sent','▤'],unplaced:['studio-unplaced.js','Giá chưa gắn món','Unplaced prices','⧉'],scanlist:['studio-scanlist.js','Danh sách quét','Scan list','☷']};
 for(const [k,[src,vi,en,icon]] of Object.entries<any>(MODULES))if(!pages[k])pages[k]={vi,en,icon,lazy:src};
 // Settings carries the "Automatic price check" card (studio-scout.js) and the "App updates" card (studio-update.js).
 pages.settings.needs=['studio-scout.js','studio-update.js'];
@@ -331,7 +331,7 @@ pages.urgent={vi:'Tin nhắn khẩn',en:'Urgent messages',icon:'!',needs:(sub:st
 // v1.7.5: owner and admin manage the platform; moderator and support see less (the server enforces the same rules).
 function canManage(){return me?.role==='owner'||me?.role==='admin'}
 const STUDIO_LEVEL_LABEL:any={owner:['Chủ Studio (Owner)','Owner'],admin:['Quản trị (Admin)','Admin'],moderator:['Kiểm duyệt','Moderator'],support:['Hỗ trợ (chỉ xem)','Support (read-only)']};
-const MODERATOR_PAGES=new Set(['overview','community','recipes','feedback']);
+const MODERATOR_PAGES=new Set(['overview','community','recipes','feedback','receipts']);
 pages.roles={vi:'Quyền Studio',en:'Studio roles',icon:'🔑',async render(el:any){const d=await api('roles'),root=me.role==='owner',lv=(k:string)=>T(STUDIO_LEVEL_LABEL[k][0],STUDIO_LEVEL_LABEL[k][1]);
  const rows=[...d.owners.map((u:string)=>({username:u,level:'owner',fixed:true})),...d.assigned,...(d.legacySupport||[]).map((u:string)=>({username:u,level:'support',fixed:true,legacy:true}))];
  el.innerHTML=`<p class="hint">${T('Owner đặt trong cài đặt hosting (STUDIO_ADMINS) và là người duy nhất gán quyền. Admin: mọi việc trừ gán quyền, xoá/chuyển tài khoản hay gia đình và bản tối thiểu. Kiểm duyệt: cộng đồng, công thức, báo lỗi. Hỗ trợ: chỉ xem. Mọi thay đổi được ghi nhật ký.','Owners are set in the hosting settings (STUDIO_ADMINS) and are the only ones who assign roles. Admin: everything except roles, deleting/transferring accounts or families and the minimum build. Moderator: community, recipes, bug reports. Support: read-only. Every change is audited.')}</p>
@@ -371,7 +371,7 @@ pages.onlinePrices={vi:'Giá online',en:'Online prices',icon:'🛒',async render
 const GROUPS=[
  {id:'home',vi:'Tổng quan',en:'Overview',icon:'◧',pages:['overview','urgent','notifications','health']},
  {id:'people',vi:'Người dùng & gia đình',en:'People & families',icon:'☺',pages:['accounts','families','invites']},
- {id:'content',vi:'Nội dung & cộng đồng',en:'Content & community',icon:'⚖',pages:['community','recipes','feedback']},
+ {id:'content',vi:'Nội dung & cộng đồng',en:'Content & community',icon:'⚖',pages:['community','recipes','feedback','receipts']},
  {id:'price',vi:'So Giá',en:'Price Check',icon:'◎',pages:['scout','onlinePrices','scanlist','unplaced','catalog']},
  {id:'stats',vi:'Phân tích',en:'Analytics',icon:'📈',pages:['usage','voice']},
  {id:'release',vi:'Cài đặt & phát hành',en:'Settings & release',icon:'⚙',pages:['settings','roles','broadcast','rollout','logs']}];

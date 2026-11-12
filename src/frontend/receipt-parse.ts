@@ -65,12 +65,19 @@ const ABBREVIATIONS={
  strwb:'strawberries',strawb:'strawberries',bluebs:'blueberries',rasp:'raspberries',
  lett:'lettuce',cucmbr:'cucumber',caps:'capsicum',brocc:'broccoli',caul:'cauliflower',mshrm:'mushrooms',grlc:'garlic',gngr:'ginger',swt:'sweet',
  prwn:'prawn',prwns:'prawns',slmn:'salmon',lmb:'lamb',tna:'tuna',brd:'bread',rls:'rolls',noodl:'noodles',ndl:'noodles',
- juc:'juice',jce:'juice',choc:'chocolate',bisc:'biscuits',crkr:'crackers',aus:'australian',
+ juc:'juice',jce:'juice',cnut:'coconut',choc:'chocolate',bisc:'biscuits',crkr:'crackers',aus:'australian',
  brshles:'brushless',brshless:'brushless',hamdril:'hammer drill',batt:'battery',chrgr:'charger',chrgrkit:'charger kit',tis:'tissue'
 };
 // Product types that are not cooking ingredients even when they name one ("honey soy chicken chips").
-const SNACK_WORDS=/\b(chips|crisps|snacks?|biscuits?|cookies?|crackers?|chocolate|lollies|candy|soft drink|cola|cordial|ice cream|gum|popcorn|pretzels?|humbugs?|kulfi|drumstick 475|mousse)\b/;
-const NONFOOD_WORDS=/\b(battery|batteries|drill|hammer|accessory|disc|blade|tools?|towel|tissues?|toilet|litter|bag|monitor|arm|hdmi|cable|hangers?|hooks?|holder|trimmer|energizer|lithium|mixer|fryer|spreader|pruner|hedge|charger|kit|paper|detergent|nappies|wipes|shampoo|soap|bleach|foil|cling|sponge|globe|candle)\b/;
+const SNACK_WORDS=/\b(chips|crisps|snacks?|biscuits?|cookies?|crackers?|chocolate|lollies|candy|soft drink|cola|cordial|ice cream|gum|popcorn|pretzels?|humbugs?|kulfi|drumstick 475|mousse|coconut rolls|egg rolls|love letters)\b/;
+const NONFOOD_WORDS=/\b(battery|batteries|drill|hammer|accessory|disc|blade|tools?|towel|tissues?|toilet|litter|bag|monitor|arm|hdmi|cable|hangers?|hooks?|holder|trimmer|energizer|lithium|mixer|fryer|spreader|pruner|hedge|charger|kit|paper|detergent|nappies|wipes|shampoo|soap|bleach|foil|cling|sponge|globe|candle|omo|laundry|fabric softener|softener|rinse aid|rinse|dishwasher|dishwashing|finish|toothpaste|toothbrush|colgate|mouthwash|floss|deodorant|razors?|serviettes?|napkins?|garbage|bin liners?|cleaner|disinfectant|kleenex|quilton|huggies)\b/;
+// v1.7.18 (owner, 12 Nov 2026, Costco “OMO TRIPLE CAPS”): laundry / dishwasher capsules are read on the printed words, before
+// “caps” is expanded to capsicum
+const NONFOOD_RAW=/\b(triple|laundry|washing|wash|dishwasher|dish) (caps?|capsules|pods|tabs|tablets)\b/;
+// Prepared products that name a raw ingredient (“APPLE JUICE”, “PRAWN HARGOW”, “ROAST BEEF”, “S/ONION PANCAKE”): never mapped by
+// themselves to the raw ingredient; at most a suggestion when the ingredient itself is that product (“bread rolls”, “oyster sauce”).
+const PREPARED_RE=/\b(juices?|dumplings?|hargow|hargov|har gow|gyoza|dim sum|siu mai|shu mai|wontons?|spring rolls?|pancakes?|roast(?= (?:beef|chicken|pork|lamb|turkey|duck|ham)\b)|roasted|rotisserie|deli|cooked|smoked|sauces?|spread|dippers|dip|rolls|nuggets?|schnitzels?|kiev|pies?|pizzas?|lasagne|sushi|mayo|mayonnaise|kimchi|(?:strawberry|strwberry|banana|flavoured|iced coffee) milk)\b/;
+function preparedWord(name){const m=(' '+norm(name)+' ').match(PREPARED_RE);return m?m[1]:null}
 function splitGlued(s){return String(s).replace(/([a-z])([A-Z])/g,'$1 $2').replace(/([A-Z]{2,})([A-Z][a-z])/g,'$1 $2').replace(/([A-Za-z]{2,})(\d)/g,'$1 $2').replace(/[/&]/g,' ')}
 function expandAbbrev(name,table=ABBREVIATIONS){
  const words=norm(splitGlued(name)).split(' ').filter(Boolean),out=[];
@@ -78,7 +85,7 @@ function expandAbbrev(name,table=ABBREVIATIONS){
  return out.join(' ').replace(/\b(\d+(?:\.\d+)?) (kg|g|ml|l|gram|grams|litre|pk|pack)\b/g,'$1$2').replace(/\s+/g,' ').trim();
 }
 function isSnack(expanded){return SNACK_WORDS.test(' '+norm(expanded)+' ')}
-function isNonFood(expanded){return NONFOOD_WORDS.test(' '+norm(expanded)+' ')&&!/\b(dog food|cat food)\b/.test(norm(expanded))?true:/\b(dog food|cat food|pet food)\b/.test(norm(expanded))}
+function isNonFood(expanded,raw){if(raw&&NONFOOD_RAW.test(norm(splitGlued(raw))))return true;return NONFOOD_WORDS.test(' '+norm(expanded)+' ')&&!/\b(dog food|cat food)\b/.test(norm(expanded))?true:/\b(dog food|cat food|pet food)\b/.test(norm(expanded))}
 
 // ---------------------------------------------------------------- size repair
 // OCR confusions are only repaired inside the numeric part directly before a unit.
@@ -128,6 +135,7 @@ function extractSize(name){
    const end=m.index;let start=end;while(start>0&&end-start<6&&new RegExp(`[${NUMCH}]`).test(text[start-1]))start--;
    const run=text.slice(start,end);const lone=start===0||/[\s(/]/.test(text[start-1]||' ');if(!run||!/[0-9]/.test(run)&&!(lone&&run.length<=2&&/[lI|!iOo]/.test(run)))continue;
    if(/per$/i.test(text.slice(Math.max(0,start-3),start)))continue;// "PERKG"
+   if(!/[0-9]/.test(run)&&/^oil$/i.test(text.slice(start,end+m[0].length))&&!/[0-9]/.test(text.slice(end+m[0].length,end+m[0].length+1)))continue;// v1.7.18: the word “OIL” (Costco “CAN OIL”) is not “01 L”
    const u=unitOf(m[1]);if(!u)continue;
    let q=null,from=start;
    if(lone){q=repairNumber(run,true);if(!q||!plausible(+q,u)){const opts=pickGlued(text.slice(0,start),run).filter(o=>plausible(+o.q,u));const pick=opts.find(o=>o.known)||opts[0];if(pick){q=pick.q;from=end-pick.digits.length}else q=null}}
@@ -140,6 +148,8 @@ function extractSize(name){
   }
   // "…1759"/"Blueberries 1709": the g was read as 9 (no unit left) — only 4 digits ending in 9, last token
   if(!best){const g9=text.match(/(^|[A-Za-z\s])(\d{3})9\s*$/);if(g9&&plausible(+g9[2],'g')&&+g9[2]%5===0){const at=g9.index+g9[1].length;best={qty:+g9[2],unit:'g',index:at,len:4,changed:true}}}
+  // v1.7.18 (Costco “JONGGA KIMCHI 1.5K”): the line ran out of room after the K of KG — a number + K at the very end is kilograms
+  if(!best){const k=text.match(/(^|\s)(\d{1,2}(?:[.,]\d{1,3})?)\s?K$/i);if(k&&plausible(+k[2].replace(',','.'),'kg')){const at=k.index+k[1].length;best={qty:+k[2].replace(',','.'),unit:'kg',index:at,len:text.length-at,changed:false}}}
   if(best){size={qty:best.qty,unit:best.unit};if(best.changed)repaired=true;
    const glued=best.index>0&&/[A-Za-z]/.test(text[best.index-1]);
    text=text.slice(0,best.index)+(glued?' ':'')+fmtSize(size)+text.slice(best.index+best.len)}
@@ -257,7 +267,7 @@ function findStore(lines,head,retailer){
  suburb=suburb.replace(/\s+/g,' ').trim();
  let store=retailer?.name?(retailer.name.replace(/ UK$/,'')+(suburb?' '+suburb:'')):'';
  // v1.7.10: local shops print the company (“HP MEATS PTY LTD”, “CUONG THIEN PTY LTD”) and “MARRICKVILLE NSW 2204”
- if(!store){const co=head.map(l=>l.match(/([A-Z][A-Z0-9&'.-]*(?:\s+[A-Z0-9&'.-]+){0,4}?)\s+P[TI]Y\.?\s*L[TI][DP]\b/)).find(Boolean);
+ if(!store){const co=head.map(l=>l.match(/([A-Z][A-Z0-9&'.-]*(?:\s+[A-Z0-9&'.-]+){0,4}?)\s+P[TI]Y\b\.?(?:\s*L[TI][DP]?\b)?/)).find(Boolean);// v1.7.18: “PTY LT ie”, “PTY ©” (LTD lost at the paper's edge) still name the company
   if(co){const name=co[1].replace(/^(?:[A-Z]\s+|[^A-Z]+)/,'').trim();const sub=lines.slice(0,14).map(l=>l.match(new RegExp(`([A-Z][A-Z' ]{2,28}?)\\s+(${STATES})\\s+\\d{4}\\b`))).find(Boolean);
    if(name.length>=2){store=name.split(/\s+/).map(w=>w.length<=2?w:titleCase(w)).join(' ')+(sub&&!suburb?' '+titleCase(sub[1].trim()):'');if(sub&&!suburb)suburb=titleCase(sub[1].trim())}}}
  if(!store){const first=head.find(l=>/[A-Za-z]{3}/.test(l)&&l.length<50&&!/\d[.,]\d{2}/.test(l)&&!SKIP_RE.test(norm(l))&&!isSensitive(l));store=first?first.trim():''}
@@ -266,21 +276,55 @@ function findStore(lines,head,retailer){
 
 // ---------------------------------------------------------------- main parser
 // v1.7.10: “@” read as 0 / 8 / § and “1.442g” (k dropped) on photos of thermal receipts; “/kg” may be cut to “/k”
-const WEIGHT_RE=/(\d+[.,]\s?\d{3}(?=\s*k?g)|\d+[.,]\s?\d{1,2}(?=\s*kg))\s*k?g\s*(?:net)?\s*(?:[@©®€&§]|[08](?=\s))?\s*\$?\s?(\d+[.,]\d{2})\s*\$?\s*[/]\s*k/i;
+const WEIGHT_RE=/(\d+[.,]\s?\d{3}(?=\s*k?g)|\d+[.,]\s?\d{1,2}(?=\s*kg))\s*k?g\s*(?:net)?\s*(?:[@©®€&§]|[08](?=\s))?\s*\$?\s?(\d+[.,]\d{2})\d?\s*\$?\s*[/]\s*k/i;// v1.7.18: “$9.989/kg” (a doubled digit) still reads as $9.98
 const MULTI_RE=/^\W*(?:[qo]ty\s*)?(\d{1,3})\s*(?:[@©®§&]\s*\$?|\s[068Oo]\s+\$)\s?(\d+[.,]\d{1,2})(?!\d)\s*(?:each|ea\b\.?)?/i;
 // v1.7.10: “2 @ $2.20” read glued as “2082.20” (@→0, $→8). Accepted only when count × each equals the item just read.
 const GLUED_MULTI_RE=/^\W*(?:\S{1,4}\s+)?(\d{1,2}[0@][0-9@$S§]{1,3}\d{0,2}[.,]\d{1,2})(?:\s+\S{1,3}){0,3}\W*$/;
 // “SHER 2 8 $3.00”, “Ene. 2 @ $3.15”: a count line behind a short speck token
 const JUNK_MULTI_RE=/^\W*\S{1,4}\s+(\d{1,2})\s*(?:[@©®§&]\s*\$?|\s[068Oo]\s+\$)\s?(\d+[.,]\d{1,2})(?!\d)/;
+
+// v1.7.18 (owner, 12 Nov 2026: “Unable to read this receipt from Costco at all”): Costco prints each item on two lines —
+//   MOO CHOCOLATE MILK
+//   21886      1x   24.99     24.99 &
+// (name, then item code · quantity · unit price · line price · “&” = GST). An instant saving (“TPD …”) follows its item
+// with a price ending in “-”; “TOTAL NUMBER OF ITEMS SOLD = n” is a count, not a total; “REDEEM REWARDS … -” is a
+// member reward paid against the bill. The pairs are joined into one “NAME price” line the general reader understands,
+// savings become “TPDDISC …” lines that reduce the item above, the count becomes “n items”. A detail line whose
+// price OCR clipped (“10.4”) uses the unit price when the quantity is 1; nothing is guessed when neither reads.
+function costcoLines(lines){
+ const letters=l=>(String(l).replace(/\b[1Il|i]?[xX×]\b/g,'').match(/[A-Za-z]/g)||[]).length;
+ const money=/(\d{1,4})[.,](\d{2})(?!\d)/g;
+ const detail=l=>{const t=String(l);if(letters(t)>4)return null;const all=[...t.matchAll(money)];if(!all.length)return null;
+  const last=all[all.length-1],after=t.slice(last.index+last[0].length);
+  // the line price is the last amount when it reads cleanly at the end; otherwise (clipped “10.4”, junk) the unit price with qty 1
+  const tailOk=/^\s*-?\s*&?\s*[-~]?\W{0,3}$/.test(after),neg=/^\s*-|-\s*&?\W{0,3}$/.test(after)||/\d-\s*&?\W*$/.test(t);
+  const qty=t.match(/\b(\d{1,2})\s*[xX×]\b/),one=!qty||qty[1]==='1';
+  let v=null;if(tailOk&&all.length>=1)v=+(last[1]+'.'+last[2]);else if(one&&all.length>=1)v=+(all[0][1]+'.'+all[0][2]);
+  return v==null?null:{v,neg,gst:/&/.test(after)}};
+ const out=[];
+ for(let i=0;i<lines.length;i++){const l=lines[i],t=String(l).trim();
+  if(/^\W*[*xXkKmMnNjJ]{6,}|bottom\s+of\s+basket|\bBOB\s+count\b/i.test(t)&&!/\d[.,]\d{2}/.test(t))continue;
+  const cnt=t.match(/TOTAL\s+NUMBER\s+O\w*\s+\w*\s*\(?SOLD\s*=?\s*(\d{1,3})/i);if(cnt){out.push(cnt[1]+' items');continue}
+  if(/^\W*REDEEM\s+REWARDS?\b/i.test(t)){const d=lines[i+1]&&detail(lines[i+1]);const v=d?d.v:amountIn(t);if(v!=null){out.push('COSTCOREWARD '+Math.abs(v).toFixed(2));if(d)i++}continue}
+  const isName=letters(t)>=3&&!detail(t);
+  if(isName){/* a lone digit far to the right is the price column's clipped edge (“E/C APPLE JUICE 4L      9”), not part of the name */const name=t.replace(/(\d{1,4}[.,]\d{2})\s*-?\s*&?\W*$/,'').replace(/\s{3,}\d{1,2}\W*$/,'').replace(/^\W+/,'').trim(),own=t.match(/(\d{1,4})[.,](\d{2})\s*(-)?\s*&?\W*$/);
+   const d=lines[i+1]?detail(lines[i+1]):null,tpd=/^\W*TPD\b/i.test(name);
+   if(d||own){const v=own&&(tpd||!d)?+(own[1]+'.'+own[2]):d.v,neg=tpd||(own&&own[3]==='-')||(d&&d.neg);
+    out.push(neg?`TPDDISC ${name} ${v.toFixed(2)}`:`${name} ${v.toFixed(2)}`);if(d)i++;continue}
+  }
+  out.push(l)}
+ return out}
 function parseReceipt(text,opts={}){
  const raw=String(text||'').slice(0,40000);
- const lines=raw.split(/\r?\n/).map(tidy).filter(Boolean);
+ let lines=raw.split(/\r?\n/).map(tidy).filter(Boolean);
  const det=opts.retailer&&RETAILERS[opts.retailer]?{id:opts.retailer,name:RETAILERS[opts.retailer].name,currency:RETAILERS[opts.retailer].currency}:detectRetailer(raw);
  const aldi=det.id==='aldi';
+ if(det.id==='costco')lines=costcoLines(raw.split(/\r?\n/).filter(x=>x.trim())).map(tidy).filter(Boolean);/* before tidy(): the column gaps tell edge noise from names */
  const items=[],totals=[],head=[];const payAmounts=[];let section='head',pending=null,refund=false,multiple=false,printedCount=null,lastItem=null;
  const add=it=>{items.push(it);if(it.kind==='item')lastItem=it;return it};
  // v1.7.10: the second half of a wrapped name (“/ NGAN”, “G / BUNCH”, “RMAL”, “EACH”, “PURPLE”, “/ 3 FOR”) is not a new product
- const contPending=()=>{if(!pending||pending.head)return false;const t=cleanLabel(pending.text,det.id).label;const words=t.match(/[A-Za-z]{2,}/g)||[];return /^\W*\/|^(?:\S{1,3}\s+)?(?:N?O?R?MAL|NORMAL|EACH|BUNCH|BIG\s+BUNCH|NGAN|PURPLE|\d\s*FOR)\b/i.test(t)||words.length<=1&&t.length<=12};
+ // v1.7.18: “I / BIG BUNCH” (the end of “CAI THUONG HA·I”) read as “1 / 81g BUNCH” is a wrap too
+ const contPending=()=>{if(!pending||pending.head)return false;const t=cleanLabel(pending.text,det.id).label;const words=t.match(/[A-Za-z]{2,}/g)||[];return /^\W*\/|^[1Il|]\s*\/\s*\S|^(?:\S{1,3}\s+)?(?:N?O?R?MAL|NORMAL|EACH|BUNCH|BIG\s+BUNCH|NGAN|PURPLE|\d\s*FOR)\b/i.test(t)||words.length<=1&&t.length<=12};
  const sameAs=(v,price)=>price!=null&&Math.abs(round(v)-price)<0.015;
  // An unpriced line that names a product with a printed size (torn / clipped receipt) stays as a line
  // without a price, so nothing is silently lost; the price is never guessed.
@@ -290,7 +334,7 @@ function parseReceipt(text,opts={}){
  for(let i=0;i<lines.length;i++){
   // v1.7.10: specks beside the paper can sit before SUB TOTAL / TOTAL / BALANCE / card lines (“2 TOTAL: $133.75”, “oir 2 MASTERCARD”);
   // Woolworths' own item count (“11 SUBTOTAL”) stays
-  const line=/^\W*\d{1,3}\s+SUB\s*TOTAL\b/i.test(lines[i])?lines[i]:lines[i].replace(/^(?:\S{1,5}\s+){1,2}(?=(?:SUB\s*TOTAL|S[UB]?B\s*TOTAL|TOTAL|BALANCE|ROUNDING|CASH|CHANGE|MASTERCARD|VISA|EFTPOS|DEBIT|GST\s+INCLUDED|TOTAL\s+ITEMS)\b)/i,''),n=norm(line);
+  const line=/^\W*\d{1,3}\s+SUB\s*TOTAL\b/i.test(lines[i])?lines[i]:lines[i].replace(/^(?:(?!S[UB]?B\b)\S{1,5}\s+){1,2}(?=(?:SUB\s*TOTAL|S[UB]?B\s*TOTAL|TOTAL|BALANCE|ROUNDING|CASH|CHANGE|MASTERCARD|VISA|EFTPOS|DEBIT|GST\s+INCLUDED|TOTAL\s+ITEMS)\b)/i,''),n=norm(line);
   if(section==='warranty')continue;
   if(/^\W*[wy]arrant(y|ies)\b/i.test(line)){section='warranty';pending=null;continue}
   if(section==='pay'&&totals.some(t=>t.p>=4)&&/tax\s*invoice/i.test(line)){multiple=true;break}
@@ -303,14 +347,16 @@ function parseReceipt(text,opts={}){
    pending=null;if(section!=='pay')section=tot.p>=4?'pay':tot.p>=2?'sub':section;continue}
   const cnt=line.match(/^\W{0,2}?(-?\d{1,3})\s*[iIl1T|]tems?\b\W*$/i);if(cnt){printedCount=+cnt[1];continue}
   // adjustments that may appear anywhere after the items (ALDI prints them after the bank block)
+  if(det.id==='costco'&&/^COSTCOREWARD\s/.test(line)){const v=amountIn(line);if(v!=null)add(adjust('discount','Redeem rewards',-Math.abs(v)));continue}
+  if(det.id==='costco'&&/^TPDDISC\s/.test(line)){const v=amountIn(line);if(v!=null&&lastItem){lastItem.discount=round((lastItem.discount||0)-Math.abs(v));lastItem.raw+=' / '+line.slice(8)}else if(v!=null)add(adjust('discount',line.slice(8),-Math.abs(v)));continue}
   if(/surcharge/i.test(line)&&!/^\W*total\s+surcharge/i.test(line)){const v=amountIn(line);if(v!=null&&section!=='head')add(adjust('surcharge',line,v));continue}
   if(/^\W*total\s+surcharge/i.test(line))continue;
-  if(/^\W*round(ing)?\b/i.test(line)){const v=amountIn(line);if(v!=null&&Math.abs(v)>=0.005)add(adjust('rounding',line,v));continue}
+  if(/^\W*round(ing)?\b/i.test(line)){let v=amountIn(line);if(v!=null&&/[~≈—–]\s?\$?\s?\d[.,]\d{2}/.test(line))v=-Math.abs(v)/* v1.7.18: “ROUNDING: ~$0.02” is a minus read as a tilde */;if(v!=null&&Math.abs(v)>=0.005)add(adjust('rounding',line,v));continue}
   if(/you have saved|^\W*D\d{3}\b/i.test(line)&&det.id==='woolworths-uk'){const v=amountIn(line);if(v!=null&&lastItem){lastItem.discount=round((lastItem.discount||0)-Math.abs(v));lastItem.raw+=' / '+line}continue}
   if(/^\W*(credit|discount|less|promo|coupon|voucher|member\s*(discount|saving)|multi\s*buy|saving)\b/i.test(line)&&!/surcharge/i.test(line)&&/-\s?\$?\s?\d|\d[.,]\d{2}\s*-/.test(line)){const v=amountIn(line);if(v!=null){add(adjust('discount',line,-Math.abs(v)));continue}}
   // v1.7.14: a bare amount right under the subtotal is the total whose word OCR lost (“: $80.83” under “SUB TOTAL”)
   if(section==='sub'&&/^\W*\$?\s?\d{1,5}[.,]\d{2}\W*$/.test(line)){const v=amountIn(line);if(v!=null)totals.push({value:v,p:3,line:i,label:'TOTAL'});pending=null;continue}
-  if(PAY_RE.test(n)){if(/^(purchase|refund|total aud|mastercard|master card|visa|eftpos|eft|debit|amex)\b/.test(n)){const v=amountIn(line);if(v!=null)payAmounts.push(v)}if(section!=='head'||i>bodyStart&&bodyStart>=0)section='pay';pending=null;continue}
+  if(PAY_RE.test(n)){if(/^(purchase|refund|total aud|mastercard|master card|visa|eftpos|eft|debit|amex)\b/.test(n)||/^cash\b(?! ?out)/.test(n)){const v=amountIn(line);if(v!=null)payAmounts.push(v)}if(section!=='head'||i>bodyStart&&bodyStart>=0)section='pay';pending=null;continue}
   if(isSensitive(line)){pending=null;continue}
   if(/\bnet\b.*\b(gst|vat)\b|^\W*[ab]\s+\d+[.,]\d\s*%/i.test(line))continue;
   if(section==='head'){
@@ -323,7 +369,7 @@ function parseReceipt(text,opts={}){
   // continuation: weighed line → previous (or pending) item
   const w=line.match(WEIGHT_RE);
   if(w){const kg=+w[1].replace(/\s/g,'').replace(',','.'),per=+w[2].replace(',','.'),p=priceOf(line.slice(w.index+w[0].length),aldi);
-   let target=null;
+   let target=null;const garbledPrice=!!pending&&!p&&/[A-Za-z]{3}.*\s\$?\S*\d{3,}\S*(?:\s+\S{1,4})?\s*$/.test(pending.text);
    if(pending&&contPending()&&lastItem&&lastItem.weight==null&&lastItem.price!=null){target=lastItem;target.raw+=' / '+pending.text}
    else if(pending&&section==='body'){const c=cleanLabel(pending.text,det.id);if(/[A-Za-z]{2}/.test(c.label))target=add(makeItem(c.label,c.code,p?p.price:null,p?.gst,pending.text,!p))}
    else if(lastItem&&lastItem.weight==null&&!(!det.id&&p&&lastItem.price!=null&&Math.abs(lastItem.price-p.price)>0.015))target=lastItem;
@@ -332,6 +378,11 @@ function parseReceipt(text,opts={}){
    pending=null;
    if(target&&kg>0&&kg<50){target.weight={qty:kg,unit:'kg'};target.perKg=per;target.raw+=' / '+line;if(target.price==null&&p){target.price=p.price;target.priceMissing=false}target.qty=kg;target.unit='kg';target.size=null}
    // v1.7.14: “$65.71” for $5.71 (a speck read as a digit): when weight × price per kg says the price without its first digit, use that
+   // v1.7.18 (butcher receipt: “PORK MINCE   6571 via” for $5.71): no readable price, but weight × price per kg is printed — that is
+   // the line price (worked out, flagged for checking like other repaired prices); nothing is invented when either number is missing
+   if(target&&garbledPrice&&target.weight&&per>0&&target.price==null&&kg>0){target.price=round(kg*per);target.priceMissing=false;target.priceFromWeight=true;target.priceRepaired=true}
+   // the unreadable price's digits (“PORK MINCE   6571 via”) are not part of the name
+   if(target&&target.priceFromWeight&&target.name)target.name=target.name.replace(/\s+\S*\d{3,}\S*(?:\s+\S{1,4})?$/,'').trim()||target.name;
    if(target&&target.weight&&per>0&&target.price!=null){const exp=kg*per,ok=(v:number)=>Math.abs(v-exp)<=Math.max(0.12,exp*0.04);const s2=target.price.toFixed(2);if(!ok(target.price)&&s2.length>4&&ok(+s2.slice(1))){target.price=+s2.slice(1);target.priceFromWeight=true}}
    continue}
   // v1.7.14: a price-per-kg line whose weight OCR garbled (“442kg @ $5.99/kg”, “1.6826kg @ $12.00/kg”) belongs to the item above: the
@@ -345,7 +396,7 @@ function parseReceipt(text,opts={}){
     for(const cl of [1,2])for(let k=cl;k<d.length&&!hit;k++){const c=+d.slice(0,cl),m=d.slice(k).match(/^[0@48$S§]{0,3}?(\d{1,3}[.,]\d{1,2})$/);if(m&&c>=2&&sameAs(c*+m[1].replace(',','.'),lastItem.price))hit={count:c,each:+m[1].replace(',','.')}}
     if(hit){lastItem.multi=hit;lastItem.raw+=' / '+line;if(pending)lastItem.raw+=' / '+pending.text;if(lastItem.size)lastItem.qty=round(lastItem.size.qty*hit.count,3);else if(lastItem.each||lastItem.qty==null){lastItem.qty=hit.count;lastItem.unit='each'}pending=null;continue}}}
   // v1.7.14: “68 $1.20” = 6 @ $1.20 (the @ read as 8, the space kept) — only when count × price equals the item just read
-  {const g8=line.match(/^\W*(\d)[8@]\s+\$\s?(\d{1,3}[.,]\d{2})\W*$/);if(g8&&lastItem&&lastItem.price!=null&&!lastItem.multi&&+g8[1]>=2&&sameAs(+g8[1]*+g8[2].replace(',','.'),lastItem.price)){const count=+g8[1];lastItem.multi={count,each:+g8[2].replace(',','.')};lastItem.raw+=' / '+line;if(pending)lastItem.raw+=' / '+pending.text;if(lastItem.size)lastItem.qty=round(lastItem.size.qty*count,3);else if(lastItem.each||lastItem.qty==null){lastItem.qty=count;lastItem.unit='each'}pending=null;continue}}
+  {const g8=line.match(/^\W*(\d)[8@6aA&]\s+\$\s?(\d{1,3}[.,]\d{2})\W*$/)/* v1.7.18: also “66 $1.20” */;if(g8&&lastItem&&lastItem.price!=null&&!lastItem.multi&&+g8[1]>=2&&sameAs(+g8[1]*+g8[2].replace(',','.'),lastItem.price)){const count=+g8[1];lastItem.multi={count,each:+g8[2].replace(',','.')};lastItem.raw+=' / '+line;if(pending)lastItem.raw+=' / '+pending.text;if(lastItem.size)lastItem.qty=round(lastItem.size.qty*count,3);else if(lastItem.each||lastItem.qty==null){lastItem.qty=count;lastItem.unit='each'}pending=null;continue}}
   const mm=line.match(MULTI_RE)||line.match(JUNK_MULTI_RE);
   if(mm&&!/[a-z]{3}/i.test(line.replace(/^\W*\S{1,4}\s+(?=\d)/,'').replace(/each|[qo]ty|ea\b/ig,''))){const count=+mm[1],each=+mm[2].replace(',','.'),p=priceOf(line.slice(mm.index+mm[0].length),aldi);
    let target=null;
@@ -392,6 +443,11 @@ function parseReceipt(text,opts={}){
  // printed total: the last of the strongest kind (ALDI may print several subtotal blocks)
  const pick=[4,3,2,1].map(p=>totals.filter(t=>t.p===p).pop()).find(Boolean)||null;
  let printedTotal=pick?pick.value:null,totalConflict=null;
+ // v1.7.18 (owner, 12 Nov 2026, butcher receipt): the large “TOTAL: $133.75” was lost by OCR, so only SUB TOTAL ($133.77) was
+ // read; the CASH / card amount is what was paid, and is used when no TOTAL line was read and it differs from the subtotal
+ // by less than 5 cents (cash rounding) — never to replace a TOTAL that was read.
+ if(pick&&pick.p<4&&payAmounts.length){const paid=payAmounts[payAmounts.length-1];if(paid>0&&Math.abs(paid-pick.value)<0.05&&Math.abs(paid-pick.value)>=0.005)printedTotal=paid}
+ if(!pick&&payAmounts.length===1&&payAmounts[0]>0)printedTotal=payAmounts[0];
  // the printed total is cross-checked against the other printed amounts (payment, EFTPOS "TOTAL AUD",
  // subtotal): when they agree with each other and not with the total line, the total line was misread.
  if(printedTotal!=null){const sg=printedTotal<0?-1:1,others=[...payAmounts,...totals.filter(t=>t!==pick).map(t=>t.value)].map(v=>Math.abs(v)*sg).filter(v=>Math.abs(v-printedTotal)>=0.005);
@@ -422,11 +478,14 @@ function parseReceipt(text,opts={}){
 function lineValue(i){return round((i.price||0)+(i.discount||0))}
 function adjust(kind,line,value){const label=line.replace(/\s*-?\$?\s?-?\d[\d.,]*\s*[A-Z]?\s*$/,'').replace(/[:\s]+$/,'').trim()||kind;return{kind,name:label,code:null,price:round(value),gst:null,size:null,pack:null,repaired:false,qty:null,unit:null,weight:null,perKg:null,multi:null,each:false,expanded:'',snack:false,nonFood:true,raw:line,priceMissing:false,dup:null}}
 function makeItem(label,code,price,gst,raw,missing){
+ // v1.7.18 (owner's phone, butcher receipt: “BEEF BALL i”, “PORK BELLY i”): a lone lower-case letter or bar after an all-capitals
+ // name is a speck between the name and the price column, not part of the name
+ label=String(label||'').replace(/^([^a-z]*[A-Z]{3}[^a-z]*?)\s+[a-z|!]$/,'$1');
  const s=extractSize(label);let name=s.text,qty=null,unit=null;
  const each=/\b(ea|each)$/i.test(name);if(each){name=name.replace(/\s*\b(ea|each)$/i,'').trim();qty=1;unit='each'}
  if(s.size){qty=s.size.qty;unit=s.size.unit}
  const expanded=expandAbbrev(name),g=genericLabel(name);
- return{kind:'item',name,code:code||null,price:price??null,gst:gst||null,size:s.size,pack:s.pack,repaired:s.repaired,qty,unit,weight:null,perKg:null,multi:null,each,expanded,snack:isSnack(expanded),nonFood:isNonFood(expanded),raw:String(raw||''),priceMissing:!!missing||price==null,dup:null,generic:!!g,genericKey:g?g.key:null,plu:g?g.plu:null};
+ return{kind:'item',name,code:code||null,price:price??null,gst:gst||null,size:s.size,pack:s.pack,repaired:s.repaired,qty,unit,weight:null,perKg:null,multi:null,each,expanded,snack:isSnack(expanded),nonFood:isNonFood(expanded,name),raw:String(raw||''),priceMissing:!!missing||price==null,dup:null,generic:!!g,genericKey:g?g.key:null,plu:g?g.plu:null};
 }
 // v1.7.2 generic / local-grocer lines: a department word ("GROCERY", "VEG", "MEAT", "DEPT 01", "MISC"), a PLU
 // on its own, or only a price. They name no item, so they are never matched automatically ("Chưa rõ món").
@@ -476,32 +535,48 @@ function looksLikeReceipt(text){const r=typeof text==='string'?parseReceipt(text
 
 // ---------------------------------------------------------------- matching
 // English receipt words → app ingredient ids (only for ids whose aliases are Vietnamese-only).
-const EN_ALIASES={salmon:['salmon'],corn:['sweet corn','corn kernels','corn cob'],milk:['milk','full cream milk','lite milk','skim milk'],yogurt:['yogurt','yoghurt','greek yoghurt'],cream:['cream whipped','whipped cream','thickened cream','cooking cream','pure cream','whipping cream'],butter:['butter','unsalted butter'],mozzarella:['mozzarella'],parmesan:['parmesan'],feta:['feta'],bread:['bread','white bread','sourdough','rolls','bread rolls','wraps','white wraps'],wholeBread:['wholemeal bread','wholemeal','hi fibre','grain bread'],flour:['plain flour','flour'],oats:['rolled oats','oats'],lemon:['lemon','lemons'],lettuce:['lettuce','iceberg lettuce','cos lettuce'],zucchini:['zucchini'],eggplant:['eggplant'],bellPepper:['capsicum','capsicums'],asparagus:['asparagus'],avocado:['avocado','avocados'],apple:['apple','apples','apple jazz','apple pink lady'],orange:['orange','oranges','mandarins','mandarin'],tuna:['tuna'],spaghetti:['spaghetti'],penne:['penne'],chickpea:['chickpeas'],peanut:['peanuts'],almond:['almonds'],walnut:['walnuts'],oil:['canola oil','olive oil','vegetable oil','sunflower oil'],carrot:['carrots','carrot'],onion:['onions','brown onions','red onions'],potato:['potatoes','brushed potatoes','washed potatoes'],broccoli:['broccoli'],egg:['eggs','free range eggs','cage eggs','cage 12pk','cage free'],spinach:['baby spinach','spinach'],tomato:['tomato','tomatoes','tomato gourmet','cherry tomatoes'],mushroom:['mushrooms','mushroom oyster','mushroom']};
+const EN_ALIASES={salmon:['salmon'],corn:['sweet corn','sweetcorn','corn kernels','corn cob'],milk:['milk','full cream milk','lite milk','skim milk'],yogurt:['yogurt','yoghurt','greek yoghurt'],cream:['cream whipped','whipped cream','thickened cream','cooking cream','pure cream','whipping cream'],butter:['butter','unsalted butter'],mozzarella:['mozzarella'],parmesan:['parmesan'],feta:['feta'],bread:['bread','white bread','sourdough','rolls','bread rolls','wraps','white wraps'],wholeBread:['wholemeal bread','wholemeal','hi fibre','grain bread'],flour:['plain flour','flour'],oats:['rolled oats','oats'],lemon:['lemon','lemons'],lettuce:['lettuce','iceberg lettuce','cos lettuce'],zucchini:['zucchini'],eggplant:['eggplant'],bellPepper:['capsicum','capsicums'],asparagus:['asparagus'],avocado:['avocado','avocados'],apple:['apple','apples','apple jazz','apple pink lady'],orange:['orange','oranges','mandarins','mandarin'],tuna:['tuna'],spaghetti:['spaghetti'],penne:['penne'],chickpea:['chickpeas'],peanut:['peanuts'],almond:['almonds'],walnut:['walnuts'],oil:['canola oil','olive oil','vegetable oil','sunflower oil'],carrot:['carrots','carrot'],onion:['onions','brown onions','red onions'],potato:['potatoes','brushed potatoes','washed potatoes'],broccoli:['broccoli'],egg:['eggs','free range eggs','cage eggs','cage 12pk','cage free'],spinach:['baby spinach','spinach'],tomato:['tomato','tomatoes','tomato gourmet','cherry tomatoes'],mushroom:['mushrooms','mushroom oyster','mushroom']};
 // Returns {match, confidence:'learned'|'high'|'suggested'|'unknown'} for one parsed line.
-function matchIngredient(item,{ingredients={},aliases={},extraAliases={},memory={},retailer=null}={}){
- if(item.kind!=='item'||item.generic)return{match:'',confidence:'unknown'};
- for(const k of memoryKeys(item,retailer)){const v=memory[k];if(v&&(v==='other'||Object.hasOwn(ingredients,v)))return{match:v,confidence:'learned'}}
- if(item.snack||item.nonFood)return{match:'',confidence:'unknown'};
- const words=norm(item.expanded||item.name).replace(/\b\d+(\.\d+)?(kg|g|ml|l|pk|pack|gram|litre)?\b/g,' ').replace(/\b(pack|bag|each|loose|cut|bottle|carton|per kg|perkg|kg)\b/g,' ').replace(/\s+/g,' ').trim();
- if(!words)return{match:'',confidence:'unknown'};
- const n=' '+words+' ',nt=words.split(' ').length;let best='',score=0,cover=0;
- for(const[id,ing]of Object.entries(ingredients)){
-  for(const alias of[norm(ing[0]),...(aliases[id]||[]),...(EN_ALIASES[id]||[]).map(norm),...(extraAliases[id]||[]).map(norm)]){
-   if(!alias||alias.length<3)continue;
-   if(n.includes(' '+alias+' ')){const at=alias.split(' ').length,s=alias.length+(n.trim()===alias?100:0);if(s>score){score=s;best=id;cover=at/nt}}
-  }
- }
- if(!best)return{match:'',confidence:'unknown'};
- return{match:best,confidence:score>=100||cover>=0.6?'high':'suggested'};
+// v1.7.18 (owner, 12 Nov 2026: “the names of items on the receipt may differ from the items on đi chợ”): the family's memory first,
+// then only what is on this week's shopping list (`list`: ingredient ids), then the whole catalogue. Whole words only; a prepared
+// product (juice, dumplings, pancake, roast beef, sauce…) is never matched by itself to the raw ingredient it names.
+// Returns {match, confidence:'learned'|'high'|'suggested'|'unknown', source:'memory'|'list'|'catalogue'|'', prepared}.
+function matchWords(item){return norm(item.expanded||item.name).replace(/\b\d+(\.\d+)?(kg|g|ml|l|pk|pack|gram|litre)?\b/g,' ').replace(/\b(pack|bag|each|loose|cut|bottle|carton|per kg|perkg|kg)\b/g,' ').replace(/\s+/g,' ').trim()}
+function aliasesOf(id,ing,aliases,extraAliases){return[norm(ing[0]),...(aliases[id]||[]),...(EN_ALIASES[id]||[]).map(norm),...(extraAliases[id]||[]).map(norm)]}
+function bestMatch(words,ids,{ingredients,aliases,extraAliases}){
+ const n=' '+words+' ',nt=words.split(' ').length;let best='',score=0,cover=0,alias='';
+ for(const id of ids){const ing=ingredients[id];if(!ing)continue;
+  for(const a of aliasesOf(id,ing,aliases,extraAliases)){if(!a||a.length<3)continue;
+   if(n.includes(' '+a+' ')){const at=a.split(' ').length,s=a.length+(n.trim()===a?100:0);if(s>score){score=s;best=id;cover=at/nt;alias=a}}}}
+ return best?{match:best,confidence:score>=100||cover>=0.6?'high':'suggested',alias}:null;
+}
+function matchIngredient(item,{ingredients={},aliases={},extraAliases={},memory={},retailer=null,list=null}={}){
+ // source / prepared ride along as non-enumerable facts, so {match, confidence} compares as before
+ const res=(match,confidence,source,prepared)=>Object.defineProperties({match,confidence},{source:{value:source},prepared:{value:prepared}});
+ const none=(prepared=null)=>res('','unknown','',prepared);
+ if(item.kind!=='item'||item.generic)return none();
+ for(const k of memoryKeys(item,retailer)){const v=memory[k];if(v&&(v==='other'||Object.hasOwn(ingredients,v)))return res(v,'learned','memory',null)}
+ if(item.snack||item.nonFood)return none();
+ const words=matchWords(item);if(!words)return none();
+ const prep=preparedWord(item.expanded||item.name),opts={ingredients,aliases,extraAliases};
+ const guard=r=>{if(!r||!prep)return r;const p=norm(prep);if(!(' '+r.alias+' ').includes(' '+p+' '))return null;return r.alias===p?{...r,confidence:'suggested'}:r};
+ const onList=Array.isArray(list)?list.filter(id=>Object.hasOwn(ingredients,id)):[];
+ if(onList.length){const r=guard(bestMatch(words,onList,opts));if(r)return res(r.match,r.confidence,'list',prep)}
+ const r=guard(bestMatch(words,Object.keys(ingredients),opts));
+ return r?res(r.match,r.confidence,'catalogue',prep):none(prep);
 }
 // Key(s) for the family's confirmed mapping: retailer + item code when printed, and retailer + name.
 function memoryKeys(item,retailer){if(item.generic)return[];const r=norm(retailer||'any')||'any',out=[];if(item.code)out.push('receipt '+r+' c '+item.code);const n=norm(item.name||item.label);if(n)out.push('receipt '+r+' n '+n);return out}
 
 // Canonical quantity of one line (g / ml / each) — only from what is printed, else null.
-function lineQuantity(item){
+// base (optional): the matched ingredient's base unit. A pack count (“CAGE FREE 30PK”) is a number of pieces only for an ingredient
+// counted in pieces (quả / cái / con); it never becomes a weight.
+const COUNTED_BASE=['quả','cái','con'];
+function lineQuantity(item,base=null){
  if(item.weight)return{qty:round(item.weight.qty*1000,3),unit:'g'};
  const count=item.multi?item.multi.count:1;
  if(item.size){const u=item.size.unit,q=item.size.qty*count;return u==='kg'?{qty:round(q*1000,3),unit:'g'}:u==='l'?{qty:round(q*1000,3),unit:'ml'}:u==='pk'?null:{qty:round(q,3),unit:u}}
+ if(item.pack&&item.pack>1&&COUNTED_BASE.includes(base))return{qty:item.pack*count,unit:'each'};
  if(item.each)return{qty:count,unit:'each'};
  return null;
 }
@@ -747,6 +822,6 @@ async function recognize(file,{lang='eng',status=null,createWorker=null,original
  }finally{if(worker)try{await worker.terminate()}catch{}}
 }
 
-const api={genericLabel,GENERIC_WORDS,readScore,preferOther,RETAILERS,ABBREVIATIONS,EN_ALIASES,KNOWN_WORDS,addWords,detectRetailer,detectCurrency,expandAbbrev,splitGlued,isSnack,isNonFood,extractSize,repairNumber,plausible,tidy,cleanLabel,priceOf,clippedPrice,parseReceipt,warningsFor,warningText,looksLikeReceipt,differenceNote,redact,isSensitive,matchIngredient,memoryKeys,lineQuantity,fingerprint,receiptKey,sha256Hex,findDuplicate,sameStore,reconcile,findDate,preprocess,toGray,otsu,blankExtents,paperExtents,charAccuracy,prepareImage,recognize,norm,warpField};
+const api={preparedWord,COUNTED_BASE,genericLabel,GENERIC_WORDS,readScore,preferOther,RETAILERS,ABBREVIATIONS,EN_ALIASES,KNOWN_WORDS,addWords,detectRetailer,detectCurrency,expandAbbrev,splitGlued,isSnack,isNonFood,extractSize,repairNumber,plausible,tidy,cleanLabel,priceOf,clippedPrice,parseReceipt,warningsFor,warningText,looksLikeReceipt,differenceNote,redact,isSensitive,matchIngredient,memoryKeys,lineQuantity,fingerprint,receiptKey,sha256Hex,findDuplicate,sameStore,reconcile,findDate,preprocess,toGray,otsu,blankExtents,paperExtents,charAccuracy,prepareImage,recognize,norm,warpField};
 root.ReceiptParse=api;
 })(globalThis);

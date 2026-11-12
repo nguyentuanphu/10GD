@@ -8,6 +8,10 @@
 // Studio (cookie + Studio owner; POST also same-origin + x-studio-csrf; every change and every detail view audited):
 //  - GET  ?op=studio-inbox&status&type&route&reporter&page    GET ?op=studio-detail&id    GET ?op=studio-shot&id
 //  - POST ?op=studio-update {id,status?,note?,reply?}   POST ?op=studio-mode {mode}   POST ?op=studio-tester {username,grant}
+// v1.7.18 receipt text to fix the reader (../lib/receipt-reports.mts), open to every family (account or device-only), not to the
+// ladybug's mode: POST ?op=receipt-report (≤40 KB, 429 rate limits, 400 invalid, 413 too large; same clientId → same id).
+// Studio (owner / admin / moderator, same checks as above): GET ?op=studio-receipts&status&page · GET ?op=studio-receipt&id ·
+// POST ?op=studio-receipt-status {id,status} · POST ?op=studio-receipt-delete {id}.
 import {getStore} from '@netlify/blobs';
 import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount,accountStore} from '../lib/accounts.mjs';
@@ -15,6 +19,7 @@ import {platformSettings,roleFor,csrfFor,writeAudit,readIndex} from '../lib/stud
 import {notifyAccount} from '../lib/scout-notify.mjs';
 import {access,submit,mine,markSeen,reporterConfirm,reporterKey,inbox,devExport,detail,shotOf,update,setMode,setTester,testerRows,feedbackConfig,ownerMessage,replyMessage,unreadCount,FB_LIMITS,setGithub,openWithoutGithub} from '../lib/feedback.mjs';
 import {fileIssue,githubConfig} from '../lib/feedback-github.mjs';
+import {submitReceiptReport,listReceiptReports,receiptReportDetail,setReceiptReportStatus,deleteReceiptReport,RR_LIMITS} from '../lib/receipt-reports.mjs';
 
 const BASE_HEADERS={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const admins=(env:any)=>String(env?.STUDIO_ADMINS||'').split(',').map((x:string)=>x.trim().toLowerCase()).filter(Boolean);
@@ -28,7 +33,7 @@ export function createFeedbackHandler({getStoreFn=getStore,env=process.env,nowFn
   try{
    if(!isRead&&origin&&origin!==url.origin)return json({error:'Yêu cầu phải từ cùng trang.',errorEn:'Same-origin request required.'},403);
    let body:any={};
-   if(!isRead){const raw=await request.text();if(raw.length>FB_LIMITS.bytes)return json({error:'Góp ý quá lớn (ảnh quá nặng).',errorEn:'Feedback too large (picture too big).',code:'too_large'},413);try{body=raw?JSON.parse(raw):{}}catch{return json({error:'Dữ liệu không hợp lệ.',errorEn:'Invalid JSON.'},400)}}
+   if(!isRead){const raw=await request.text();if(op==='receipt-report'&&raw.length>RR_LIMITS.bytes)return json({error:'Chữ hoá đơn quá dài.',errorEn:'The receipt text is too long.',code:'too_large'},413);if(raw.length>FB_LIMITS.bytes)return json({error:'Góp ý quá lớn (ảnh quá nặng).',errorEn:'Feedback too large (picture too big).',code:'too_large'},413);try{body=raw?JSON.parse(raw):{}}catch{return json({error:'Dữ liệu không hợp lệ.',errorEn:'Invalid JSON.'},400)}}
    const ctx=await resolveAccount(request,getStoreFn,now),username=ctx?.account?.username||null,device=request.headers.get('x-feedback-device')||'';
 
    // ----- app -----
@@ -40,6 +45,7 @@ export function createFeedbackHandler({getStoreFn=getStore,env=process.env,nowFn
      try{const gh:any=await fileIssue(r.record,{env,fetchFn});if(gh?.number)await setGithub(getStoreFn,r.record.id,gh,now);else if(gh?.error)console.warn('Feedback GitHub issue not filed',gh.error)}catch(e:any){console.warn('Feedback GitHub issue failed',e?.message)}
      const m=ownerMessage(r.record);for(const owner of admins(env))if(owner!==username){try{await push(owner,m)}catch(e:any){console.warn('Feedback owner push failed',e?.message)}}}
     return json(r.body,r.status)}
+   if(op==='receipt-report'&&method==='POST'){const ip=request.headers.get('x-nf-client-connection-ip')||context?.ip||'';const r:any=await submitReceiptReport(getStoreFn,{body,who:reporterKey(username,device),account:!!username,ip,now});return json(r.body,r.status)}
    if(['mine','seen','confirm'].includes(op)){
     const a=await access(getStoreFn,{username,env}),who=reporterKey(username,device);
     // Replies stay readable after the switch is turned off only for what this reporter already sent.
@@ -56,6 +62,10 @@ export function createFeedbackHandler({getStoreFn=getStore,env=process.env,nowFn
     if(!(role==='owner'||role==='admin'||(role==='moderator'&&!['studio-mode','studio-tester'].includes(op)))){await writeAudit(getStoreFn,{actor:username!,role:role||'none',action:'access_denied',target:{type:'feedback',id:op},result:'denied'},now);return json({error:'Chỉ chủ Studio xem được góp ý.',errorEn:'Only the Studio owner can view feedback.'},403)}
     const audit=(action:string,target:any=null,extra:any={})=>writeAudit(getStoreFn,{actor:username!,role,action,target,...extra},now);
     if(!isRead){const token=request.headers.get('x-studio-csrf')||'',want=csrfFor(ctx.sessionKey);if(!origin||token.length!==want.length||!timingSafeEqual(Buffer.from(token),Buffer.from(want)))return json({error:'Phiên Studio đã hết hạn. Tải lại trang.',errorEn:'Studio session token mismatch. Reload the page.'},403)}
+    if(op==='studio-receipts'&&isRead)return json(await listReceiptReports(getStoreFn,{status:q('status'),page:+q('page')||1,size:+q('size')||25}));
+    if(op==='studio-receipt'&&isRead){const d=await receiptReportDetail(getStoreFn,q('id'));await audit('receipt_report_view',{type:'receipt-report',id:d.id});return json(d)}
+    if(op==='studio-receipt-status'&&method==='POST'){const r=await setReceiptReportStatus(getStoreFn,body.id,body.status,username!,now);await audit('receipt_report_status',{type:'receipt-report',id:r.detail.id},{details:{from:r.from,to:body.status}});return json(r.detail)}
+    if(op==='studio-receipt-delete'&&method==='POST'){const r=await deleteReceiptReport(getStoreFn,body.id);await audit('receipt_report_delete',{type:'receipt-report',id:r.deleted});return json(r)}
     const overview=async()=>({config:await feedbackConfig(getStoreFn),...await testerRows(getStoreFn,env),github:githubConfig(env)?{repo:githubConfig(env)!.repo}:null});
     if(op==='studio-inbox'&&isRead)return json({...await inbox(getStoreFn,{status:q('status'),type:q('type'),route:q('route'),reporter:q('reporter'),page:+q('page')||1,size:+q('size')||25}),...await overview()});
     // v1.7.6: file the open reports that have no GitHub issue yet (reports sent before the switch, or when GitHub was down)
