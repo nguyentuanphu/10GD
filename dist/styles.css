@@ -2629,3 +2629,30 @@ html[data-theme="dark"] .reconcile-choice .rc-dest{color:#8fd6b0}
 .reconcile-open .btn.small{min-height:44px;margin-top:6px;white-space:normal}
 /* v1.7.19 “Đồ trong tủ” sheet: every pantry lot is a full-width row that opens its edit form */
 .pantry-check-list{display:flex;flex-direction:column;gap:6px}.pantry-check-lot{width:100%;min-height:48px;text-align:left;background:transparent;border:1px solid var(--line);border-radius:12px;padding:8px 12px;color:inherit;display:flex;align-items:center;justify-content:space-between;gap:10px}.pantry-check-lot .item-label{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}.pantry-check-lot .hint{flex:none}.modal h3.section-mini{margin:14px 0 6px;font-size:max(calc(14px * var(--fs-mul,1)),var(--fs-floor,0px))}
+
+/* v1.7.19 (rule 29): one unit picker everywhere — the unit field opens the shared picker as a second sheet */
+.unit-field{display:block;min-width:0}
+.unit-field-btn{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;min-width:0;min-height:48px;padding:8px 10px;border:1px solid #dedfd4;border-radius:8px;background:var(--white,#fff);color:var(--text);font:inherit;font-size:max(calc(16px * var(--fs-mul,1)),var(--fs-floor,0px));text-align:left;cursor:pointer;overflow-wrap:anywhere;line-height:1.2}
+.unit-field-btn::after{content:"";flex:none;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);opacity:.6}
+.unit-field-btn.is-empty{color:var(--muted,#66705f)}
+.unit-field-btn.needs-choice{border-color:#b3412f;box-shadow:0 0 0 2px #b3412f33}
+.rc-ing-row .rc-ing-unit{grid-area:unit;min-height:44px}
+.field-error{margin:6px 0 0;color:#a2301f;font-weight:600;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px))}
+.field-error[hidden]{display:none}
+html[data-theme="dark"] .unit-field-btn{background:#18221d;color:var(--text);border-color:var(--line)}
+html[data-theme="dark"] .unit-field-btn.is-empty{color:var(--ink-soft,#b8c2b2)}
+html[data-theme="dark"] .field-error{color:#ff9a86}
+.unit-sheet-layer{z-index:90}
+.unit-sheet{width:min(560px,100%);height:min(88vh,760px);max-height:min(88vh,760px);display:flex;flex-direction:column}
+.unit-sheet>.unit-sheet-content{flex:1 0 auto}
+.unit-sheet>header{position:sticky;top:0;z-index:4;background:var(--paper)}
+.unit-sheet .unit-sheet-lead,.unit-sheet .unit-sheet-note{margin:10px 0 0}
+.extra-edit-name{display:inline-flex;align-items:center;min-height:44px;margin:-10px 0;cursor:pointer;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent);text-underline-offset:3px;border-radius:6px}
+.extra-edit-name:focus-visible{outline:3px solid #c87649;outline-offset:2px}
+#main .shop-row:has([data-change="extra-done"]) .qty{cursor:pointer}
+@media (prefers-reduced-motion:reduce){.unit-sheet-layer{animation:none}}
+/* v1.7.19 audit A6 / B5: the extra item's × is drawn like a planned row's and is a full 44 px target */
+.shop-row .extra-delete{min-width:44px;min-height:44px;color:var(--muted)}
+.shop-row .extra-delete .btn-art{width:26px;height:26px;margin:0}
+.shop-row .extra-stored{color:var(--green,#2f6b45)}
+#store-purchases-why{display:block;margin-top:4px}

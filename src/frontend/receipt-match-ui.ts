@@ -19,7 +19,8 @@ if(!RM||typeof document==='undefined'||typeof receiptEditor!=='function')return;
 const T=(vi,en)=>typeof tr==='function'?tr(vi,en):vi;
 const lang=()=>typeof appLanguage!=='undefined'&&appLanguage==='en'?'en':'vi';
 const L=r=>r?(lang()==='en'?r.en:r.vi):'';
-const money=n=>'$'+Math.abs(+n||0).toFixed(2);
+// v1.7.19 (audit B13): the app's money formatter in the receipt's currency, and a discount keeps its minus sign
+const money=n=>typeof aud==='function'?aud(+n||0,(typeof receiptDraft!=='undefined'&&receiptDraft?.currency)||undefined):'$'+(+n||0).toFixed(2);
 const hasIng=id=>!!id&&typeof INGREDIENTS!=='undefined'&&Object.hasOwn(INGREDIENTS,id);
 const ingName=id=>hasIng(id)?(lang()==='en'&&typeof INGREDIENT_EN!=='undefined'&&INGREDIENT_EN[id]||INGREDIENTS[id][0]):id;
 state.receiptLearning=RM.cleanModel(state.receiptLearning);
@@ -76,7 +77,7 @@ function applyTargets(index,keys,{record=true}={}){
 function undo(){const prev=rm.undo.pop();if(!prev||!receiptDraft)return;collectReceipt();receiptDraft.items=prev;rm.sel=null;receiptEditor();say(T('Đã hoàn tác.','Undone.'))}
 
 // ------------------------------------------------------------ panel
-function tickTime(iso){if(!iso)return'';try{return new Date(iso).toLocaleTimeString(lang()==='en'?'en-AU':'vi-VN',{hour:'2-digit',minute:'2-digit'})}catch{return''}}
+function tickTime(iso){if(!iso)return'';try{return appTimeLabel(iso,{date:false,lang:lang()})}catch{return''}}
 function targetNames(keys,bk){return keys.map(k=>targetInfo(k,bk)?.name||k.slice(2)).join(' + ')}
 function savedRecord(d){return d.editing?state.receipts.find(r=>r.id===d.id)||null:null}
 function canReport(d,it){const rec=savedRecord(d);if(!rec||rec.refund||(rec.currency||'AUD')!=='AUD'||!isGeneric(it))return false;const line=(rec.items||[]).find(x=>x.id===it.id);return!!line&&+line.total>0&&typeof scoutCommunityOn==='function'&&scoutCommunityOn()&&!(typeof scoutViewer==='function'&&scoutViewer())}
@@ -168,7 +169,7 @@ function reportSheet(index){
  const keys=targetsOf(it),bk=basket(),guess=keys.length===1?targetInfo(keys[0],bk):null;
  const cat=guess?.kind==='ingredient'?(globalThis.MASTER_CATALOG?.items||[]).find(i=>i.ingredientId===guess.id):null;
  report={receiptId:rec.id,lineId:line.id,price:Math.abs(+line.total),label:line.label,store:rec.store,capturedAt:rec.createdAt||new Date(rec.date+'T12:00:00+10:00').toISOString(),itemId:cat?.id||null};
- const b=(typeof scoutData!=='undefined'&&scoutData.communityBranch)||{},when=new Date(report.capturedAt).toLocaleString(lang()==='en'?'en-AU':'vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+ const b=(typeof scoutData!=='undefined'&&scoutData.communityBranch)||{},when=appTimeLabel(report.capturedAt,{zone:true,lang:lang()});
  const q=cat?(lang()==='en'?cat.nameEn:cat.nameVi):'';
  modal(T('Báo giá cho cộng đồng','Report a price to the community'),`<form id="rm-report-form" class="scout-form rm-report"><p><b>${money(report.price)}</b> · ${esc(report.label)} · ${esc(report.store)}</p><p class="hint">${esc(T('Chụp lúc ','Captured ')+when)}</p>
  <div class="field"><label for="rm-report-q">${T('Đây là món gì? (tìm trong danh mục)','What item is this? (search the catalogue)')}</label><input class="input" id="rm-report-q" autocomplete="off" maxlength="60" value="${esc(q)}" placeholder="${esc(T('ví dụ: rau muống','e.g. water spinach'))}"></div>

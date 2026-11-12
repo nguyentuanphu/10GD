@@ -7,6 +7,8 @@
 // The feature list (APP_FEATURES) is shared with the “Tính năng” tab of Hướng dẫn sử dụng.
 (()=>{
 const sT=(vi:string,en:string)=>typeof appLanguage!=='undefined'&&appLanguage==='en'?en:vi;
+// v1.7.19 (audit B13): amounts in the record's own currency, with the app's one money formatter (VND 125.000 ₫, never $125000.00)
+const sMoney=(n:any,c:any)=>typeof aud==='function'?aud(+n,c||undefined):'$'+(+n).toFixed(2);
 const sNorm=(s:any)=>typeof normalizeText==='function'?normalizeText(s):String(s||'').toLowerCase();
 type AppFeature={id:string,art:string,vi:string,en:string,dvi:string,den:string,kw:string,go:()=>void};
 const goView=(v:string)=>()=>{if(typeof closeModal==='function')closeModal();location.hash=v};
@@ -53,7 +55,7 @@ function searchHits(raw:string):Hit[]{const q=sNorm(raw);if(!q)return[];const wo
  for(const r of (state.recipes||[]) as any[]){if(!r?.name)continue;add('recipe',r.name,[typeof CATEGORY!=='undefined'?CATEGORY[r.category]:'',r.time?`${r.time} ${sT('phút','min')}`:''].filter(Boolean).join(' · '),String(r.name),()=>{close();setTimeout(()=>showRecipe(r.id),0)})}
  // pantry
  for(const p of (state.pantry||[]) as any[]){if(!INGREDIENTS[p.ingredient]||!(p.qty>0||p.purchase?.amount>0))continue;const name=sIng(p.ingredient);
-  add('pantry',name,[typeof pantryBuyingDisplay==='function'?pantryBuyingDisplay(p):'',{fridge:sT('Ngăn mát','Fridge'),freezer:sT('Ngăn đông','Freezer'),dry:sT('Tủ khô','Cupboard')}[p.place as 'fridge'|'freezer'|'dry']||'',p.expiry?sT('hạn ','use by ')+(typeof dateLabel==='function'?dateLabel(p.expiry):p.expiry):''].filter(Boolean).join(' · '),`${name} ${sBoth(p.ingredient)}`,()=>{close();if(typeof pantryFilter!=='undefined')pantryFilter='all';location.hash='pantry';sFocus(`#main .inventory-card[data-ing="${CSS.escape(p.ingredient)}"]`)})}
+  add('pantry',name,[typeof pantryBuyingDisplay==='function'?pantryBuyingDisplay(p):'',{fridge:sT('Ngăn mát','Fridge'),freezer:sT('Ngăn đông','Freezer'),dry:sT('Tủ khô','Pantry shelf')}[p.place as 'fridge'|'freezer'|'dry']||'',p.expiry?sT('hạn ','use by ')+(typeof dateLabel==='function'?dateLabel(p.expiry):p.expiry):''].filter(Boolean).join(' · '),`${name} ${sBoth(p.ingredient)}`,()=>{close();if(typeof pantryFilter!=='undefined')pantryFilter='all';location.hash='pantry';sFocus(`#main .inventory-card[data-ing="${CSS.escape(p.ingredient)}"]`)})}
  // shopping list in view
  try{const w=currentWeek(),[s,e]=shopDates();for(const r of shopping(state,w,s,e) as any[]){if(r.skip||!(typeof shoppingHasAmount!=='function'||shoppingHasAmount(r)))continue;const name=sIng(r.id);
   add('shopping',name,r.bought?sT('Đã mua','Bought'):sT('Cần mua','To buy')+(typeof fmtQty==='function'&&r.missing>0?' '+fmtQty(r.missing,INGREDIENTS[r.id][1]):''),`${name} ${sBoth(r.id)}`,()=>{close();location.hash='shopping';sFocus(`#main .shop-row:has([data-id="${CSS.escape(r.id)}"])`)})}}catch{}
@@ -64,8 +66,8 @@ function searchHits(raw:string):Hit[]{const q=sNorm(raw);if(!q)return[];const wo
   for(const t of MEAL_TYPES){const m=day[t];for(const g of (typeof guestGroups==='function'?guestGroups(m):[]) as any[]){if(!g.name||i<0)continue;const st=typeof rsvpLabel==='function'&&g.invite?rsvpLabel(g):(typeof guestGroupShort==='function'?guestGroupShort(g):'');
    add('guest',g.name,`${st} · ${mealName(t).toLowerCase()} ${sDay(d)}`,g.name,()=>{close();setTimeout(()=>guestSheet(d,t),0)})}}}}
  // receipts, items and prices
- for(const r of (state.receipts||[]) as any[]){const when=r.date&&typeof dateLabel==='function'?dateLabel(r.date):(r.date||'');add('receipt',r.store||sT('Hoá đơn','Receipt'),[when,r.total!=null?'$'+(+r.total).toFixed(2):''].filter(Boolean).join(' · '),`${r.store||''} hoa don receipt`,()=>{close();setTimeout(()=>openReceipt(r.id),0)});
-  for(const it of (r.items||[]) as any[]){if(!it?.label)continue;const ing=it.ingredient&&INGREDIENTS[it.ingredient]?sIng(it.ingredient):'';add('receipt',it.label,[it.total!=null?'$'+(+it.total).toFixed(2):'',r.store||'',when].filter(Boolean).join(' · '),`${it.label} ${ing?sBoth(it.ingredient):''}`,()=>{close();setTimeout(()=>openReceipt(r.id),0)})}}
+ for(const r of (state.receipts||[]) as any[]){const when=r.date&&typeof dateLabel==='function'?dateLabel(r.date):(r.date||'');add('receipt',r.store||sT('Hoá đơn','Receipt'),[when,r.total!=null?sMoney(r.total,r.currency):''].filter(Boolean).join(' · '),`${r.store||''} hoa don receipt`,()=>{close();setTimeout(()=>openReceipt(r.id),0)});
+  for(const it of (r.items||[]) as any[]){if(!it?.label)continue;const ing=it.ingredient&&INGREDIENTS[it.ingredient]?sIng(it.ingredient):'';add('receipt',it.label,[it.total!=null?sMoney(it.total,r.currency):'',r.store||'',when].filter(Boolean).join(' · '),`${it.label} ${ing?sBoth(it.ingredient):''}`,()=>{close();setTimeout(()=>openReceipt(r.id),0)})}}
  // features and settings (the usage / voice statistics switches are left out — owner pop-up, 8 Nov 2026)
  for(const f of APP_FEATURES)add('feature',sT(f.vi,f.en),sT(f.dvi,f.den),`${f.vi} ${f.en} ${f.kw}`,f.go);
  return out}

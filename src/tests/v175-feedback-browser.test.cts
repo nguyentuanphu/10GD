@@ -42,7 +42,7 @@ for(const [size,opts] of SIZES){
  const rows=page.locator('#rc-ing-list .rc-ing-row');await page.waitForTimeout(200);
  const values=await rows.evaluateAll((a:any[])=>a.map(li=>[li.querySelector('.rc-ing-name-input').value,li.querySelector('.rc-ing-qty').value,li.querySelector('.rc-ing-unit').value,li.querySelector('.rc-ing-shop-input').checked]).filter(x=>x[0]));
  assert.deepEqual(values,[['Chả lụa','1','đòn',true],['Chanh','1/2','quả',true],['Muối','1','muỗng cà phê',true]],'pasted rows, all ticked');
- assert.ok(!(await page.locator('.rc-ing-unit').first().innerHTML()).includes('Chỉ ghi chú'),'one unit list, no “note only” group');
+ /* v1.7.19: the unit is chosen in the shared picker; its full list has no “note only” group either */await page.locator('.rc-ing-unit').first().click();await page.locator('#unit-sheet-layer [data-unit-action="show-all"]').click();await page.locator('#unit-sheet-layer .unit-chip-group').first().waitFor();assert.ok(!(await page.locator('#unit-sheet-layer').innerText()).includes('Chỉ ghi chú'),'one unit list, no “note only” group');await page.keyboard.press('Escape');await page.locator('#unit-sheet-layer').waitFor({state:'detached'});
  const salt=rows.filter({has:page.locator('.rc-ing-name-input[value="Muối"]')});await tap(salt.locator('.rc-ing-shop-input'));
  assert.match(await salt.locator('.rc-ing-note').innerText(),/không cộng/);
  await page.locator('textarea[name="steps"]').fill('Luộc chả\nNấu nước dùng');

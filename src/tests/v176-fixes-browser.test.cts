@@ -4,6 +4,8 @@
 // docs/reviews/v1.7.8 (since v1.7.8; earlier runs in v1.7.6) (Chromium viewport simulation, not physical devices).
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),assert=require('assert');
 const dir='docs/reviews/v1.7.8';fs.mkdirSync(dir,{recursive:true});
+// v1.7.19 (rule 29): the row's unit is chosen in the shared unit picker (a sheet over the editor), not a plain list.
+const pickRcUnit=async(page:any,row:any,unit:string)=>{await row.locator('.rc-ing-unit').click();const chip=page.locator(`#unit-sheet-layer .unit-chip[data-unit-choice="${unit}"]`).first();await page.locator('#unit-sheet-layer .unit-chip').first().waitFor();if(!(await chip.isVisible()))await page.locator('#unit-sheet-layer [data-unit-action="show-all"]').click();await chip.click();await page.locator('#unit-sheet-layer [data-unit-sheet-act="save"]').click();await page.locator('#unit-sheet-layer').waitFor({state:'detached'})};
 const SIZES:any[]=[['narrow',{width:320,height:740}],['mobile',{width:375,height:812}],['tablet',{width:820,height:1100}],['desktop',{width:1280,height:800}]];
 // the owner's family: one member is called “Chi”, which used to block the translation of “Chi tiêu”
 const MEMBERS=[['m-phu','Ba Phú'],['m-mi','Mẹ Mi'],['m-chi','Chi'],['m-tien','Tiên'],['m-ti','Cậu Tí']];
@@ -255,7 +257,7 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
    await page.waitForFunction(()=>!!document.activeElement?.closest('#family-recipe-form .rc-ings, #family-recipe-form textarea[name="ingredients"]'),null,{timeout:3000});
    assert.ok((await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.name)`)).includes(name),`${label}: already in the meal`);
    await textOk('quick-add-recipe-page');await shot('quick-add-recipe-page');
-   const row=page.locator('#rc-ing-list .rc-ing-row').first();await row.locator('.rc-ing-name-input').fill('Cá thu');await row.locator('.rc-ing-qty').fill('500');await row.locator('.rc-ing-unit').selectOption('g');
+   const row=page.locator('#rc-ing-list .rc-ing-row').first();await row.locator('.rc-ing-name-input').fill('Cá thu');await row.locator('.rc-ing-qty').fill('500');await pickRcUnit(page,row,'g');
    await page.locator('[data-action="submit-form"][data-id="family-recipe-form"]').click();await page.waitForFunction(()=>!document.querySelector('#family-recipe-form'),null,{timeout:5000});
    const dish:any=await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.find(r=>r.name===${JSON.stringify(name)})`);assert.equal(dish?.ingredients?.length,1,`${label}: the dish in the meal carries the written ingredient`);
    assert.equal(await page.evaluate(`state.recipes.filter(r=>r.name===${JSON.stringify(name)}).length`),1,`${label}: one family recipe, no duplicate`)}
@@ -327,8 +329,8 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  // v1.7.9 (owner: "không có số lượng và đơn vị… chỗ màu nâu là gì?"): extra items ask amount and unit separately; the empty
  // pantry note stays hidden
  {await page.evaluate(`view='shopping';render();scrollTo(0,0)`);await page.evaluate(`document.querySelector('[data-action="add-extra"]').click()`);await page.locator('#extra-amount').waitFor();
-  assert.equal(await page.locator('#extra-pantry-hint').isVisible(),false,`${label}: empty pantry note hidden`);assert.equal(await page.locator('#extra-unit option').count()>=10,true);await textOk('extra-form');if(size==='mobile')await shot('extra-form');
-  await page.fill('#extra-name','Sữa chua QA');await page.fill('#extra-amount','2');await page.selectOption('#extra-unit','hộp');await page.locator('#modal-root [data-action="submit-form"][data-id="extra-form"]').click();await page.waitForTimeout(300);
+  assert.equal(await page.locator('#extra-pantry-hint').isVisible(),false,`${label}: empty pantry note hidden`);/* v1.7.19: the unit opens the shared unit picker; its full list still offers every unit */await page.locator('#extra-unit-btn').click();await page.locator('#unit-sheet-layer [data-unit-action="show-all"]').click();await page.locator('#unit-sheet-layer #purchase-unit-choice .unit-chip').first().waitFor();assert.equal(await page.locator('#unit-sheet-layer #purchase-unit-choice .unit-chip').count()>=10,true);await page.keyboard.press('Escape');await page.locator('#unit-sheet-layer').waitFor({state:'detached'});await textOk('extra-form');if(size==='mobile')await shot('extra-form');
+  await page.fill('#extra-name','Sữa chua QA');await page.fill('#extra-amount','2');await page.locator('#extra-unit-btn').click();await page.locator('#unit-sheet-layer .unit-chip[data-unit-choice="hộp"]').first().click();await page.locator('#unit-sheet-layer [data-unit-sheet-act="save"]').click();await page.locator('#modal-root [data-action="submit-form"][data-id="extra-form"]').click();await page.waitForTimeout(300);
   assert.equal(await page.evaluate(`currentWeek().extras.find(e=>e.name==='Sữa chua QA')?.qty`),'2 hộp',`${label}: stored as “2 hộp”`);await page.evaluate(`currentWeek().extras=currentWeek().extras.filter(e=>e.name!=='Sữa chua QA');save();render()`)}
  // v1.7.9: the bought tick sits on the name's line; rounding keeps the row where it was on screen
  {await page.evaluate(`view='shopping';render()`);const row=page.locator('#main .shop-purchase-row').nth(2);await row.scrollIntoViewIfNeeded();const tick=await row.locator('input.check').boundingBox(),name=await row.locator('.item-label').boundingBox();assert.ok(Math.abs((tick!.y+tick!.height/2)-(name!.y+Math.min(name!.height,48)/2))<30,`${label}: tick on the name line`);

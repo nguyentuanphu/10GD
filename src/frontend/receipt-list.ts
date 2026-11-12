@@ -97,7 +97,11 @@ function storedFromShopping(s:any,id:string,rec:any){const d=DATE.test(rec?.date
  return(s.pantry||[]).filter((p:any)=>p.ingredient===id&&!p.receiptId&&(p.storedOn?near(p.storedOn):ticked&&!p.boughtOn))}
 function plan(s:any,rec:any,week:any,start:string,end:string){
  const RP=root.ReceiptParse,need=weekNeed(s,week,start,end),lines=receiptLines(s,rec),rows0=shopRows(s,week,start,end);
- const rows=RP.reconcile(lines.filter((l:any)=>l.quantity),(id:string)=>need[id]??0).map((r:any)=>{const row:any={...r,onList:Object.hasOwn(need,r.ingredient)};
+ const rows=RP.reconcile(lines.filter((l:any)=>l.quantity),(id:string)=>need[id]??0).map((r:any)=>{const row:any={...r,onList:Object.hasOwn(need,r.ingredient)},lr=rows0.find((x:any)=>x.id===r.ingredient&&!x.skip);
+  // v1.7.19 audit C19: what the family already ticked on the list is covered by this receipt, not “Dư”
+  const ticked=lr&&!lr.purchase?+(week.bought?.[r.ingredient]||0):0;if(row.extra>0&&ticked>0){const already=round(Math.min(row.extra,ticked));row.ticked=already;row.extra=round(row.extra-already);if(row.status==='extra'||row.status==='enough-extra')row.status=row.extra>0?'enough-extra':'enough'}
+  // v1.7.19 audit C11: a list row bought as a pack without a weight (“1 túi”) is covered by the weighed receipt line
+  if(lr&&lr.purchase&&lr.qty==null&&!lr.bought&&+lr.purchase.amount>0&&row.need<=0&&row.bought>0){row.pack={unit:lr.purchase.unit,amount:+lr.purchase.amount};row.need=row.bought;row.covered=row.bought;row.extra=0;row.short=0;row.status='enough'}
   if(row.extra>0){const lots=storedFromShopping(s,r.ingredient,rec);if(lots.length){row.status='stored';row.extra=0;row.lots=lots.map((p:any)=>p.id)}}return row});
  // Amount known only in a buying unit (“2 chai”, no size): compared with the list's own unit, never converted by a guess.
  const unknown:any[]=[];const scope=typeof purchaseScope==='function'?purchaseScope(start,end):start+'/'+end;
@@ -123,6 +127,9 @@ function apply(s:any,rec:any,week:any,start:string,end:string,ticked:any,choices
  const undo:any={at:now,week:start,weekKey:mondayKey(start),end,bought:{},boughtAt:{},pantryIds:[],choices:{}};if(!week.boughtAt)undo.newBoughtAt=true;if(!week.unitBought)undo.newUnitBought=true;const rows0=shopRows(s,week,start,end);
  for(const r of p.rows){if(ticked&&!ticked.includes(r.ingredient))continue;
   if(r.covered>0){week.boughtAt??={};undo.boughtAt[r.ingredient]=week.boughtAt[r.ingredient]??null;
+   if(r.pack){const row=rows0.find((x:any)=>x.id===r.ingredient);week.unitBought??={};week.unitBought[scope]??={};undo.unitBought??={};undo.unitBought[r.ingredient]=week.unitBought[scope][r.ingredient]??null;undo.scope=scope;if(row&&typeof setShoppingBought==='function')setShoppingBought(week,start,end,row,true);week.boughtAt[r.ingredient]=now;
+    // the weighed amount goes to the pantry now; “Cất đồ” later does not store the same bag a second time (storeShoppingPurchases)
+    const lot:any={id:typeof uid==='function'?uid():'lot-'+Math.random().toString(36).slice(2),ingredient:r.ingredient,qty:r.covered,place:placeFor(s,r.ingredient,rec),expiry:'',boughtOn:rec.date,receiptId:rec.id};if(typeof pantryTouch==='function')pantryTouch(lot);s.pantry.push(lot);undo.pantryIds.push(lot.id);(undo.received??=[]).push(r.ingredient);continue}
    if(r.units){if(r.short<=0){const row=rows0.find((x:any)=>x.id===r.ingredient);week.unitBought??={};week.unitBought[scope]??={};undo.unitBought??={};undo.unitBought[r.ingredient]=week.unitBought[scope][r.ingredient]??null;undo.scope=scope;if(row&&typeof setShoppingBought==='function')setShoppingBought(week,start,end,row,true);week.boughtAt[r.ingredient]=now}}
    else{week.bought??={};undo.bought[r.ingredient]=Object.hasOwn(week.bought,r.ingredient)?week.bought[r.ingredient]:null;week.bought[r.ingredient]=round((+week.bought[r.ingredient]||0)+r.covered);week.boughtAt[r.ingredient]=now}}
   if(r.status==='stored'){undo.linked??=[];for(const lid of r.lots||[]){const x=s.pantry.find((y:any)=>y.id===lid);if(x&&!x.receiptId){x.receiptId=rec.id;x.boughtOn=rec.date;if(typeof pantryTouch==='function')pantryTouch(x);undo.linked.push(lid)}}continue}

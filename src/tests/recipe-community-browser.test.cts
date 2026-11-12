@@ -14,6 +14,8 @@ import {readFileSync,mkdirSync,existsSync,statSync} from 'node:fs';
 import {extname} from 'node:path';
 import {chromium,devices} from 'playwright';
 const origin='https://kitchen.test',out='docs/reviews/v1.7.1/recipe-community';mkdirSync(out,{recursive:true});
+// v1.7.19 (rule 29): the row's unit is chosen in the shared unit picker (a sheet over the editor), not a plain list.
+const pickRcUnit=async(page:any,row:any,unit:string)=>{await row.locator('.rc-ing-unit').click();const chip=page.locator(`#unit-sheet-layer .unit-chip[data-unit-choice="${unit}"]`).first();await page.locator('#unit-sheet-layer .unit-chip').first().waitFor();if(!(await chip.isVisible()))await page.locator('#unit-sheet-layer [data-unit-action="show-all"]').click();await chip.click();await page.locator('#unit-sheet-layer [data-unit-sheet-act="save"]').click();await page.locator('#unit-sheet-layer').waitFor({state:'detached'})};
 const mime:any={'.js':'application/javascript','.css':'text/css','.html':'text/html','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.json':'application/json','.webmanifest':'application/manifest+json'};
 const IPHONE=devices['iPhone 13'].userAgent,IPAD=devices['iPad Pro 11'].userAgent;
 const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},desktop:{width:1280,height:800}};
@@ -61,7 +63,7 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
  const heicLike=Buffer.concat([Buffer.from([0,0,0,24]),Buffer.from('ftypheic\0\0\0\0mif1heic'),Buffer.alloc(200,7)]);
  const waitModalGone=(page:any)=>page.waitForFunction(()=>!document.querySelector('#family-recipe-form'),null,{timeout:5000});
  const rowNames=(page:any)=>page.locator('#rc-ing-list .rc-ing-name-input').evaluateAll((els:any[])=>els.map(e=>e.value));
- async function fillRow(page:any,tap:any,i:number,name:string,qty:string,unit:string){const row=page.locator('#rc-ing-list .rc-ing-row').nth(i);await tap(row.locator('.rc-ing-name-input'));await row.locator('.rc-ing-name-input').fill('');await page.keyboard.type(name);await page.keyboard.press('Escape');await tap(row.locator('.rc-ing-qty'));await page.keyboard.type(qty);await row.locator('.rc-ing-unit').selectOption(unit)}
+ async function fillRow(page:any,tap:any,i:number,name:string,qty:string,unit:string){const row=page.locator('#rc-ing-list .rc-ing-row').nth(i);await tap(row.locator('.rc-ing-name-input'));await row.locator('.rc-ing-name-input').fill('');await page.keyboard.type(name);await page.keyboard.press('Escape');await tap(row.locator('.rc-ing-qty'));await page.keyboard.type(qty);await pickRcUnit(page,row,unit)}
 
  // ================= A. device-only, iPhone UA, touch, 375×812 (+ iPad UA 820×1100) =================
  for(const [label,viewport,ua] of [['iphone',sizes.mobile,IPHONE],['ipad',sizes.tablet,IPAD]] as any[]){
@@ -78,9 +80,9 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   // choose a catalogue ingredient by touch
   const r0=page.locator('#rc-ing-list .rc-ing-row').first();await tap(r0.locator('.rc-ing-name-input'));await page.keyboard.type('thịt g');
   const opt=page.locator('#rc-ing-list .rc-sug-opt[data-name="Thịt gà"]');await opt.waitFor();assert.equal(await r0.locator('.rc-ing-name-input').getAttribute('aria-expanded'),'true');
-  await tap(opt);assert.equal(await r0.locator('.rc-ing-name-input').inputValue(),'Thịt gà');assert.equal(await r0.locator('.rc-ing-unit').inputValue(),'g','unit from the catalogue');
+  await tap(opt);assert.equal(await r0.locator('.rc-ing-name-input').inputValue(),'Thịt gà');assert.equal(await r0.locator('.rc-ing-unit').getAttribute('value'),'g','unit from the catalogue');
   assert.ok(await r0.locator('.rc-ing-qty').evaluate((e:any)=>document.activeElement===e),'focus moves to the amount');
-  await page.keyboard.type('0,5');await r0.locator('.rc-ing-unit').selectOption('kg');
+  await page.keyboard.type('0,5');await pickRcUnit(page,r0,'kg');
   // a unit the shopping list cannot count (the v1.7.0 save error) and a kitchen measure
   // v1.7.5 (owner feedback #10): kitchen units are counted as written while “Cộng vào đi chợ” is ticked; unticked = note only
   await fillRow(page,tap,1,'Tỏi','3','tép');{const row=page.locator('#rc-ing-list .rc-ing-row').nth(1),box=row.locator('.rc-ing-shop-input');assert.equal(await box.isChecked(),true);assert.equal(await row.locator('.rc-ing-note').isHidden(),true,'ticked tép is counted');assert.match(await page.locator('textarea[name="ingredients"]').inputValue(),/^Tỏi \| 3 \| tép$/m);

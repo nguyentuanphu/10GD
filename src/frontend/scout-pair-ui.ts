@@ -24,7 +24,7 @@ const online=()=>navigator.onLine&&!(globalThis as any).BEP_OFFLINE;
 const session=()=>{try{return typeof accountSession!=='undefined'?accountSession:null}catch{return null}};
 const say=(m:string,bad=false)=>{try{if(typeof toast==='function')toast(m,bad)}catch{}};
 const locale=()=>{try{return appLanguage==='en'?'en-AU':'vi-VN'}catch{return 'vi-VN'}};
-const when=(v:any)=>{if(!v)return T('chưa liên lạc','not seen yet');const d=new Date(v);return isNaN(+d)?'—':d.toLocaleString(locale(),{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})};
+const when=(v:any)=>{if(!v)return T('chưa liên lạc','not seen yet');const d=new Date(v);return isNaN(+d)?'—':appTimeLabel(d,{zone:true,lang:locale()==='en-AU'?'en':'vi'})};
 let mine:any=null,loading:Promise<any>|null=null,code:any=null,timer:any=null,poll:any=null,download:boolean|null=null;
 let info:any=null,ext:any=null,extChecked=false,watch:any=null,pairing=false,manualOpen=false;
 async function call(op:string,body?:any){const r=await fetch(API+'?op='+op,body===undefined?{credentials:'same-origin',headers:{Accept:'application/json'}}:{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(body)});let d:any={};try{d=await r.json()}catch{}if(!r.ok){const e:any=new Error(T(d.error||'Chưa làm được. Thử lại sau.',d.errorEn||d.error||'Could not complete. Try again later.'));e.status=r.status;throw e}return d}

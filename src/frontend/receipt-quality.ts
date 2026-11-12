@@ -12,7 +12,8 @@
 const root:any=globalThis as any;const RP=root.ReceiptParse;if(!RP)return;
 const L=()=>typeof appLanguage!=='undefined'&&appLanguage==='en'?'en':'vi';
 const T=(vi:string,en:string)=>L()==='en'?en:vi;
-const money=(v:number)=>'$'+Math.abs(v).toFixed(2);
+// v1.7.19 (audit B13): the app's money formatter, in the receipt's currency (the difference is a size, so no sign)
+const money=(v:number,c?:string)=>typeof aud==='function'?aud(Math.abs(v),c||'AUD'):'$'+Math.abs(v).toFixed(2);
 
 // ------------------------------------------------------------ pure: which reasons apply (unit-tested)
 // parsed: ReceiptParse.parseReceipt(); confidence: OCR 0–100 (null = typed / pasted text); frame: the crop frame used (0–1).
@@ -25,7 +26,7 @@ function qualityReasons(parsed:any,{confidence=null,frame=null}:{confidence?:num
  const miss=goods.filter((i:any)=>i.price==null).length,fixed=goods.filter((i:any)=>i.priceRepaired).length,cut=miss+fixed;
  if(miss>=2||fixed>=1||miss>=1&&frame&&Number(frame.r)<0.9)out.push({code:'cut-off',value:cut,vi:`${cut} dòng không thấy giá ở mép phải — cột giá có thể bị cắt`,en:`${cut} line${cut>1?'s have':' has'} no price at the right edge — the price column may be cut off`});
  if(parsed.printedTotal==null)out.push({code:'no-total',vi:'Không thấy dòng TOTAL hay số tiền trả',en:'No TOTAL or amount paid was found'});
- else if(parsed.difference!=null&&Math.abs(parsed.difference)>=HINT_MIN_DIFF)out.push(parsed.difference>0?{code:'short',value:parsed.difference,vi:`Các dòng đọc được còn thiếu ${money(parsed.difference)} so với tổng in`,en:`The lines read are ${money(parsed.difference)} short of the printed total`}:{code:'over',value:parsed.difference,vi:`Các dòng đọc được nhiều hơn tổng in ${money(parsed.difference)}`,en:`The lines read come to ${money(parsed.difference)} more than the printed total`});
+ else if(parsed.difference!=null&&Math.abs(parsed.difference)>=HINT_MIN_DIFF)out.push(parsed.difference>0?{code:'short',value:parsed.difference,vi:`Các dòng đọc được còn thiếu ${money(parsed.difference,parsed.currency)} so với tổng in`,en:`The lines read are ${money(parsed.difference,parsed.currency)} short of the printed total`}:{code:'over',value:parsed.difference,vi:`Các dòng đọc được nhiều hơn tổng in ${money(parsed.difference,parsed.currency)}`,en:`The lines read come to ${money(parsed.difference,parsed.currency)} more than the printed total`});
  if(parsed.printedCount!=null&&Math.abs(parsed.printedCount)!==Math.abs(parsed.countRead??goods.length))out.push({code:'count',vi:`Hoá đơn ghi ${Math.abs(parsed.printedCount)} món, app đọc được ${Math.abs(parsed.countRead??goods.length)}`,en:`The receipt says ${Math.abs(parsed.printedCount)} items; ${Math.abs(parsed.countRead??goods.length)} were read`});
  return out}
 const ADVICE={vi:'Chụp lại: để hoá đơn thẳng, đủ sáng, thấy cả cột giá và dòng TOTAL.',en:'Retake it: lay the receipt flat in good light, with the whole price column and the TOTAL line in view.'};

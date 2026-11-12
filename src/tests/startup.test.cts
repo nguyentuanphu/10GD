@@ -11,9 +11,11 @@ async function main() {
   mkdirSync(screenshots, { recursive: true });
   const browser = await (process.env.QA_BROWSER === 'webkit' ? webkit : chromium).launch();
   try {
-    async function open({ account = true, noHousehold = false, fault = '', baseline = false, viewport = { width: 375, height: 812 } } = {}) {
+    async function open({ account = true, noHousehold = false, fault = '', baseline = false, viewport = { width: 375, height: 812 }, savedLang = '' } = {}) {
       const context = await browser.newContext({locale:'vi-VN', viewport, serviceWorkers: 'block', reducedMotion: 'reduce' });
       await context.addInitScript(account => {localStorage.setItem('qa-preserved','family-data-kept');if(account)localStorage.setItem('bep-account-present','yes')},account);
+      // v1.7.19: a language the family saved (not a guess) makes the start-up page speak only that language
+      if (savedLang) await context.addInitScript(l => { localStorage.setItem('guest/bep-language', l); localStorage.removeItem('guest/bep-language-auto'); }, savedLang);
       const page = await context.newPage();
       if (fault === 'timeout') await page.clock.install();
       const errors = [];
@@ -110,6 +112,16 @@ async function main() {
     await download.page.getByRole('alert').waitFor();
     assert.ok((await download.page.getByRole('alert').innerText()).length > 40);
     await download.context.close();
+    // v1.7.19 (audit D16): with English saved, the failure page is English only; without a saved language it stays “VI / EN”
+    for (const savedLang of ['en', 'vi']) {
+      const saved = await open({ fault: 'download', savedLang });
+      await saved.page.getByRole('alert').waitFor();
+      const text = await saved.page.locator('main').innerText();
+      assert.doesNotMatch(text, / \/ (Retry|Unable|Your device)/, savedLang + ': one language on the failure page');
+      assert.equal(await saved.page.getByRole('button', { name: savedLang === 'en' ? 'Retry' : 'Thử lại', exact: true }).count(), 1, savedLang + ': the retry button speaks the saved language');
+      assert.match(text, savedLang === 'en' ? /Unable to open FamTray/ : /Chưa mở được Bếp Nhà/);
+      await saved.context.close();
+    }
     const timeout = await open({ fault: 'timeout' });
     await timeout.page.waitForTimeout(500);
     await timeout.page.clock.fastForward(31000);

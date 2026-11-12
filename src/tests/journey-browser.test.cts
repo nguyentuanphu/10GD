@@ -8,6 +8,8 @@
 // (Chromium viewport simulation, not physical devices).
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),assert=require('assert');
 const dir='docs/reviews/v1.7.9/journey';fs.mkdirSync(dir,{recursive:true});
+// v1.7.19 (rule 29): the row's unit is chosen in the shared unit picker (a sheet over the editor), not a plain list.
+const pickRcUnit=async(page:any,row:any,unit:string)=>{await row.locator('.rc-ing-unit').click();const chip=page.locator(`#unit-sheet-layer .unit-chip[data-unit-choice="${unit}"]`).first();await page.locator('#unit-sheet-layer .unit-chip').first().waitFor();if(!(await chip.isVisible()))await page.locator('#unit-sheet-layer [data-unit-action="show-all"]').click();await chip.click();await page.locator('#unit-sheet-layer [data-unit-sheet-act="save"]').click();await page.locator('#unit-sheet-layer').waitFor({state:'detached'})};
 const SIZES:any[]=[['mobile',{width:375,height:812},true],['tablet',{width:820,height:1100},true],['desktop',{width:1280,height:800},false]];
 const MEMBERS=[['m-phu','Ba Phú',1],['m-mi','Mẹ Mi',1],['m-chi','Chi',.75],['m-tien','Tiên',.75]];
 // Vietnamese words that must not show in English mode (family names, dish names and the reference recipes' own prep and
@@ -72,7 +74,7 @@ for(const lang of ['vi','en'])for(const mode of ['light','dark'])for(const [size
  // 5. Quick-add a new dish → its recipe page opens → saved, and the meal has it
  const tomorrow:string=await E('addDays(sydneyDate(),1)');await E(`view='planner';selectedDate=${JSON.stringify(tomorrow)};weekStart=planStartOf(state,${JSON.stringify(tomorrow)});render();familyEditMeal(${JSON.stringify(tomorrow)},'lunch')`);
  const dish=`Cá kho thử ${lang} ${mode} ${size}`;await page.locator('#quick-dish-name').fill(dish);/* v1.7.19 (A22): the family chooses the dish role */await page.selectOption('#quick-dish-cat','main');await tap(page.locator('[data-fm="quick-add-dish"]'));await page.locator('#family-recipe-form').waitFor();
- const r0=page.locator('#rc-ing-list .rc-ing-row').first();await r0.locator('.rc-ing-name-input').fill('Cá thu');await r0.locator('.rc-ing-qty').fill('400');await r0.locator('.rc-ing-unit').selectOption('g');await check('new dish');await shot('10-new-dish');
+ const r0=page.locator('#rc-ing-list .rc-ing-row').first();await r0.locator('.rc-ing-name-input').fill('Cá thu');await r0.locator('.rc-ing-qty').fill('400');await pickRcUnit(page,r0,'g');await check('new dish');await shot('10-new-dish');
  await tap(page.locator('[data-action="submit-form"][data-id="family-recipe-form"]'));await page.waitForFunction(()=>!document.querySelector('#family-recipe-form'));
  assert.equal(await E(`currentWeek().days[${JSON.stringify(tomorrow)}]?.lunch.recipes.find(r=>r.name===${JSON.stringify(dish)})?.ingredients.length`),1,`${label}: the new dish is in the meal with its ingredient`);
  // 6. A notification link opens that day on the menu

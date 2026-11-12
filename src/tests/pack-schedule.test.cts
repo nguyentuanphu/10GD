@@ -32,7 +32,7 @@ const m=lunch(5);for(const p of s.members)m.attendance[p.id]='home';const all=me
 // ---- lunch-box dishes are cooked for the people packing only
 const box={id:'f-box',name:'Cơm cuộn',category:'lunchbox',protein:'mixed',time:20,servings:4,yield:4,purposes:[],ingredients:[{id:'egg',qty:4}],missingIngredients:[],prep:'',steps:[],custom:true,origin:'family'};
 const l0=lunch(0);l0.recipes=[structuredClone(box)];const big=s.members.find(p=>p.id==='big').weight,little=s.members.find(p=>p.id==='little').weight;
-assert.equal(+mealIngredients(l0,s).egg.toFixed(3),+(4*(big+little)/4).toFixed(3),'eggs for Chi and Tiên only');
+/* v1.7.19 audit C1: eggs are counted, so the packers' 1.15 eggs is bought as 2 (the whole family would need 4) */assert.equal(mealIngredients(l0,s).egg,Math.ceil(4*(big+little)/4-1e-6),'eggs for Chi and Tiên only');assert.ok(Math.ceil(4*(big+little)/4-1e-6)<Math.ceil(mealServings(l0,s)-1e-6),'fewer than for the whole family');
 // ---- planner: lunch box on scheduled days even without the family-wide switch
 s.recipes.push(box);familyGenerate(s,mon,{random:()=>.4,sourceMode:'own'});
 assert.equal(lunch(0).recipes[0]?.id,'f-box');assert.equal(lunch(5).recipes.some(r=>r.category==='lunchbox'),false);
