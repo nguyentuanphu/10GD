@@ -138,6 +138,10 @@ const UI_ART:Record<string,string>={
  'item:nuoc-lau-san':`<path d="M18 6h10v6l6 6v24a2 2 0 0 1-2 2H16a2 2 0 0 1-2-2V18l4-6z" fill="#7cd0e8" ${UA_W}/><path d="M14 24h20v12H14z" fill="#fff" ${UA_W}/><path d="M18 30c2-2 4 2 6 0s4 2 6 0" stroke="#2f8fb0" stroke-width="2" fill="none"/>`,
  // open (row → history): chevron
  chevron:`<path d="M18 10l14 14-14 14" fill="none" stroke="${UA_O}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`,
+ // v1.7.21 shopping aisles: meat (a drumstick with its bone; the old 🥩 drawing read as a red dot at heading size) and
+ // “Khác” / Other (a crate of mixed things), each a drawing of its own
+ 'aisle-meat':`<path d="M7 20c0-9 9-14 17-11 8 3 9 12 5 17l-5 5c-8 4-17 0-17-11z" fill="#e37a5c" ${UA_W}/><path d="M12 18c1-4 4-6 8-6" stroke="#fbd3c2" stroke-width="2.6" stroke-linecap="round" fill="none"/><path d="M26 28l8 8" stroke="${UA_O}" stroke-width="8.2" stroke-linecap="round"/><path d="M26 28l8 8" stroke="#fffaf0" stroke-width="3.4" stroke-linecap="round"/>${uaCirc(38,35,3.6,'#fffaf0')}${uaCirc(34,40,3.6,'#fffaf0')}`,
+ 'aisle-misc':`<path d="M7 14h34l-2 6H9z" fill="#d9a65f" ${UA_W}/><rect x="9" y="20" width="30" height="20" rx="3" fill="#f2d39a" ${UA_W}/>${uaCirc(17,30,3.4,'#8fd0b0')}${uaCirc(24,30,3.4,'#f6c34a')}${uaCirc(31,30,3.4,'#f3a3a0')}`,
 };
 // store marks: a round badge in the retailer's colour (no logos)
 const UA_STORE:Record<string,string>={woolworths:'#4caf6e',coles:'#e8433a',aldi:'#2f6fd6',chemist:'#e83a8a','viet-grocer':'#ffb84d',amazon:'#ff9a3d',other:'#9aa39b'};
@@ -182,6 +186,7 @@ const BTN_MAIN:Record<string,string[]>={fm:['generate','edit-meal','quick-add-di
 // the app's own old emoji on buttons (leading only, so family-written names are never touched)
 const BTN_EMOJI=/^[\s🔄🏷️📍📱🟢⚪👍👎🍲\u{FE0F}]+/u;
 function isMainButton(el:HTMLElement):boolean{if(el.matches('.chip,a.chip,[role="tab"],summary'))return false;if(el.matches('.primary'))return true;
+ /* v1.7.21 (Henry, 14 Nov 2026): “Thêm đồ” and “Nhờ mua thêm” sit side by side as the shopping list's two main actions */if(el.matches('.shop-main-actions>button'))return true;
  for(const[attr,keys]of Object.entries(BTN_MAIN)){const v=(el.dataset as any)[attr];if(v!==undefined&&keys.includes(v))return true}return false}
 const btnSeen=new WeakMap<Element,string>();
 function decorateButtons(root:ParentNode=document){if(typeof document==='undefined')return;
