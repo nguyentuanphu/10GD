@@ -9,6 +9,8 @@
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),assert=require('assert');
 const {COSTCO}=require('./fixtures/receipt-list.cjs');
 const root=process.cwd(),dir='docs/reviews/v1.7.18/receipt-list',origin='https://kitchen.test';fs.mkdirSync(dir,{recursive:true});
+// v1.7.19 (owner, “Đổi cả 3 chỗ”, rule 29): a receipt line's unit is picked in the shared unit picker, not a plain list.
+const pickLineUnit=async(page:any,line:any,unit:string)=>{await line.locator('.unit-field-btn').click();const chip=page.locator(`#unit-sheet-layer .unit-chip[data-unit-choice="${unit}"]`).first();await page.locator('#unit-sheet-layer .unit-chip').first().waitFor();if(!(await chip.isVisible()))await page.locator('#unit-sheet-layer [data-unit-action="show-all"]').click();await chip.click();await page.locator('#unit-sheet-layer [data-unit-sheet-act="save"]').click();await page.locator('#unit-sheet-layer').waitFor({state:'detached'})};
 const mime:any={'.html':'text/html','.js':'application/javascript','.json':'application/json','.css':'text/css','.webp':'image/webp','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json','.gz':'application/gzip','.wasm':'application/wasm'};
 const SIZES:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tablet:{width:820,height:1100},desktop:{width:1280,height:800}};
 const OIL_ONLY='Costco Wholesale Australia\nAUS FIELDS CAN OIL\n153701     1x 10.69     10.69\nTOTAL NUMBER OF ITEMS SOLD = 1\n';
@@ -88,12 +90,12 @@ const saveWithTotal=async(page:any)=>{await page.evaluate(()=>{collectReceipt();
    await still(page,oy,`${box(oy)} [data-rl="new"]`,'Thêm món mới');
    const fam=await page.evaluate(()=>Object.entries((state as any).ingredientCatalog||{}).map(([id,x]:any)=>[id,x.name,x.unit]));assert.ok(fam.some((f:any)=>f[1]==='Lkk Oyster Sauce'&&f[2]==='cái'),'family ingredient named as on the receipt: '+JSON.stringify(fam));
    d=await draft(page);assert.ok(/^family-ing-/.test(d[oy].match));assert.match(await page.locator(box(oy)).innerText(),/Hoá đơn không in lượng/);
-   await page.locator(`#modal-root .receipt-line[data-index="${oy}"] .receipt-qty`).fill('1');await page.locator(`#modal-root .receipt-line[data-index="${oy}"] .receipt-unit`).selectOption('cái');
+   await page.locator(`#modal-root .receipt-line[data-index="${oy}"] .receipt-qty`).fill('1');await pickLineUnit(page,page.locator(`#modal-root .receipt-line[data-index="${oy}"]`),'cái');
    await page.locator(`${box(oy)} .rl-have`).waitFor();assert.match(await page.locator(`${box(oy)} .rl-have`).innerText(),/= 1 cái · app sẽ nhớ cho lần sau/);
    // the oil: confirm the suggestion, enter 1 chai, “1 chai ≈ 4 L”
    const oil=await lineOf(page,/CAN OIL/);await page.evaluate((k:number)=>document.querySelector(`#modal-root .receipt-line[data-index="${k}"]`)!.scrollIntoView({block:'center'}),oil);
    await still(page,oil,`${box(oil)} [data-rl="ok"]`,'Đúng, giữ gợi ý');
-   await page.locator(`#modal-root .receipt-line[data-index="${oil}"] .receipt-qty`).fill('1');await page.locator(`#modal-root .receipt-line[data-index="${oil}"] .receipt-unit`).selectOption('chai');
+   await page.locator(`#modal-root .receipt-line[data-index="${oil}"] .receipt-qty`).fill('1');await pickLineUnit(page,page.locator(`#modal-root .receipt-line[data-index="${oil}"]`),'chai');
    await page.locator(`${box(oil)} .rl-per-qty`).waitFor();await page.locator(`${box(oil)} .rl-per-unit`).selectOption('l');await page.locator(`${box(oil)} .rl-per-qty`).fill('4');
    assert.match(await page.locator(`${box(oil)} .rl-have`).innerText(),/= 4[.,]?0*\s?(l|lít|L|000 ml)/i);d=await draft(page);assert.equal(d[oil].per,4000,'1 chai ≈ 4 L = 4000 ml per chai');
    await shot(page,'mobile-375-amount-once-vi-light');
@@ -114,12 +116,14 @@ const saveWithTotal=async(page:any)=>{await page.evaluate(()=>{collectReceipt();
    const oilChoice='#modal-root .reconcile-choice[data-rlx="oil"]';await page.locator(`${oilChoice} input[value="none"]`).check();assert.match(await page.locator(`${oilChoice} .rc-dest`).innerText(),/không theo dõi/);
    await shot(page,'mobile-375-reconcile-choices-vi-light');
    const before=await page.evaluate(()=>JSON.stringify({w:currentWeek(),p:(state as any).pantry}));
+   await page.evaluate(()=>{const m:any={};for(const g of document.querySelectorAll('#modal-root .reconcile-choice[data-rlx]') as any){const i=g.querySelector('.rc-useby-input');m[g.dataset.rlx]=i?i.value:null}(window as any).__qaUseBy=m});
+   assert.ok(await page.evaluate(()=>[...document.querySelectorAll('#modal-root .reconcile-choice:not([hidden]) .rc-useby:not([hidden]) .rc-useby-input')].every((i:any)=>i.getBoundingClientRect().height>=44)),'the use-by boxes are ≥ 44 px');
    await page.locator('#modal-root [data-rui="apply"]').click();await page.locator('.receipt-undo').waitFor();
    const after=await page.evaluate(()=>{const s:any=state,w=currentWeek(),r=s.receipts[0],lots=s.pantry.filter((p:any)=>p.receiptId===r.id);const[a,b]=shopDates();const rows=shopping(s,w,a,b);const row=(id:string)=>rows.find((x:any)=>x.id===id);
-    return{egg:[w.bought.egg,row('egg').qty,row('egg').bought],lots:lots.map((p:any)=>[p.ingredient,p.qty,p.forMeal?.type||null,p.expiry]),oilLot:lots.some((p:any)=>p.ingredient==='oil'),kimchi:w.extras[0].done,corn:row('corn').bought,eggHave:row('egg').have}});
+    return{egg:[w.bought.egg,row('egg').qty,row('egg').bought],lots:lots.map((p:any)=>[p.ingredient,p.qty,p.forMeal?.type||null,p.expiry]),oilLot:lots.some((p:any)=>p.ingredient==='oil'),kimchi:w.extras[0].done,corn:row('corn').bought,eggHave:row('egg').have,sug:(window as any).__qaUseBy}});
    assert.equal(after.egg[0],after.egg[1],'eggs: the list amount ticked bought');assert.equal(after.egg[2],true);assert.equal(after.eggHave,0,'the kept eggs are not counted against this week');
    assert.ok(after.lots.some((l:any)=>l[0]==='egg'&&l[2]==='dinner'&&l[1]===30-after.egg[0]),'extra eggs kept for next week’s dinner: '+JSON.stringify(after.lots));
-   assert.equal(after.oilLot,false,'oil: not tracked');assert.equal(after.kimchi,true,'Kimchi ticked on the list');assert.ok(after.lots.every((l:any)=>l[3]===''),'no invented expiry');
+   assert.equal(after.oilLot,false,'oil: not tracked');assert.equal(after.kimchi,true,'Kimchi ticked on the list');/* v1.7.19 owner decision (12 Nov 2026): the suggested use-by, shown and editable in the confirmation step */assert.ok(after.lots.every((l:any)=>l[3]===after.sug[l[0]]),'each lot has the suggested use-by shown in the sheet '+JSON.stringify(after));
    // shopping list and pantry afterwards
    await page.evaluate(()=>{closeModal();view='pantry';location.hash='pantry';render()});await page.locator('#main .rl-reserved').first().waitFor();assert.match(await page.locator('#main .rl-reserved').first().innerText(),/Dành cho bữa tối/);
    await page.locator('#main .rl-reserved').first().scrollIntoViewIfNeeded();await shot(page,'mobile-375-pantry-kept-for-meal-vi-light');await noOverflow(page,'pantry');
@@ -138,6 +142,31 @@ const saveWithTotal=async(page:any)=>{await page.evaluate(()=>{collectReceipt();
    await shot(page,'mobile-375-second-receipt-remembered-vi-light');
    assert.deepEqual(errors,[],'no page errors (flow)');await context.close()}
 
+  // ---------- 1b. v1.7.19 audit sweep: “Đọc các dòng hóa đơn” never wipes confirmed lines (saved receipt with no text, text that
+  // reads nothing); text that reads lines still replaces them. Failed before the fix: the two lines were lost.
+  {const{context,page,errors}=await open({size:'mobile'});
+   await page.evaluate(()=>{newReceipt();const d:any=receiptDraft;d.raw='';d.items=[{id:'k1',label:'Keep me one',total:7.5,match:'',qty:null,unit:'',confidence:'unknown'},{id:'k2',label:'Keep me two',total:4.8,match:'',qty:null,unit:'',confidence:'unknown'}];receiptEditor()});
+   const labels=()=>page.evaluate(()=>(receiptDraft as any).items.map((i:any)=>i.label));
+   // with lines already there the receipt text sits in a closed fold; open it the way a person would
+   const unfold=async()=>{if(await page.locator('#modal-root details.receipt-raw-fold:not([open]) > summary').count())await page.locator('#modal-root details.receipt-raw-fold > summary').click()};await unfold();
+   await page.evaluate(()=>{(document.querySelector('#receipt-raw') as any).value=''});await page.locator('#modal-root [data-feature="receipt-parse"]').click();await page.waitForTimeout(200);
+   assert.deepEqual(await labels(),['Keep me one','Keep me two'],'empty receipt text keeps the confirmed lines');
+   assert.match(await page.locator('#toast, .toast').first().innerText(),/Chưa có chữ hóa đơn để đọc/,'empty text says what to do');
+   await unfold();await page.evaluate(()=>{(document.querySelector('#receipt-raw') as any).value='xin chao'});await page.locator('#modal-root [data-feature="receipt-parse"]').click();await page.waitForTimeout(200);
+   {const l=await labels();assert.deepEqual(l,['Keep me one','Keep me two'],'text that reads no lines keeps the confirmed lines '+JSON.stringify({l,raw:await page.evaluate(()=>(receiptDraft as any).raw),toast:await page.locator('#toast').innerText()}))}
+   await unfold();await page.evaluate((t:string)=>{(document.querySelector('#receipt-raw') as any).value=t},COSTCO);await page.locator('#modal-root [data-feature="receipt-parse"]').click();await page.locator('#modal-root .receipt-line').first().waitFor();
+   assert.ok(!(await labels()).includes('Keep me one'),'text that reads lines replaces them');
+   assert.ok(await page.evaluate(()=>validImport(clone(state))),'state still loads');
+   assert.deepEqual(errors,[],'no page errors (1b)');console.log('PASS 1b receipt re-read keeps confirmed lines');await context.close()}
+  // ---------- 1c. v1.7.19 (Tự chạy thử, Rà soát 12/11): đồng prices of 5–7 digits are read whole; a receipt is checked against the
+  // menu week of its own date (the family's start day), not the week on screen. Both failed before the fix.
+  {const{context,page,errors}=await open({size:'mobile'});
+   const r:any=await page.evaluate(()=>{const p=parseReceiptText('TRUNG GA 10 QUA 35000.00\nTOTAL 35000.00',state);return p.items.map((i:any)=>({label:i.label,total:i.total}))});
+   assert.equal(r.length,1,'one line for 35000.00 '+JSON.stringify(r));assert.equal(r[0].total,35000,'price read whole '+JSON.stringify(r));assert.ok(!/QUA 3$/.test(r[0].label),'no price digit left in the name '+JSON.stringify(r));
+   const w:any=await page.evaluate(()=>{state.preferences.weekStartDay=6;const today=sydneyDate(),own=planStartOf(state,today);weekStart=addDays(own,7);selectedDate=weekStart;const rec={id:'qa-wk',date:today};
+    const RW=(globalThis as any).ReceiptWeek;return{own,range:RW.range(rec),sameWeek:(()=>{const wk=RW.week(rec),pw=planWeek(state,own),ds=Object.keys(pw.days);return ds.length===7&&ds.every((d:string)=>wk.days[d]===pw.days[d]&&wk.days[d]===dayAt(state,d))})(),shown:weekStart}});
+   assert.equal(w.range[0],w.own,'receipt checked against its own menu week, not the one on screen '+JSON.stringify(w));assert.ok(w.sameWeek,'the same stored week the list uses '+JSON.stringify(w));
+   assert.deepEqual(errors,[],'no page errors (1c)');console.log('PASS 1c đồng prices and the receipt week');await context.close()}
   // ---------- 2. sizes, languages and themes: form + reconciliation
   for(const[size,lang,theme]of[['narrow','vi','light'],['mobile','en','dark'],['tablet','vi','light'],['tablet','en','dark'],['desktop','vi','dark'],['desktop','en','light']] as any){
    const{context,page,errors}=await open({size,lang,theme});const tag=`${size}-${SIZES[size].width}-${lang}-${theme}`;

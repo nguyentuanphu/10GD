@@ -4,6 +4,8 @@
 // docs/reviews/v1.7.8 (since v1.7.8; earlier runs in v1.7.6) (Chromium viewport simulation, not physical devices).
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),assert=require('assert');
 const dir='docs/reviews/v1.7.8';fs.mkdirSync(dir,{recursive:true});
+// v1.7.19 (rule 29): the row's unit is chosen in the shared unit picker (a sheet over the editor), not a plain list.
+const pickRcUnit=async(page:any,row:any,unit:string)=>{await row.locator('.rc-ing-unit').click();const chip=page.locator(`#unit-sheet-layer .unit-chip[data-unit-choice="${unit}"]`).first();await page.locator('#unit-sheet-layer .unit-chip').first().waitFor();if(!(await chip.isVisible()))await page.locator('#unit-sheet-layer [data-unit-action="show-all"]').click();await chip.click();await page.locator('#unit-sheet-layer [data-unit-sheet-act="save"]').click();await page.locator('#unit-sheet-layer').waitFor({state:'detached'})};
 const SIZES:any[]=[['narrow',{width:320,height:740}],['mobile',{width:375,height:812}],['tablet',{width:820,height:1100}],['desktop',{width:1280,height:800}]];
 // the owner's family: one member is called “Chi”, which used to block the translation of “Chi tiêu”
 const MEMBERS=[['m-phu','Ba Phú'],['m-mi','Mẹ Mi'],['m-chi','Chi'],['m-tien','Tiên'],['m-ti','Cậu Tí']];
@@ -214,15 +216,16 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
    await toggle('snack',false);assert.equal(await slots().count(),before,'afternoon snack removed');
    await toggle('snackAm',true);assert.equal(await slot('snackAm').count(),1,'morning snack added');
    // swipe the (empty) morning snack to the left: removed
-   const swipe=async(t:string,dir:number)=>{const card=slot(t);await card.scrollIntoViewIfNeeded();const bx=(await card.boundingBox())!;const y=bx.y+Math.min(40,bx.height/2),x0=bx.x+bx.width/2;
+   const swipe=async(t:string,dir:number)=>{const card=slot(t);/* v1.7.19 re-check: removing a meal now shows the “Hoàn tác” bar at the foot of the screen; a card scrolled only just into view sat under it on CI's fonts, so the finger landed on the bar. Swipe the card where a person would, mid-screen. */await card.evaluate((e:any)=>e.scrollIntoView({block:'center'}));await page.waitForTimeout(80);const bx=(await card.boundingBox())!;const y=bx.y+Math.min(40,bx.height/2),x0=bx.x+bx.width/2;
     await page.mouse.move(x0,y);await page.mouse.down();await page.mouse.move(x0+dir*bx.width*0.2,y,{steps:4});
     assert.equal(await card.evaluate((e:any)=>e.classList.contains('swiping')),true,'card follows the finger');await page.mouse.move(x0+dir*bx.width*0.45,y,{steps:4});await shot('swipe-meal');await page.mouse.up();await page.waitForTimeout(300)};
    await swipe('snackAm',-1);assert.equal(await slot('snackAm').count(),0,'morning snack swiped away');
    // a short swipe springs back
    {const card=slot('lunch'),bx=(await card.boundingBox())!;const y=bx.y+30,x0=bx.x+bx.width/2;await page.mouse.move(x0,y);await page.mouse.down();await page.mouse.move(x0+bx.width*0.2,y,{steps:4});await page.mouse.up();await page.waitForTimeout(300);assert.equal(await slot('lunch').count(),1,'short swipe keeps the meal')}
-   // breakfast (with dishes): swipe right asks first, then it is gone for the day; "Bữa ±" brings it back
-   const hasDishes=await page.evaluate(`currentWeek().days[sydneyDate()]?.breakfast?.recipes?.length||0`);if(hasDishes)page.once('dialog',(d:any)=>d.accept());
-   await swipe('breakfast',1);assert.equal(await slot('breakfast').count(),0,'breakfast swiped away');
+   // breakfast (with dishes): swipe right removes it for the day at once, with “Hoàn tác” (v1.7.19 re-check, audit B16: no browser
+   // confirm()); "Bữa ±" brings the meal back
+   const hasDishes=await page.evaluate(`currentWeek().days[sydneyDate()]?.breakfast?.recipes?.length||0`);let asked=false;const onDialog=(d:any)=>{asked=true;d.dismiss().catch(()=>{})};page.on('dialog',onDialog);
+   await swipe('breakfast',1);page.off('dialog',onDialog);assert.equal(asked,false,'no browser confirm()');assert.equal(await slot('breakfast').count(),0,'breakfast swiped away');if(hasDishes)assert.equal(await page.locator('#undo-bar button').count(),1,'“Hoàn tác” offered');
    await toggle('breakfast',true);assert.equal(await slot('breakfast').count(),1,'breakfast added back');
    assert.equal(await td2().locator('[data-plan-meal="remove"], .plan-day-tools').count(),0,'no extra remove buttons or add row under the meals')}
   await shot('planner-days')}
@@ -249,13 +252,13 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
    assert.ok((await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.name)`)).includes('Gỏi gà bắp cải nhà làm'),'quick-added dish kept after Save');}
   await page.evaluate('closeModal()')}
  // v1.7.9, every size (owner, 6 Nov 2026 21:55: "lúc add thì nó phải mở một trang mới để tôi viết món"): a new dish opens the recipe page at once, then the written recipe is the dish in the meal
-  {const d=await page.evaluate(`Object.keys(currentWeek().days).find(d=>currentWeek().days[d].dinner.recipes.length)`);const name=`Cá thu sốt cà ${lang} ${size}`;await page.evaluate(`familyEditMeal(${JSON.stringify(d)},'dinner')`);await page.locator('#quick-dish-name').fill(name);assert.equal(await page.locator('#quick-dish-save').isChecked(),true,`${label}: save to Family Recipes is on by default`);
+  {const d=await page.evaluate(`Object.keys(currentWeek().days).find(d=>currentWeek().days[d].dinner.recipes.length)`);const name=`Cá thu sốt cà ${lang} ${size}`;await page.evaluate(`familyEditMeal(${JSON.stringify(d)},'dinner')`);await page.locator('#quick-dish-name').fill(name);/* v1.7.19 (A22): the family chooses the dish role */await page.selectOption('#quick-dish-cat','main');assert.equal(await page.locator('#quick-dish-save').isChecked(),true,`${label}: save to Family Recipes is on by default`);
    await page.locator('[data-fm="quick-add-dish"]').click();await page.locator('#family-recipe-form').waitFor({timeout:5000});assert.equal(await page.locator('#family-meal-form').count(),0,`${label}: the meal sheet gave way to the recipe page`);
    assert.equal(await page.locator('#family-recipe-form input[name="name"]').inputValue(),name,`${label}: the recipe page has the dish name`);
    await page.waitForFunction(()=>!!document.activeElement?.closest('#family-recipe-form .rc-ings, #family-recipe-form textarea[name="ingredients"]'),null,{timeout:3000});
    assert.ok((await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.map(r=>r.name)`)).includes(name),`${label}: already in the meal`);
    await textOk('quick-add-recipe-page');await shot('quick-add-recipe-page');
-   const row=page.locator('#rc-ing-list .rc-ing-row').first();await row.locator('.rc-ing-name-input').fill('Cá thu');await row.locator('.rc-ing-qty').fill('500');await row.locator('.rc-ing-unit').selectOption('g');
+   const row=page.locator('#rc-ing-list .rc-ing-row').first();await row.locator('.rc-ing-name-input').fill('Cá thu');await row.locator('.rc-ing-qty').fill('500');await pickRcUnit(page,row,'g');
    await page.locator('[data-action="submit-form"][data-id="family-recipe-form"]').click();await page.waitForFunction(()=>!document.querySelector('#family-recipe-form'),null,{timeout:5000});
    const dish:any=await page.evaluate(`currentWeek().days[${JSON.stringify(d)}].dinner.recipes.find(r=>r.name===${JSON.stringify(name)})`);assert.equal(dish?.ingredients?.length,1,`${label}: the dish in the meal carries the written ingredient`);
    assert.equal(await page.evaluate(`state.recipes.filter(r=>r.name===${JSON.stringify(name)}).length`),1,`${label}: one family recipe, no duplicate`)}
@@ -327,8 +330,8 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
  // v1.7.9 (owner: "không có số lượng và đơn vị… chỗ màu nâu là gì?"): extra items ask amount and unit separately; the empty
  // pantry note stays hidden
  {await page.evaluate(`view='shopping';render();scrollTo(0,0)`);await page.evaluate(`document.querySelector('[data-action="add-extra"]').click()`);await page.locator('#extra-amount').waitFor();
-  assert.equal(await page.locator('#extra-pantry-hint').isVisible(),false,`${label}: empty pantry note hidden`);assert.equal(await page.locator('#extra-unit option').count()>=10,true);await textOk('extra-form');if(size==='mobile')await shot('extra-form');
-  await page.fill('#extra-name','Sữa chua QA');await page.fill('#extra-amount','2');await page.selectOption('#extra-unit','hộp');await page.locator('#modal-root [data-action="submit-form"][data-id="extra-form"]').click();await page.waitForTimeout(300);
+  assert.equal(await page.locator('#extra-pantry-hint').isVisible(),false,`${label}: empty pantry note hidden`);/* v1.7.19: the unit opens the shared unit picker; its full list still offers every unit */await page.locator('#extra-unit-btn').click();await page.locator('#unit-sheet-layer [data-unit-action="show-all"]').click();await page.locator('#unit-sheet-layer #purchase-unit-choice .unit-chip').first().waitFor();assert.equal(await page.locator('#unit-sheet-layer #purchase-unit-choice .unit-chip').count()>=10,true);await page.keyboard.press('Escape');await page.locator('#unit-sheet-layer').waitFor({state:'detached'});await textOk('extra-form');if(size==='mobile')await shot('extra-form');
+  await page.fill('#extra-name','Sữa chua QA');await page.fill('#extra-amount','2');await page.locator('#extra-unit-btn').click();await page.locator('#unit-sheet-layer .unit-chip[data-unit-choice="hộp"]').first().click();await page.locator('#unit-sheet-layer [data-unit-sheet-act="save"]').click();await page.locator('#modal-root [data-action="submit-form"][data-id="extra-form"]').click();await page.waitForTimeout(300);
   assert.equal(await page.evaluate(`currentWeek().extras.find(e=>e.name==='Sữa chua QA')?.qty`),'2 hộp',`${label}: stored as “2 hộp”`);await page.evaluate(`currentWeek().extras=currentWeek().extras.filter(e=>e.name!=='Sữa chua QA');save();render()`)}
  // v1.7.9: the bought tick sits on the name's line; rounding keeps the row where it was on screen
  {await page.evaluate(`view='shopping';render()`);const row=page.locator('#main .shop-purchase-row').nth(2);await row.scrollIntoViewIfNeeded();const tick=await row.locator('input.check').boundingBox(),name=await row.locator('.item-label').boundingBox();assert.ok(Math.abs((tick!.y+tick!.height/2)-(name!.y+Math.min(name!.height,48)/2))<30,`${label}: tick on the name line`);

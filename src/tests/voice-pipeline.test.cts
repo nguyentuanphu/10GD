@@ -12,7 +12,7 @@ function context(store=new Map<string,string>()){
  const c=vm.createContext({console,Intl,Date,Math,URL,structuredClone,setTimeout,clearTimeout,crypto:require('node:crypto').webcrypto,
   localStorage:{getItem:(k:string)=>store.has(k)?store.get(k)!:null,setItem:(k:string,v:string)=>{store.set(k,String(v))},removeItem:(k:string)=>{store.delete(k)}}});
  c.globalThis=c;
- for(const f of ['seed.js','recipe-catalog.js','core.js','spending-core.js','unit-registry.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','voice-learning.js','shopping-optimizer.js','voice-price.js','voice-commands.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
+ for(const f of ['store-registry.js','seed.js','recipe-catalog.js','core.js','spending-core.js','unit-registry.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','voice-learning.js','shopping-optimizer.js','voice-price.js','voice-commands.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
  vm.runInContext(`globalThis.S=defaults();S.weeks={};S.pantry=[];globalThis.state=S;`,c);return c}
 const c=context();
 const run=(src:string)=>vm.runInContext(src,c);

@@ -47,7 +47,7 @@ function familyWeekSummary(s,from,lang='vi',days=7){const en=lang==='en',groups=
 // v1.7.5 · Tuần này ai bận, one line per person (owner request 5 Nov 2026): the meals each person is away/busy in the next
 // days, in date order; a day in another week also shows its date (the old list ended with an unexplained “T4 trưa”).
 function availabilityDayMonth(date){return date.slice(8,10)+'/'+date.slice(5,7)}
-function familyPersonSummary(s,from,lang='vi',days=7){const en=lang==='en',rows=[],weekOf=d=>{const x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()-((x.getUTCDay()+6)%7));return x.toISOString().slice(0,10)},thisWeek=weekOf(from);
+function familyPersonSummary(s,from,lang='vi',days=7){const en=lang==='en',rows=[],weekOf=d=>{if(typeof planStartOf==='function')return planStartOf(s,d);const x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()-((x.getUTCDay()+6)%7));return x.toISOString().slice(0,10)}/* v1.7.19: the family's own week */,thisWeek=weekOf(from);
  for(const r of familyAvailabilityRange(s,from,days)){const key=r.member.id+'|'+r.entry.status;let g=rows.find(x=>x.key===key);if(!g){g={key,member:r.member,status:r.entry.status,first:r.date,slots:[]};rows.push(g)}g.slots.push({date:r.date,type:r.type,time:availabilityTimeText(r.entry,lang)})}
  rows.sort((a,b)=>a.first<b.first?-1:a.first>b.first?1:0);
  // v1.7.9 (owner, 6 Nov 2026: "bận nhiều quá thì nhìn rối mắt"): days with the same meals (and times) are written once —

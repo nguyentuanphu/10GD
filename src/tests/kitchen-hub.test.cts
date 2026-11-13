@@ -194,11 +194,11 @@ async function main() {
       await page.locator('[data-personal=device-only]').click();
       await page.locator('.confirm-warning').waitFor();
       if (shots) { mkdirSync('docs/reviews/v1.5/my-kitchen', { recursive: true }); await page.screenshot({ path: 'docs/reviews/v1.5/my-kitchen/confirm-device-only-375x812.png' }); }
-      await page.getByRole('button', { name: 'Hủy', exact: true }).click();
+      await page.getByRole('button', { name: 'Huỷ', exact: true }).click();
       await page.locator('[data-personal=sign-out]').click();
       await dialog.waitFor();
       assert.match(await dialog.innerText(), /Đăng xuất khỏi máy này\?/);
-      await page.getByRole('button', { name: 'Hủy', exact: true }).click();
+      await page.getByRole('button', { name: 'Huỷ', exact: true }).click();
       assert.equal(await page.evaluate(() => localStorage.getItem('bep-local-locked')), null, 'cancel keeps the account');
       await page.evaluate(() => { cloudConnection.dirty = false; });
       await page.locator('[data-personal=device-only]').click();
@@ -378,7 +378,7 @@ async function main() {
       await page.getByRole('menuitem', { name: 'Đăng xuất…' }).click();
       await dialog.waitFor();
       assert.match(await dialog.innerText(), /Đăng xuất khỏi máy này\?/);
-      await page.getByRole('button', { name: 'Hủy', exact: true }).click();
+      await page.getByRole('button', { name: 'Huỷ', exact: true }).click();
       assert.equal(await page.evaluate(() => document.activeElement?.classList.contains('top-avatar')), true);
       assert.equal(await page.evaluate(() => localStorage.getItem('bep-local-locked')), null, 'cancel keeps the account');
       // Switching family keeps its unsynced-changes guard.

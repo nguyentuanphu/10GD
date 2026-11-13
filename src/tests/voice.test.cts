@@ -1,7 +1,7 @@
 // Voice understanding: long, rambling Vietnamese/English speech (incl. elderly-style pauses, repeats and self-corrections).
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const c=vm.createContext({console,Intl,Date,Math,URL,structuredClone,crypto:require('node:crypto').webcrypto});
-for(const f of ['seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
+for(const f of ['store-registry.js','seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
 vm.runInContext(`globalThis.S=defaults();S.preferences.familyPlanner=true;S.weeks={};S.pantry=[];S.recipes.push({...recipe('own-soup','Canh chua cá','soup','fish',20,{fish:400},'prep',['cook']),custom:true,purposes:['side'],yield:4});`,c);
 const BASE='2026-11-02',TODAY='2026-11-02';
 function parse(text,base=BASE,today=TODAY){c.__t=text;c.__b=base;c.__d=today;return JSON.parse(JSON.stringify(vm.runInContext('parseVoiceInput(__t,S,__b,__d)',c)))}

@@ -2,6 +2,10 @@
 // v1.7.5 · text size is applied before anything renders (Vừa / Lớn / Rất lớn; default Lớn), so the page never jumps.
 try{const ts=localStorage.getItem('bep-text-size');document.documentElement.dataset.textSize=ts==='medium'||ts==='xlarge'?ts:'large'}catch{document.documentElement.dataset.textSize='large'}
 // This entry point is checked with strict TypeScript independently of legacy globals.
+// v1.7.19 (audit D16; owner decision via the lead, 12 Nov 2026): the start-up page speaks the saved language. Only when no
+// language is saved yet (first visit, or only a guess) does it show both, “VI / EN”.
+const bootLang: 'vi' | 'en' | null = (() => { try { const v = new Set(Object.keys(localStorage).filter(k => /(^|\/)bep-language$/.test(k) && localStorage.getItem(k + '-auto') !== '1' /* a guessed language is not a saved one */).map(k => localStorage.getItem(k)).filter(x => x === 'vi' || x === 'en')); return v.size === 1 ? [...v][0] as 'vi' | 'en' : null; } catch { return null; } })();
+const bt = (vi: string, en: string): string => bootLang === 'vi' ? vi : bootLang === 'en' ? en : vi + ' / ' + en;
 declare function clearOfflineAccess(): void;
 declare function rememberOfflineAccess(status: SessionStatus): Promise<void>;
 declare function readOfflineAccess(): Promise<SessionStatus | null>;
@@ -25,7 +29,7 @@ interface Window {
 }
 (async (): Promise<void> => {
   const local = ['terminal.local', 'localhost', '127.0.0.1'].includes(location.hostname);
-  const scripts = ['storage-context.js','emoji-art.js','seed.js','recipe-catalog-core.js','core.js','spending-core.js','unit-registry.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','voice-learning.js','master-catalog.js','shopping-optimizer.js','app.js','dish-composition.js','artwork.js','product-photos.js','unit-picker.js','sync-merge-core.js','family-features.js','shopping-planning.js','push-ui.js','simple-view.js','language.js','push-settings-ui.js','insights-ui.js','products-ui.js','ui-art.js','price-scout-ui.js','voice-price.js','family-menu-ui.js','voice-recipe.js','household-ui.js','platform-banner.js','personal-ui.js','offline-downloads.js','app-update.js','scout-pair-ui.js','voice-local.js','voice-stats.js','voice-commands.js','onboarding-guide.js','usage-analytics.js','ladybug.js','recipe-community.js','menu-reactions-core.js','menu-reactions-ui.js','receipt-parse.js','receipt-list.js','receipt-ui.js','receipt-match.js','receipt-match-ui.js','sync-merge-ui.js','qty-round.js','compact-layout.js','family-flow.js','app-search.js','app-install.js','kitchen-extras.js','receipt-match-picker.js','receipt-list-ui.js','nav-scroll.js','ladybug-autoplay.js','ladybug-workflows.js','cook-timing.js','receipt-quality.js','receipt-share.js'];
+  const scripts = ['storage-context.js','emoji-art.js','store-registry.js','seed.js','recipe-catalog-core.js','core.js','spending-core.js','unit-registry.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','meal-times.js','voice-learning.js','master-catalog.js','shopping-optimizer.js','app.js','dish-composition.js','artwork.js','product-photos.js','unit-picker.js','sync-merge-core.js','family-features.js','shopping-planning.js','push-ui.js','simple-view.js','language.js','form-validity.js','push-settings-ui.js','insights-ui.js','products-ui.js','ui-art.js','price-scout-ui.js','voice-price.js','family-menu-ui.js','voice-recipe.js','household-ui.js','platform-banner.js','personal-ui.js','offline-downloads.js','app-update.js','scout-pair-ui.js','voice-local.js','voice-stats.js','voice-commands.js','onboarding-guide.js','usage-analytics.js','ladybug.js','recipe-community.js','menu-reactions-core.js','menu-reactions-ui.js','receipt-parse.js','receipt-list.js','receipt-ui.js','receipt-match.js','receipt-match-ui.js','sync-merge-ui.js','qty-round.js','compact-layout.js','family-flow.js','app-search.js','app-install.js','kitchen-extras.js','receipt-match-picker.js','receipt-list-ui.js','nav-scroll.js','ladybug-autoplay.js','ladybug-workflows.js','ladybug-audit.js','cook-timing.js','receipt-quality.js','receipt-share.js'];
   // Replaced by the build with the startup pack's content hash. The service worker
   // answers instantly from its cache when hashes match and refreshes in the background.
   const packHash: string = '__BEP_STARTUP_PACK_HASH__';
@@ -49,7 +53,7 @@ interface Window {
     progress.id = 'startup-progress';
     progress.className = 'startup-skeleton';
     progress.setAttribute('role', 'status');
-    progress.setAttribute('aria-label', 'Đang tải / Loading');
+    progress.setAttribute('aria-label', bt('Đang tải','Loading'));
     progress.innerHTML = '<span class="sk-line sk-eyebrow"></span><span class="sk-line sk-title"></span><span class="sk-line sk-sub"></span><span class="sk-row"><span class="sk-pill"></span><span class="sk-pill"></span><span class="sk-pill"></span></span><span class="sk-card"></span><span class="sk-card sk-card-short"></span>';
     main.append(progress);
   }
@@ -77,22 +81,22 @@ interface Window {
     const main = document.querySelector('main') ?? document.body.appendChild(document.createElement('main'));
     main.removeAttribute('aria-busy');
     const heading = document.createElement('h1');
-    heading.textContent = 'Chưa mở được Bếp Nhà / Unable to open FamTray';
+    heading.textContent = bt('Chưa mở được Bếp Nhà','Unable to open FamTray');
     const description = document.createElement('p');
     description.textContent = message;
     const note = document.createElement('p');
-    note.textContent = 'Dữ liệu trên thiết bị vẫn được giữ. / Your device data has been kept.';
+    note.textContent = bt('Dữ liệu trên thiết bị vẫn được giữ.','Your device data has been kept.');
     const retry = document.createElement('button');
-    retry.textContent = 'Thử lại / Retry';
+    retry.textContent = bt('Thử lại','Retry');
     retry.className = 'btn primary';
     retry.style.minHeight = '48px';
     retry.onclick = async () => {
       retry.disabled = true;
-      retry.textContent = 'Đang thử lại… / Retrying…';
+      retry.textContent = bt('Đang thử lại…','Retrying…');
       await recover('/?startup-retry=' + Date.now());
     };
     const login = document.createElement('a');
-    login.textContent = 'Đăng nhập / Sign in';
+    login.textContent = bt('Đăng nhập','Sign in');
     login.href = '/login?locked=1';
     login.className = 'btn';
     login.style.minHeight = '48px';
@@ -102,7 +106,7 @@ interface Window {
   };
   const onError = (event: ErrorEvent): void => {
     if (!booting) return;
-    const error = new Error(`Lỗi khởi động tại ${activeScript || 'bootstrap'}. Hãy thử tải lại. / Startup failed; please retry.`);
+    const error = new Error(bt(`Lỗi khởi động tại ${activeScript || 'bootstrap'}. Hãy thử tải lại.`,'Startup failed; please retry.'));
     console.error('Application startup error', activeScript, event.message);
     showFailure(error.message);
 
@@ -138,7 +142,7 @@ interface Window {
       const response = await fetch(url, { credentials: 'same-origin', cache: fresh ? 'reload' : 'no-cache', signal: controller.signal });
       if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
         if (!fresh) return download(true);
-        throw new Error('Chưa tải được ứng dụng. Thử lại hoặc đăng nhập lại. / Unable to download the app.');
+        throw new Error(bt('Chưa tải được ứng dụng. Thử lại hoặc đăng nhập lại.','Unable to download the app.'));
       }
       const pack: unknown = await response.json();
       const entries = validPack(pack);
@@ -150,15 +154,15 @@ interface Window {
       // when it matches this loader's script order; otherwise force the network.
       if (!entries) {
         if (!fresh) return download(true);
-        throw new Error('Bản tải chưa đầy đủ. Hãy thử tải lại. / Incomplete application download.');
+        throw new Error(bt('Bản tải chưa đầy đủ. Hãy thử tải lại.','Incomplete application download.'));
       }
       return entries;
     };
     try {
       return await download(retrying);
     } catch (error) {
-      if (controller.signal.aborted) throw new Error('Tải ứng dụng quá lâu. Thử lại hoặc đăng nhập lại. / Loading timed out.');
-      if (error instanceof TypeError) throw new Error('Chưa tải được ứng dụng. Kiểm tra kết nối rồi thử lại. / Unable to download the app; check your connection.');
+      if (controller.signal.aborted) throw new Error(bt('Tải ứng dụng quá lâu. Thử lại hoặc đăng nhập lại.','Loading timed out.'));
+      if (error instanceof TypeError) throw new Error(bt('Chưa tải được ứng dụng. Kiểm tra kết nối rồi thử lại.','Unable to download the app; check your connection.'));
       throw error;
     } finally { clearTimeout(timer); }
   };
@@ -269,7 +273,7 @@ interface Window {
     await runHook('@ready');
     document.querySelector('#startup-progress')?.remove();
     document.querySelector('main')?.removeAttribute('aria-busy');
-    if (!document.querySelector('#main')?.textContent?.trim()) throw new Error('Ứng dụng chưa hiển thị nội dung. Hãy thử lại. / The app did not render; please retry.');
+    if (!document.querySelector('#main')?.textContent?.trim()) throw new Error(bt('Ứng dụng chưa hiển thị nội dung. Hãy thử lại.','The app did not render; please retry.'));
     window.BEP_STARTUP.ready = performance.now();
     if (!local && window.BEP_SESSION?.mode==='account') {
       if (pendingConfirmation) void check(pendingConfirmation, true);
@@ -279,7 +283,7 @@ interface Window {
       setInterval(() => { void check(); }, 60000);
     }
   } catch (error) {
-    showFailure(error instanceof Error ? error.message : 'Chưa tải được ứng dụng. / Unable to load the app.');
+    showFailure(error instanceof Error ? error.message : bt('Chưa tải được ứng dụng.','Unable to load the app.'));
   } finally {
     booting = false;
     window.removeEventListener('error', onError);

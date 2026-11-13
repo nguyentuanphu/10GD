@@ -18,7 +18,7 @@ let before=JSON.stringify(s.pantry);const missing=consumeMeal(s,m);check(m.cooke
 const locked=w.days[date].lunch;locked.locked=true;const saved=JSON.stringify(locked.recipes);s.preferences.avoid='tôm';s.preferences.maxTime=30;const result=generateWeek(s,w);check(JSON.stringify(locked.recipes)===saved,'generator preserves locked meals');
 for(const day of Object.values(w.days))for(const type of ['lunch','dinner']){const mm=day[type];if(mm.locked)continue;check(mm.recipes.every(r=>r.time<=30&&!r.ingredients.some(i=>i.id==='shrimp')),'generator applies time and avoidance rules')}
 check(validImport(JSON.parse(JSON.stringify(s))),'exported state can be reimported');let bad=JSON.parse(JSON.stringify(s));bad.pantry[0].qty=-3;check(!validImport(bad),'negative inventory rejected on import');
-check(fmtQty(1500,'g')==='1.5 kg','grams present as kilograms');
+check(fmtQty(1500,'g')==='1,5 kg','grams present as kilograms, with a decimal comma in Vietnamese (Henry, 13 Nov 2026)');check(fmtQtyData(1500,'g')==='1.5 kg','stored amount text keeps the decimal point');{const prevLang=typeof appLanguage!=='undefined'?appLanguage:'vi';appLanguage='en';const enOk=fmtQty(1500,'g')==='1.5 kg'&&fmtQty(1250,'ml')==='1.25 l';appLanguage=prevLang;check(enOk,'English keeps the decimal point')}
 /* Issue #38: counted units (con, cái, bó, …) are bought in whole numbers after scaling, like 'quả'. */
 {INGREDIENTS.qaCon=['Gà ta QA','con','meat',0,'',null];INGREDIENTS.qaBo=['Hành lá QA','bó','veg',0,'',null];
  const cm=clone(m);cm.cooked=false;cm.recipes=[{id:'qa38',name:'QA',ingredients:[{id:'qaCon',qty:1},{id:'qaBo',qty:1},{id:'chicken',qty:500}],servings:4,yield:4}];cm.servings=3.2;
@@ -30,7 +30,7 @@ check(fmtQty(1500,'g')==='1.5 kg','grams present as kilograms');
 vm.runInContext(`
 let soupState=defaults(),soupWeek=ensureWeek(soupState,monday(sydneyDate()));
 const sat=addDays(monday(sydneyDate()),5),sun=addDays(monday(sydneyDate()),6);
-check(soupState.recipes.filter(r=>r.category==='noodle').length===24,'24 weekend soup recipes available');
+/* v1.7.19 (13 Nov 2026): of the 24 quick one-bowl recipes, the 3 cháo are now main dishes and the 3 súp soups (catalog-labels test) */check(soupState.recipes.filter(r=>/^n[0-9]+$/.test(r.id)).length===24&&soupState.recipes.filter(r=>r.category==='noodle').length===18&&soupState.recipes.filter(r=>/^n[0-9]+$/.test(r.id)&&/^Cháo /.test(r.name)&&r.category==='main').length===3&&soupState.recipes.filter(r=>/^n[0-9]+$/.test(r.id)&&/^Súp /.test(r.name)&&r.category==='soup').length===3,'24 quick one-bowl recipes: 18 noodle dishes for weekends, 3 cháo (main), 3 súp (soup)');
 check(soupWeek.days[sat].lunch.recipes.length===1&&soupWeek.days[sat].lunch.recipes[0].category==='noodle','new weekend plan starts with a complete soup meal');
 let soupMeal=createMeal(soupState,'n1');let soupIngredients=mealIngredients(soupMeal,soupState);
 check(!('rice'in soupIngredients),'no automatic rice added to soup meals');

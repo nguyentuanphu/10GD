@@ -10,6 +10,8 @@ import assert from 'node:assert/strict';
 import {readFileSync,mkdirSync} from 'node:fs';
 import {resolve,extname} from 'node:path';
 import {chromium} from 'playwright';
+// v1.7.19 (owner, “Đổi cả 3 chỗ”, rule 29): a receipt line's unit is picked in the shared unit picker, not a plain list.
+const pickLineUnit=async(page:any,line:any,unit:string)=>{await line.locator('.unit-field-btn').click();const chip=page.locator(`#unit-sheet-layer .unit-chip[data-unit-choice="${unit}"]`).first();await page.locator('#unit-sheet-layer .unit-chip').first().waitFor();if(!(await chip.isVisible()))await page.locator('#unit-sheet-layer [data-unit-action="show-all"]').click();await chip.click();await page.locator('#unit-sheet-layer [data-unit-sheet-act="save"]').click();await page.locator('#unit-sheet-layer').waitFor({state:'detached'})};
 const origin='https://kitchen.test',out='docs/reviews/v1.7.16';mkdirSync(out,{recursive:true});
 const mime:any={'.js':'application/javascript','.css':'text/css','.html':'text/html','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.webmanifest':'application/manifest+json'};
 // the ingredient lines of the page Henry imported (netspace.edu.vn, “Cách nấu phở bò ngon như quán”), as its recipe data writes them
@@ -73,8 +75,8 @@ const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tab
    //    dropdown”): the unit fits; the match box finds an ingredient by typing (no accents needed) and adds a new one
    await E(`(()=>{view='today';location.hash='today';render();newReceipt();receiptDraft.items=[{id:'l1',label:'18 XINH-XINH CHA SONG',total:10,match:'',qty:null,unit:'',confidence:'unknown'},{id:'l2',label:'SUNNY FROZEN PRAWN GP CUTLET',total:22.5,match:'',qty:null,unit:'',confidence:'unknown'}];receiptEditor()})()`);
    const line=(i:number)=>page.locator(`#modal-root .receipt-line[data-index="${i}"]`);await line(0).waitFor();
-   const unitFits=await line(0).locator('.receipt-unit').evaluate((s:any)=>{const c=document.createElement('canvas').getContext('2d')!,cs=getComputedStyle(s);c.font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;const text=c.measureText(s.options[s.selectedIndex].text).width;return {text:Math.round(text),room:Math.round(s.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-14)}});
-   assert.ok(unitFits.text<=unitFits.room,`${label}: “${lang==='en'?'Unknown':'Chưa rõ'}” fits in the unit box ${JSON.stringify(unitFits)}`);
+   /* v1.7.19: the unit is the shared picker's button; its words fit without being cut */const unitFits=await line(0).locator('.unit-field-btn').evaluate((b:any)=>({text:b.scrollWidth,room:b.clientWidth,words:b.textContent.trim()}));
+   assert.ok(unitFits.text<=unitFits.room+1&&unitFits.words.length>0,`${label}: the unit button's words fit in the unit box ${JSON.stringify(unitFits)}`);
    assert.equal(await line(0).locator('select.receipt-match').isVisible(),false,`${label}: the long dropdown is replaced`);
    const mbox=line(1).locator('.rm-search');assert.ok((await mbox.boundingBox())!.height>=44,`${label}: match box ≥ 44 px`);
    const prawn:string=await E(`Object.keys(INGREDIENTS).find(id=>INGREDIENTS[id][0]==='Tôm')`);assert.ok(prawn,'Tôm exists');
@@ -83,7 +85,7 @@ const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tab
    await opt.click();assert.equal(await line(1).locator('select.receipt-match').inputValue(),prawn,`${label}: typing “tom” finds Tôm (no accents needed)`);
    assert.equal(await mbox.inputValue(),await E(`shopIngName(${JSON.stringify(prawn)})`),`${label}: the box shows the chosen ingredient`);
    // a name the app does not know yet: add it, in the line's unit
-   await line(0).locator('.receipt-unit').selectOption('kg');const b0=line(0).locator('.rm-search');await b0.click();await b0.fill('Chả song');
+   await pickLineUnit(page,line(0),'kg');const b0=line(0).locator('.rm-search');await b0.click();await b0.fill('Chả song');
    const add=line(0).locator('.rm-new');await add.waitFor();assert.match(await add.innerText(),lang==='en'?/Add a new ingredient: “Chả song”/:/Thêm nguyên liệu mới: “Chả song”/,`${label}: offers to add a new ingredient`);
    await add.click();const made:any=await E(`(()=>{const v=document.querySelector('#modal-root .receipt-line[data-index="0"] select.receipt-match').value;return {v,cat:state.ingredientCatalog?.[v]}})()`);
    assert.ok(/^family-ing-/.test(made.v)&&made.cat?.name==='Chả song'&&made.cat.unit==='g',`${label}: “Chả song” added to the family's ingredients in grams ${JSON.stringify(made)}`);
@@ -98,7 +100,7 @@ const sizes:any={mobile:{width:375,height:812},narrow:{width:320,height:740},tab
    assert.deepEqual(rows.filter(x=>/[:：]/.test(x.name)).map(x=>x.name),[],`${label}: no “:” left in a name`);
    const row=(n:string)=>rows.find(x=>x.name===n);
    for(const [n,q,u] of [['Xương ống bò','0.5','kg'],['Nạm bò','0.5','kg'],['Bò tái','1,2','kg'],['Hoa hồi','6','g'],['Ớt sừng','1','quả'],['Đường phèn','15','g']] as const){const x=row(n);const ok=!!x&&(x.qty===q||+String(x.qty).replace(',','.')===+q.replace(',','.')*(x.unit==='g'&&u==='kg'?1000:1))&&(x.unit===u||(u==='kg'&&x.unit==='g'));assert.ok(ok,`${label}: “${n}” reads ${q} ${u} (got ${JSON.stringify(x)})`)}
-   const got:any=await E(`state.recipes[0].ingredients.map(i=>i.id)`);assert.ok(!got.includes('onion')&&!got.includes('herbs')&&got.includes('ginger')&&got.includes('salt'),`${label}: only lines naming an ingredient become ingredients — Hành tím is not Hành tây, Húng quế / Ngò rí are not added up as Rau thơm ${JSON.stringify(got)}`);
+   /* v1.7.19 (B23): the page is not saved until Lưu, so the draft's matching is read from the importer itself */assert.ok(!(await E(`state.recipes.some(r=>r.source==='https://netspace.edu.vn/cach-nau-pho-bo-ngon-nhu-quan/')`)),`${label}: nothing saved before Lưu`);const got:any=await page.evaluate((lines:string[])=>(globalThis as any).KitchenExtras.recipeFromImport({name:'x',ingredients:lines}).ingredients.map((i:any)=>i.id),PHO);assert.ok(!got.includes('onion')&&!got.includes('herbs')&&got.includes('ginger')&&got.includes('salt'),`${label}: only lines naming an ingredient become ingredients — Hành tím is not Hành tây, Húng quế / Ngò rí are not added up as Rau thơm ${JSON.stringify(got)}`);
    for(const [n,q] of [['Hành tím','25'],['Húng quế','50'],['Ngò rí','20']] as const)assert.ok(row(n)?.qty===q,`${label}: “${n}” kept as its own line with ${q} g (${JSON.stringify(row(n))})`);
    for(const n of ['Rễ ngò rí','Hành tây','Tương ớt/Tương đen'])assert.ok(row(n)&&!row(n).qty,`${label}: “${n}” has no amount on the page, none is invented`);
    await page.locator('#family-recipe-form .rc-ing-row').nth(3).scrollIntoViewIfNeeded();await shot('import-name-colon');await E('closeModal()');

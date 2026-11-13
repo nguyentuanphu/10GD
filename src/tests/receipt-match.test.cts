@@ -9,7 +9,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const {GENERIC_RECEIPTS}=require('./fixtures/generic-receipts.cjs');
 const {RECEIPTS}=require('./fixtures/receipts.cjs');
 const ctx=vm.createContext({console,Intl,Date,Math,TextEncoder});
-vm.runInContext(['seed','core','spending-core','receipt-parse','receipt-match'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n;\n')+'\n;this.R=ReceiptParse;this.M=ReceiptMatch;this.I=INGREDIENTS;this.AL=INGREDIENT_ALIASES;',ctx);
+vm.runInContext(['store-registry','seed','core','spending-core','receipt-parse','receipt-match'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n;\n')+'\n;this.R=ReceiptParse;this.M=ReceiptMatch;this.I=INGREDIENTS;this.AL=INGREDIENT_ALIASES;',ctx);
 const R=ctx.R,M=ctx.M,I=ctx.I;let n=0;const check=(name:string,fn:()=>void)=>{fn();n++;console.log('PASS',name)};
 const J=(x:any)=>JSON.parse(JSON.stringify(x));
 const goods=(r:any)=>r.items.filter((i:any)=>i.kind==='item');
@@ -65,6 +65,11 @@ check('total constraint + joint pass: combinations that do not add up rank lower
  assert.deepEqual(J(s.lines[0].suggestions[0].targets).sort(),['i:scallion','i:waterSpinach'],'jointly: 3.20 + 1.50 = 4.70 and cải = 4.80');assert.deepEqual(J(s.lines[1].suggestions[0].targets),['i:bokchoy']);
  assert.ok(s.lines[0].suggestions[0].joint&&s.lines[0].suggestions[0].reasons.some((r:any)=>r.code==='total'));assert.equal(s.totalNote,null);
  const gap=M.suggest({lines,basket,history:h,printedTotal:12,knownTotal:0});assert.equal(gap.totalNote.code,'total-gap');assert.match(gap.totalNote.vi,/\$12\.00 nhưng cộng lại \$9\.50/);assert.equal(gap.totalNote.value,2.5)});
+check('re-check 13 Nov 2026 (B13): the total gap is written in the receipt currency, with its sign',()=>{
+ const lines=[{price:150000,label:'THIT BO',order:0}],basket=[item('beef')];
+ const v=M.suggest({lines,basket,printedTotal:100000,knownTotal:0,currency:'VND'});
+ assert.equal(v.totalNote.value,-50000);assert.ok(!/\$/.test(v.totalNote.vi),'no dollar sign for đồng: '+v.totalNote.vi);assert.match(v.totalNote.vi,/150\.000/);assert.match(v.totalNote.vi,/100\.000/);
+ const a=M.suggest({lines:[{price:9.5,label:'x',order:0}],basket,printedTotal:9,knownTotal:0});assert.match(a.totalNote.vi,/\$9\.00/,'AUD unchanged')});
 check('deterministic: same input → same ranking',()=>{const args={lines:[{index:0,price:3.2,label:'VEG',genericKey:'l:veg'},{index:1,price:11.04,label:'MEAT',genericKey:'l:meat',weightKg:0.85,perKg:12.99}],basket:[item('pork','2026-11-02T09:00:00Z'),item('waterSpinach','2026-11-02T08:00:00Z'),item('beef')],history};
  const a=JSON.stringify(M.suggest(args)),b=JSON.stringify(M.suggest({...args,basket:[...args.basket].reverse()}));assert.equal(a,b)});
 

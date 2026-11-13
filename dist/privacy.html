@@ -55,10 +55,10 @@ html[data-lang="vi"] [lang="en"].doc,html[data-lang="en"] [lang="vi"].doc{displa
 
 <main class="doc" lang="vi" id="vi">
  <h1>Quyền riêng tư</h1>
- <p class="updated">Cập nhật: 12/11/2026</p>
+ <p class="updated">Cập nhật: 13/11/2026</p>
  <p class="lead">Trang này nói rõ ứng dụng lưu gì, vì sao, ai xem được, và bạn tắt hoặc xoá ra sao. Đây là bản chính thức, thay cho các bản nháp trước đây. Điều khoản sử dụng ở trang <a href="/terms.html">Điều khoản</a>.</p>
  <nav class="toc" aria-label="Mục lục"><ul>
-  <li><a href="#family">Dữ liệu gia đình</a></li><li><a href="#community">Giá cộng đồng</a></li><li><a href="#voice">Giọng nói</a></li><li><a href="#usage">Thống kê sử dụng</a></li><li><a href="#scout">Tiện ích So Giá</a></li><li><a href="#community-recipes">Món ăn cộng đồng</a></li><li><a href="#receipt-text">Gửi chữ hoá đơn</a></li><li><a href="#contact">Liên hệ</a></li>
+  <li><a href="#family">Dữ liệu gia đình</a></li><li><a href="#community">Giá cộng đồng</a></li><li><a href="#voice">Giọng nói</a></li><li><a href="#usage">Thống kê sử dụng</a></li><li><a href="#scout">Tiện ích So Giá</a></li><li><a href="#community-recipes">Món ăn cộng đồng</a></li><li><a href="#receipt-text">Gửi chữ hoá đơn</a></li><li><a href="#contact">Liên hệ</a></li><li><a href="#outside">Gọi ra ngoài</a></li>
  </ul></nav>
 
  <section id="family" aria-labelledby="vi-family"><h2 id="vi-family">1. Dữ liệu gia đình</h2>
@@ -139,14 +139,22 @@ html[data-lang="vi"] [lang="en"].doc,html[data-lang="en"] [lang="vi"].doc{displa
   <p>Hỏi về dữ liệu của gia đình, xin xuất hoặc xoá: liên hệ <b>chủ gia đình</b> qua ứng dụng (Bếp của tôi → Thành viên). Chủ gia đình sẽ chuyển yêu cầu tới người vận hành ứng dụng khi cần.</p>
   <p class="muted">Khi điều khoản thay đổi, ngày cập nhật ở đầu trang sẽ đổi và ứng dụng có thể hiện một thông báo nhỏ.</p>
  </section>
+
+ <section id="outside" aria-labelledby="vi-outside"><h2 id="vi-outside">9. Những lần app gọi ra ngoài</h2>
+  <ul><li><b>Thời tiết:</b> khi gia đình chọn thành phố trong "Thời tiết", app gửi tên thành phố đó tới máy chủ của app. Máy chủ hỏi nhiệt độ ở Open-Meteo và giữ nhiệt độ mới nhất theo thành phố, không kèm gia đình hay tài khoản.</li>
+  <li><b>Tìm giá online:</b> từ tìm kiếm tiếng Anh bạn gõ hoặc xác nhận (ví dụ "gravy beef") được lưu trong một danh sách chung, không kèm tên gia đình, tài khoản hay tên món của bạn. App dùng từ đó để hỏi giá ở các siêu thị trực tuyến. Giá tìm được hiện cho mọi gia đình đã tìm cùng từ, và người vận hành thấy danh sách từ này.</li>
+  <li><b>Thống kê giọng nói</b> (thêm cho mục 3): cùng với chữ đã xác nhận, app gửi một mã gia đình đã mã hoá một chiều (không đọc ngược ra tên hay tài khoản, nhưng giống nhau mỗi lần, nên các lần gửi của một gia đình nối được với nhau) và một mã ngẫu nhiên của máy, dùng để xoá dữ liệu khi bạn tắt.</li>
+  <li><b>Cập nhật app:</b> mọi máy, kể cả khi dùng không tài khoản, gửi một ghi chú kỹ thuật khi app tự cập nhật: loại sự kiện, lý do, kết quả và số phiên bản. Không kèm dữ liệu gia đình.</li>
+  <li><b>Thư viện và hình ảnh tải từ bên ngoài:</b> máy bạn tải trực tiếp phông chữ từ Google Fonts (mỗi lần mở app), thư viện đọc hoá đơn và nhận giọng nói từ jsDelivr, gói giọng nói từ Hugging Face, và ảnh sản phẩm từ trang của siêu thị (Coles, Woolworths, ALDI, Harris Farm, WhichGrocer). Những nơi này thấy địa chỉ IP, loại trình duyệt và thời điểm tải, như khi bạn mở bất kỳ trang web nào. Không gửi dữ liệu gia đình, ảnh hoá đơn hay âm thanh.</li></ul>
+ </section>
 </main>
 
 <main class="doc" lang="en" id="en">
  <h1>Privacy</h1>
- <p class="updated">Updated: 12 Nov 2026</p>
+ <p class="updated">Updated: 13 Nov 2026</p>
  <p class="lead">What the app stores, why, who can see it, and how to turn it off or delete it. This is the final version and replaces the earlier drafts. The terms of use are on the <a href="/terms.html">Terms</a> page.</p>
  <nav class="toc" aria-label="Contents"><ul>
-  <li><a href="#family">Family data</a></li><li><a href="#community">Community prices</a></li><li><a href="#voice">Voice</a></li><li><a href="#usage">Usage statistics</a></li><li><a href="#scout">Price Check extension</a></li><li><a href="#community-recipes">Community recipes</a></li><li><a href="#receipt-text">Receipt text</a></li><li><a href="#contact">Contact</a></li>
+  <li><a href="#family">Family data</a></li><li><a href="#community">Community prices</a></li><li><a href="#voice">Voice</a></li><li><a href="#usage">Usage statistics</a></li><li><a href="#scout">Price Check extension</a></li><li><a href="#community-recipes">Community recipes</a></li><li><a href="#receipt-text">Receipt text</a></li><li><a href="#contact">Contact</a></li><li><a href="#outside">Reaching outside</a></li>
  </ul></nav>
 
  <section id="family-en" aria-labelledby="en-family"><h2 id="en-family">1. Family data</h2>
@@ -226,6 +234,14 @@ html[data-lang="vi"] [lang="en"].doc,html[data-lang="en"] [lang="vi"].doc{displa
  <section id="contact-en" aria-labelledby="en-contact"><h2 id="en-contact">8. Contact</h2>
   <p>For questions about your family’s data, or to request an export or deletion, contact the <b>family owner</b> through the app (My kitchen → Members). The family owner passes requests on to the app operator when needed.</p>
   <p class="muted">When these terms change, the date at the top changes and the app may show a small notice.</p>
+ </section>
+
+ <section id="outside-en" aria-labelledby="en-outside"><h2 id="en-outside">9. When the app reaches outside</h2>
+  <ul><li><b>Weather:</b> when the family picks a city in "Weather", the app sends that city to the app's server, which asks Open-Meteo for the temperature and keeps the latest reading per city, with no family or account attached.</li>
+  <li><b>Find prices online:</b> the English search word you type or confirm (e.g. "gravy beef") is kept in one shared list, without your family, account or dish name. The app uses it to ask online supermarkets for prices; the prices found show for every family that searched the same word, and the operator can see the list of words.</li>
+  <li><b>Voice statistics</b> (adds to section 3): with the confirmed words the app sends a one-way coded family code (it cannot be turned back into a name or account, but it is the same each time, so one family's reports can be linked) and a random code for the device, used to delete the data when you turn it off.</li>
+  <li><b>App updates:</b> every device, including device-only use, sends a technical note when the app updates itself: the event, the reason, the result and the version. No family data.</li>
+  <li><b>Libraries and pictures loaded from elsewhere:</b> your device loads fonts from Google Fonts (each time the app opens), the receipt-reading and voice libraries from jsDelivr, voice packs from Hugging Face, and product photos from supermarket sites (Coles, Woolworths, ALDI, Harris Farm, WhichGrocer). These sites see your IP address, browser type and the time, as with any web page. No family data, receipt photos or sound are sent.</li></ul>
  </section>
 </main>
 </div>

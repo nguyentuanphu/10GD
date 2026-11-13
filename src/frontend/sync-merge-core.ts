@@ -20,7 +20,8 @@ const SYNC_META=new Set(['updatedAt','updatedBy']);
 const SYNC_RECIPE_CONTENT=['name','ingredients','steps','prep'];
 // Arrays that are whole values (recipe content, cooked-meal records, reaction histories, a meal's chosen dishes).
 // v1.7.16: a meal's guest groups are one value too, so a removal on one device is not undone by a change on another
-const SYNC_ATOMIC=new Set(['ingredients','steps','consumed','h','why','missingIngredients','guests']);
+// v1.7.19: a recipe's line order is one value as well (a union of two orders would repeat or shuffle lines)
+const SYNC_ATOMIC=new Set(['ingredients','steps','consumed','h','why','missingIngredients','guests','lineOrder']);
 const SYNC_TOMBSTONE_DAYS=120,SYNC_TOMBSTONE_MAX=4000,SYNC_REVISION_MAX=200;
 const syncIsObj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
 function syncEq(a,b){if(a===b)return true;if(typeof a!==typeof b||!a||!b||typeof a!=='object')return false;if(Array.isArray(a)){if(!Array.isArray(b)||a.length!==b.length)return false;for(let i=0;i<a.length;i++)if(!syncEq(a[i],b[i]))return false;return true}if(Array.isArray(b))return false;const ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;for(const k of ka){if(!Object.hasOwn(b,k)||!syncEq(a[k],b[k]))return false}return true}
@@ -57,6 +58,8 @@ function mergeFamilyStates(base,local,remote,{now=Date.now()}={}){
  const ctx={now,hasBase:syncIsObj(base),notes:[],conflicts:[],revisions:[],merged:0,tombL:syncIsObj(local?.syncTombstones)?local.syncTombstones:{},tombR:syncIsObj(remote?.syncTombstones)?remote.syncTombstones:{}};
  const b=ctx.hasBase?base:undefined;
  const out=syncM(b,local,remote,[],ctx,syncTs(local),syncTs(remote),false);
+ if(ctx.hasBase&&syncIsObj(out))syncPantryConsumption(b,local,remote,out,ctx);
+ if(syncIsObj(out)&&Array.isArray(out.customUnits))out.customUnits=syncDedupeCustomUnits(out.customUnits);
  // Tombstones: union; a tombstone whose item survived the merge (edited elsewhere) is dropped so it stays kept.
  const tomb=syncMergeTombstones(local?.syncTombstones,remote?.syncTombstones,now);
  for(const k of Object.keys(tomb))if(syncResolve(out,k.split('/'))!==undefined)delete tomb[k];
@@ -65,6 +68,37 @@ function mergeFamilyStates(base,local,remote,{now=Date.now()}={}){
  if(Array.isArray(out.recipeRevisions)&&out.recipeRevisions.length>SYNC_REVISION_MAX){const keep=[...out.recipeRevisions].sort((x,y)=>Number(!!y.open)-Number(!!x.open)||(y.at||0)-(x.at||0)).slice(0,SYNC_REVISION_MAX);out.recipeRevisions=out.recipeRevisions.filter(x=>keep.includes(x))}
  return{state:out,notes:ctx.notes,conflicts:ctx.conflicts,changedLocal:!syncEq(out,local),changedRemote:!syncEq(out,remote)};
 }
+// v1.7.19 audit C9: cooking takes an amount out of a pantry lot; it is a change by a difference, not a new value. When both devices
+// changed a lot only by cooking (or undoing a cook) since the base, the lot is recomputed from the merged cooked-meal records:
+// qty = (base qty + what the base had taken) − what the merged meals have taken. Two meals cooked from one 1000 g lot on two
+// devices leave 0 g, not the 500 g that last-writer-wins kept. A lot changed by hand on either side still merges as before.
+function syncConsumedByLot(st){const out=new Map();if(!syncIsObj(st))return out;const add=(list)=>{if(!Array.isArray(list))return;for(const c of list)if(c&&typeof c.lotId==='string'&&Number.isFinite(c.qty))out.set(c.lotId,(out.get(c.lotId)||0)+c.qty)};
+ for(const w of Object.values(syncIsObj(st.weeks)?st.weeks:{}))for(const day of Object.values(syncIsObj(w?.days)?w.days:{}))if(syncIsObj(day))for(const m of Object.values(day))if(syncIsObj(m))add(m.consumed);
+ for(const b of Object.values(syncIsObj(st.familyBatches)?st.familyBatches:{}))if(syncIsObj(b)&&syncIsObj(b.cookRecord))add(b.cookRecord.consumed);return out}
+function syncPantryConsumption(base,local,remote,out,ctx){if(!Array.isArray(base?.pantry)||!Array.isArray(out.pantry))return;
+ const CB=syncConsumedByLot(base),CL=syncConsumedByLot(local),CR=syncConsumedByLot(remote),CM=syncConsumedByLot(out);
+ const lotOf=(st,id)=>Array.isArray(st?.pantry)?st.pantry.find(p=>syncIsObj(p)&&p.id===id):undefined;
+ const sameExceptQty=(a,b)=>{if(!a||!b)return true;const strip=x=>{const o={...x};delete o.qty;delete o.updatedAt;delete o.updatedBy;if(syncIsObj(o.purchase)){o.purchase={...o.purchase};delete o.purchase.amount}return o};return syncEqContent(strip(a),strip(b))};
+ let changed=false;
+ for(const bl of base.pantry){if(!syncIsObj(bl)||typeof bl.id!=='string'||!Number.isFinite(bl.qty))continue;const id=bl.id,ll=lotOf(local,id),rl=lotOf(remote,id);
+  const total=bl.qty+(CB.get(id)||0),side=(lot,C)=>(lot?+lot.qty||0:0)+(C.get(id)||0);
+  // each side: the lot is only changed by cooking (qty + taken is unchanged; a used-up lot counts as 0), and something was taken
+  if(Math.abs(side(ll,CL)-total)>.01||Math.abs(side(rl,CR)-total)>.01)continue;if(!sameExceptQty(bl,ll)||!sameExceptQty(bl,rl))continue;
+  if((CL.get(id)||0)===(CB.get(id)||0)||(CR.get(id)||0)===(CB.get(id)||0))continue;// only one side cooked from it: the normal merge is right
+  const qty=Math.max(0,Math.round((total-(CM.get(id)||0))*1000)/1000),idx=out.pantry.findIndex(p=>syncIsObj(p)&&p.id===id);
+  const scale=(lot)=>{if(syncIsObj(lot.purchase)){if(lot.purchase.basePerUnit>0)lot.purchase.amount=lot.qty/lot.purchase.basePerUnit;else if(bl.qty>0&&Number.isFinite(bl.purchase?.amount))lot.purchase.amount=lot.qty>0?Math.round(bl.purchase.amount*lot.qty/bl.qty*100)/100:0}};
+  if(qty<=.01){if(idx>=0){out.pantry.splice(idx,1);changed=true}ctx.notes=ctx.notes.filter(n=>n.path!=='pantry/'+id);continue}
+  if(idx>=0){if(out.pantry[idx].qty!==qty){out.pantry[idx]={...out.pantry[idx],qty};scale(out.pantry[idx]);changed=true}}
+  else{const keep={...syncClone(ll||rl||bl),qty};scale(keep);out.pantry.push(keep);changed=true}}
+ return changed}
+// v1.7.19 audit C18: one family unit per name. The same unit made on two devices (two ids) becomes one; the copy with a conversion
+// wins, then the older one. Stored purchases keep the unit by its name, so nothing that uses it changes.
+function syncDedupeCustomUnits(list){const key=n=>String(n??'').normalize('NFC').trim().toLowerCase().replace(/\s+/g,' ');const byName=new Map(),out=[];
+ for(const u of list){if(!syncIsObj(u)||typeof u.name!=='string'){out.push(u);continue}const k=key(u.name),prev=byName.get(k);if(!prev){byName.set(k,u);out.push(u);continue}
+  const hasConv=x=>x.base!=null&&Number.isFinite(x.perBase);let win=prev,lose=u;if(hasConv(u)&&!hasConv(prev)||hasConv(u)===hasConv(prev)&&String(u.createdAt||'')<String(prev.createdAt||''))[win,lose]=[u,prev];
+  const merged={...win};if(!hasConv(merged)&&hasConv(lose)){merged.base=lose.base;merged.perBase=lose.perBase}if(merged.ingredient===undefined&&lose.ingredient!==undefined)merged.ingredient=lose.ingredient;if(merged.hidden&&!lose.hidden)delete merged.hidden;
+  out[out.indexOf(prev)]=merged;byName.set(k,merged)}
+ return out}
 function syncM(b,l,r,path,ctx,tl,tr,inKeyed){
  if(syncEq(l,r))return l;
  if(ctx.hasBase&&syncEq(b,l))return r;

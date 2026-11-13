@@ -22,6 +22,8 @@ const API='/.netlify/functions/feedback';
 const K={pos:'bep-ladybug-pos',min:'bep-ladybug-min',status:'bep-ladybug-status',out:'bep-feedback-outbox',device:'bep-feedback-device',mine:'bep-feedback-mine'};
 const OUTBOX_MAX=10,HOLD_MS=600,TAP_MS=320,MOVE_PX=8,STATUS_EVERY=10*60000,FLUSH_EVERY=60000,REQ_MS=20000;
 const T=(vi:string,en:string)=>typeof tr==='function'?tr(vi,en):(typeof appLanguage!=='undefined'&&appLanguage==='en'?en:vi);
+// v1.7.19 (rule 22): report times in the family's zone (Sydney by default), not the device's; display only, nothing sent changes
+const lbWhen=(at:any,l:string,time=true)=>typeof appTimeLabel==='function'?appTimeLabel(at,{year:true,time,zone:time,lang:l==='en'?'en':'vi'}):new Date(at).toLocaleString('en-AU',{timeZone:'Australia/Sydney'});
 const esc=(v:any)=>String(v??'').replace(/[&<>"']/g,(c:string)=>(({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}) as any)[c]);
 const get=(k:string,d:any=null)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}};
 const put=(k:string,v:any)=>{try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,JSON.stringify(v));return true}catch{return false}};
@@ -49,7 +51,7 @@ function context(){
  return{route:/^[a-z]/.test(route)?route:'today',view:kind.slice(0,30),modal:!!m,edition:typeof APP_EDITION==='number'?APP_EDITION:null,build:String((globalThis as any).BEP_BUILD||'')||null,platform:platformClass(),standalone,
   lang:typeof appLanguage!=='undefined'&&appLanguage==='en'?'en':'vi',theme:document.documentElement.dataset.theme==='dark'?'dark':'light',viewport:`${Math.round(innerWidth)}x${Math.round(innerHeight)}`,online:online(),account:accountMode(),clientAt:Date.now()};
 }
-function contextRows(c:any){const yes=T('có','yes'),no=T('không','no');return[[T('Trang','Page'),'#'+c.route+(c.view?' · '+c.view:'')],[T('Phiên bản','Version'),`${c.edition??'—'} · ${c.build||'—'}`],[T('Loại máy','Device class'),({mobile:T('điện thoại','phone'),tablet:T('máy tính bảng','tablet'),desktop:T('máy tính','computer')} as any)[c.platform]+(c.standalone?' · '+T('app đã cài','installed app'):'')],[T('Ngôn ngữ · giao diện','Language · theme'),`${c.lang.toUpperCase()} · ${c.theme==='dark'?T('tối','dark'):T('sáng','light')}`],[T('Kích thước màn hình','Screen size'),c.viewport],[T('Trực tuyến','Online'),c.online?yes:no],[T('Thời gian','Time'),new Date(c.clientAt).toLocaleString(c.lang==='en'?'en-AU':'vi-VN')]]}
+function contextRows(c:any){const yes=T('có','yes'),no=T('không','no');return[[T('Trang','Page'),'#'+c.route+(c.view?' · '+c.view:'')],[T('Phiên bản','Version'),`${c.edition??'—'} · ${c.build||'—'}`],[T('Loại máy','Device class'),({mobile:T('điện thoại','phone'),tablet:T('máy tính bảng','tablet'),desktop:T('máy tính','computer')} as any)[c.platform]+(c.standalone?' · '+T('app đã cài','installed app'):'')],[T('Ngôn ngữ · giao diện','Language · theme'),`${c.lang.toUpperCase()} · ${c.theme==='dark'?T('tối','dark'):T('sáng','light')}`],[T('Kích thước màn hình','Screen size'),c.viewport],[T('Trực tuyến','Online'),c.online?yes:no],[T('Thời gian','Time'),lbWhen(c.clientAt,c.lang)]]}
 
 // ---------- server ----------
 async function call(op:string,{method='GET',body}:any={}){
@@ -210,9 +212,9 @@ function sheetHTML(){const c=context(),q=outbox(),items=mineCache?.items||[],unr
   <details class="lb-ctx"><summary>${T('Thông tin kỹ thuật gửi kèm','Technical details sent with it')}</summary><dl>${contextRows(c).map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}<div><dt>${T('Lỗi gần đây của app','Recent app errors')}</dt><dd>${errors.length?`<ul>${errors.map(e=>`<li>${esc(scrub(e))}</li>`).join('')}</ul>`:T('không có','none')}</dd></div></dl><p class="lb-hint">${T('Không gửi tên, email, công thức hay dữ liệu gia đình — trừ khi chúng hiện trong ảnh bạn chọn gửi.','No names, email, recipes or family data are sent — unless they appear in a picture you choose to send.')} <a href="/feedback-privacy.html" target="_blank" rel="noopener">${T('Quyền riêng tư','Privacy')}</a></p></details>
   <p class="lb-status" role="status" aria-live="polite" id="lb-status"></p>
   <div class="lb-foot"><button type="button" class="lb-btn" data-act="retry" ${q.length?'':'hidden'}>↻ ${T('Gửi lại','Retry')}</button><button type="button" class="lb-btn" data-act="close">${T('Huỷ','Cancel')}</button><button type="button" class="lb-btn lb-primary" data-act="send">${T('Gửi','Send')}</button></div></div>`;
- const waiting=q.map((r:any)=>`<li class="lb-item lb-waiting"><div class="lb-item-top"><span class="lb-chip">${T('Đang chờ gửi','Waiting to send')}</span><span class="lb-when">${esc(new Date(r.at).toLocaleString(c.lang==='en'?'en-AU':'vi-VN'))}</span></div><p><b>${esc(typeName(r.body.type))}</b> · ${esc(r.body.note.slice(0,160))}</p>${r.droppedShot?`<p class="lb-hint">${T('Ảnh không lưu được trên máy khi ngoại tuyến; chỉ gửi chữ.','The picture could not be kept offline; only the text will be sent.')}</p>`:''}</li>`).join('');
- const sent=items.map((x:any)=>`<li class="lb-item${x.unread?' lb-unread':''}" data-id="${esc(x.id)}"><div class="lb-item-top"><span class="lb-chip lb-s-${esc(x.status)}">${esc(T(...(STATUS_WORDS[x.status]||STATUS_WORDS.new) as [string,string]))}</span><span class="lb-when">${esc(new Date(x.at).toLocaleString(c.lang==='en'?'en-AU':'vi-VN'))}</span></div><p><b>${esc(typeName(x.type))}</b> · ${esc(x.note.slice(0,240))}${x.hasShot?' <span aria-label="'+T('có ảnh','with picture')+'">📷</span>':''}</p>
-  ${x.replies.length?`<ul class="lb-replies">${x.replies.map((r:any)=>`<li><b>${T('Nhóm làm app','App team')}</b> <span class="lb-when">${esc(new Date(r.at).toLocaleDateString(c.lang==='en'?'en-AU':'vi-VN'))}</span><p>${esc(r.text)}</p></li>`).join('')}</ul>`:''}
+ const waiting=q.map((r:any)=>`<li class="lb-item lb-waiting"><div class="lb-item-top"><span class="lb-chip">${T('Đang chờ gửi','Waiting to send')}</span><span class="lb-when">${esc(lbWhen(r.at,c.lang))}</span></div><p><b>${esc(typeName(r.body.type))}</b> · ${esc(r.body.note.slice(0,160))}</p>${r.droppedShot?`<p class="lb-hint">${T('Ảnh không lưu được trên máy khi ngoại tuyến; chỉ gửi chữ.','The picture could not be kept offline; only the text will be sent.')}</p>`:''}</li>`).join('');
+ const sent=items.map((x:any)=>`<li class="lb-item${x.unread?' lb-unread':''}" data-id="${esc(x.id)}"><div class="lb-item-top"><span class="lb-chip lb-s-${esc(x.status)}">${esc(T(...(STATUS_WORDS[x.status]||STATUS_WORDS.new) as [string,string]))}</span><span class="lb-when">${esc(lbWhen(x.at,c.lang))}</span></div><p><b>${esc(typeName(x.type))}</b> · ${esc(x.note.slice(0,240))}${x.hasShot?' <span aria-label="'+T('có ảnh','with picture')+'">📷</span>':''}</p>
+  ${x.replies.length?`<ul class="lb-replies">${x.replies.map((r:any)=>`<li><b>${T('Nhóm làm app','App team')}</b> <span class="lb-when">${esc(lbWhen(r.at,c.lang,false))}</span><p>${esc(r.text)}</p></li>`).join('')}</ul>`:''}
   ${x.canConfirm?`<div class="lb-row"><button type="button" class="lb-btn lb-primary" data-confirm="1" data-id="${esc(x.id)}">✓ ${T('Đã ổn','Yes, fixed')}</button><button type="button" class="lb-btn" data-confirm="0" data-id="${esc(x.id)}">${T('Vẫn còn lỗi','Still wrong')}</button></div>`:''}</li>`).join('');
  const mine=`<div class="lb-panel" role="tabpanel" id="lb-panel-mine" aria-labelledby="lb-tab-mine" ${tab==='mine'?'':'hidden'}>${!online()&&!mineCache?`<p class="lb-hint">${T('Đang ngoại tuyến. Danh sách sẽ hiện khi có mạng.','Offline. The list appears when you are online.')}</p>`:''}${mineLoading&&!mineCache?`<p class="lb-hint">${T('Đang tải…','Loading…')}</p>`:''}
   ${waiting||sent?`<ul class="lb-list">${waiting}${sent}</ul>`:(mineCache?`<p class="lb-empty">${T('Chưa có góp ý nào. Chạm con bọ rùa khi thấy gì chưa ổn.','Nothing yet. Tap the ladybug when something looks wrong.')}</p>`:'')}
@@ -281,7 +283,7 @@ function wire(){
 // ---------- start (after load, when idle; never blocks startup) ----------
 let started=false;
 function start(){if(started)return;started=true;
- apply();void refresh().then(()=>flush());
+ apply();void refresh().then(()=>{flush();openMineFromLink()});
  addEventListener('online',()=>{void refresh().then(()=>flush())});addEventListener('offline',()=>{paint();if(layer)render()});
  addEventListener('bep-connectivity',()=>{if(online()){void refresh().then(()=>flush())}if(layer)render()});
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&status?.at&&Date.now()-status.at>STATUS_EVERY)void refresh()});
@@ -291,6 +293,12 @@ function start(){if(started)return;started=true;
 // v1.7.16 (owner, 8 Nov 2026: “cái nào không dùng được nó sẽ tự pick lỗi”; pop-up: send automatically): the self-test sends what
 // failed as one report, through the same outbox as a report the family writes (kept on the device when offline)
 function autoReport(note:string,shot?:string|null){const ctx=context();ctx.queued=!online();(ctx as any).selfTest=true;return enqueue({clientId:rid(18),type:'bug',note:String(note).slice(0,1000),ctx,errors:errors.map(scrub),shot:shot||null})}
+// v1.7.19 (owner pop-up, 12 Nov 2026: “mở thẳng Góp ý của tôi”): a reply notification links to #today?lb=mine — open the
+// ladybug on that tab once we know it is shown for this person, and leave a plain #today behind
+let mineLinkAtLoad=/^#today\?lb=mine$/.test(location.hash);
+function openMineFromLink(){if(!mineLinkAtLoad&&!/^#today\?lb=mine$/.test(location.hash))return;mineLinkAtLoad=false;try{history.replaceState(history.state,'',location.pathname+location.search+'#today')}catch{}
+ const go=()=>{if(visible()){apply();openSheet('mine')}};if(status?.visible)go();else void refresh().then(go)}
+addEventListener('hashchange',openMineFromLink);
 (globalThis as any).bepLadybug={autoReport,refresh,flush,open:openSheet,close:closeSheet,outbox,reset:resetPos,minimize:setMin,layout,setPosition:(side:string,y:number)=>{saved={side,y};put(K.pos,saved);layout()},state:()=>({visible:visible(),mounted:!!btn,minimized,saved,status,yielded,queued:outbox().length,sheet:!!layer,tab}),capture:captureScreen};
 const idle=(f:any)=>typeof (globalThis as any).requestIdleCallback==='function'?(globalThis as any).requestIdleCallback(f,{timeout:3000}):setTimeout(f,1200);
 if(document.readyState==='complete')idle(start);else addEventListener('load',()=>idle(start),{once:true});

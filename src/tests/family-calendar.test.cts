@@ -3,7 +3,7 @@
 // Runs the real frontend scripts in a VM (no DOM). Synthetic family: 3 adults, 2 children.
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const c=vm.createContext({console,Intl,Date,Math,URL,structuredClone,crypto:require('node:crypto').webcrypto});
-for(const f of ['seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','menu-reactions-core.js','sync-merge-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
+for(const f of ['store-registry.js','seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','menu-reactions-core.js','sync-merge-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
 const run=(code:string)=>vm.runInContext(code,c),J=(code:string)=>JSON.parse(JSON.stringify(run(code)));let passed=0;const ok=(n:string)=>{passed++;console.log('✓',n)};
 run(`globalThis.fam=()=>{const s=defaults();s.weeks={};s.pantry=[];s.members=[{id:'dad',name:'Bố',weight:1},{id:'mum',name:'Mẹ',weight:1},{id:'ti',name:'Cậu Tí',weight:1},{id:'big',name:'Bé lớn',weight:.65},{id:'little',name:'Bé nhỏ',weight:.5}].map(m=>({...m,emoji:'🙂'}));return s}`);
 

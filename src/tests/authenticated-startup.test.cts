@@ -69,7 +69,7 @@ async function main() {
    const context=await browser.newContext({locale:'vi-VN',viewport,serviceWorkers:'allow',reducedMotion:'reduce'}),page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
    const reads=counters.privateReads,writes=counters.privateWrites;
    await page.goto(origin,{waitUntil:'domcontentloaded'});await page.locator('[data-device-mode]').waitFor();assert.equal(new URL(page.url()).pathname,'/');
-   await page.locator('.kitchen-action-dock [data-personal=settings]').click();await page.locator('#settings-form input[name=budget]').fill('321');await page.locator('[data-action=submit-form][data-id=settings-form]').click();
+   await page.locator('.kitchen-action-dock [data-personal=settings]').click();await page.locator('#settings-form input[name=budget]').fill('321');await page.locator('[data-action=submit-form][data-id~=settings-form]').click();
    await page.evaluate(()=>{location.hash='shopping'});await page.waitForTimeout(100);assert.match(await page.locator('#main').innerText(),/Đi chợ|Shopping/);
    assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),321);
    if(name==='mobile'){
@@ -156,7 +156,7 @@ async function main() {
   await page.waitForFunction(()=>globalThis.BEP_SESSION?.household?.id&&localStorage.getItem('account/'+globalThis.BEP_SESSION.household.id+'/bep-gia-dinh-v1'));
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('guest/bep-gia-dinh-v1')).preferences.budget),guestBudget);
   await page.waitForFunction(()=>!cloudConnection.checking&&!cloudConnection.syncing);await page.keyboard.press('Escape');
-  await page.locator('.kitchen-action-dock [data-personal=settings]').click();await page.locator('#settings-form input[name=budget]').fill('777');await page.locator('[data-action=submit-form][data-id=settings-form]').click();await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
+  await page.locator('.kitchen-action-dock [data-personal=settings]').click();await page.locator('#settings-form input[name=budget]').fill('777');await page.locator('[data-action=submit-form][data-id~=settings-form]').click();await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
   const familyId=await page.evaluate(()=>globalThis.BEP_SESSION.household.id),ownerUsername=await page.evaluate(()=>accountSession.account.username);
   for(const [size,viewport] of Object.entries({narrow:{width:320,height:740},mobile:{width:375,height:812},tablet:{width:820,height:1100},desktop:{width:1280,height:800}})){
    await page.setViewportSize(viewport);await page.evaluate(()=>{location.hash='today'});await page.waitForTimeout(100);
@@ -186,7 +186,7 @@ async function main() {
   await page.locator('[data-fm=generate]').click();await page.locator('[data-fm=apply]').waitFor();await page.locator('[data-fm=apply]').click();await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
   assert.ok(await page.locator('.family-meal-card .family-dish').count()>5,'auto-plan week populated meals using library fallback');
   // v1.7.7: days fold; edit a meal of the open day (today / the selected day)
-  await page.locator('.plan-day[open] [data-fm=edit-meal]').first().click();await page.locator('#quick-dish-name').fill('Cá thu sốt cà nhà làm');await page.locator('[data-fm=quick-add-dish]').click();await page.locator('#family-recipe-form').waitFor();assert.equal(await page.locator('#family-recipe-form input[name=name]').inputValue(),'Cá thu sốt cà nhà làm','v1.7.9: a new quick-added dish opens its recipe page');await page.evaluate('closeModal()');await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
+  await page.locator('.plan-day[open] [data-fm=edit-meal]').first().click();await page.locator('#quick-dish-name').fill('Cá thu sốt cà nhà làm');/* v1.7.19 (A22): the family chooses the dish role */await page.selectOption('#quick-dish-cat','main');await page.locator('[data-fm=quick-add-dish]').click();await page.locator('#family-recipe-form').waitFor();assert.equal(await page.locator('#family-recipe-form input[name=name]').inputValue(),'Cá thu sốt cà nhà làm','v1.7.9: a new quick-added dish opens its recipe page');await page.evaluate('closeModal()');await page.waitForFunction(()=>!cloudConnection.dirty&&!cloudConnection.syncing);
   assert.match(await page.locator('.plan-day[open] .family-meal-card').first().innerText(),/Cá thu sốt cà nhà làm/);
   await page.evaluate(()=>{location.hash='today'});await page.waitForTimeout(100);
   if(!(await page.evaluate(()=>!!(document.querySelector('[data-urgent-panel]') as HTMLDetailsElement|null)?.open)))await page.locator('[data-urgent-panel]>summary').click();await page.locator('[data-house=urgent-new]').click();await page.locator('#family-urgent-form textarea[name=message]').fill('Mua thêm rau thơm trước 5h chiều');await page.locator('[data-action=submit-form][data-id=family-urgent-form]').click();

@@ -24,6 +24,12 @@ assert.equal((await authStore.get('families/'+f.household.id)).members.fixtureow
 r=await call('push-test',{deviceId:'device-owner-01'});assert.equal(r.data.reason,'sent');assert.equal(r.data.accepted,1);const firstTag=sent.at(-1).payload.tag;
 r=await call('push-test',{deviceId:'device-owner-01'});assert.notEqual(sent.at(-1).payload.tag,firstTag,'each test notification has a unique tag');
 console.log('PASS unlinked owner is linked on subscribe and receives the test push; reasons not_configured/no_device/sent');
+// v1.7.19 quiet hours: the per-device “Cooking reminders during quiet hours” switch is stored; a device that does not send it keeps it on.
+assert.equal((await f.store.get('push/subscriptions/device-owner-01',{type:'json'})).mealQuietBypass,true,'no choice sent: cooking reminders during quiet hours stay on');
+r=await call('push-subscribe',{deviceId:'device-owner-01',memberId:'dad',label:'Owner phone',subscription:sub(1),urgentPolicy:'v2',urgentBypass:true,mealQuietBypass:false});assert.equal(r.status,200);
+assert.equal((await f.store.get('push/subscriptions/device-owner-01',{type:'json'})).mealQuietBypass,false,'the device turned cooking reminders during quiet hours off');
+r=await call('push-subscribe',{deviceId:'device-owner-01',memberId:'dad',label:'Owner phone',subscription:sub(1),urgentPolicy:'v2',urgentBypass:true,mealQuietBypass:true});assert.equal(r.status,200);
+assert.equal((await f.store.get('push/subscriptions/device-owner-01',{type:'json'})).mealQuietBypass,true);
 // A phone for a member without an account (shared/grandparent) is registered explicitly by an owner/editor and receives.
 r=await call('push-subscribe',{deviceId:'device-grandma-01',memberId:'grandma',subscription:sub(2)});assert.equal(r.status,409);assert.equal(r.data.reason,'member_mismatch');
 r=await call('push-subscribe',{deviceId:'device-grandma-01',memberId:'grandma',label:'Máy của Bà',subscription:sub(2),shared:true});assert.equal(r.status,200);assert.equal(r.data.shared,true);
@@ -46,6 +52,10 @@ mode='410';r=await call('push-test',{deviceId:'device-grandma-01'});assert.equal
 const long='Nhờ mua rau thơm, hành lá 🥬🧄🍜 '.repeat(200),payload=pushPayload({type:'urgent',title:'Bố nhắn khẩn 🚨',body:long,url:'/#today'},'vi');assert(Buffer.byteLength(payload)<=PUSH_PAYLOAD_LIMIT);const parsed=JSON.parse(payload);assert(parsed.body.endsWith('…'));assert(!/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/.test(parsed.body),'no split surrogate pair');assert.equal(trimToBytes('ngắn',100),'ngắn');
 r=await call('alert-send',{id:'alert-long-000001',message:'😊'.repeat(240),targets:['dad']});assert.equal(r.data.push.reason,'sent');assert(sent.at(-1).bytes<=PUSH_PAYLOAD_LIMIT);
 console.log('PASS 403 needs re-registration, 410 removal, delivery_failed count and byte-safe payload trimming');
+{const {replyMessage}=await import('../netlify/lib/feedback.mjs');const vi=JSON.parse(pushPayload({...replyMessage},'vi')),en=JSON.parse(pushPayload({...replyMessage},'en'));
+ assert.equal(vi.url,'/#today?lb=mine','feedback reply opens “Góp ý của tôi”');assert.equal(en.url,'/#today?lb=mine');assert.equal(vi.body,'Chạm để đọc câu trả lời.');assert.equal(en.body,'Tap to read the reply.');
+ for(const bad of ['/#today?lb=other','/#today?lb=mine&x=1','/#studio?lb=mine'])assert.equal(JSON.parse(pushPayload({type:'feedback',title:'x',body:'y',url:bad},'vi')).url,'/#shopping',bad+' is not passed on (server fallback)')}
+console.log('PASS feedback reply link opens “Góp ý của tôi”; other links are not passed on');
 // Urgent message persistence: an index write failure still saves + pushes; a same-id retry re-indexes it. Push failure is never 503.
 failIndex=true;r=await call('alert-send',{id:'alert-flaky-00001',message:'Tắt bếp giúp mẹ',targets:['dad']});assert.equal(r.status,200);assert.equal(r.data.saved,true);assert.equal(r.data.indexed,false);
 failIndex=false;assert(!(await call('alerts')).data.alerts.some(a=>a.id==='alert-flaky-00001'));

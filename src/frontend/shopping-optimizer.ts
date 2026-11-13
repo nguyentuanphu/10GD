@@ -5,15 +5,9 @@
 // "Lưu giá" bookmark, receipts, catalogue entries, manual entry) or an optional
 // licensed feed. Nothing here fetches retailer websites.
 (function(root){
-const RETAILERS={
- chemist:{name:'Chemist Warehouse',short:'Chemist',icon:'💊',order:0,kind:'pharmacy',catalogue:'https://www.chemistwarehouse.com.au/catalogue'},
- aldi:{name:'ALDI',short:'ALDI',icon:'🔷',order:1,kind:'supermarket',catalogue:'https://www.aldi.com.au/special-buys'},
- woolworths:{name:'Woolworths',short:'Woolies',icon:'🟢',order:2,kind:'supermarket',catalogue:'https://www.woolworths.com.au/shop/catalogue'},
- coles:{name:'Coles',short:'Coles',icon:'🔴',order:2,kind:'supermarket',catalogue:'https://www.coles.com.au/catalogues'},
- other:{name:'Other store',vi:'Cửa hàng khác',short:'Khác',icon:'🏪',order:2.5,kind:'other',catalogue:null},
- 'viet-grocer':{name:'Vietnamese grocer',vi:'Chợ Việt',short:'Chợ Việt',icon:'🏮',order:3,kind:'local',catalogue:null},
- amazon:{name:'Amazon AU',short:'Amazon',icon:'📦',order:-1,kind:'delivery',delivery:true,catalogue:'https://www.amazon.com.au/deals'}
-};
+// The stores So Giá keeps prices for: the registry's `scout` view (store-registry.ts, audit B9). These ids are what observations
+// store and what validObservation accepts; they never change (older devices validate synced observations against them).
+const RETAILERS=Object.fromEntries(root.STORE_REGISTRY.filter(s=>s.scout).map(s=>[s.id,{name:s.name,...(s.vi?{vi:s.vi}:{}),...s.scout}]));
 const RETAILER_IDS=Object.keys(RETAILERS);
 const CATEGORIES=['fresh','meat','seafood','pantry','dairy','frozen','bakery','household','personal'];
 const SAFETY=['ambient','chilled','frozen','raw-meat','household'];
@@ -226,7 +220,7 @@ function captureToDraft(raw,catalog,today=sydneyToday()){
 // ---------- Observations ----------
 function validObservation(o){
  const num=(v,max)=>v==null||(typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=max);
- return !!o&&typeof o==='object'&&typeof o.id==='string'&&/^[\w:.-]{6,120}$/.test(o.id)&&(o.itemId==null||typeof o.itemId==='string'&&o.itemId.length<=60)&&typeof o.label==='string'&&o.label.trim().length>0&&o.label.length<=160&&RETAILER_IDS.includes(o.retailer)&&(o.branchId==null||typeof o.branchId==='string'&&o.branchId.length<=80)&&(o.state==null||['NSW','QLD'].includes(o.state))&&typeof o.price==='number'&&o.price>0&&o.price<=10000&&o.currency==='AUD'&&num(o.packQty,100000)&&(o.packUnit==null||typeof o.packUnit==='string'&&o.packUnit.length<=12)&&num(o.units,100000)&&num(o.unitPrice,100000)&&(o.unitBasis==null||Object.hasOwn(BASIS,o.unitBasis))&&num(o.wasPrice,10000)&&(o.promo==null||PROMOS.includes(o.promo))&&(o.validUntil==null||isDate(o.validUntil))&&isDate(o.observedAt)&&(o.observedBy==null||typeof o.observedBy==='string'&&o.observedBy.length<=80)&&SOURCES.includes(o.source)&&(o.note==null||typeof o.note==='string'&&o.note.length<=300)&&validProvenance(o);
+ return !!o&&typeof o==='object'&&typeof o.id==='string'&&/^[\w:.-]{6,120}$/.test(o.id)&&(o.itemId==null||typeof o.itemId==='string'&&o.itemId.length<=60)&&typeof o.label==='string'&&o.label.trim().length>0&&o.label.length<=160&&(RETAILER_IDS.includes(o.retailer)||typeof root.storeIdAccepted==='function'&&root.storeIdAccepted(o.retailer))/* v1.7.19 more stores, step 1: any registry store is accepted; prices are compared only for the stores above */&&(o.branchId==null||typeof o.branchId==='string'&&o.branchId.length<=80)&&(o.state==null||['NSW','QLD'].includes(o.state))&&typeof o.price==='number'&&o.price>0&&o.price<=10000&&o.currency==='AUD'&&num(o.packQty,100000)&&(o.packUnit==null||typeof o.packUnit==='string'&&o.packUnit.length<=12)&&num(o.units,100000)&&num(o.unitPrice,100000)&&(o.unitBasis==null||Object.hasOwn(BASIS,o.unitBasis))&&num(o.wasPrice,10000)&&(o.promo==null||PROMOS.includes(o.promo))&&(o.validUntil==null||isDate(o.validUntil))&&isDate(o.observedAt)&&(o.observedBy==null||typeof o.observedBy==='string'&&o.observedBy.length<=80)&&SOURCES.includes(o.source)&&(o.note==null||typeof o.note==='string'&&o.note.length<=300)&&validProvenance(o);
 }
 function freshness(o,today=sydneyToday()){
  const age=Math.max(0,dayDiff(today,o.observedAt));

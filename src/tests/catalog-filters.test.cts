@@ -2,7 +2,7 @@
 // guesses, and the chip index must agree with the planner's cuisine index and the ingredient-computed diet labels.
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const c=vm.createContext({console,Intl,Date,Math:Object.create(Math),structuredClone,crypto:require('node:crypto').webcrypto});
-vm.runInContext(['seed','recipe-catalog','core','spending-core','purchase-units','planning-core','insights-core','family-menu-core'].map(f=>fs.readFileSync('dist/'+f+'.js','utf8')).join('\n')+'\nthis.api={RECIPES,RETIRED_REFERENCE_RECIPES,PLANT_RECIPES,WESTERN_HEALTHY_RECIPES,defaults,recipeDiet,recipeCuisine,ownRecipe,isVegetarianRecipe,isVeganRecipe,recipeNeedsDietCheck,recipeMatchesLibraryTag,recipeMatchesLibraryFilters,libraryRecipeMeta,LIBRARY_FILTER_TAGS}',c);
+vm.runInContext(['store-registry','seed','recipe-catalog','core','spending-core','purchase-units','planning-core','insights-core','family-menu-core'].map(f=>fs.readFileSync('dist/'+f+'.js','utf8')).join('\n')+'\nthis.api={RECIPES,RETIRED_REFERENCE_RECIPES,PLANT_RECIPES,WESTERN_HEALTHY_RECIPES,defaults,recipeDiet,recipeCuisine,ownRecipe,isVegetarianRecipe,isVeganRecipe,recipeNeedsDietCheck,recipeMatchesLibraryTag,recipeMatchesLibraryFilters,libraryRecipeMeta,LIBRARY_FILTER_TAGS}',c);
 const a=c.api,recipes=a.defaults().recipes,by=tag=>recipes.filter(r=>a.recipeMatchesLibraryTag(r,tag)),names=list=>new Set(list.map(r=>r.name));
 assert.equal(recipes.length,125,'fresh device holds the 125 recognised recipes (v1.7.10: template-built / invented ones retired)');
 assert.deepEqual([...a.LIBRARY_FILTER_TAGS],['western','healthy','vegetarian','vegan','dressing'],'v1.7.10: no Salad hạt chip — those mixes were retired');

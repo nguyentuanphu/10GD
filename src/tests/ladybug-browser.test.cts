@@ -207,6 +207,15 @@ const dim=(s:string)=>`${sizes[s].width}x${sizes[s].height}`;
   await openSheet(page);await page.waitForSelector('[data-confirm="1"]');await noOverflow(page,'tablet sheet');await shot(page,`my-feedback-fixed-en-dark-tablet-${dim('tablet')}`);
   await page.locator('[data-confirm="1"]').click();await page.waitForFunction(()=>!document.querySelector('[data-confirm="1"]'));assert.equal((await feedbackStore(getStoreFn).get('r/'+target.id,{type:'json'})).status,'closed');assert.deepEqual(errors,[]);await context.close()}
  console.log('PASS reporter sees the reply (dot, My feedback, no internal notes), reduced motion respected, "Yes, fixed" closes it');
+ // v1.7.19 (owner pop-up, 12 Nov 2026): tapping “Có trả lời góp ý của bạn” opens the ladybug straight on “Góp ý của tôi”
+ {const {context,page,errors}=await openApp({who:'tina',size:'mobile',lang:'vi',theme:'light',hash:'#today?lb=mine'});
+  await page.waitForSelector('.lb-sheet',{timeout:15000});assert.equal(await page.locator('#lb-tab-mine').getAttribute('aria-selected'),'true','reply link opens on “Góp ý của tôi”');
+  await page.waitForFunction(()=>location.hash==='#today');await page.keyboard.press('Escape');
+  await page.evaluate(()=>{location.hash='#today?lb=mine'});await page.waitForSelector('.lb-sheet');assert.equal(await page.locator('#lb-tab-mine').getAttribute('aria-selected'),'true','also when the app is already open');
+  assert.deepEqual(errors,[]);await context.close()}
+ {const {context,page,errors}=await openApp({who:null,size:'mobile',hash:'#today?lb=mine'});await page.waitForTimeout(2500);
+  assert.equal(await page.locator('.lb-sheet').count(),0,'no sheet for someone the ladybug is not shown to');assert.equal(await page.evaluate(()=>location.hash),'#today');assert.deepEqual(errors,[]);await context.close()}
+ console.log('PASS reply notification link opens “Góp ý của tôi” (cold start and open app); nothing opens when the ladybug is hidden');
 
  // ---------- 6. responsive evidence: bug + sheet at every size ----------
  for(const [size,lang,theme] of [['narrow','vi','light'],['tablet','vi','light'],['desktop','vi','light'],['desktop','en','dark'],['mobile','en','dark']] as const){

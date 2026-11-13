@@ -1,0 +1,80 @@
+# Henry's decisions and standing instructions
+
+Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
+
+## 13 Nov 2026 (re-check of the audit fixes, new chat)
+- **Check every fix again:** Henry: "Once ran, make sure you double check to see if all the errors you found are fixed, my concerns are different chats handling which may create mistakes or miss to fix errors". Two read-only agents re-checked A1–D30, the sweep list and the Tự chạy thử bugs on 3507cfa; the lead checked their findings and fixed the misses in v1.7.19 (see `docs/reviews/v1.7.19/review.md`, "Re-check of every audit fix").
+- **Counted items in the pantry (C25), pop-up answer "Giữ bước ¼":** Tủ → Thêm thực phẩm keeps ¼ steps for counted units (½ quả bí, ½ con gà). The shopping list still rounds up to whole numbers.
+- **Mua thêm in English, pop-up answer "Sửa luôn trong v1.7.19":** picking a suggestion in English fills the English name, still linked to the same ingredient.
+- **"Nếu làm thì làm hết 1 lượt"** (13 Nov, about 13:00): every remaining re-check item (S4, B9, B12, B16, B19, A1 naming, receipt currency, English dish names) is done in v1.7.19 too.
+- **D25 feedback privacy page** (pop-up, 13 Nov): "Để nguyên như cũ". Page and filing stay as they are; decide later.
+- **D26–D30 privacy wording:** the pop-up preview did not show the draft ("Chưa thấy draft thì sao mà duyệt"). Draft in `docs/plans/privacy-draft-20261113.md`, shown in chat; pop-up answer "Duyệt nguyên văn" (13 Nov, about 13:20). Section 9 "Những lần app gọi ra ngoài" / "When the app reaches outside" is added to `dist/privacy.html` word for word, page date 13/11/2026. It describes what the app already sends; no data handling changed. Never put a draft only in a pop-up preview.
+- **Pop-up answers, 13 Nov (about 15:00):**
+  - Vietnamese amounts use a decimal comma everywhere (1,5 kg); English keeps the point ("Dấu phẩy ở tiếng Việt").
+  - A receipt in another currency than the family's (AUD in a đồng family, GBP/EUR) is kept with its own currency and not added to spending; no exchange rate is guessed ("Giữ, không quy đổi"). Confirms C5.
+  - Spoon and bowl note amounts round up to ¼ ("Giữ làm tròn lên ¼"). Confirms C21.
+  - The shared list text keeps □ and ✓ ("Giữ □ và ✓"). Confirms D1.
+  - Barcode sheet: an empty amount still stores 1 pack (one scanned pack), as the sheet's hint says (lead's call, listed for Henry).
+- **"do everything in this round"** (13 Nov, about 18:05): every open item ships in v1.7.19 too: the intermittent Viết món amount, reopened dish line order, the 375 px "Nơi cất" select, the browser's own "Please select an item" text, cháo labelled "Món sợi", a phone-time-zone pass in Tự chạy thử, the barcode sheet's empty amount (asks, rule 32), the dark-mode "Hoàn tác" contrast, the English meal-group labels in Viết món (FAMILY_PURPOSES), plate cropping on dish cards, and step 1 of more stores for saved products (validators accept new ids; offering them comes in the next release). Henry has updated his henry-master skill on claude.ai (to-do done).
+- **Quiet hours** (pop-up, 13 Nov): "như recommend và trong notification cho option để user cho phép gửi noti sau giờ im lặng hay không". Cooking and thaw reminders are delivered during quiet hours by default; the notification settings get a per-device switch to allow them or not. Other notifications stay quiet.
+- **Receipt reading is Beta** (13 Nov, about 19:05, with a phone screenshot of an Orange Supermarket receipt read badly): "nếu bị lỗi như vầy thì nên ghi chữ beta hoặc testing mode để user biết". The receipt sheet, the crop sheet and the reading summary say that reading a receipt photo is in testing (Beta) and to check each line. Same release: the crop frame keeps the items between the receipt's head and the first item the quick pass recognised (the first three items were cut off), and a store line read as scraps is left empty (rule 32). The photo itself is never committed (it shows a cashier's name).
+- **Resume routine:** "Resume FamTray v1.7.19 release work" no longer exists on the account (delete returned not found, 13 Nov 10:55); no schedules are active.
+
+## 12 Nov 2026 (evening, new chat)
+- **Audit scenarios in "Tự chạy thử" (autoplay):** Henry: "i knew there would be this issues so thats why i asked you to create the autoplay to test all the scenarios, now based on what you learn and what you have audited, incoporate it in the autoplay". The ladybug "Tự chạy thử" (`ladybug-autoplay.ts`, `ladybug-workflows.ts`) gets scenarios for the audit's lessons (rules 29–34): week starting on a day other than Monday, English, money in another currency, recipe yield, guests, no silent defaults, counts equal what they open, no empty sheets, add/edit/undo parity, the dish sheet, meal times and reminders, spoon amounts as notes, extras, and the validImport / sync-merge round trip after every workflow. Ships in v1.7.19. Same safety as before: sample family or a copy, nothing saved or sent except the failure report.
+- **Agents:** run at most 2 helper agents at a time ("chay 2 agents 1 luc thoi").
+- **Resume schedule** (13 Nov 2026, 05:06): Henry asked for a schedule that resumes the work if the chat runs out of usage, "5 tiếng từ bây giờ" and every 5 hours after. Routine "Resume FamTray v1.7.19 release work" fires into this chat at 10:06, 15:06, 20:06, 00:06 and 05:06 Sydney time (a day is not a multiple of 5 hours, so 20:06 → 00:06 is 4 hours). Each run first checks the state and does nothing when the work is finished or Henry has replied. Delete it after DEPLOY.
+- **All schedules off** (13 Nov 2026, about 10:50): Henry: "Tắt hết schedule nhé". The resume routine is disabled (not deleted); the one-off CI check-in had already fired. The next chat watches CI itself with `gh run list`.
+
+## 12 Nov 2026 (later)
+- **Dish sheet** (pop-up answers, Henry wrote in English): the same three buttons everywhere.
+  - Main action: "Nấu món này" when opened from a meal, "Thêm vào bữa" when opened from the library.
+  - "Sửa món" edits any dish directly. A catalogue dish becomes a family copy automatically. A dish typed into a meal is edited in place, with "Lưu vào kho món" NOT ticked by default.
+  - "Xoá" means "Bỏ khỏi bữa này" from a meal and "Xoá khỏi kho" from the library, both with undo. Built-in catalogue dishes are hidden ("Ẩn khỏi kho") and can be shown again. "Xoá món" is also inside Viết món.
+  - Ships in v1.7.19.
+- **Reminder details** (pop-up answers):
+  - The thaw-reminder time is chosen by the family in "Giờ ăn" (starting value 20:00).
+  - Cooking and thaw reminders do not count towards the 2-per-day automatic limit.
+  - New devices have "Nhắc giờ nấu" and "Nhắc rã đông" on; they can be turned off.
+  - The earliest cooking-reminder time is a family setting, "Không nhắc trước …" (starting value 08:00).
+  - The Studio reminder line and the guest-invitation calendar do not show meal times; that would be a privacy change.
+- **Spoon and bowl amounts** (muỗng canh, muỗng cà phê, chén, cup) are notes only and are not added to the shopping list. The app still says whether that ingredient is in the pantry, and reminds the family to buy one bottle or pack when there is none. (Pop-up answer: "Như recommend, và vẫn báo là còn trong tủ hay không".)
+- **Receipt lots** get a suggested use-by date, like every other way into the pantry. It is shown and editable in the receipt confirmation step and marked as an estimate. (Pop-up answer: "Gợi ý hạn dùng, cho sửa".)
+- **Meal times and cooking reminders** (pop-up answer: "Làm đủ 4 ý, gộp v1.7.19"):
+  1. "Bếp của nhà mình" gets a "Giờ ăn" section with a time for each meal the family uses (sáng, phụ sáng, trưa, phụ chiều, tối). A meal with no time shows "Chưa đặt" and gets no reminder.
+  2. Every planned meal that has a time gets "Đến giờ nấu [bữa] — bắt đầu lúc …", not only dinner. The start is the meal time minus the longest dish's cooking time minus 15 minutes.
+  3. A thaw reminder comes the evening before when a dish needs something from the freezer.
+  4. Meal times are edited in one place only (Bếp của nhà mình). Nhắc nhở and the meal cards read from it (rule 29). Each device still chooses whether it receives reminders. The times are stored in the family's own data, like the dinner time today; nothing new is sent anywhere else.
+- **Unit picker, remaining places (rule 29):** the receipt line unit, the notes-import unit and the voice recipe preview also use the shared unit picker. A family unit with a conversion is added to the pantry through that conversion. A unit without a conversion is stored as a bought lot in that unit, with no guessed grams. (Pop-up answer: "Đổi cả 3 chỗ".)
+- **Bought extras that are on the menu list:** a bought extra's amount counts towards the planned list row for the same ingredient, so the row shows "Đủ" and nothing is bought twice. If the family deliberately bought more than the list needs, ask whether to put the extra in the pantry. (Pop-up answer: "Như recommend, nhưng nếu user cố tình mua dư thì hỏi để cất vào pantry".)
+- **Product calls by the fix agents** (not yet confirmed by Henry):
+  - measuring spoons and bowls (muỗng, chén) round up to ¼;
+  - GBP/EUR receipts are kept and valid but not added to the AUD/VND spending totals.
+
+## 12 Nov 2026
+- **Audit fixes:** fix all 105 findings of the whole-app audit in ONE release, v1.7.19. No privacy change. (Pop-up answer: "Làm hết 1 lượt".)
+- **Week start:** the week's start day is a family setting, because each family shops on a different day. Never assume Monday. Every place must read weeks by the family's start day (`planStartOf`, `weekStartDay`).
+- **Ladybug feedback:** feedback stays filed as public GitHub issues on this repository for now. "Cứ làm, rồi sẽ chuyển chế độ sau". The feedback privacy page still says only the operator reads it. Henry will decide the mode later; do not change it without him.
+- **"Đồ trong tủ" sheet on Đi chợ:** must show what its number counts. Top section: this week's needs the pantry already has (cần · có · Bỏ qua). Below: every other pantry lot (tap to edit). Shipped in v1.7.19.
+- **Extras on Đi chợ:** must be editable (name, amount and unit, price, store). No silent "g" unit. If the name matches nothing, the family picks a unit.
+- **Units in Viết món:** use the same buying-unit sheet as Đi chợ, plus the note units (nhúm, ít, vừa đủ). Saved recipes keep their unit text. Applies to every related place (rule 29).
+- **Feedback reply notification:** tapping it opens the ladybug on "Góp ý của tôi".
+- **Privacy section 7a** (sending receipt text to improve reading, v1.7.18): keep as is. It went live without asking first; that led to rule 28.
+- **Unseen receipts:** do A (send the redacted receipt text and corrections, never the photo) and B (photo quality hints with "Chụp lại"). Do NOT do C (AI reading of the photo).
+- **Receipt ↔ shopping list:** match the list first. Anything bought beyond the list goes to the pantry by default, changeable per line to "Dành cho bữa …" or "Không theo dõi". Buying less leaves "Còn thiếu".
+- **Buying units:** show suggestions plus "Xem tất cả". Family custom units are allowed, with an optional conversion.
+- **Counted ingredients** (con, cái, bó…): keep scaling by the number of people eating, and round up to whole numbers on the shopping list. The recipe view keeps the amount as written (decision #13, v1.7.5).
+
+## Earlier (standing)
+- **Grocery photos:** ingredient and grocery-product pictures use the supermarket's product photo, with the source named. Dish pictures stay drawn (5 Nov 2026, rule 19).
+- **Local test runs:** a full local `test:all` run may be reported as ready; GitHub CI must be green on the exact head before merge (7 Nov 2026, rule 17a).
+- **Hosting:** nothing is loaded on hosting before DEPLOY.
+
+## Open questions for Henry
+- (13 Nov 2026: meal-group labels and plate cropping are being fixed in v1.7.19.)
+
+## Henry's to-dos (things only he can do)
+- ~~Update the henry-master skill on claude.ai~~ done by Henry, 13 Nov 2026.
+- SCOUT_EXTENSION_IDS setting; the duplicate device; the Web Store link.
+- Re-enter the Mỳ Quảng amounts; the iPhone voice self-check.
+- Pinch / WhichGrocer terms e-mails. The integration plan is not yet approved.

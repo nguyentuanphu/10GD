@@ -25,20 +25,33 @@ const pad=n=>String(n).padStart(2,'0');
 const MAX_YEAR=new Date().getFullYear()+1;
 
 // ---------------------------------------------------------------- retailers
-const RETAILERS={
- aldi:{name:'ALDI',currency:'AUD',scout:'aldi'},
- woolworths:{name:'Woolworths',currency:'AUD',scout:'woolworths'},
- coles:{name:'Coles',currency:'AUD',scout:'coles'},
- 'woolworths-uk':{name:'Woolworths UK',currency:'GBP',scout:null},
- iga:{name:'IGA',currency:'AUD',scout:null},
- costco:{name:'Costco',currency:'AUD',scout:null},
- 'harris-farm':{name:'Harris Farm',currency:'AUD',scout:null}
-};
+// The chains a receipt can name: the registry's `receipt` view (store-registry.ts, audit B9). `scout` is the So Giá id when the
+// scout tracks that chain on its own (ALDI, Woolworths, Coles), else null, as before.
+const RETAILERS=Object.fromEntries(STORE_REGISTRY.filter((s:any)=>s.receipt).map((s:any)=>[s.id,{name:s.name,currency:s.receipt.currency,scout:s.scout?s.id:null}]));
 function detectCurrency(text){
  const t=String(text||''),pounds=(t.match(/£\s?\d/g)||[]).length;
  if(/\bVAT\s*(No|Reg|Number)\b|woolworths\.co\.uk|\.co\.uk\b/i.test(t)||pounds>=2||pounds>=1&&/\bVAT\b/i.test(t))return'GBP';
  if(/€\s?\d+[.,]\d{2}/.test(t)&&/\b(MwSt|TVA|IVA|USt)\b/i.test(t))return'EUR';
- return'AUD';
+ return currencyEvidence(t).currency;
+}
+// v1.7.19 re-check (receipt currency, 13 Nov 2026, Sydney time): a đồng receipt was read as AUD unless the family's money was in
+// đồng. The receipt itself now says which currency it is, and why (`from`), so the editor can suggest it and the family can change it:
+//  • store: a Vietnamese chain from the store registry (Co.op Mart, Bách hoá Xanh, WinMart …) → VND; an Australian chain → AUD;
+//  • symbol: ₫ / VND / VNĐ, or “35.000đ” → VND; “$12.50”, ABN or GST → AUD;
+//  • amounts: most line amounts are whole thousands (35000.00, 35.000, 12,000) → VND. Vietnamese words alone are not enough (a
+//    Vietnamese grocer in Sydney prints them on dollar receipts); with them, two such amounts are enough.
+// from=null means the receipt does not say: the caller uses the family's currency, as before. Amounts are never converted.
+const VN_RECEIPT_WORDS=['tong cong','tong tien','tong thanh toan','thanh tien','tien mat','tien thoi','tien thua','khach dua','khach can tra','cam on quy khach','hoa don','ma so thue','don gia','so luong','chiet khau','giam gia','sieu thi','tien hang'];
+function receiptAmountsBig(t){let all=0,big=0;for(const l of String(t).split(/\r?\n/)){const m=l.match(/(?:^|[^\d.,])(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d{2})?)\s*(?:đ|d|vnđ|vnd|₫)?\s*[A-Z]?\s*$/i);if(!m||!/[A-Za-zÀ-ỹ]{2}/.test(l))continue;const s=m[1];const v=/^\d{1,3}(?:[.,]\d{3})+$/.test(s)?+s.replace(/[.,]/g,''):+s.replace(',','.');if(!Number.isFinite(v)||v<=0)continue;all++;if(v>=1000&&Number.isInteger(v)&&v%100===0)big++}return{all,big}}
+function currencyEvidence(text){
+ const t=String(text||''),n=' '+norm(t)+' ';
+ for(const s of STORE_REGISTRY as any[])if(s.receipt?.currency==='VND'&&(s.words||[]).some((w:string)=>n.includes(' '+norm(w)+' ')))return{currency:'VND',from:'store',store:s.name};
+ if(/₫|\bVN[DĐ]\b|\d[.,]\d{3}\s?đ(?![\p{L}])/iu.test(t))return{currency:'VND',from:'symbol'};
+ if(/\$\s?\d|\bABN\b|\bGST\b/.test(t))return{currency:'AUD',from:'symbol'};
+ for(const s of STORE_REGISTRY as any[])if(s.receipt?.currency==='AUD'&&s.id!=='iga'&&(s.words||[]).some((w:string)=>w.length>3&&n.includes(' '+norm(w)+' ')))return{currency:'AUD',from:'store',store:s.name};
+ const a=receiptAmountsBig(t),words=VN_RECEIPT_WORDS.filter(w=>n.includes(' '+w+' ')).length;
+ if(a.big>=2&&a.big>=a.all*0.6&&(a.big>=3||words>=1))return{currency:'VND',from:'amounts'};
+ return{currency:'AUD',from:null};
 }
 function detectRetailer(text){
  const t=String(text||''),cur=detectCurrency(t);let id=null;
@@ -171,7 +184,7 @@ function tidy(line){
 // Last money amount at the end of the line (with an optional GST/marker flag after it).
 function priceOf(line,aldi){
  const s=String(line);let last=null;
- for(const m of s.matchAll(/(-)?\s?\$?\s?(\d{1,4})[.,](\d{2})(-)?(?![\d%])/g))last=m;
+ /* v1.7.19 (Tự chạy thử, Rà soát 12/11): đồng prices have 5–7 digits (“35000.00”); 4 digits cut the price and left a digit in the name */for(const m of s.matchAll(/(-)?\s?\$?\s?(\d{1,7})[.,](\d{2})(-)?(?![\d%])/g))last=m;
  let tail=last?s.slice(last.index+last[0].length):'';
  if(last&&/^\d/.test(s.slice(last.index+last[0].length)))last=null;
  if(aldi){const g=s.match(/(-)?(\d{1,4})[.,](\d{2})[8B]\s*\W{0,2}$/);if(g&&(!last||g.index>=last.index-1)){last=g;tail=' B'}
@@ -190,7 +203,14 @@ function clippedPrice(line){
  if(!m)return null;const a=repairNumber(m[2],true),b=m[3]?repairNumber(m[3],true):'';
  return{pattern:a!=null&&b!=null?a+'.'+b:'',label:String(line).slice(0,m.index).trim()};
 }
-function amountIn(line){const all=[...String(line).matchAll(/(-)?\s?\$?\s?(\d{1,5})[.,](\d{2})(?![\d%])/g)];if(!all.length)return null;const m=all[all.length-1];const neg=m[1]==='-'||/-\s?\$?\s?$/.test(String(line).slice(Math.max(0,m.index-3),m.index+1));return round((neg?-1:1)*(+m[2]+ +m[3]/100))}
+// đồng amounts on a VND receipt: “35.000”, “12,000”, “90000”, “35.000đ” at a line end → “35000.00” (the same number, written the way
+// the reader expects); weights (0,5kg, 1.200 kg), dates and codes are left alone.
+function vndAmounts(line){return String(line).replace(/(^|[^\d.,])(\d{1,3}(?:[.,]\d{3})+)(?![\d]|[.,]\d)(?!\s*(?:k?g\b|ml\b|l\b|%))\s*(?:đ|vnđ|vnd|₫)?/gi,(m,a,b)=>a+b.replace(/[.,]/g,'')+'.00').replace(/(^|[^\d.,\/:-])(\d{4,9})\s*(?:đ|vnđ|vnd|₫)?\s*$/i,(m,a,b)=>a+b+'.00')}
+function amountIn(line){const all=[...String(line).matchAll(/(-)?\s?\$?\s?(\d{1,7})[.,](\d{2})(?![\d%])/g)];if(!all.length)return null;const m=all[all.length-1];const neg=m[1]==='-'||/-\s?\$?\s?$/.test(String(line).slice(Math.max(0,m.index-3),m.index+1));return round((neg?-1:1)*(+m[2]+ +m[3]/100))}
+
+// A store name read from the photo looks like words: mostly letters, and not mostly one- or two-character scraps.
+function plausibleStoreName(name){const t=String(name||'').trim();if(!t)return false;const chars=t.replace(/\s+/g,''),letters=(chars.match(/[A-Za-z\u00C0-\u1EF9]/g)||[]).length;if(!chars.length||letters/chars.length<0.6)return false;
+ const words=t.split(/\s+/),scraps=words.filter(w=>w.replace(/[^A-Za-z\u00C0-\u1EF9]/g,'').length<=2).length;if(words.length>=4&&scraps/words.length>0.5)return false;return words.some(w=>w.replace(/[^A-Za-z\u00C0-\u1EF9]/g,'').length>=3)}
 
 // Item code (ALDI 4–7 digits, Woolworths UK 9 digits): everything before it is OCR noise from the
 // receipt edge / shadow ("Si", "hen", "STE ve", ":"), and the code itself is not part of the name.
@@ -213,7 +233,7 @@ function cleanLabel(label,retailer){
 }
 
 // ---------------------------------------------------------------- line classes
-const PAY_RE=/^(commonwealth bank|westpac|anz\b|nab\b|st george|bank of|eftpos|eft\b|customer copy|merchant copy|cardholder copy|terminal|term id|merch|reference|ref\b|card no|card\b|pan seq|psn\b|aid\b|tvr\b|tsi\b|atc\b|arqc|arpc|auth|approved|declined|mastercard|master card|debit|visa|amex|savings|cheque|credit \d|credit account|cash(?!ier)|change\b|tender|paid\b|payment|purchase\b|refund\b|total aud|account|acct|gst included|thank you|visit|trading hours|you saved|total savings|your savings|surname|signature|pin verified|contactless)/;
+const PAY_RE=/^(commonwealth bank|westpac|anz\b|nab\b|st george|bank of|eftpos|eft\b|customer copy|merchant copy|cardholder copy|terminal|term id|merch|reference|ref\b|card no|card\b|pan seq|psn\b|aid\b|tvr\b|tsi\b|atc\b|arqc|arpc|auth|approved|declined|mastercard|master card|debit|visa|amex|savings|cheque|credit \d|credit account|cash(?!ier)|change\b|tender|paid\b|payment|purchase\b|refund\b|total aud|account|acct|gst included|thank you|visit|trading hours|you saved|total savings|your savings|surname|signature|pin verified|contactless|tien mat|tien khach dua|khach dua|tien thoi|tien thua|tien tra lai|cam on)/;
 const SKIP_RE=/^(abn\b|acn\b|vat\b|tax invoice|invoice|phone\b|ph\b|tel\b|description\b|served by|store manager|manager\b|register\b|cashier|operator|date\b|time\b|www\b|unit \d|cnr\b|a limited partnership|limited partnership|aldi stores|qty\b\s*$)/;
 const SENSITIVE_RE=/\b(card\s*(no|num(ber)?|#)|aid\b|tvr\b|tsi\b|atc\b|arqc|arpc|terminal|term(inal)?\s*id|merch(ant)?\s*(id|no)?\b|reference|ref\s*(no|#|:)|auth(ori[sz]ation)?\s*(code|no)?|pan\s*seq|account\s*(no|type)?|acct|stan\b|rrn\b|trans(action)?\s*(no|#|id|\d)|receipt\s*(no|#|:)|register\s*:|served\s*by|store\s*manager|manager\s*:|cashier|operator|signature|surname)/i;
 function isSensitive(line){const s=String(line);return SENSITIVE_RE.test(s)||/\d{10,}/.test(s)&&!/\d[.,]\d{2}\s*[A-Z]?\s*$/.test(s)||/\b[0-9A-F]{10,}\b/.test(s)||/\d{3,4}\/\d{3}\/\d{3}\/\d{3}/.test(s)||/^\W*[x*]\d{4}\b/.test(s)||/\b(TRANS|POS)\s*\d+/i.test(s)}
@@ -227,7 +247,7 @@ function classifyTotal(line){
  if(/^sub(?: \S{1,3})? ?$/.test(n.replace(/[\d.,$ -]+$/,'').trim())&&/\d[.,]\d{2}/.test(line))return{p:2,count:null};// v1.7.14: “SUB bi $60.83” (TOTAL misread)
  if(/^(i |l |)total\b/.test(n)&&!/\b(surcharge|savings?|discount|gst included|included|tax|vat)\b/.test(n))return /\baud\b/.test(n)?{p:1}:{p:4};
  if(/\bincl\.? ?gst\b/.test(n)&&/\d[.,]\d{2}/.test(line))return{p:3};
- if(/^(grand total|amount due|balance due|total due|tong cong|tong tien)\b/.test(n))return{p:4};
+ if(/^(grand total|amount due|balance due|total due|tong cong|tong tien|tong thanh toan|khach can tra)\b/.test(n))return{p:4};
  return null;
 }
 
@@ -271,6 +291,9 @@ function findStore(lines,head,retailer){
   if(co){const name=co[1].replace(/^(?:[A-Z]\s+|[^A-Z]+)/,'').trim();const sub=lines.slice(0,14).map(l=>l.match(new RegExp(`([A-Z][A-Z' ]{2,28}?)\\s+(${STATES})\\s+\\d{4}\\b`))).find(Boolean);
    if(name.length>=2){store=name.split(/\s+/).map(w=>w.length<=2?w:titleCase(w)).join(' ')+(sub&&!suburb?' '+titleCase(sub[1].trim()):'');if(sub&&!suburb)suburb=titleCase(sub[1].trim())}}}
  if(!store){const first=head.find(l=>/[A-Za-z]{3}/.test(l)&&l.length<50&&!/\d[.,]\d{2}/.test(l)&&!SKIP_RE.test(norm(l))&&!isSensitive(l));store=first?first.trim():''}
+ /* Henry, 13 Nov 2026 (rule 32): a faint store line read as "RA SRE eR Zi I 3 web 4 5 TY os" was filled in as the store. A name that
+    does not look like words stays empty, so the family types it; a known chain keeps its name. */
+ if(store&&!retailer?.name&&!plausibleStoreName(store))store='';
  return{store,suburb,storeNo};
 }
 
@@ -293,7 +316,7 @@ const JUNK_MULTI_RE=/^\W*\S{1,4}\s+(\d{1,2})\s*(?:[@©®§&]\s*\$?|\s[068Oo]\s+\
 // price OCR clipped (“10.4”) uses the unit price when the quantity is 1; nothing is guessed when neither reads.
 function costcoLines(lines){
  const letters=l=>(String(l).replace(/\b[1Il|i]?[xX×]\b/g,'').match(/[A-Za-z]/g)||[]).length;
- const money=/(\d{1,4})[.,](\d{2})(?!\d)/g;
+ const money=/(\d{1,7})[.,](\d{2})(?!\d)/g;
  const detail=l=>{const t=String(l);if(letters(t)>4)return null;const all=[...t.matchAll(money)];if(!all.length)return null;
   const last=all[all.length-1],after=t.slice(last.index+last[0].length);
   // the line price is the last amount when it reads cleanly at the end; otherwise (clipped “10.4”, junk) the unit price with qty 1
@@ -307,7 +330,7 @@ function costcoLines(lines){
   const cnt=t.match(/TOTAL\s+NUMBER\s+O\w*\s+\w*\s*\(?SOLD\s*=?\s*(\d{1,3})/i);if(cnt){out.push(cnt[1]+' items');continue}
   if(/^\W*REDEEM\s+REWARDS?\b/i.test(t)){const d=lines[i+1]&&detail(lines[i+1]);const v=d?d.v:amountIn(t);if(v!=null){out.push('COSTCOREWARD '+Math.abs(v).toFixed(2));if(d)i++}continue}
   const isName=letters(t)>=3&&!detail(t);
-  if(isName){/* a lone digit far to the right is the price column's clipped edge (“E/C APPLE JUICE 4L      9”), not part of the name */const name=t.replace(/(\d{1,4}[.,]\d{2})\s*-?\s*&?\W*$/,'').replace(/\s{3,}\d{1,2}\W*$/,'').replace(/^\W+/,'').trim(),own=t.match(/(\d{1,4})[.,](\d{2})\s*(-)?\s*&?\W*$/);
+  if(isName){/* a lone digit far to the right is the price column's clipped edge (“E/C APPLE JUICE 4L      9”), not part of the name */const name=t.replace(/(\d{1,7}[.,]\d{2})\s*-?\s*&?\W*$/,'').replace(/\s{3,}\d{1,2}\W*$/,'').replace(/^\W+/,'').trim(),own=t.match(/(\d{1,7})[.,](\d{2})\s*(-)?\s*&?\W*$/);
    const d=lines[i+1]?detail(lines[i+1]):null,tpd=/^\W*TPD\b/i.test(name);
    if(d||own){const v=own&&(tpd||!d)?+(own[1]+'.'+own[2]):d.v,neg=tpd||(own&&own[3]==='-')||(d&&d.neg);
     out.push(neg?`TPDDISC ${name} ${v.toFixed(2)}`:`${name} ${v.toFixed(2)}`);if(d)i++;continue}
@@ -318,6 +341,9 @@ function parseReceipt(text,opts={}){
  const raw=String(text||'').slice(0,40000);
  let lines=raw.split(/\r?\n/).map(tidy).filter(Boolean);
  const det=opts.retailer&&RETAILERS[opts.retailer]?{id:opts.retailer,name:RETAILERS[opts.retailer].name,currency:RETAILERS[opts.retailer].currency}:detectRetailer(raw);
+ const ev=opts.retailer&&RETAILERS[opts.retailer]?{currency:det.currency,from:'store'}:det.id?{currency:det.currency,from:det.currency==='AUD'?'store':'symbol'}:det.currency==='GBP'||det.currency==='EUR'?{currency:det.currency,from:'symbol'}:currencyEvidence(raw);
+ /* receipt currency (re-check 13 Nov): a đồng receipt prints 35.000 / 12,000 / 90000; read as whole đồng, not 35.00 or nothing */
+ if(ev.currency==='VND')lines=lines.map(vndAmounts);
  const aldi=det.id==='aldi';
  if(det.id==='costco')lines=costcoLines(raw.split(/\r?\n/).filter(x=>x.trim())).map(tidy).filter(Boolean);/* before tidy(): the column gaps tell edge noise from names */
  const items=[],totals=[],head=[];const payAmounts=[];let section='head',pending=null,refund=false,multiple=false,printedCount=null,lastItem=null;
@@ -341,7 +367,7 @@ function parseReceipt(text,opts={}){
   if(/^\W*refund\b/i.test(line)&&!/\d[.,]\d{2}/.test(line)){refund=true;if(section==='head'&&i>=bodyStart)section='body';continue}
   // printed totals and item count
   const tot=classifyTotal(line);
-  if(tot){let v=amountIn(line);if(v==null&&lines[i+1]&&/^\W*-?\$?\s?-?\d{1,5}[.,]\d{2}\W*$/.test(lines[i+1]))v=amountIn(lines[i+1]);
+  if(tot){let v=amountIn(line);if(v==null&&lines[i+1]&&/^\W*-?\$?\s?-?\d{1,7}[.,]\d{2}\W*$/.test(lines[i+1]))v=amountIn(lines[i+1]);
    if(tot.count!=null)printedCount=tot.count;
    if(v!=null)totals.push({value:v,p:tot.p,line:i,label:line.replace(/\s*-?\$?\s?-?\d[\d.,\s]*\W*$/,'').trim()});
    pending=null;if(section!=='pay')section=tot.p>=4?'pay':tot.p>=2?'sub':section;continue}
@@ -355,7 +381,7 @@ function parseReceipt(text,opts={}){
   if(/you have saved|^\W*D\d{3}\b/i.test(line)&&det.id==='woolworths-uk'){const v=amountIn(line);if(v!=null&&lastItem){lastItem.discount=round((lastItem.discount||0)-Math.abs(v));lastItem.raw+=' / '+line}continue}
   if(/^\W*(credit|discount|less|promo|coupon|voucher|member\s*(discount|saving)|multi\s*buy|saving)\b/i.test(line)&&!/surcharge/i.test(line)&&/-\s?\$?\s?\d|\d[.,]\d{2}\s*-/.test(line)){const v=amountIn(line);if(v!=null){add(adjust('discount',line,-Math.abs(v)));continue}}
   // v1.7.14: a bare amount right under the subtotal is the total whose word OCR lost (“: $80.83” under “SUB TOTAL”)
-  if(section==='sub'&&/^\W*\$?\s?\d{1,5}[.,]\d{2}\W*$/.test(line)){const v=amountIn(line);if(v!=null)totals.push({value:v,p:3,line:i,label:'TOTAL'});pending=null;continue}
+  if(section==='sub'&&/^\W*\$?\s?\d{1,7}[.,]\d{2}\W*$/.test(line)){const v=amountIn(line);if(v!=null)totals.push({value:v,p:3,line:i,label:'TOTAL'});pending=null;continue}
   if(PAY_RE.test(n)){if(/^(purchase|refund|total aud|mastercard|master card|visa|eftpos|eft|debit|amex)\b/.test(n)||/^cash\b(?! ?out)/.test(n)){const v=amountIn(line);if(v!=null)payAmounts.push(v)}if(section!=='head'||i>bodyStart&&bodyStart>=0)section='pay';pending=null;continue}
   if(isSensitive(line)){pending=null;continue}
   if(/\bnet\b.*\b(gst|vat)\b|^\W*[ab]\s+\d+[.,]\d\s*%/i.test(line))continue;
@@ -471,7 +497,7 @@ function parseReceipt(text,opts={}){
  const countRead=items.filter(i=>i.kind==='item').reduce((n,i)=>n+(i.multi?i.multi.count:1),0)*(refund?-1:1);
  const{date,time}=findDate(lines);
  const where=findStore(lines,head,det);
- const out={retailer:det.id,retailerName:det.name,currency:det.currency,store:where.store,suburb:where.suburb,storeNo:where.storeNo,date,time,refund,items,lineSum,printedTotal,totalLabel:pick?.label||null,difference,printedCount,countRead,txRaw:findTransaction(lines,det.id),multiple,totalConflict,warnings:[]};
+ const out={retailer:det.id,retailerName:det.name,currency:ev.currency,currencyFrom:ev.from,store:where.store,suburb:where.suburb,storeNo:where.storeNo,date,time,refund,items,lineSum,printedTotal,totalLabel:pick?.label||null,difference,printedCount,countRead,txRaw:findTransaction(lines,det.id),multiple,totalConflict,warnings:[]};
  out.warnings=warningsFor(out);
  return out;
 }
@@ -822,6 +848,6 @@ async function recognize(file,{lang='eng',status=null,createWorker=null,original
  }finally{if(worker)try{await worker.terminate()}catch{}}
 }
 
-const api={preparedWord,COUNTED_BASE,genericLabel,GENERIC_WORDS,readScore,preferOther,RETAILERS,ABBREVIATIONS,EN_ALIASES,KNOWN_WORDS,addWords,detectRetailer,detectCurrency,expandAbbrev,splitGlued,isSnack,isNonFood,extractSize,repairNumber,plausible,tidy,cleanLabel,priceOf,clippedPrice,parseReceipt,warningsFor,warningText,looksLikeReceipt,differenceNote,redact,isSensitive,matchIngredient,memoryKeys,lineQuantity,fingerprint,receiptKey,sha256Hex,findDuplicate,sameStore,reconcile,findDate,preprocess,toGray,otsu,blankExtents,paperExtents,charAccuracy,prepareImage,recognize,norm,warpField};
+const api={plausibleStoreName,preparedWord,COUNTED_BASE,genericLabel,GENERIC_WORDS,readScore,preferOther,RETAILERS,ABBREVIATIONS,EN_ALIASES,KNOWN_WORDS,addWords,detectRetailer,detectCurrency,currencyEvidence,vndAmounts,expandAbbrev,splitGlued,isSnack,isNonFood,extractSize,repairNumber,plausible,tidy,cleanLabel,priceOf,clippedPrice,parseReceipt,warningsFor,warningText,looksLikeReceipt,differenceNote,redact,isSensitive,matchIngredient,memoryKeys,lineQuantity,fingerprint,receiptKey,sha256Hex,findDuplicate,sameStore,reconcile,findDate,preprocess,toGray,otsu,blankExtents,paperExtents,charAccuracy,prepareImage,recognize,norm,warpField};
 root.ReceiptParse=api;
 })(globalThis);

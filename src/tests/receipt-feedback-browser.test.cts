@@ -81,6 +81,9 @@ const seed=()=>{state.preferences.onboardingComplete=true;state.receipts=[];save
   assert.ok(Math.abs(after.top-before.top)<=1&&after.scroll===before.scroll&&after.y===before.y,'tapping “Vẫn dùng bản này” keeps the page still '+JSON.stringify({before,after}));
   // correct: type the missing VEGEMITE line's price into a new line → the send button appears at the end of the sheet
   assert.equal(await page.locator('#modal-root [data-rshare-row]').isHidden(),true);
+  /* v1.7.19: the receipt-currency field makes the sheet taller, so the first line starts below the fold; bring it into view as the
+     person does before typing, so Playwright's own scroll-to-type is not counted as a jump. The check below is unchanged. */
+  await page.locator('#modal-root .receipt-label').first().scrollIntoViewIfNeeded();
   const y0=await page.evaluate(()=>(document.querySelector('#modal-root .receipt-label') as any).getBoundingClientRect().top);
   await page.locator('#modal-root .receipt-label').first().fill('WESTERN STAR SPREADABLE 375G');await sleep(300);
   assert.equal(await page.evaluate(()=>(document.querySelector('#modal-root .receipt-label') as any).getBoundingClientRect().top),y0,'showing the send button does not move what is being edited');

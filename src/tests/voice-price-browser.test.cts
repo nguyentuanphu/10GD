@@ -181,7 +181,7 @@ async function main(){
    await scrollModal(page,'.vr-review');await shot(page,`recipe-review-${lang}-${theme}-${size}`);
    // edit in review: fill one blank amount
    const blankRow=page.locator('.vr-ing').filter({has:page.locator(`.vr-ing-name[value="${lang==='en'?'Soy sauce':'Đường'}"]`)});
-   await blankRow.locator('.vr-ing-qty').fill('10');await blankRow.locator('.vr-ing-unit').fill('g');
+   await blankRow.locator('.vr-ing-qty').fill('10');/* v1.7.19 (rule 29): the unit is picked in the shared unit picker */await blankRow.locator('.unit-field-btn').click();await page.locator('#unit-sheet-layer .unit-chip').first().waitFor();if(!(await page.locator('#unit-sheet-layer .unit-chip[data-unit-choice="g"]').first().isVisible()))await page.locator('#unit-sheet-layer [data-unit-action="show-all"]').click();await page.locator('#unit-sheet-layer .unit-chip[data-unit-choice="g"]').first().click();await page.locator('#unit-sheet-layer [data-unit-sheet-act="save"]').click();await page.locator('#unit-sheet-layer').waitFor({state:'detached'});
    await page.locator('#vr-use').click();await page.waitForSelector('#family-recipe-form .vr-form-note');
    const form=await page.evaluate(()=>{const f=document.getElementById('family-recipe-form') as any;return{name:f.name.value,yield:f.yield.value,ing:f.ingredients.value,steps:f.steps.value,tr:f.transcript.value,d:f.dataset.dictated}});
    assert.equal(form.d,'yes');assert.equal(form.name,title);assert.match(form.tr,/\n/);

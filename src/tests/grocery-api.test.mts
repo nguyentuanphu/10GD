@@ -69,7 +69,7 @@ for(let i=0;i<Math.ceil(RATE_MAX/25)+2&&!limited;i++){const res=await burst(req(
 assert.ok(limited,'rate limited');
 // Public region lookup and client/server postcode mirror
 assert.deepEqual((await(await grocery(req('region&postcode=2600'))).json()).state,'ACT');
-const ctx=vm.createContext({Intl,Date,Math,URL,JSON});vm.runInContext(readFileSync('dist/shopping-optimizer.js','utf8'),ctx);
+const ctx=vm.createContext({Intl,Date,Math,URL,JSON});vm.runInContext(readFileSync('dist/store-registry.js','utf8'),ctx);vm.runInContext(readFileSync('dist/shopping-optimizer.js','utf8'),ctx);
 for(let n=0;n<=9999;n++){const pc=String(n).padStart(4,'0'),a=postcodeToState(pc),b=ctx.PriceScout.postcodeState(pc);assert.equal(a.state,b.state,pc);assert.equal(a.supported,b.supported,pc)}
 assert.equal(cycleId('2026-11-07'),'2026-11-04');assert.equal(cleanObservation({...obs('obs-clean-1'),extra:'dropped'}).extra,undefined);
 console.log('PASS grocery API: session + household gate, origin check, viewer read-only, validation, provenance, isolation, delete, official cache, rate limit, postcode mirror');

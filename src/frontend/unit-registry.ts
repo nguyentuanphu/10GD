@@ -111,7 +111,7 @@ function sameUnit(a,b){if(a===b)return true;if(!a||!b)return false;const x=findU
 function canonicalUnitLabel(text){const u=findUnit(text);return u?u.vi:String(text??'').trim()}
 const unitLang=lang=>lang||(typeof appLanguage!=='undefined'?appLanguage:'vi');
 function unitLabel(text,{lang,plural=false}={}){const u=findUnit(text);if(!u)return String(text??'');return unitLang(lang)==='en'?(plural?u.enPlural:u.en):u.viLabel}
-function unitAmountLabel(amount,text,lang){const u=findUnit(text),n=+(+amount).toFixed(2);if(!u)return `${n} ${text}`;if(u.id==='l'&&unitLang(lang)==='vi')return `${n} l`;return `${n} ${unitLabel(u,{lang,plural:unitLang(lang)==='en'&&n!==1})}`}
+function unitAmountLabel(amount,text,lang){const u=findUnit(text),n0=+(+amount).toFixed(2),n=unitLang(lang)==='vi'?String(n0).replace('.',','):n0/* Henry, 13 Nov 2026: decimal comma in Vietnamese */;if(!u)return `${n} ${text}`;if(u.id==='l'&&unitLang(lang)==='vi')return `${n} l`;return `${n} ${unitLabel(u,{lang,plural:unitLang(lang)==='en'&&n0!==1})}`}
 function unitIconSvg(text,{size=20,cls='unit-icon'}={}){const u=findUnit(text),key=u?u.icon:'custom';return `<svg class="${cls}" data-unit-icon="${key}" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${UNIT_ICON_PATHS[key]}</svg>`}
 function unitSearchText(text){const u=findUnit(text);return u?[...new Set(unitSynonymWords(u).map(unitNorm))].join(' | '):unitNorm(text)}
 // Every lookup key → ids, for the voice parser / receipts and the collision test.

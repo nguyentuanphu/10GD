@@ -18,7 +18,12 @@
 const round=(n,d=2)=>{const f=10**d;return Math.round(n*f)/f};
 const fold=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D');
 const norm=s=>fold(s).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-const money=n=>'$'+Math.abs(+n||0).toFixed(2);
+// v1.7.19 (audit B13): So Giá and matching amounts are Australian store prices (AUD), written with the app's formatter
+const money=n=>typeof aud==='function'?aud(Math.abs(+n||0),'AUD'):'$'+Math.abs(+n||0).toFixed(2);
+// Re-check 13 Nov 2026 (B13): amounts read from the receipt itself (line prices, per-kg, the printed-total gap) are written in
+// the receipt's own currency, with their sign; So Giá and history estimates stay AUD.
+let lineCurrency='AUD';
+const moneyL=n=>typeof aud==='function'?aud(+n||0,lineCurrency):'$'+(+n||0).toFixed(2);
 const median=a=>{const v=a.filter(Number.isFinite).slice().sort((x,y)=>x-y);if(!v.length)return null;const m=v.length>>1;return v.length%2?v[m]:(v[m-1]+v[m])/2};
 const R=(code,vi,en)=>({code,vi,en});
 
@@ -103,13 +108,13 @@ function scoreSingle(line,item,ctx,pos){
  // learned mapping for this store + label/PLU
  const key=lineKey(line);
  for(const l of ctx.learned||[]){if(l.key!==key||l.target.key!==item.key)continue;
-  if(inBand(p,l.lo,l.hi)){score+=4;reasons.unshift(R('learned',`Đã ghép trước đây ở cửa hàng này: ${labelText(line)} ${l.lo===l.hi?money(l.lo):money(l.lo)+'–'+money(l.hi)} → ${item.name}`,`Matched before at this store: ${labelText(line)} ${l.lo===l.hi?money(l.lo):money(l.lo)+'–'+money(l.hi)} → ${item.name}`))}
+  if(inBand(p,l.lo,l.hi)){score+=4;reasons.unshift(R('learned',`Đã ghép trước đây ở cửa hàng này: ${labelText(line)} ${l.lo===l.hi?moneyL(l.lo):moneyL(l.lo)+'–'+moneyL(l.hi)} → ${item.name}`,`Matched before at this store: ${labelText(line)} ${l.lo===l.hi?moneyL(l.lo):moneyL(l.lo)+'–'+moneyL(l.hi)} → ${item.name}`))}
   else{score+=1;reasons.push(R('learned-label',`Ở cửa hàng này ${labelText(line)} từng là ${item.name} (giá khác)`,`At this store ${labelText(line)} was ${item.name} before (different price)`))}}
  // weighed line: $/kg plausible for the item's group?
  const g=item.group;
  if(line.perKg>0&&PER_KG[g]){const[lo,hi]=PER_KG[g];const ok=line.perKg>=lo&&line.perKg<=hi;const what=g==='meat'?['thịt/cá','meat/fish']:['rau củ','vegetables'];
-  if(ok){score+=1.5;reasons.push(R('per-kg',`${line.weightKg} kg × ${money(line.perKg)}/kg hợp với ${what[0]}`,`${line.weightKg} kg × ${money(line.perKg)}/kg fits ${what[1]}`))}
-  else{score-=3;reasons.push(R('per-kg-odd',`${money(line.perKg)}/kg không giống giá ${what[0]}`,`${money(line.perKg)}/kg does not look like ${what[1]}`))}}
+  if(ok){score+=1.5;reasons.push(R('per-kg',`${line.weightKg} kg × ${moneyL(line.perKg)}/kg hợp với ${what[0]}`,`${line.weightKg} kg × ${moneyL(line.perKg)}/kg fits ${what[1]}`))}
+  else{score-=3;reasons.push(R('per-kg-odd',`${moneyL(line.perKg)}/kg không giống giá ${what[0]}`,`${moneyL(line.perKg)}/kg does not look like ${what[1]}`))}}
  // printed department word
  const lg=labelGroup(key);
  if(lg&&g&&g!=='other'){if(lg===g){score+=1;reasons.push(R('label',`Dòng ghi ${labelText(line)}`,`The line says ${labelText(line)}`))}else if(lg!=='dry'&&g!=='dry')score-=2}
@@ -120,14 +125,14 @@ function scoreSingle(line,item,ctx,pos){
   if(!reasons.some(r=>r.code==='tick-order'))reasons.push(R('ticked',`Đã đánh dấu “đã mua”`,`Ticked “bought”`))}
  return{targets:[item.key],score:round(score,4),reasons,expected:e?e.value:null,fit:e?Math.abs(p-e.value)<=Math.max(0.05,0.02*e.value):false};
 }
-function labelText(line){return line.label&&line.label.trim()?line.label.trim():money(line.price)}
+function labelText(line){return line.label&&line.label.trim()?line.label.trim():moneyL(line.price)}
 // Combination of 2–3 items for one line, only when each item has an expected price and they add up.
 function scoreCombo(line,items,ctx){
  const es=items.map(i=>expected(i,ctx));if(es.some(e=>!e))return null;const sum=round(es.reduce((n,e)=>n+e.value,0));const p=+line.price;
  // the parts must add up: within ±5% (at least ±$0.15) of the printed line, otherwise the combination is not offered
  const tol=Math.max(0.15,0.05*p);if(Math.abs(p-sum)>tol+1e-9)return null;const c=1-Math.abs(p-sum)/(2*tol);
  const w=Math.min(...es.map(e=>e.weight));let score=w*c-1*(items.length-1);
- const reasons=[R('combo',`${items.map((i,k)=>i.name+' '+money(es[k].value)).join(' + ')} = ${money(sum)} ≈ ${money(p)}`,`${items.map((i,k)=>i.name+' '+money(es[k].value)).join(' + ')} = ${money(sum)} ≈ ${money(p)}`)];
+ const reasons=[R('combo',`${items.map((i,k)=>i.name+' '+money(es[k].value)).join(' + ')} = ${money(sum)} ≈ ${moneyL(p)}`,`${items.map((i,k)=>i.name+' '+money(es[k].value)).join(' + ')} = ${money(sum)} ≈ ${moneyL(p)}`)];
  const lg=labelGroup(lineKey(line));if(lg&&items.every(i=>i.group===lg)){score+=1;reasons.push(R('label',`Dòng ghi ${labelText(line)}`,`The line says ${labelText(line)}`))}
  if(items.every(i=>ctx.ticks.has(i.key))){score+=0.5;reasons.push(R('ticked',`Đều đã đánh dấu “đã mua”`,`All ticked “bought”`))}
  return{targets:items.map(i=>i.key),score:round(score,4),reasons,expected:sum,fit:Math.abs(p-sum)<=Math.max(0.05,0.02*sum)};
@@ -146,13 +151,14 @@ function candidates(line,basket,ctx,pos,{max=5}={}){
 // Joint pass (beam search): each basket item is used by at most one line; assignments whose expected prices add
 // up to what the unmatched lines cost (printed total − lines already known) score higher.
 // exclude: basket keys already used by matched lines (still counted for the tick order).
-function suggest({lines,basket,exclude=[],history=new Map(),community=[],learned=[],printedTotal=null,knownTotal=0,beam=40,show=3}){
+function suggest({lines,basket,exclude=[],history=new Map(),community=[],learned=[],printedTotal=null,knownTotal=0,beam=40,show=3,currency='AUD'}){
+ lineCurrency=typeof currency==='string'&&currency?currency:'AUD';
  const ctx={history,community,learned,ticks:tickRanks(basket)},ex=new Set(exclude),free=basket.filter(b=>!ex.has(b.key));
  const L=(lines||[]).filter(l=>+l.price>0);const n=L.length;
  const per=L.map((l,i)=>candidates(l,free,ctx,l.order!=null&&l.orderN?{i:l.order,n:l.orderN}:{i,n}));
  const unmatched=round(L.reduce((s,l)=>s+(+l.price),0));
  const target=printedTotal!=null?round(printedTotal-knownTotal):unmatched;
- const totalNote=printedTotal!=null&&Math.abs(target-unmatched)>0.02?{code:'total-gap',value:round(target-unmatched),vi:`Theo tổng in, các dòng chưa rõ phải là ${money(target)} nhưng cộng lại ${money(unmatched)} — có thể đọc sót hoặc sai một dòng`,en:`From the printed total the unknown lines should come to ${money(target)} but they add up to ${money(unmatched)} — a line may be missing or misread`}:null;
+ const totalNote=printedTotal!=null&&Math.abs(target-unmatched)>0.02?{code:'total-gap',value:round(target-unmatched),vi:`Theo tổng in, các dòng chưa rõ phải là ${moneyL(target)} nhưng cộng lại ${moneyL(unmatched)} — có thể đọc sót hoặc sai một dòng`,en:`From the printed total the unknown lines should come to ${moneyL(target)} but they add up to ${moneyL(unmatched)} — a line may be missing or misread`}:null;
  let states=[{pick:[],used:new Set(),score:0,E:0,P:0}];
  for(let i=0;i<n;i++){const next=[];
   for(const s of states){next.push({...s,pick:[...s.pick,null]});

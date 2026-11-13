@@ -6,7 +6,7 @@ const read=(f:string)=>fs.readFileSync('dist/'+f,'utf8');
 {
  const c=vm.createContext({console,Intl,Date,Math,URL,structuredClone,crypto:require('node:crypto').webcrypto,setTimeout,clearTimeout,AbortController,fetch:async()=>{throw TypeError('offline')},window:{addEventListener(){},dispatchEvent(){}},Event:class{constructor(public type:string){}},globalThis:undefined as any});
  c.globalThis=c;
- for(const f of ['seed.js','recipe-catalog-core.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js'])vm.runInContext(read(f),c);
+ for(const f of ['store-registry.js','seed.js','recipe-catalog-core.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js'])vm.runInContext(read(f),c);
  assert.equal(vm.runInContext('catalogLoaded()',c),false,'startup pack has no reference data');
  const seedCount=vm.runInContext('RECIPES.length',c);assert.ok(seedCount<120,'only seed recipes before the catalog: '+seedCount);
  // Diet/labels helpers are available without the catalog.

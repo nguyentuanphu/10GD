@@ -21,8 +21,8 @@ const qtyText=(n,u)=>typeof fmtQty==='function'?fmtQty(n,u):n+' '+u;
 const RL=(globalThis as any).ReceiptList;
 const DAY=/^\d{4}-\d{2}-\d{2}$/;
 // v1.7.18: the shopping list a receipt is matched against — the receipt's week and the week in view
-function receiptWeeks(date){const out=[];const add=(w,start,end)=>{if(w&&!out.some(x=>x.week===w))out.push({week:w,start,end})};
- try{if(DAY.test(date||'')&&typeof planStartOf==='function'){const k=planStartOf(state,date);add(state.weeks?.[k],k,addDays(k,6))}}catch{}
+function receiptWeeks(date){const out=[];const add=(w,start,end)=>{const key=typeof menuWeekKey==='function'?menuWeekKey(state,start):start;if(w&&!out.some(x=>x.week===w||x.key===key))out.push({week:w,start,end,key})};
+ try{if(DAY.test(date||'')&&typeof planStartOf==='function'){const k=planStartOf(state,date);add(planWeek(state,k),k,addDays(k,6))}}catch{}
  try{const[a,b]=typeof shopDates==='function'?shopDates():[weekStart,addDays(weekStart,6)];add(currentWeek(),a,b)}catch{}
  return out}
 
@@ -79,11 +79,15 @@ function receiptItemText(text,parsed){const raws=(parsed.items||[]).filter((i:an
 function fillDraft(text,{keepStore=true}={}){
  const d=receiptDraft;if(!d)return null;
  const prevRetailer=keepStore&&!RP.detectRetailer(String(text||'')).id?d.extra?.retailer:null,parsed=RP.parseReceipt(text,prevRetailer?{retailer:prevRetailer}:{});const built=draftFromParsed(parsed,text);
+ /* v1.7.19 (audit sweep, rule 36): reading text or a photo that gives no lines never wipes the lines already on the receipt */
+ if(!built.items.length&&(d.items||[]).length){toast(T('Không đọc được dòng nào; các dòng đang có vẫn giữ nguyên.','No lines could be read; the lines already here stay as they are.'),true);return parsed}
  d.raw=receiptItemText(text,parsed)||RP.redact(text);d.items=built.items;d.meta=built.meta;
  d.store=keepStore&&d.store?d.store:parsed.store||d.store||'';
  if(parsed.date)d.date=parsed.date;
  d.total=parsed.printedTotal!=null?parsed.printedTotal:keepStore&&d.total!=null?d.total:null;/* v1.7.14: the text box holds item lines only, so a re-read keeps the total already read */
- d.currency=parsed.currency==='AUD'?(d.currency&&d.currency!=='GBP'&&d.currency!=='EUR'?d.currency:currentCurrency(state)):parsed.currency;
+ /* v1.7.19 re-check (receipt currency): the receipt says its currency (store, sign, amounts) → suggested; a currency the family chose
+    in the editor is kept; a receipt that does not say keeps the family's (as before). Amounts are never converted. */
+ const said=!!parsed.currencyFrom;d.currency=d.currencyChosen&&d.currency?d.currency:said?parsed.currency:(d.currency&&d.currency!=='GBP'&&d.currency!=='EUR'?d.currency:currentCurrency(state));d.currencySuggested=said&&!d.currencyChosen?parsed.currencyFrom:null;
  d.refund=!!parsed.refund;d.dupDecided=false;d.allowDuplicate=false;
  d.extra={retailer:parsed.retailer||null,refund:parsed.refund||undefined,printed:{time:parsed.time||null,count:parsed.printedCount??null,storeNo:parsed.storeNo||null},source:'ocr'};
  return parsed;
@@ -126,6 +130,18 @@ const ocrReady=()=>navigator.onLine&&!globalThis.BEP_OFFLINE||typeof ocrOfflineR
 // positions) finds the item lines; the frame is set from the first item to the TOTAL line, and the shop, date and total read there
 // are kept for when the cropped part leaves the header out. The family can still drag the edges.
 let cropTouched=false,cropMeta:any=null,cropSeq=0;
+// The frame around the item lines (quick first pass). Henry, 13 Nov 2026 (Orange Supermarket photo): the quick pass did not
+// recognise the first items (a faint price, a Chinese line under each name), so the frame started at the 4th item and the
+// first ones were never read. The frame now starts right after the receipt's head (date, cashier, register, ABN, TAX
+// INVOICE, address) — every line between the head and the first recognised item is kept — and runs to TOTAL as before.
+const HEAD_RE=/\b(tax\s*invoice|invoice|receipt|date|cashier|operator|reg(?:ister)?\b|pos\s*\d|abn|acn|phone|tel|ph\s*[:.]|trans(?:action)?|store\s*(?:no|#)|nsw|vic|qld|wa|sa|tas|act|nt)\b|\b\d{4}\s*$|^no\s*[:.]/i;
+function itemFrame(lines:any[],idx:number[],W:number,H:number){if(!idx.length)return null;const first=idx[0];
+ let start=first;for(let i=first-1;i>=0;i--){if(HEAD_RE.test(lines[i].t))break;if(first-i>8)break;if(/[A-Za-zÀ-ỹ㐀-鿿]{2}/.test(lines[i].t)||/\d[.,]\d{2}/.test(lines[i].t))start=i}
+ let last=idx[idx.length-1];for(let i=last+1;i<lines.length&&i<=last+7;i++){const tt=lines[i].t;if(/\btotal\b/i.test(tt)&&!/total\s*items?/i.test(tt)){last=i;if(!/sub/i.test(tt))break}}
+ const keep=new Set(idx);for(let i=start;i<first;i++)keep.add(i);for(let i=idx[idx.length-1]+1;i<=last;i++)keep.add(i);
+ const pick=[...keep].sort((a,b)=>a-b).map(i=>lines[i]);
+ const y0=Math.min(...pick.map(l=>l.y0)),y1=Math.max(...pick.map(l=>l.y1)),x0=Math.min(...pick.map(l=>l.x0)),x1=Math.max(...pick.map(l=>l.x1)),py=H*.015,px=W*.025;
+ const f={l:Math.max(0,(x0-px)/W),t:Math.max(0,(y0-py)/H),r:Math.min(1,(x1+px)/W),b:Math.min(1,(y1+py)/H)};return f.r-f.l>=.2&&f.b-f.t>=.08?f:null}
 async function suggestCrop(file:any){await loadOCR();const TS=(globalThis as any).Tesseract;if(!TS?.createWorker)return null;const bmp=await createImageBitmap(file);const sc=Math.min(1,1400/Math.max(bmp.width,bmp.height));
  const cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(bmp.width*sc));cv.height=Math.max(1,Math.round(bmp.height*sc));cv.getContext('2d')!.drawImage(bmp,0,0,cv.width,cv.height);bmp.close?.();const W=cv.width,H=cv.height;
  let w:any=null;try{w=await TS.createWorker('eng',1);await w.setParameters({tessedit_pageseg_mode:'6',preserve_interword_spaces:'1'});const {data}=await w.recognize(cv,{},{blocks:true,text:true});
@@ -133,10 +149,7 @@ async function suggestCrop(file:any){await loadOCR();const TS=(globalThis as any
   const parsed=RP.parseReceipt(lines.map(l=>l.t).join('\n'));const meta={store:parsed.store||'',date:parsed.date||'',total:parsed.printedTotal??null,retailer:parsed.retailer||null};
   const raws=(parsed.items||[]).filter((i:any)=>i.kind==='item'||i.kind==='discount').map((i:any)=>String(i.raw||'').replace(/\s+/g,' '));
   const idx=lines.map((l,i)=>{const t=RP.tidy(l.t).replace(/\s+/g,' ').trim();return t.length>1&&raws.some((r:string)=>r.includes(t))?i:-1}).filter(i=>i>=0);if(!idx.length)return{frame:null,meta};
-  let last=idx[idx.length-1];for(let i=last+1;i<lines.length&&i<=last+7;i++){const tt=lines[i].t;if(/\btotal\b/i.test(tt)&&!/total\s*items?/i.test(tt)){last=i;if(!/sub/i.test(tt))break}}
-  const pick=[...idx,...(last>idx[idx.length-1]?Array.from({length:last-idx[idx.length-1]},(_,k)=>idx[idx.length-1]+1+k):[])].map(i=>lines[i]);
-  const y0=Math.min(...pick.map(l=>l.y0)),y1=Math.max(...pick.map(l=>l.y1)),x0=Math.min(...pick.map(l=>l.x0)),x1=Math.max(...pick.map(l=>l.x1)),py=H*.015,px=W*.025;
-  const f={l:Math.max(0,(x0-px)/W),t:Math.max(0,(y0-py)/H),r:Math.min(1,(x1+px)/W),b:Math.min(1,(y1+py)/H)};return{frame:f.r-f.l>=.2&&f.b-f.t>=.08?f:null,meta,items:idx.length}}
+  return{frame:itemFrame(lines,idx,W,H),meta,items:idx.length}}
  finally{try{await w?.terminate()}catch{}}}
 readReceiptPhoto=async function(file){if(!file||ocrBusy)return;if(!ocrReady())return ocrRead(file);collectReceipt();cropLang=$('#ocr-language')?.value||cropLang;cropSrc=file;crop={l:.04,t:.03,r:.96,b:.97};cropTouched=false;cropMeta=null;cropSheet();
  const seq=++cropSeq,say=(t:string)=>{const el=document.querySelector('#modal-root .rcrop-status');if(el)el.textContent=t};say(T('Đang tìm vùng các dòng hàng…','Finding the item lines…'));
@@ -149,7 +162,7 @@ function cropPlace(){const box=document.querySelector('.rcrop-box') as HTMLEleme
  for(const h of document.querySelectorAll('.rcrop-h') as any){const k=h.dataset.edge;h.setAttribute('aria-valuenow',String(Math.round((crop as any)[k]*100)))}}
 function cropSheet(){if(cropURL)URL.revokeObjectURL(cropURL);cropURL=URL.createObjectURL(cropSrc);
  const edge=(k:string,vi:string,en:string)=>`<div class="rcrop-h rcrop-${k}" data-edge="${k}" role="slider" tabindex="0" aria-label="${esc(T(vi,en))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span aria-hidden="true"></span></div>`;
- modal(T('Cắt hóa đơn','Crop the receipt'),`<p class="hint">${T('Kéo 4 cạnh khung xanh sát các dòng chữ của hóa đơn (bỏ mặt bàn, ngón tay, phần trống). Đọc phần đã cắt sẽ đúng hơn.','Drag the four edges of the green frame close to the printed lines (leave out the bench, fingers and blank paper). Reading the cropped part is more accurate.')}</p>
+ modal(T('Cắt hóa đơn','Crop the receipt'),`<p class="hint receipt-beta"><span class="pill beta-pill">Beta</span> ${T('Đọc hoá đơn từ ảnh đang thử nghiệm.','Reading receipts from a photo is in testing.')}</p><p class="hint">${T('Kéo 4 cạnh khung xanh sát các dòng chữ của hóa đơn (bỏ mặt bàn, ngón tay, phần trống). Đọc phần đã cắt sẽ đúng hơn.','Drag the four edges of the green frame close to the printed lines (leave out the bench, fingers and blank paper). Reading the cropped part is more accurate.')}</p>
   <p class="hint rcrop-status" role="status" aria-live="polite"></p><div class="rcrop-wrap"><div class="rcrop-stage"><img class="rcrop-img" src="${cropURL}" alt="${esc(T('Ảnh hóa đơn để cắt','Receipt photo to crop'))}" draggable="false"><div class="rcrop-box" data-edge="move">${edge('t','Cạnh trên','Top edge')}${edge('b','Cạnh dưới','Bottom edge')}${edge('l','Cạnh trái','Left edge')}${edge('r','Cạnh phải','Right edge')}</div></div></div>`,
   `<button class="btn" type="button" data-rcrop="whole">${T('Đọc cả ảnh','Read the whole photo')}</button><button class="btn primary" type="button" data-rcrop="read">${T('Đọc phần đã cắt','Read the cropped part')}</button>`,true);
  document.querySelector('.modal')?.classList.add('rcrop-modal');cropPlace()}
@@ -182,9 +195,9 @@ function receiptTableLayout(){const root=document.getElementById('modal-root');c
  const field=raw.closest('.field'),tools=root!.querySelector('[data-feature="receipt-parse"]')?.closest('.toolbar');if(!field||root!.querySelector('.receipt-raw-fold'))return;
  const det=document.createElement('details');det.className='simple-disclosure receipt-raw-fold';det.open=!has;det.innerHTML=`<summary>${T('Chữ đọc được từ ảnh (sửa hoặc dán nếu cần)','Text read from the photo (fix or paste if needed)')}</summary>`;
  field.before(det);det.append(field);if(tools)det.append(tools);if(has)lines.after(det)}
-{const editorBase=receiptEditor;receiptEditor=function(...a:any[]){const r=editorBase.apply(this,a);try{receiptTableLayout();if((globalThis as any).BEP_LEGACY){const tools=document.querySelector('#modal-root .receipt-entry-tools');if(tools&&!document.querySelector('#modal-root .legacy-note')){for(const b of tools.querySelectorAll('[data-feature="receipt-camera"],[data-feature="receipt-file"],#ocr-language') as any)b.remove();tools.insertAdjacentHTML('afterend',`<p class="legacy-note">${T('Máy này chưa đọc được ảnh hoá đơn. Bạn dán hoặc gõ các dòng hàng ở dưới.','This device cannot read receipt photos yet. Paste or type the item lines below.')}</p>`)}}const img=document.querySelector('#modal-root .receipt-image');if(img&&cropSrc&&!document.querySelector('#modal-root [data-rcrop="again"]'))img.insertAdjacentHTML('afterend',`<button class="btn small soft rcrop-again" type="button" data-rcrop="again">${T('Cắt lại ảnh','Crop the photo again')}</button>`)}catch(err){console.warn('crop again',err)}return r}}
+{const editorBase=receiptEditor;receiptEditor=function(...a:any[]){const r=editorBase.apply(this,a);try{receiptTableLayout();/* Henry, 13 Nov 2026: “nếu bị lỗi như vầy thì nên ghi chữ beta hoặc testing mode để user biết” */{const tools=document.querySelector('#modal-root .receipt-entry-tools');if(tools&&!(globalThis as any).BEP_LEGACY&&!document.querySelector('#modal-root .receipt-beta'))tools.insertAdjacentHTML('afterend',`<p class="hint receipt-beta"><span class="pill beta-pill">Beta</span> ${T('Đọc hoá đơn từ ảnh đang thử nghiệm và có thể đọc sai. Kiểm tra từng dòng, ngày và tổng trước khi lưu.','Reading receipts from a photo is still in testing and can get things wrong. Check each line, the date and the total before saving.')}</p>`)}if((globalThis as any).BEP_LEGACY){const tools=document.querySelector('#modal-root .receipt-entry-tools');if(tools&&!document.querySelector('#modal-root .legacy-note')){for(const b of tools.querySelectorAll('[data-feature="receipt-camera"],[data-feature="receipt-file"],#ocr-language') as any)b.remove();tools.insertAdjacentHTML('afterend',`<p class="legacy-note">${T('Máy này chưa đọc được ảnh hoá đơn. Bạn dán hoặc gõ các dòng hàng ở dưới.','This device cannot read receipt photos yet. Paste or type the item lines below.')}</p>`)}}const img=document.querySelector('#modal-root .receipt-image');if(img&&cropSrc&&!document.querySelector('#modal-root [data-rcrop="again"]'))img.insertAdjacentHTML('afterend',`<button class="btn small soft rcrop-again" type="button" data-rcrop="again">${T('Cắt lại ảnh','Crop the photo again')}</button>`)}catch(err){console.warn('crop again',err)}return r}}
 (globalThis as any).ReceiptCrop={get:()=>({...crop}),set:(c:any)=>{crop={...crop,...c};cropPlace()},open:(file:any)=>readReceiptPhoto(file),read:(whole:boolean)=>cropRead(!!whole)};
-function summaryText(p,conf){const n=p.items.filter(i=>i.kind==='item').length;return T(`Đã đọc ${n} dòng món${p.store?' · '+p.store:''}${p.date?' · '+p.date:''}${p.time?' '+p.time:''} · độ tin cậy OCR ${Math.round(conf||0)}%. Kiểm tra tên, khối lượng, ngày và tổng tiền trước khi lưu.`,`Read ${n} item line(s)${p.store?' · '+p.store:''}${p.date?' · '+p.date:''}${p.time?' '+p.time:''} · OCR confidence ${Math.round(conf||0)}%. Check names, amounts, date and total before saving.`)}
+function summaryText(p,conf){const n=p.items.filter(i=>i.kind==='item').length;return T(`Đọc ảnh hoá đơn đang thử nghiệm (Beta) · Đã đọc ${n} dòng món${p.store?' · '+p.store:''}${p.date?' · '+p.date:''}${p.time?' '+p.time:''} · độ tin cậy OCR ${Math.round(conf||0)}%. Kiểm tra tên, khối lượng, ngày và tổng tiền trước khi lưu.`,`Reading receipt photos is in testing (beta) · Read ${n} item line(s)${p.store?' · '+p.store:''}${p.date?' · '+p.date:''}${p.time?' '+p.time:''} · OCR confidence ${Math.round(conf||0)}%. Check names, amounts, date and total before saving.`)}
 
 // ------------------------------------------------------------ form decorations
 const oldRows=receiptLineRows;
@@ -255,7 +268,7 @@ saveReceipt=async function(confirmed=false){
 };
 function duplicateSheet(dup){
  const r=dup.match,count=r.printed?.count??(r.items||[]).filter(i=>!i.lineKind||i.lineKind==='item').length;
- const when=r.createdAt?new Date(r.createdAt).toLocaleDateString(lang()==='en'?'en-AU':'vi-VN'):r.date;
+ const when=r.createdAt?appTimeLabel(r.createdAt,{time:false,year:true,lang:lang()}):r.date;
  const what=`${r.store}, ${money(r.total,r.currency)}, ${count} ${T('món','items')}`;
  const body=dup.kind==='exact'?`<p>${esc(T(`Hoá đơn này có vẻ đã lưu ngày ${when} (${what}). Vẫn lưu?`,`This receipt seems to have been saved on ${when} (${what}). Save it anyway?`))}</p>`:`<p>${esc(T(`Có thể trùng: đã có hoá đơn ${what} ngày ${r.date}${r.printed?.time?' lúc '+r.printed.time:''}. Đây là lần mua khác?`,`Possible duplicate: a receipt for ${what} on ${r.date}${r.printed?.time?' at '+r.printed.time:''} is already saved. Is this a different purchase?`))}</p>`;
  modal(dup.kind==='exact'?T('Hoá đơn có vẻ đã lưu','Receipt may already be saved'):T('Có thể trùng hoá đơn','Possible duplicate receipt'),body+`<p class="hint">${esc(T('Không có gì bị xoá hay gộp tự động.','Nothing is deleted or merged automatically.'))}</p>`,
@@ -273,12 +286,17 @@ const unitAmt=(n,u)=>typeof unitAmountLabel==='function'?unitAmountLabel(n,u):n+
 const amt=(r,n)=>r.units?unitAmt(n,r.units):qtyText(n,baseUnit(r.ingredient));
 function mealLabel(m){let day=m.date;try{day=new Intl.DateTimeFormat(lang()==='en'?'en-AU':'vi-VN',{weekday:'short',day:'numeric',month:'numeric'}).format(parseDate(m.date))}catch{}return(typeof mealName==='function'?mealName(m.type):m.type)+' '+day}
 function destText(c){return!c||c.mode==='pantry'?T(' → cất kho',' → pantry'):c.mode==='none'?T(' → không theo dõi',' → not tracked'):T(' → dành cho ',' → kept for ')+(c.meal?(lang()==='en'?mealLabel(c.meal):mealLabel(c.meal).toLowerCase()):T('một bữa','a meal'))}
-function statusText(r,c=null,dest=true){const destText2=(c)=>dest?destText(c):'';if(r.status==='stored')return T('Đã cất vào tủ lúc đi chợ · không cộng thêm','Already put away after shopping · not added again');return r.status==='short'?T('Còn thiếu ','Still short ')+amt(r,r.short):r.status==='enough'?T('Đủ','Enough'):r.status==='enough-extra'?T('Đủ · dư ','Enough · extra ')+amt(r,r.extra)+destText2(c):(r.onList?T('Dư ','Extra '):T('Ngoài danh sách · ','Not on the list · '))+amt(r,r.extra)+destText2(c)}
+function statusText(r,c=null,dest=true){const destText2=(c)=>dest?destText(c):'';if(r.noConv)return T('Chưa quy đổi được · giữ theo ','No conversion · kept as ')+amt(r,r.extra)+destText2(c);if(r.status==='stored')return T('Đã cất vào tủ lúc đi chợ · không cộng thêm','Already put away after shopping · not added again');return r.status==='short'?T('Còn thiếu ','Still short ')+amt(r,r.short):r.status==='enough'?T('Đủ','Enough'):r.status==='enough-extra'?T('Đủ · dư ','Enough · extra ')+amt(r,r.extra)+destText2(c):(r.onList?T('Dư ','Extra '):T('Ngoài danh sách · ','Not on the list · '))+amt(r,r.extra)+destText2(c)}
 function boughtText(r){return r.same?`${r.parts.length} × ${amt(r,r.parts[0])} = ${amt(r,r.bought)}`:r.parts.length>1?r.parts.map(p=>amt(r,p)).join(' + ')+' = '+amt(r,r.bought):amt(r,r.bought)}
-function weekRange(){return[weekStart,addDays(weekStart,6)]}
+/* v1.7.19 (Tự chạy thử, Rà soát 12/11; rule 34): a receipt is checked against the family's menu week that holds the receipt's own
+   date (the family's start day), not the week on screen */
+function receiptWeekStart(rec){const d=DAY.test(rec?.date||'')?rec.date:(typeof sydneyDate==='function'?sydneyDate():weekStart);return typeof planStartOf==='function'?planStartOf(state,d):weekStart}
+function weekRange(rec){const s=receiptWeekStart(rec);return[s,addDays(s,6)]}
+function receiptWeek(rec){const s=receiptWeekStart(rec);return typeof planWeek==='function'?planWeek(state,s):currentWeek()}
+(globalThis as any).ReceiptWeek={range:weekRange,week:receiptWeek};
 function reconcileSheet(id){
  const rec=state.receipts.find(r=>r.id===id);if(!rec)return;
- const[start,end]=weekRange(),week=currentWeek(),plan=reconcilePlan(state,rec,week,start,end);
+ const[start,end]=weekRange(rec),week=receiptWeek(rec),plan=reconcilePlan(state,rec,week,start,end);
  // v1.7.18: what is on the list comes first (“Đủ”), then extras. The extra part goes to the pantry by default; per line it can be
  // kept for a later planned meal or not tracked (spending only). Undo covers every choice.
  const done=rec.reconciled?.choices||{},from=DAY.test(rec.date||'')&&rec.date>(typeof sydneyDate==='function'?sydneyDate():'')?rec.date:(typeof sydneyDate==='function'?sydneyDate():rec.date);
@@ -288,7 +306,7 @@ function reconcileSheet(id){
    `<label class="rc-opt"><input type="radio" name="rc-${i}" value="pantry" checked><span>${esc(T('Cất kho','Pantry'))}</span></label>`+
    `<label class="rc-opt${meals.length?'':' rc-off'}"><input type="radio" name="rc-${i}" value="meal" ${meals.length?'':'disabled'}><span>${esc(T('Dành cho bữa…','Keep for a meal…'))}</span></label>`+
    `<label class="rc-opt"><input type="radio" name="rc-${i}" value="none"><span>${esc(T('Không theo dõi','Don’t track'))}</span></label>`+
-   (meals.length?`<select class="input rc-meal" aria-label="${esc(T('Bữa dùng phần dư','Meal that uses the extra'))}" hidden>${meals.map(m=>`<option value="${esc(m.date+'|'+m.type)}">${esc(mealLabel(m)+(m.names.length?' · '+m.names.join(', '):''))}</option>`).join('')}</select>`:`<small class="rc-note">${esc(T('Chưa có bữa sắp tới dùng món này','No upcoming meal uses this yet'))}</small>`)+`<small class="rc-dest">${esc(destText(null).trim())}</small></div>`:'';
+   (meals.length?`<select class="input rc-meal" aria-label="${esc(T('Bữa dùng phần dư','Meal that uses the extra'))}" hidden>${meals.map(m=>`<option value="${esc(m.date+'|'+m.type)}">${esc(mealLabel(m)+(m.names.length?' · '+m.names.join(', '):''))}</option>`).join('')}</select>`:`<small class="rc-note">${esc(T('Chưa có bữa sắp tới dùng món này','No upcoming meal uses this yet'))}</small>`)+(()=>{const pl=RL.placeFor?RL.placeFor(state,r.ingredient,rec):'fridge',u=RL.receiptUseBy?RL.receiptUseBy(r.ingredient,pl,rec,null):'';return`<label class="rc-useby"><span>${esc(T('Hạn dùng (ước tính, sửa được)','Use-by (estimate, you can change it)'))}</span><input type="date" class="input rc-useby-input" value="${esc(u)}" aria-label="${esc(T('Hạn dùng ước tính của ','Estimated use-by of ')+ingName(r.ingredient))}"></label>`})()+`<small class="rc-dest">${esc(destText(null).trim())}</small></div>`:'';
   return`<label class="reconcile-row reconcile-${r.status}" data-rlx-row="${esc(r.ingredient)}"><input type="checkbox" class="check" data-rui-tick="${esc(r.ingredient)}" ${rec.reconciled?'disabled':'checked'}><span class="reconcile-name"><b>${esc(ingName(r.ingredient))}</b><small>${esc(T('Mua','Bought'))}: ${esc(boughtText(r))}${r.onList&&r.need>0?' · '+esc(T('Cần tuần này','Needed this week'))+': '+esc(amt(r,r.need)):''}</small></span><span class="reconcile-status">${esc(statusText(r,done[r.ingredient],!!rec.reconciled))}</span></label>`+choice}).join('')+
   (plan.extras||[]).map(e=>`<label class="reconcile-row reconcile-enough"><input type="checkbox" class="check" data-rui-tick="${esc('x:'+e.id)}" ${rec.reconciled||e.done?'disabled':'checked'}><span class="reconcile-name"><b data-user-content>${esc(e.name)}</b><small>${esc(T('Trên hoá đơn','On the receipt'))}: ${esc(e.label)}</small></span><span class="reconcile-status">${esc(e.done?T('Đã đánh dấu mua','Ticked bought'):T('Trong danh sách → đã mua','On the list → bought'))}</span></label>`).join('');
  // v1.7.18: lines not matched yet — open the receipt to choose (Chọn từ danh sách đi chợ, Tìm món khác, …); the choice is remembered
@@ -341,14 +359,14 @@ document.addEventListener('click',async event=>{
   else if(a==='dup-view'){receiptDraft=null;closeModal();await openReceipt(id)}
   else if(a==='reconcile'){collectReceipt();reconcileSheet(id)}
   else if(a==='open-lines'){closeModal();await openReceipt(id);const first=document.querySelector('#modal-root .rl-box .rl-options');first?.closest('.receipt-line')?.scrollIntoView({block:'start'})}
-  else if(a==='apply'){const rec=state.receipts.find(r=>r.id===id);if(!rec)return;const ticked=[...document.querySelectorAll('[data-rui-tick]')].filter(x=>(x as any).checked).map(x=>(x as any).dataset.ruiTick);const choices={};for(const g of document.querySelectorAll('#modal-root .reconcile-choice[data-rlx]') as any){const v=g.querySelector('input[type=radio]:checked')?.value||'pantry';const ms=g.querySelector('.rc-meal')?.value||'';const[date,type]=ms.split('|');choices[g.dataset.rlx]=v==='meal'&&date?{mode:'meal',meal:{date,type}}:{mode:v==='meal'?'pantry':v}}const[start,end]=weekRange();applyReconcile(state,rec,currentWeek(),start,end,ticked,choices);if(typeof log==='function')log(T('Cập nhật đi chợ & kho từ hoá đơn ','Shopping & pantry updated from receipt ')+rec.store);save();closeModal();render();undoBar(id)}
+  else if(a==='apply'){const rec=state.receipts.find(r=>r.id===id);if(!rec)return;const ticked=[...document.querySelectorAll('[data-rui-tick]')].filter(x=>(x as any).checked).map(x=>(x as any).dataset.ruiTick);const choices={};for(const g of document.querySelectorAll('#modal-root .reconcile-choice[data-rlx]') as any){const v=g.querySelector('input[type=radio]:checked')?.value||'pantry';const ms=g.querySelector('.rc-meal')?.value||'';const[date,type]=ms.split('|');choices[g.dataset.rlx]=v==='meal'&&date?{mode:'meal',meal:{date,type}}:{mode:v==='meal'?'pantry':v};const ub=g.querySelector('.rc-useby-input');if(ub)choices[g.dataset.rlx].useBy=ub.value||''}const[start,end]=weekRange(rec);applyReconcile(state,rec,receiptWeek(rec),start,end,ticked,choices);if(typeof log==='function')log(T('Cập nhật đi chợ & kho từ hoá đơn ','Shopping & pantry updated from receipt ')+rec.store);save();closeModal();render();undoBar(id)}
   else if(a==='undo'){const rec=state.receipts.find(r=>r.id===id);if(rec&&undoReconcile(state,rec)){save(T('Đã hoàn tác cập nhật đi chợ & kho.','Shopping & pantry update undone.'));document.querySelector('.receipt-undo')?.remove();if(document.querySelector('.reconcile-modal'))closeModal();render()}}
  }catch(e){toast(e.message||String(e),true)}
 });
 
 // v1.7.18: choosing what happens to an extra updates its line in place (the tapped choice stays where it is)
 document.addEventListener('change',e=>{const t=e.target as any,g=t?.closest?.('.reconcile-choice[data-rlx]');if(!g)return;const id=g.dataset.rlx,rec=state.receipts.find(r=>r.id===document.querySelector('#modal-root [data-rui="apply"]')?.getAttribute('data-id'));if(!rec)return;
- const v=g.querySelector('input[type=radio]:checked')?.value||'pantry',sel=g.querySelector('.rc-meal');if(sel)sel.hidden=v!=='meal';const[date,type]=(sel?.value||'').split('|');
+ const v=g.querySelector('input[type=radio]:checked')?.value||'pantry',sel=g.querySelector('.rc-meal');if(sel)sel.hidden=v!=='meal';const ubl=g.querySelector('.rc-useby');if(ubl)ubl.hidden=v==='none';const[date,type]=(sel?.value||'').split('|');
  const dst=g.querySelector('.rc-dest');if(dst)dst.textContent=destText(v==='meal'?{mode:'meal',meal:date?{date,type}:null}:{mode:v}).trim()});
-Object.assign(globalThis,{ReceiptUI:{receiptWeeks,statusText,draftFromParsed,fillDraft,reconcilePlan,applyReconcile,undoReconcile,weekNeed,duplicateSheet,reconcileSheet,SALT}});
+Object.assign(globalThis,{ReceiptUI:{itemFrame,suggestCrop,receiptWeeks,statusText,draftFromParsed,fillDraft,reconcilePlan,applyReconcile,undoReconcile,weekNeed,duplicateSheet,reconcileSheet,SALT}});
 })();

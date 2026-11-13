@@ -46,8 +46,13 @@
  let mode:'sample'|'real'=(()=>{try{return localStorage.getItem('bep-autoplay-mode')==='real'?'real':'sample'}catch{return 'sample'}})();
  class Skip extends Error{}
  const skip=(msg:string)=>{throw new Skip(msg)};
+ // the screens' own filters (a search typed in Món ăn, the pantry chip, the shopping range) are part of what is put back afterwards
+ const viewState=()=>{const o:any={};try{Object.assign(o,{shopRange,recipeFilter,recipeSearch,recipeTime,pantryFilter})}catch{}try{Object.assign(o,{familyLibraryMode,familyRecipeSearch,familyRecipeCat,familyRecipeTime,familyRecipeTag,familyRecipeDiet,familyRecipePage})}catch{}return o};
+ const setViewState=(o:any)=>{if(!o)return;const has=(k:string)=>Object.hasOwn(o,k);try{if(has('shopRange'))shopRange=o.shopRange;if(has('recipeFilter'))recipeFilter=o.recipeFilter;if(has('recipeSearch'))recipeSearch=o.recipeSearch;if(has('recipeTime'))recipeTime=o.recipeTime;if(has('pantryFilter'))pantryFilter=o.pantryFilter}catch{}
+  try{if(has('familyLibraryMode'))familyLibraryMode=o.familyLibraryMode;if(has('familyRecipeSearch'))familyRecipeSearch=o.familyRecipeSearch;if(has('familyRecipeCat'))familyRecipeCat=o.familyRecipeCat;if(has('familyRecipeTime'))familyRecipeTime=o.familyRecipeTime;if(has('familyRecipeTag'))familyRecipeTag=o.familyRecipeTag;if(has('familyRecipeDiet'))familyRecipeDiet=o.familyRecipeDiet;if(has('familyRecipePage'))familyRecipePage=o.familyRecipePage}catch{}};
+ const VIEW_DEFAULTS={shopRange:'week',recipeFilter:'all',recipeSearch:'',recipeTime:0,pantryFilter:'all',familyLibraryMode:'own',familyRecipeSearch:'',familyRecipeCat:'all',familyRecipeTime:'all',familyRecipeTag:'all',familyRecipeDiet:'all',familyRecipePage:0};
  function enter(){const fs:any=familyStorage,mem=new Map<string,string>(),ls:Record<string,string>={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i)!;ls[k]=localStorage.getItem(k)!}
-  saved={state,view,weekStart,selectedDate,session:G.BEP_SESSION,fs:{set:fs.setItem,get:fs.getItem,rem:fs.removeItem},qfs:G.queueFamilySync,fetch:G.fetch,beacon:navigator.sendBeacon,share:(navigator as any).share,ing:new Set(Object.keys(INGREDIENTS)),ls,hash:location.hash,y:scrollY,cooking:typeof cooking!=='undefined'?cooking:null};
+  saved={state,view,weekStart,selectedDate,session:G.BEP_SESSION,fs:{set:fs.setItem,get:fs.getItem,rem:fs.removeItem},qfs:G.queueFamilySync,fetch:G.fetch,beacon:navigator.sendBeacon,share:(navigator as any).share,ing:new Set(Object.keys(INGREDIENTS)),ls,hash:location.hash,y:scrollY,cooking:typeof cooking!=='undefined'?cooking:null,shopRange:typeof shopRange!=='undefined'?shopRange:'week',views:viewState()};
   fs.setItem=(k:string,v:any)=>{mem.set(k,String(v))};const photos=new Map<string,any>();saved.localPhoto=G.localPhoto;if(typeof G.localPhoto==='function')G.localPhoto=async(id:string,value?:any)=>{if(value===undefined)return photos.get(id);photos.set(id,value);return id};G.__apCalls=[];G.__apInvites=[];fs.getItem=(k:string)=>mem.has(k)?mem.get(k)!:null;fs.removeItem=(k:string)=>{mem.delete(k)};
   G.queueFamilySync=()=>{};try{localStorage.setItem('bep-usage-optout','1')}catch{}/* no usage counted while the app tests itself; put back by the snapshot */G.fetch=makeFetch(saved.fetch);try{(navigator as any).sendBeacon=()=>true}catch{}try{(navigator as any).share=async()=>{}}catch{}
   // a family that is in the middle of shopping mode (a per-tab setting) comes back to it afterwards
@@ -56,7 +61,7 @@
   G.BEP_SESSION={mode:'account',household:{id:'00000000-0000-4000-8000-00000000a7e5',name:'Nhà mẫu (tự chạy thử)',role:'owner'},account:{username:'tu-chay-thu',name:'Tự chạy thử'}};
   state=mode==='real'?clone(saved.state):sampleState();selectedDate=sydneyDate();weekStart=planStartOf(state,selectedDate);view='today';document.documentElement.classList.add('ap-running')}
  function leave(){if(!saved)return;const s=saved;saved=null;try{closeModal()}catch{}const fs:any=familyStorage;fs.setItem=s.fs.set;fs.getItem=s.fs.get;fs.removeItem=s.fs.rem;
-  G.queueFamilySync=s.qfs;if(s.localPhoto)G.localPhoto=s.localPhoto;delete G.__apCalls;delete G.__apInvites;G.fetch=s.fetch;try{(navigator as any).sendBeacon=s.beacon}catch{}try{(navigator as any).share=s.share}catch{}G.BEP_SESSION=s.session;try{cooking=s.cooking}catch{}
+  G.queueFamilySync=s.qfs;if(s.localPhoto)G.localPhoto=s.localPhoto;delete G.__apCalls;delete G.__apInvites;G.fetch=s.fetch;try{(navigator as any).sendBeacon=s.beacon}catch{}try{(navigator as any).share=s.share}catch{}G.BEP_SESSION=s.session;try{cooking=s.cooking}catch{}try{shopRange=s.shopRange}catch{}setViewState(s.views);
   for(const k of Object.keys(INGREDIENTS))if(!s.ing.has(k))delete (INGREDIENTS as any)[k];
   // everything this device stored goes back exactly as it was (the ladybug's own outbox is left alone)
   const now:string[]=[];for(let i=0;i<localStorage.length;i++)now.push(localStorage.key(i)!);
@@ -78,10 +83,14 @@
  function expect(ok:any,msg:string){if(!ok)throw Error(msg)}
  function noOverflow(where:string){const o=document.documentElement.scrollWidth-innerWidth;expect(o<=1,aT(`${where}: trang bị tràn ngang ${o}px.`,`${where}: the page scrolls sideways by ${o}px.`))}
  // a tap; with still:true the tapped control must stay where it was (owner rule: buttons, tabs and chips never make the page jump)
- async function tap(target:string|HTMLElement,{still=false,label=''}={}){const e=typeof target==='string'?await waitFor(target):target;await show(e);
-  const name=label||(e.getAttribute('aria-label')||e.textContent||'').replace(/\s+/g,' ').trim().slice(0,40);const t0=e.getBoundingClientRect().top,key=typeof target==='string'?target:null;
+ async function tap(target:string|HTMLElement,{still=false,label=''}={}){let e=typeof target==='string'?await waitFor(target):target;const key=typeof target==='string'?target:null;
+  // v1.7.19: a control handed over as an element is found again by its data-* attributes when the screen drew a new copy of it —
+  // before the tap (a click on a dropped copy reaches nothing) and after it, so the page-still check (rule 24) is never skipped
+  const sig=key?null:(()=>{const a=[...e.attributes].filter(x=>x.name.startsWith('data-')&&!/^data-(btn-art|art|keep-scroll-off)$/.test(x.name));return a.length?e.tagName.toLowerCase()+a.map(x=>`[${x.name}="${CSS.escape(x.value)}"]`).join(''):null})();
+  if(!e.isConnected&&sig)e=find(sig)||e;await show(e);
+  const name=label||(e.getAttribute('aria-label')||e.textContent||'').replace(/\s+/g,' ').trim().slice(0,40);const t0=e.getBoundingClientRect().top;
   e.click();await sleep(run.watch?380:90);if(run.watch)ring(e.isConnected?e:null);
-  if(still){const again=key?find(key):e.isConnected?e:null;if(again){const moved=Math.round(again.getBoundingClientRect().top-t0);expect(Math.abs(moved)<=2,aT(`Bấm “${name}” làm màn hình nhảy ${moved}px.`,`Tapping “${name}” moved the page by ${moved}px.`))}}
+  if(still){const again=key?find(key):e.isConnected?e:sig?find(sig):null;if(again){const moved=Math.round(again.getBoundingClientRect().top-t0);expect(Math.abs(moved)<=2,aT(`Bấm “${name}” làm màn hình nhảy ${moved}px.`,`Tapping “${name}” moved the page by ${moved}px.`))}}
   return e}
  async function type(sel:string,text:string){const e=await waitFor(sel) as HTMLInputElement;await show(e);e.focus();e.value=text;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));await sleep(run.watch?300:60);return e}
  async function go(v:string){closeModal();const link=document.querySelector(`#nav a[href="#${v}"]`) as HTMLElement|null;if(link&&visible(link)&&run.watch)await tap(link);else{location.hash=v;await sleep(60)}if(view!==v){view=v;render()}await waitFor('#main h1');scrollTo(0,0)}
@@ -152,9 +161,30 @@
    const on=nav.querySelector('a.active')!.getBoundingClientRect(),b=nav.getBoundingClientRect();expect(on.left>=b.left-1&&on.right<=b.right+1,aT('Mục đang mở bị khuất trên thanh.','The open section is hidden on the bar.'))}}];
 
  // every scenario starts from a fresh sample family (or a fresh copy of the family's data), so one cannot disturb the next
- function fresh(){if(!saved)return;state=mode==='real'?clone(saved.state):sampleState();selectedDate=sydneyDate();weekStart=planStartOf(state,selectedDate);view='today';attendanceType='dinner';G.__apCalls=[];G.__apInvites=[];try{if(typeof setShopMode==='function')setShopMode(false)}catch{}render()}
+ function fresh(){if(!saved)return;state=mode==='real'?clone(saved.state):sampleState();selectedDate=sydneyDate();weekStart=planStartOf(state,selectedDate);view='today';attendanceType='dinner';setViewState(VIEW_DEFAULTS);G.__apCalls=[];G.__apInvites=[];try{if(typeof setShopMode==='function')setShopMode(false)}catch{}render()}
  // one step of a workflow: a failure is written down and the next steps still run (owner, 9 Nov 2026: “Chạy hết các bước”)
  async function part(label:string,fn:()=>Promise<any>|any){step(label);try{await fn();run.parts++}catch(e:any){if(e instanceof Skip)throw e;if(run.stop)throw e;run.fails.push({step:label,msg:String(e?.message||e).slice(0,300)});try{closeModal()}catch{}}}
+ // v1.7.19 — owner, 12 Nov 2026 (rule 33, “Whatever the app saves, it can load”): after EVERY scenario the state it left behind
+ // must pass the app's own validator (backup import, sync) and survive the family sync merge with every change kept: merged with
+ // itself, with the copy from before the scenario (a second phone that changed nothing), and with a second phone that added
+ // something else at the same time. Run in memory only; nothing is saved or sent.
+ const SYNC_META=new Set(['updatedAt','updatedBy','syncTombstones']);
+ function canonical(x:any):any{if(Array.isArray(x)){const a=x.map(canonical);return a.every((e:any)=>e&&typeof e==='object'&&!Array.isArray(e)&&'id' in e)?a.sort((p:any,q:any)=>String(p.id)<String(q.id)?-1:String(p.id)>String(q.id)?1:0):a}
+  if(x&&typeof x==='object'){const o:any={};for(const k of Object.keys(x).sort())if(!SYNC_META.has(k)&&x[k]!==undefined)o[k]=canonical(x[k]);return o}return x}
+ function firstDiff(a:any,b:any,path=''):string{if(JSON.stringify(a)===JSON.stringify(b))return '';if(!a||!b||typeof a!=='object'||typeof b!=='object')return path||'/';
+  const keys=Array.isArray(a)?[...Array(Math.max(a.length,b.length)).keys()]:[...new Set([...Object.keys(a),...Object.keys(b)])];for(const k of keys){const d=firstDiff(a[k as any],b[k as any],path+'/'+(Array.isArray(a)&&a[k as any]?.id?a[k as any].id:k));if(d)return d}return path||'/'}
+ function roundTrip(pre:any){if(typeof validImport!=='function')return;
+  const now=Date.now(),cur=clone(state);
+  expect(validImport(clone(cur)),aT('Dữ liệu sau kịch bản không qua được kiểm tra của app (sao lưu và đồng bộ sẽ bị từ chối).','The data after this scenario fails the app’s own check (backup and sync would refuse it).'));
+  if(typeof mergeFamilyStates!=='function'||typeof syncStamp!=='function'||!pre)return;
+  const A=clone(cur);syncStamp(pre,A,{now,by:'tu-chay-thu'});const want=canonical(A);
+  // a second phone that, meanwhile, put one thing in the pantry (a lot the scenario never touches)
+  const B=clone(pre),probe={id:'ap-sync-probe',ingredient:Object.keys(INGREDIENTS)[0],qty:1,place:'dry',expiry:''};B.pantry=[...(B.pantry||[]),probe];syncStamp(pre,B,{now:now-1,by:'may-thu-hai'});
+  const cases:[string,()=>any][]=[[aT('với chính nó','with itself'),()=>mergeFamilyStates(pre,A,clone(A),{now})],[aT('với bản trước khi chạy','with the copy from before'),()=>mergeFamilyStates(pre,A,clone(pre),{now})],[aT('máy kia gửi bản cũ','the other phone sends the old copy'),()=>mergeFamilyStates(pre,clone(pre),A,{now})],[aT('máy kia thêm một món vào tủ','the other phone added to the pantry'),()=>mergeFamilyStates(pre,A,B,{now})]];
+  for(const [label,merge] of cases){const r=merge(),m=clone(r.state),withProbe=(m.pantry||[]).some((p:any)=>p.id==='ap-sync-probe');if(withProbe)m.pantry=m.pantry.filter((p:any)=>p.id!=='ap-sync-probe');
+   const diff=firstDiff(canonical(m),want);expect(!diff,aT(`Đồng bộ ${label} làm mất hoặc đổi thay đổi ở ${diff}.`,`Sync ${label} lost or changed an edit at ${diff}.`));
+   expect(label!==cases[3][0]||withProbe,aT('Đồng bộ làm mất món máy kia vừa thêm vào tủ.','Sync dropped what the other phone added.'));
+   expect(validImport(clone(r.state)),aT(`Bản đồng bộ ${label} không qua được kiểm tra của app.`,`The state synced ${label} fails the app’s own check.`))}}
  // ── running ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
  const results:Record<string,{ok:boolean,msg?:string,step?:string,skipped?:boolean,fails?:{step:string,msg:string}[],parts?:number}>={};
  async function runList(list:typeof SC,watch:boolean){if(run)return;run={watch,slow:reduced()?350:700,stop:false,log:[],step:'',errors:[] as string[]};drawBar();
@@ -162,7 +192,10 @@
   enter();render();const failed:any[]=[];
   try{for(const sc of list){if(run.stop)break;run.name=aT(sc.vi,sc.en);run.errors.length=0;const bar=document.getElementById('ap-name');if(bar)bar.textContent=run.name;
     run.fails=[];run.parts=0;
-    try{closeModal();fresh();await sc.run();if(run.errors.length)run.fails.push({step:run.step,msg:aT('Lỗi trong app: ','App error: ')+run.errors[0]});
+    let pre:any=null;
+    try{closeModal();fresh();pre=clone(state);let thrown:any=null;try{await sc.run()}catch(e:any){thrown=e}if(thrown&&(thrown instanceof Skip||run.stop))throw thrown;if(thrown){run.fails.push({step:run.step,msg:String(thrown?.message||thrown).slice(0,300)});try{closeModal()}catch{}}
+     // rule 33: the shared after-step of every scenario, old and new
+     await part(aT('Lưu rồi mở lại: dữ liệu hợp lệ, đồng bộ giữ đúng','Save and load again: valid data, sync keeps the changes'),()=>roundTrip(pre));if(run.errors.length)run.fails.push({step:run.step,msg:aT('Lỗi trong app: ','App error: ')+run.errors[0]});
      if(run.fails.length){const f=run.fails[0];results[sc.id]={ok:false,msg:f.msg,step:f.step,fails:[...run.fails],parts:run.parts};failed.push({sc,...results[sc.id]})}else results[sc.id]={ok:true,parts:run.parts}}
     catch(e:any){if(e instanceof Skip){results[sc.id]={ok:true,skipped:true,msg:e.message};continue}if(run.stop&&/Đã dừng|Stopped/.test(e?.message))break;const all=[...run.fails,{step:run.step,msg:String(e?.message||e).slice(0,300)}];results[sc.id]={ok:false,msg:all[0].msg,step:all[0].step,fails:all,parts:run.parts};failed.push({sc,...results[sc.id]})}
     finally{ring(null)}}}
@@ -185,7 +218,7 @@
    <div class="ap-mode" role="radiogroup" aria-label="${aT('Chạy trên','Run on')}"><span class="ap-mode-l">${aT('Chạy trên','Run on')}</span>${([['sample',aT('Gia đình mẫu','Sample family')],['real',aT('Dữ liệu của nhà (bản sao)','Your family’s data (a copy)')]] as [string,string][]).map(([m,l])=>`<button type="button" class="chip${mode===m?' active':''}" role="radio" aria-checked="${mode===m}" data-ap="mode" data-mode="${m}">${esc(l)}</button>`).join('')}</div>
    <p class="ap-mode-note">${mode==='real'?aT('Dùng một bản sao dữ liệu của nhà mình: món, thực đơn, tủ, đi chợ như thật. Bản sao không được lưu, không đồng bộ, không gửi đi; chạy xong là bỏ — dữ liệu thật giữ nguyên. Bước thiếu điều kiện (vd. danh sách đi chợ trống) ghi “Bỏ qua”.','Uses a copy of your family’s data: your recipes, menu, pantry and shopping. The copy is never saved, synced or sent and is dropped afterwards — your data stays as it is. Steps whose starting point is missing (an empty list…) are “Skipped”.'):aT('Dùng một gia đình mẫu tạm, giống nhau mỗi lần chạy.','Uses a temporary sample family, the same every time.')}</p>
    ${n.length?`<p class="ap-sum" role="status">${aT(`Đạt ${ok}/${n.length} kịch bản`,`${ok} of ${n.length} passed`)}${n.some(r=>r.skipped)?aT(` (${n.filter(r=>r.skipped).length} bỏ qua)`,` (${n.filter(r=>r.skipped).length} skipped)`):''}.</p>`:''}
-   ${[[aT('Workflow trọn vẹn','Whole workflows'),SC.filter((x:any)=>x.workflow)],[aT('Kiểm tra nhanh','Quick checks'),SC.filter((x:any)=>!x.workflow)]].filter(([,l]:any)=>l.length).map(([h,list]:any)=>`<h3 class="ap-group">${esc(h)} <small>(${list.length})</small></h3><ol class="ap-list">${list.map((sc:any)=>{const r=results[sc.id];return `<li class="ap-item"><div class="ap-txt"><b>${esc(aT(sc.vi,sc.en))}</b><small>${esc(aT(sc.dvi,sc.den))}</small>${r?.skipped?`<small>${esc(r.msg||'')}</small>`:''}${r&&!r.ok?(r.fails&&r.fails.length?r.fails:[{step:r.step||'',msg:r.msg||''}]).map((x:any)=>`<small class="ap-err">${esc(aT('Bước','Step'))} “${esc(x.step)}”: ${esc(x.msg)}</small>`).join(''):''}${r?.ok&&!r.skipped&&r.parts?`<small>${esc(aT(`${r.parts} bước đạt`,`${r.parts} steps passed`))}</small>`:''}</div>${status(sc.id)}<button type="button" class="btn ap-watch" data-ap="watch" data-id="${sc.id}">${aT('Xem','Watch')}</button></li>`}).join('')}</ol>`).join('')}</div>
+   ${[[aT('Workflow trọn vẹn','Whole workflows'),SC.filter((x:any)=>x.workflow)],[aT('Rà soát 12/11','Audit 12 Nov'),SC.filter((x:any)=>x.audit)],[aT('Kiểm tra nhanh','Quick checks'),SC.filter((x:any)=>!x.workflow&&!x.audit)]].filter(([,l]:any)=>l.length).map(([h,list]:any)=>`<h3 class="ap-group">${esc(h)} <small>(${list.length})</small></h3><ol class="ap-list">${list.map((sc:any)=>{const r=results[sc.id];return `<li class="ap-item"><div class="ap-txt"><b>${esc(aT(sc.vi,sc.en))}</b><small>${esc(aT(sc.dvi,sc.den))}</small>${r?.skipped?`<small>${esc(r.msg||'')}</small>`:''}${r&&!r.ok?(r.fails&&r.fails.length?r.fails:[{step:r.step||'',msg:r.msg||''}]).map((x:any)=>`<small class="ap-err">${esc(aT('Bước','Step'))} “${esc(x.step)}”: ${esc(x.msg)}</small>`).join(''):''}${r?.ok&&!r.skipped&&r.parts?`<small>${esc(aT(`${r.parts} bước đạt`,`${r.parts} steps passed`))}</small>`:''}</div>${status(sc.id)}<button type="button" class="btn ap-watch" data-ap="watch" data-id="${sc.id}">${aT('Xem','Watch')}</button></li>`}).join('')}</ol>`).join('')}</div>
    <footer class="ap-foot"><button type="button" class="btn primary" data-ap="all">${art('play')}<span>${aT('Chạy tất cả','Run all')}</span></button></footer></section>`;
   (el.querySelector('[data-ap="all"]') as HTMLElement)?.focus()}
  function closePanel(){document.getElementById('ap-panel')?.remove()}
@@ -195,7 +228,7 @@
   if(a==='open'){e.preventDefault();G.bepLadybug?.close?.(false);openPanel()}
   else if(a==='close')closePanel();
   else if(a==='mode'){const m=b.dataset.mode==='real'?'real':'sample';if(m!==mode){mode=m;for(const k of Object.keys(results))delete results[k];try{localStorage.setItem('bep-autoplay-mode',m)}catch{}}openPanel();(document.querySelector(`#ap-panel [data-ap="mode"][data-mode="${m}"]`) as HTMLElement)?.focus()}
-  else if(a==='all'){closePanel();void runList([...SC.filter((x:any)=>x.workflow),...SC.filter((x:any)=>!x.workflow)],false)}
+  else if(a==='all'){closePanel();void runList([...SC.filter((x:any)=>x.workflow),...SC.filter((x:any)=>x.audit),...SC.filter((x:any)=>!x.workflow&&!x.audit)],false)}
   else if(a==='watch'){const sc=SC.find(x=>x.id===b.dataset.id);if(sc){closePanel();void runList([sc],true)}}
   else if(a==='stop'&&run)run.stop=true});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('ap-panel'))closePanel()});
@@ -203,5 +236,5 @@
  function entry(){const tabs=document.querySelector('.lb-sheet .lb-tabs');if(!tabs||!isOwner()||document.querySelector('.lb-sheet [data-ap="open"]'))return;
   tabs.insertAdjacentHTML('afterend',`<div class="ap-entry"><button type="button" class="btn ap-open" data-ap="open">${aT('Tự chạy thử','Self-test')}</button><small>${aT('App tự bấm thử các chức năng trên gia đình mẫu.','The app tries every feature on a sample family.')}</small></div>`)}
  new MutationObserver(()=>entry()).observe(document.body,{childList:true,subtree:true});
- G.bepAutoplay={kit:{tap,type,waitFor,waitGone,find,step,expect,go,noOverflow,part,skip,sleep,aT,visible,watch:()=>!!run?.watch,mode:()=>mode},register:(sc:any)=>{if(!SC.some(x=>x.id===sc.id))SC.push(sc)},setMode:(m:'sample'|'real')=>{mode=m;for(const k of Object.keys(results))delete results[k]},mode:()=>mode,open:openPanel,run:(ids?:string[],watch=false)=>runList(ids?SC.filter(s=>ids.includes(s.id)):SC,watch),results:()=>({...results}),scenarios:()=>SC.map(s=>s.id),running:()=>!!run};
+ G.bepAutoplay={kit:{tap,type,waitFor,waitGone,find,step,expect,go,noOverflow,part,skip,sleep,aT,visible,watch:()=>!!run?.watch,mode:()=>mode,roundTrip},register:(sc:any)=>{if(!SC.some(x=>x.id===sc.id))SC.push(sc)},setMode:(m:'sample'|'real')=>{mode=m;for(const k of Object.keys(results))delete results[k]},mode:()=>mode,open:openPanel,run:(ids?:string[],watch=false)=>runList(ids?SC.filter(s=>ids.includes(s.id)):SC,watch),results:()=>({...results}),scenarios:()=>SC.map(s=>s.id),running:()=>!!run};
 })();

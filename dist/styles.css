@@ -1940,6 +1940,22 @@ html[data-theme="dark"] .swipe-under{background:#3d1c19;color:#ffb3a8}
 .skip-dishes{margin:6px 0 10px;padding-left:20px}.skip-dishes li{margin:4px 0}.skip-dishes small{color:var(--muted)}
 #undo-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:12px;max-width:min(92vw,520px);padding:8px 8px 8px 16px;border-radius:14px;background:#1f3a2e;color:#fff;box-shadow:0 6px 24px #0004}
 #undo-bar .btn{min-height:44px;background:#fff;color:#1f3a2e;border-color:#fff;font-weight:700;white-space:nowrap}
+/* v1.7.19 re-check (audit B16): the same undo strip inside a sheet (the undo bar sits under sheets) */
+.vr-undo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0;padding:8px 8px 8px 14px;border-radius:14px;background:#1f3a2e;color:#fff}
+.vr-undo .btn{flex:none;min-height:44px;background:#fff;color:#1f3a2e;border-color:#fff;font-weight:700;white-space:nowrap}
+html[data-theme="dark"] .vr-undo .btn{background:#fff;color:#1f3a2e;border-color:#fff}
+/* v1.7.19 re-check (B12): the amount and its unit picker take a whole row, so the number stays readable on a 320 px phone */
+.form-grid>.stock-qty-field{grid-column:1/-1}
+/* v1.7.19 (13 Nov 2026): “Nơi cất” takes the whole row so its first option (“— Chọn nguyên liệu trước”) is not cut at 320/375 px */
+.form-grid>.stock-place-field{grid-column:1/-1}
+.pm-row:has(.pm-undo-btn){position:relative}
+.pm-row:has(.pm-undo-btn)>span{padding-right:110px}
+.pm-row .pm-undo-btn{position:absolute;right:0;top:50%;transform:translateY(-50%);min-height:44px;margin:0;font-weight:700;white-space:nowrap}
+/* v1.7.19 (13 Nov 2026): in dark mode the meal-row “Hoàn tác” was the sheet's own colour, so it hardly stood out. Light pill with dark
+   text, like the other undo bar (.vr-undo): text 13:1, button against the sheet above 3:1 (WCAG AA; check in round-ui browser test) */
+html[data-theme="dark"] .pm-row .pm-undo-btn.btn.btn{background:#e6efe9;color:#14231b;border-color:#e6efe9}
+html[data-theme="dark"] .pm-row .pm-undo-btn.btn.btn:hover,html[data-theme="dark"] .pm-row .pm-undo-btn.btn.btn:focus-visible{background:#fff;color:#14231b}
+
 .simple-screen .shop-row>.large-check-target,.shop-row.shop-purchase-row>.large-check-target{grid-row:1!important;align-self:center!important}
 /* v1.7.9 (owner: "chỗ màu nâu là gì?"): an empty pantry note stays hidden — .hidden always hides */
 .hidden{display:none!important}
@@ -2176,6 +2192,31 @@ html[data-theme="dark"] #modal-root .modal:has(.recipe-detail-hero)>.modal-foote
 /* taps on the floating footer's see-through fade and gaps reach the field behind it; only its buttons catch taps */
 #modal-root .modal>.modal-footer.floating-footer{pointer-events:none}
 #modal-root .modal>.modal-footer.floating-footer>*{pointer-events:auto}
+/* v1.7.19 audit D10: while a sheet with a floating footer is open, the toast shows at the top so it never covers Đóng / Lưu */
+body:has(#modal-root .modal>.modal-footer.floating-footer) #toast{bottom:auto;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-90px)}
+body:has(#modal-root .modal>.modal-footer.floating-footer) #toast.visible{transform:translateX(-50%) translateY(0)}
+/* v1.7.19 audit D22–D24 (rules 8, 20): every tap target is at least 44 × 44 px */
+.dish-remove-btn,.topbar button.icon,.topbar .notification,button.icon,.icon-step,.pack-all-btn,.rc-icon,.mr-close,.vr-del,.scout-del{min-width:44px!important;min-height:44px!important}
+#app-language,#app-language button,.language-control button,[data-set-app-lang]{min-height:44px}
+@media (max-width:340px){#app-language{min-width:44px;padding-left:6px;padding-right:6px}#app-language svg{display:none}}
+.chip,a.chip,[role="tab"],.text-btn,summary{min-height:44px}
+.mr-dish-link,.store-pill{min-height:44px!important}
+.text-btn,.mr-dish-link{display:inline-flex!important;align-items:center}
+.store-pill{display:inline-flex;align-items:center}
+/* v1.7.19 (rules 8 + 20 together): each day is a 44 × 44 px target and the week never scrolls sideways. On a phone the days sit in a
+   grid under each name: all 7 in one row where they fit (375 px and wider); on the narrowest phones the grid wraps instead of
+   shrinking the targets. */
+.pack-cell{display:inline-flex!important;align-items:center;justify-content:center;min-width:44px!important;min-height:44px}
+@media(max-width:560px){.pack-table tr{grid-template-columns:repeat(auto-fill,minmax(44px,1fr))!important}.pack-table .pack-cell{width:100%}}
+.ing-editor-row .ing-qty{min-width:56px}
+.btn,.text-btn,button.icon{min-width:44px}
+/* v1.7.19 audit sweep N4: at 320 px in English the shopping-mode buttons wrap their words instead of pushing the page wider */
+@media (max-width:400px){.shop-mode-actions{min-width:0!important;max-width:100%}.shop-mode-actions .btn{white-space:normal!important;min-width:0!important;overflow-wrap:anywhere}}
+#modal-root .modal-content p a[href],#modal-root .modal-content small a[href]{padding-block:13px}
+.day-strip{grid-template-columns:repeat(7,minmax(44px,1fr))!important;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}
+.day-strip::-webkit-scrollbar{display:none}
+select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=file]):not([type=color]){min-height:44px!important}
+label:has(>input[type=checkbox]),label:has(>input[type=radio]){min-height:44px;min-width:44px}
 /* v1.7.11: So Giá is for signed-in families; without an account one short card asks for a free account */
 .scout-account-card{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
 .scout-account-card>div{flex:1 1 200px;min-width:0}.scout-account-card h3{margin:0 0 4px}.scout-account-card p{margin:0}
@@ -2626,4 +2667,78 @@ html[data-theme="dark"] .rl-reserved{color:#8fd6b0}
 @media (max-width:480px){.reconcile-choice{margin-left:0}}
 .reconcile-choice .rc-dest{flex:1 1 100%;font-weight:700;color:var(--green,#2f6b45);font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px))}
 html[data-theme="dark"] .reconcile-choice .rc-dest{color:#8fd6b0}
+.reconcile-choice .rc-useby{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;color:var(--muted)}
+.reconcile-choice .rc-useby[hidden]{display:none}
+.recipe-delete-row{margin-top:18px;padding-top:12px;border-top:1px solid var(--line,#e7e0d4);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.recipe-delete-row .btn{min-height:44px}
+.meal-save-lib{margin-top:8px}
+.reconcile-choice .rc-useby .rc-useby-input{min-height:44px;flex:1 1 160px;max-width:220px}
+.shop-seasoning ul{list-style:none;margin:8px 0 0;padding:0}
+.shop-seasoning li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding:8px 0;border-top:1px solid var(--line,#e7e0d4)}
+.shop-seasoning li:first-child{border-top:0}
+.seasoning-status{color:var(--muted)}
+.seasoning-status.out{color:var(--warn,#a4532b);font-weight:700}
+html[data-theme="dark"] .seasoning-status.out{color:#f0b48a}
 .reconcile-open .btn.small{min-height:44px;margin-top:6px;white-space:normal}
+/* v1.7.19 “Đồ trong tủ” sheet: every pantry lot is a full-width row that opens its edit form */
+.pantry-check-list{display:flex;flex-direction:column;gap:6px}.pantry-check-lot{width:100%;min-height:48px;text-align:left;background:transparent;border:1px solid var(--line);border-radius:12px;padding:8px 12px;color:inherit;display:flex;align-items:center;justify-content:space-between;gap:10px}.pantry-check-lot .item-label{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}.pantry-check-lot .hint{flex:none}.modal h3.section-mini{margin:14px 0 6px;font-size:max(calc(14px * var(--fs-mul,1)),var(--fs-floor,0px))}
+
+/* v1.7.19 (rule 29): one unit picker everywhere — the unit field opens the shared picker as a second sheet */
+.unit-field{display:block;min-width:0}
+.unit-field-btn{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;min-width:0;min-height:48px;padding:8px 10px;border:1px solid #dedfd4;border-radius:8px;background:var(--white,#fff);color:var(--text);font:inherit;font-size:max(calc(16px * var(--fs-mul,1)),var(--fs-floor,0px));text-align:left;cursor:pointer;overflow-wrap:anywhere;line-height:1.2}
+.unit-field-btn::after{content:"";flex:none;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);opacity:.6}
+.unit-field-btn.is-empty{color:var(--muted,#66705f)}
+.unit-field-btn.needs-choice{border-color:#b3412f;box-shadow:0 0 0 2px #b3412f33}
+.rc-ing-row .rc-ing-unit{grid-area:unit;min-height:44px}
+.field-error{margin:6px 0 0;color:#a2301f;font-weight:600;font-size:max(calc(13px * var(--fs-mul,1)),var(--fs-floor,0px))}
+.field-error[hidden]{display:none}
+html[data-theme="dark"] .unit-field-btn{background:#18221d;color:var(--text);border-color:var(--line)}
+html[data-theme="dark"] .unit-field-btn.is-empty{color:var(--ink-soft,#b8c2b2)}
+html[data-theme="dark"] .field-error{color:#ff9a86}
+.unit-sheet-layer{z-index:90}
+.unit-sheet{width:min(560px,100%);height:min(88vh,760px);max-height:min(88vh,760px);display:flex;flex-direction:column}
+.unit-sheet>.unit-sheet-content{flex:1 0 auto}
+.unit-sheet>header{position:sticky;top:0;z-index:4;background:var(--paper)}
+.unit-sheet .unit-sheet-lead,.unit-sheet .unit-sheet-note{margin:10px 0 0}
+.extra-edit-name{display:inline-flex;align-items:center;min-height:44px;margin:-10px 0;cursor:pointer;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent);text-underline-offset:3px;border-radius:6px}
+.extra-edit-name:focus-visible{outline:3px solid #c87649;outline-offset:2px}
+#main .shop-row:has([data-change="extra-done"]) .qty{cursor:pointer}
+@media (prefers-reduced-motion:reduce){.unit-sheet-layer{animation:none}}
+/* v1.7.19 audit A6 / B5: the extra item's × is drawn like a planned row's and is a full 44 px target */
+.shop-row .extra-delete{min-width:44px;min-height:44px;color:var(--muted)}
+.shop-row .extra-delete .btn-art{width:26px;height:26px;margin:0}
+.shop-row .extra-stored{color:var(--green,#2f6b45)}
+#store-purchases-why{display:block;margin-top:4px}
+/* v1.7.19: “Đủ — đã mua … ở Đồ dùng khác” stays readable on a ticked (struck-through) row */
+.shop-row .extra-covers{display:inline-block;width:100%;text-decoration:none;color:var(--green,#2f6b45);font-weight:600}
+html[data-theme="dark"] .shop-row .extra-covers{color:#8fd6b0}
+.store-surplus{margin:6px 0 0}
+/* v1.7.19 meal times (Bếp của nhà mình → Giờ ăn) and their read-only summary in Nhắc nhở */
+.meal-times-form{display:grid;gap:10px}
+.meal-time-row{margin:0}
+.meal-time-input{display:flex;align-items:center;gap:8px}
+.meal-time-input input[type=time]{flex:1 1 auto;min-height:44px}
+.meal-time-input .meal-time-clear{flex:0 0 auto;min-height:44px;min-width:44px;white-space:nowrap}
+.meal-time-state{display:block;margin-top:4px;color:var(--muted)}
+.meal-time-state.unset{color:var(--text);font-weight:600}
+.meal-times-summary{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px}
+.meal-times-summary h3{margin:0 0 6px}
+.meal-times-list{list-style:none;margin:0 0 6px;padding:0;display:grid;gap:4px}
+.meal-times-list li{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.meal-times-list b.unset{font-weight:600;color:var(--muted)}
+.meal-times-summary .btn{min-height:44px}
+.family-meal-card h3.meal-label .meal-clock{font-weight:500;color:var(--muted)}
+.meal-times-section{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.meal-times-section h4{margin:0 0 4px}
+/* v1.7.19 (Henry, 13 Nov 2026): receipt reading from a photo is marked Beta — text pill, no drawing (rule 27), AA contrast in both themes */
+.receipt-beta{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.beta-pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#fbe3d3;color:#7a3410;font-weight:700;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));letter-spacing:.02em}
+[data-theme="dark"] .beta-pill{background:#5a2a10;color:#ffd9c2}
+/* v1.7.19 (owner, 13 Nov 2026: plate cropping on dish cards). The painted cells are already tight squares around the plate, but
+   meal-card pictures were drawn larger than their frame (70 px in 58 px, 46 in 42, 52 in 48, 38 in 36) and every picture was cut
+   to a circle, so rims and pot handles were cut off. Every dish picture now fits inside its frame, square and undistorted, with
+   softly rounded corners; the drawn (composed) dishes keep their own aspect through the SVG viewBox. */
+.food-illustration.art-cell{border-radius:10px}
+:is(.family-dish-art,.weekly-dish-art,.suggestion-art,.recipe-visual) .food-illustration.food-illustration{max-width:100%;max-height:100%}
+.family-dish-art .food-illustration.food-illustration,.family-dish-art svg.food-illustration{width:100%;height:100%;max-width:100%;max-height:100%;border-radius:6px}
+.family-dish-art{aspect-ratio:1/1;height:auto}
+.family-dish-art svg:not(.food-illustration){width:100%;height:100%}

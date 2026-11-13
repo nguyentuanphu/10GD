@@ -19,7 +19,8 @@ if(!RM||typeof document==='undefined'||typeof receiptEditor!=='function')return;
 const T=(vi,en)=>typeof tr==='function'?tr(vi,en):vi;
 const lang=()=>typeof appLanguage!=='undefined'&&appLanguage==='en'?'en':'vi';
 const L=r=>r?(lang()==='en'?r.en:r.vi):'';
-const money=n=>'$'+Math.abs(+n||0).toFixed(2);
+// v1.7.19 (audit B13): the app's money formatter in the receipt's currency, and a discount keeps its minus sign
+const money=n=>typeof aud==='function'?aud(+n||0,(typeof receiptDraft!=='undefined'&&receiptDraft?.currency)||undefined):'$'+(+n||0).toFixed(2);
 const hasIng=id=>!!id&&typeof INGREDIENTS!=='undefined'&&Object.hasOwn(INGREDIENTS,id);
 const ingName=id=>hasIng(id)?(lang()==='en'&&typeof INGREDIENT_EN!=='undefined'&&INGREDIENT_EN[id]||INGREDIENTS[id][0]):id;
 state.receiptLearning=RM.cleanModel(state.receiptLearning);
@@ -37,7 +38,7 @@ function basket(){
  for(const r of rows){if(!hasIng(r.id))continue;const at=w.boughtAt?.[r.id]||null;out.push({key:'i:'+r.id,kind:'ingredient',id:r.id,name:ingName(r.id),group:INGREDIENTS[r.id][2]||null,boughtAt:at})}
  // v1.7.14 (owner, 8 Nov 2026: “suggest chung chung của cả kho thay vì mấy món để mua”): after shopping and putting away, the list
  // has nothing left to buy, so the items ticked as bought this week (and in the receipt's week) are the ones a receipt line is about
- {const weeks=[w];const rd=receiptDraft?.date;if(rd&&/^\d{4}-\d{2}-\d{2}$/.test(rd)){const rw=state.weeks?.[planStartOf(state,rd)];if(rw&&rw!==w)weeks.push(rw)}
+ {const weeks=[w];const rd=receiptDraft?.date;if(rd&&/^\d{4}-\d{2}-\d{2}$/.test(rd)){const rw=state.weeks?.[menuWeekKey(state,rd)];if(rw&&rw!==state.weeks?.[menuWeekKey(state,weekStart)])weeks.push(rw)}
   for(const wk of weeks)for(const[id,at]of Object.entries(wk.boughtAt||{}))if(hasIng(id)&&at)out.push({key:'i:'+id,kind:'ingredient',id,name:ingName(id),group:INGREDIENTS[id][2]||null,boughtAt:at})}
  for(const e of w.extras||[]){if(!e?.name)continue;out.push({key:'x:'+RM.norm(e.name),kind:'extra',id:e.id,name:String(e.name).slice(0,60),group:'other',boughtAt:e.done?e.boughtAt||null:null})}
  const seen=new Set();const list=out.filter(b=>!seen.has(b.key)&&seen.add(b.key));
@@ -56,7 +57,7 @@ function suggestionsFor(d,bk){
  const used=new Set(d.items.filter(i=>!unmatched(i)).flatMap(targetsOf));
  const known=Math.round(d.items.filter(i=>!(isGeneric(i)&&unmatched(i))).reduce((n,i)=>n+(+i.total||0),0)*100)/100;
  const printed=d.meta?.printedTotal??(Number.isFinite(d.total)&&d.total>0?d.total:null);
- return RM.suggest({lines,basket:bk,exclude:[...used],history:RM.familyHistory(state.receipts,{store:d.store,excludeId:d.id}),community:communityRows(),learned:RM.learnedAt(state.receiptLearning,d.store),printedTotal:printed,knownTotal:known});
+ return RM.suggest({lines,basket:bk,exclude:[...used],history:RM.familyHistory(state.receipts,{store:d.store,excludeId:d.id}),community:communityRows(),learned:RM.learnedAt(state.receiptLearning,d.store),printedTotal:printed,knownTotal:known,currency:d.currency||(typeof currentCurrency==='function'?currentCurrency(state):'AUD')});
 }
 
 // ------------------------------------------------------------ apply a match (with undo)
@@ -70,13 +71,13 @@ function applyTargets(index,keys,{record=true}={}){
  else if(info.length===1){const t=info[0];if(t.kind==='ingredient'){it.match=t.id;if(it.extra.weightKg&&!it.qty){it.qty=it.extra.weightKg;it.unit='kg'}}else{it.match='other';it.extra.basket={key:t.key,id:t.id,name:t.name}}delete it.extra.unknown}
  else{it.match='other';it.extra.covers=info.map(t=>({key:t.key,kind:t.kind,id:t.id,name:t.name}));delete it.extra.unknown}
  it.confidence='';setSelect(index,it.match);
- const qty=document.querySelector(`.receipt-line[data-index="${index}"] .receipt-qty`),unit=document.querySelector(`.receipt-line[data-index="${index}"] .receipt-unit`);if(qty&&it.qty!=null&&qty.value==='')qty.value=it.qty;if(unit&&it.unit&&!unit.value)unit.value=it.unit;
+ const qty=document.querySelector(`.receipt-line[data-index="${index}"] .receipt-qty`),unit=document.querySelector(`.receipt-line[data-index="${index}"] .receipt-unit`);if(qty&&it.qty!=null&&qty.value==='')qty.value=it.qty;if(unit&&it.unit&&!unit.value){if(unit.tagName==='INPUT'&&typeof unitFieldSet==='function')unitFieldSet(unit,it.unit,{silent:true});else unit.value=it.unit}
  return true;
 }
 function undo(){const prev=rm.undo.pop();if(!prev||!receiptDraft)return;collectReceipt();receiptDraft.items=prev;rm.sel=null;receiptEditor();say(T('Đã hoàn tác.','Undone.'))}
 
 // ------------------------------------------------------------ panel
-function tickTime(iso){if(!iso)return'';try{return new Date(iso).toLocaleTimeString(lang()==='en'?'en-AU':'vi-VN',{hour:'2-digit',minute:'2-digit'})}catch{return''}}
+function tickTime(iso){if(!iso)return'';try{return appTimeLabel(iso,{date:false,lang:lang()})}catch{return''}}
 function targetNames(keys,bk){return keys.map(k=>targetInfo(k,bk)?.name||k.slice(2)).join(' + ')}
 function savedRecord(d){return d.editing?state.receipts.find(r=>r.id===d.id)||null:null}
 function canReport(d,it){const rec=savedRecord(d);if(!rec||rec.refund||(rec.currency||'AUD')!=='AUD'||!isGeneric(it))return false;const line=(rec.items||[]).find(x=>x.id===it.id);return!!line&&+line.total>0&&typeof scoutCommunityOn==='function'&&scoutCommunityOn()&&!(typeof scoutViewer==='function'&&scoutViewer())}
@@ -168,7 +169,7 @@ function reportSheet(index){
  const keys=targetsOf(it),bk=basket(),guess=keys.length===1?targetInfo(keys[0],bk):null;
  const cat=guess?.kind==='ingredient'?(globalThis.MASTER_CATALOG?.items||[]).find(i=>i.ingredientId===guess.id):null;
  report={receiptId:rec.id,lineId:line.id,price:Math.abs(+line.total),label:line.label,store:rec.store,capturedAt:rec.createdAt||new Date(rec.date+'T12:00:00+10:00').toISOString(),itemId:cat?.id||null};
- const b=(typeof scoutData!=='undefined'&&scoutData.communityBranch)||{},when=new Date(report.capturedAt).toLocaleString(lang()==='en'?'en-AU':'vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+ const b=(typeof scoutData!=='undefined'&&scoutData.communityBranch)||{},when=appTimeLabel(report.capturedAt,{zone:true,lang:lang()});
  const q=cat?(lang()==='en'?cat.nameEn:cat.nameVi):'';
  modal(T('Báo giá cho cộng đồng','Report a price to the community'),`<form id="rm-report-form" class="scout-form rm-report"><p><b>${money(report.price)}</b> · ${esc(report.label)} · ${esc(report.store)}</p><p class="hint">${esc(T('Chụp lúc ','Captured ')+when)}</p>
  <div class="field"><label for="rm-report-q">${T('Đây là món gì? (tìm trong danh mục)','What item is this? (search the catalogue)')}</label><input class="input" id="rm-report-q" autocomplete="off" maxlength="60" value="${esc(q)}" placeholder="${esc(T('ví dụ: rau muống','e.g. water spinach'))}"></div>

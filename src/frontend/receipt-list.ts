@@ -41,6 +41,7 @@ function baseQuantity(qty:any,unit:any,id:string,{per=null,s=null}:any={}){
  if(u&&b&&u.dim&&u.dim===b.dim&&u.factor&&b.factor&&!u.fixed)return round(q*u.factor/b.factor);
  if(u?.fixed&&Number.isFinite(u.fixed[base]))return round(q*u.fixed[base]);
  if(+per>0)return round(q*+per);
+ /* v1.7.19 (owner, “Đổi cả 3 chỗ”): a family unit with a conversion the family entered counts through it */if(s&&typeof customUnitFactor==='function'){const f=customUnitFactor(s,id,unit);if(+f>0)return round(q*+f)}
  const pref=s?.purchaseUnitPreferences?.[id];if(pref&&+pref.basePerUnit>0&&(pref.unit===unit||typeof sameUnit==='function'&&sameUnit(pref.unit,unit)))return round(q*+pref.basePerUnit);
  return null;
 }
@@ -85,7 +86,7 @@ function mealsUsing(s:any,id:string,from:string,days=28){
 }
 
 // ------------------------------------------------------------ reconciliation
-const sydDay=(iso:string)=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso))}catch{return''}};
+const sydDay=(iso:string)=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:(typeof familyTimeZone==='function'?familyTimeZone():'Australia/Sydney')/* audit S3: the family's own zone */,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso))}catch{return''}};
 function shopRows(s:any,week:any,start:string,end:string){try{return typeof shopping==='function'?shopping(s,week,start,end):[]}catch{return[]}}
 function weekNeed(s:any,week:any,start:string,end:string){const out:any={};for(const r of shopRows(s,week,start,end)){if(r.skip)continue;const already=+(week.bought?.[r.id]||0);out[r.id]=Math.max(0,(+r.qty||0)-already)}return out}
 function receiptLines(s:any,rec:any){return(rec.items||[]).filter((i:any)=>i.ingredient&&hasIng(i.ingredient)&&(!i.lineKind||i.lineKind==='item')).map((i:any)=>{
@@ -97,7 +98,11 @@ function storedFromShopping(s:any,id:string,rec:any){const d=DATE.test(rec?.date
  return(s.pantry||[]).filter((p:any)=>p.ingredient===id&&!p.receiptId&&(p.storedOn?near(p.storedOn):ticked&&!p.boughtOn))}
 function plan(s:any,rec:any,week:any,start:string,end:string){
  const RP=root.ReceiptParse,need=weekNeed(s,week,start,end),lines=receiptLines(s,rec),rows0=shopRows(s,week,start,end);
- const rows=RP.reconcile(lines.filter((l:any)=>l.quantity),(id:string)=>need[id]??0).map((r:any)=>{const row:any={...r,onList:Object.hasOwn(need,r.ingredient)};
+ const rows=RP.reconcile(lines.filter((l:any)=>l.quantity),(id:string)=>need[id]??0).map((r:any)=>{const row:any={...r,onList:Object.hasOwn(need,r.ingredient)},lr=rows0.find((x:any)=>x.id===r.ingredient&&!x.skip);
+  // v1.7.19 audit C19: what the family already ticked on the list is covered by this receipt, not “Dư”
+  const ticked=lr&&!lr.purchase?+(week.bought?.[r.ingredient]||0):0;if(row.extra>0&&ticked>0){const already=round(Math.min(row.extra,ticked));row.ticked=already;row.extra=round(row.extra-already);if(row.status==='extra'||row.status==='enough-extra')row.status=row.extra>0?'enough-extra':'enough'}
+  // v1.7.19 audit C11: a list row bought as a pack without a weight (“1 túi”) is covered by the weighed receipt line
+  if(lr&&lr.purchase&&lr.qty==null&&!lr.bought&&+lr.purchase.amount>0&&row.need<=0&&row.bought>0){row.pack={unit:lr.purchase.unit,amount:+lr.purchase.amount};row.need=row.bought;row.covered=row.bought;row.extra=0;row.short=0;row.status='enough'}
   if(row.extra>0){const lots=storedFromShopping(s,r.ingredient,rec);if(lots.length){row.status='stored';row.extra=0;row.lots=lots.map((p:any)=>p.id)}}return row});
  // Amount known only in a buying unit (“2 chai”, no size): compared with the list's own unit, never converted by a guess.
  const unknown:any[]=[];const scope=typeof purchaseScope==='function'?purchaseScope(start,end):start+'/'+end;
@@ -106,6 +111,9 @@ function plan(s:any,rec:any,week:any,start:string,end:string){
    const prev=rows.find((x:any)=>x.ingredient===l.ingredient&&x.units);const done=week.unitBought?.[scope]?.[r.id]&&r.bought;
    if(prev){prev.parts.push(+l.enteredQty);prev.bought=round(prev.bought+(+l.enteredQty))}
    else rows.push({ingredient:l.ingredient,units:r.purchase.unit,parts:[+l.enteredQty],bought:+l.enteredQty,need:done?0:+r.purchase.amount,onList:true});continue}
+  /* v1.7.19 (owner, “Đổi cả 3 chỗ”): a unit with no conversion is kept as a bought lot in that unit (“2 túi lưới”), never turned into
+    grams; it goes to the pantry like any extra unless the family chooses otherwise. Only “gói / hộp chưa rõ lượng” stays unknown. */
+  if(+l.enteredQty>0&&u&&u!=='pack'&&String(u).length<=40){const prev=rows.find((x:any)=>x.ingredient===l.ingredient&&x.units===u&&x.noConv);if(prev){prev.parts.push(+l.enteredQty);prev.bought=round(prev.bought+(+l.enteredQty))}else rows.push({ingredient:l.ingredient,units:u,parts:[+l.enteredQty],bought:+l.enteredQty,need:0,onList:false,noConv:true});continue}
   unknown.push(l)}
  for(const row of rows.filter((x:any)=>x.units)){row.covered=Math.min(row.bought,row.need);row.extra=round(row.bought-row.covered);row.short=round(Math.max(0,row.need-row.bought));row.status=row.need<=0?'extra':row.short>0?'short':row.extra>0?'enough-extra':'enough';row.same=row.parts.length>1&&row.parts.every((p:any)=>p===row.parts[0])}
  // the family's own list lines (“Kimchi”) matched on the receipt
@@ -115,17 +123,27 @@ function plan(s:any,rec:any,week:any,start:string,end:string){
 function placeFor(s:any,id:string,rec:any){const lab=(rec.items||[]).filter((i:any)=>i.ingredient===id).map((i:any)=>i.label).join(' ');if(/\b(frz|frozen|frzn)\b/i.test(lab))return'freezer';if(typeof suggestStorePlace==='function')return suggestStorePlace(s,id);return ING()[id][2]==='dry'&&!['egg','tofu','milk','yogurt','cream','butter','parmesan','mozzarella','feta'].includes(id)?'dry':'fridge'}
 // ticked: ingredient ids (and 'x:'+extra id) to update, or null for all. choices: {id: {mode:'pantry'|'meal'|'none', meal:{date,type}}}.
 // Returns the undo record stored on the receipt.
+// v1.7.19 (audit C8): weeks are stored under their Monday, while `start` is the family's menu-week start (any day). The undo
+// record keeps the stored key; records written before keep only `week` and are read through its Monday.
+function mondayKey(d:string){if(!DATE.test(d||''))return d;const x=new Date(d+'T12:00:00');x.setDate(x.getDate()-((x.getDay()+6)%7));return`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`}
+// v1.7.19 — owner decision, 12 Nov 2026 (pop-up): “Gợi ý hạn dùng, cho sửa”. A lot from a receipt gets the same suggested use-by as
+// every other way into the pantry (suggestUseBy, from the purchase date); the confirmation step shows it as an estimate and the
+// family can change or clear it (choices[id].useBy: a date, or '' for none).
+function receiptUseBy(id:string,place:string,rec:any,c:any){if(c&&typeof c.useBy==='string')return DATE.test(c.useBy)?c.useBy:'';return typeof suggestUseBy==='function'&&DATE.test(rec?.date||'')?suggestUseBy(id,place,rec.date):''}
 function apply(s:any,rec:any,week:any,start:string,end:string,ticked:any,choices:any={}){
  const p=plan(s,rec,week,start,end),now=new Date().toISOString(),scope=typeof purchaseScope==='function'?purchaseScope(start,end):start+'/'+end;
- const undo:any={at:now,week:start,end,bought:{},boughtAt:{},pantryIds:[],choices:{}};if(!week.boughtAt)undo.newBoughtAt=true;if(!week.unitBought)undo.newUnitBought=true;const rows0=shopRows(s,week,start,end);
+ const undo:any={at:now,week:start,weekKey:mondayKey(start),end,bought:{},boughtAt:{},pantryIds:[],choices:{}};if(!week.boughtAt)undo.newBoughtAt=true;if(!week.unitBought)undo.newUnitBought=true;const rows0=shopRows(s,week,start,end);
  for(const r of p.rows){if(ticked&&!ticked.includes(r.ingredient))continue;
   if(r.covered>0){week.boughtAt??={};undo.boughtAt[r.ingredient]=week.boughtAt[r.ingredient]??null;
+   if(r.pack){const row=rows0.find((x:any)=>x.id===r.ingredient);week.unitBought??={};week.unitBought[scope]??={};undo.unitBought??={};undo.unitBought[r.ingredient]=week.unitBought[scope][r.ingredient]??null;undo.scope=scope;if(row&&typeof setShoppingBought==='function')setShoppingBought(week,start,end,row,true);week.boughtAt[r.ingredient]=now;
+    // the weighed amount goes to the pantry now; “Cất đồ” later does not store the same bag a second time (storeShoppingPurchases)
+    const lot:any={id:typeof uid==='function'?uid():'lot-'+Math.random().toString(36).slice(2),ingredient:r.ingredient,qty:r.covered,place:placeFor(s,r.ingredient,rec),expiry:'',boughtOn:rec.date,receiptId:rec.id};if(typeof pantryTouch==='function')pantryTouch(lot);s.pantry.push(lot);undo.pantryIds.push(lot.id);(undo.received??=[]).push(r.ingredient);continue}
    if(r.units){if(r.short<=0){const row=rows0.find((x:any)=>x.id===r.ingredient);week.unitBought??={};week.unitBought[scope]??={};undo.unitBought??={};undo.unitBought[r.ingredient]=week.unitBought[scope][r.ingredient]??null;undo.scope=scope;if(row&&typeof setShoppingBought==='function')setShoppingBought(week,start,end,row,true);week.boughtAt[r.ingredient]=now}}
-   else{week.bought??={};undo.bought[r.ingredient]=Object.hasOwn(week.bought,r.ingredient)?week.bought[r.ingredient]:null;week.bought[r.ingredient]=round((+week.bought[r.ingredient]||0)+r.covered);week.boughtAt[r.ingredient]=now}}
+   else{week.bought??={};undo.bought[r.ingredient]=Object.hasOwn(week.bought,r.ingredient)?week.bought[r.ingredient]:null;(undo.boughtMarks??={})[r.ingredient]=boughtSnapshot(week,r.ingredient);/* audit S4: the tick belongs to the receipt's range */markBought(week,start,end,r.ingredient,round(boughtQty(week,start,end,r.ingredient)+r.covered));week.boughtAt[r.ingredient]=now}}
   if(r.status==='stored'){undo.linked??=[];for(const lid of r.lots||[]){const x=s.pantry.find((y:any)=>y.id===lid);if(x&&!x.receiptId){x.receiptId=rec.id;x.boughtOn=rec.date;if(typeof pantryTouch==='function')pantryTouch(x);undo.linked.push(lid)}}continue}
   if(r.extra>0){const c=choices?.[r.ingredient]||{mode:'pantry'};const mode=['pantry','meal','none'].includes(c.mode)?c.mode:'pantry';undo.choices[r.ingredient]=mode==='meal'&&c.meal?{mode,meal:{date:c.meal.date,type:c.meal.type}}:{mode};
    if(mode==='none')continue;
-   const lot:any={id:typeof uid==='function'?uid():'lot-'+Math.random().toString(36).slice(2),ingredient:r.ingredient,qty:r.units?0:r.extra,place:placeFor(s,r.ingredient,rec),expiry:'',boughtOn:rec.date,receiptId:rec.id};
+   const place=placeFor(s,r.ingredient,rec),lot:any={id:typeof uid==='function'?uid():'lot-'+Math.random().toString(36).slice(2),ingredient:r.ingredient,qty:r.units?0:r.extra,place,expiry:receiptUseBy(r.ingredient,place,rec,c),boughtOn:rec.date,receiptId:rec.id};
    if(r.units)lot.purchase={unit:r.units,amount:r.extra,basePerUnit:null,pricePerUnit:null,note:'Từ hoá đơn'};
    if(mode==='meal'&&c.meal&&DATE.test(c.meal.date)&&typeof c.meal.type==='string')lot.forMeal={date:c.meal.date,type:c.meal.type.slice(0,20)};
    if(typeof pantryTouch==='function')pantryTouch(lot);s.pantry.push(lot);undo.pantryIds.push(lot.id)}}
@@ -133,8 +151,8 @@ function apply(s:any,rec:any,week:any,start:string,end:string,ticked:any,choices
  rec.reconciled=undo;return undo;
 }
 function undo(s:any,rec:any){
- const u=rec.reconciled;if(!u)return false;const week=s.weeks?.[u.week];
- if(week){for(const[id,v]of Object.entries(u.bought||{})){if(v==null)delete week.bought[id];else week.bought[id]=v}
+ const u=rec.reconciled;if(!u)return false;const week=s.weeks?.[u.weekKey||mondayKey(u.week)];
+ if(week){for(const[id,v]of Object.entries(u.bought||{})){if(u.boughtMarks?.[id]){restoreBought(week,id,u.boughtMarks[id]);continue}if(v==null)delete week.bought[id];else week.bought[id]=v}
   for(const[id,v]of Object.entries(u.boughtAt||{})){if(!week.boughtAt)continue;if(v==null)delete week.boughtAt[id];else week.boughtAt[id]=v}
   for(const[id,v]of Object.entries(u.unitBought||{})){const rows=week.unitBought?.[u.scope];if(!rows)continue;if(v==null)delete rows[id];else rows[id]=v}
   if(u.newBoughtAt&&week.boughtAt&&!Object.keys(week.boughtAt).length)delete week.boughtAt;
@@ -153,5 +171,5 @@ if(typeof stock==='function'&&typeof shopping==='function'){
   const held=(s.pantry||[]).filter((p:any)=>p.ingredient===id&&p.forMeal&&p.forMeal.date>reserveRange[1]&&(!p.expiry||p.expiry>=today)).reduce((n:number,p:any)=>n+(+p.qty||0),0);return Math.max(0,v-held)};
  const baseShopping=shopping;root.shopping=shopping=function(s:any,w:any,start:string,end:string){const prev=reserveRange;reserveRange=[start,end];try{return baseShopping(s,w,start,end)}finally{reserveRange=prev}};
 }
-root.ReceiptList={QTY_MAX,validQtyEntry,validQtyMemory,recallQty,rememberQty,baseQuantity,needsConversion,listFor,rankList,extraMatch,lineScore,mealsUsing,weekNeed,receiptLines,plan,apply,undo,validForMeal,norm};
+root.ReceiptList={placeFor,receiptUseBy,QTY_MAX,validQtyEntry,validQtyMemory,recallQty,rememberQty,baseQuantity,needsConversion,listFor,rankList,extraMatch,lineScore,mealsUsing,weekNeed,receiptLines,plan,apply,undo,validForMeal,norm};
 })(globalThis);
