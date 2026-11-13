@@ -3,7 +3,9 @@
 // v1.7.4 and earlier; they stay valid and are read as lunch+dinner / dinner (stored data is never rewritten).
 const MEAL_PURPOSES=['breakfast','lunch','dinner','snack','feast'];
 const LEGACY_PURPOSES={main:['lunch','dinner'],side:['lunch','dinner'],friday:['dinner']};
-const FAMILY_PURPOSES={breakfast:'Bữa sáng',lunch:'Bữa trưa',dinner:'Bữa tối',snack:'Bữa phụ',feast:'Weekends feast',main:'Bữa trưa',side:'Bữa trưa',friday:'Bữa tối'};
+// v1.7.19 (owner, 13 Nov 2026): every meal-group label is Vietnamese in VI (English only in EN, FAMILY_PURPOSES_EN).
+const FAMILY_PURPOSES={breakfast:'Bữa sáng',lunch:'Bữa trưa',dinner:'Bữa tối',snack:'Bữa phụ',feast:'Mẻ nấu cuối tuần',main:'Bữa trưa',side:'Bữa trưa',friday:'Bữa tối'};
+const FAMILY_PURPOSES_EN={breakfast:'Breakfast',lunch:'Lunch',dinner:'Dinner',snack:'Snack',feast:'Weekend batch cook',main:'Lunch',side:'Lunch',friday:'Dinner'};
 // “Phân loại món ăn”: dish types. veg is shown as “Món phụ”; dessert/snack/lunchbox are new in v1.7.5.
 const DISH_CATEGORIES=['main','veg','soup','noodle','dessert','snack','lunchbox'];
 /** Meals a dish type suits when the family ticked none. Used for planning only; never written to the recipe. */
