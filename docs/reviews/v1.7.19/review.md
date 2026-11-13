@@ -553,3 +553,16 @@ Two helpers, each in its own worktree from 5ba19a8, merged by the lead (a871e88,
 - Adding ALDI, Harris Farm and others to saved products or So Giá ids needs two releases (validators first), so older devices do not reject synced data.
 - Dark mode: the meal-row "Hoàn tác" button has less contrast than in light mode (readable).
 - Mixed versions: an older device that edits a tick for an ingredient that already has ranged ticks is not seen by newer devices until it updates.
+
+## Local test runs and CI, 13 Nov 2026 (Sydney time)
+
+- **Full `test:all` on a979b37** (14:59–16:34 AEDT): 70 of 76 steps OK. The 6 that failed:
+  - 4 were tests that still expected the old behaviour after Henry's decisions ("Hủy" → "Huỷ" in kitchen-hub, the decimal comma in unit-picker, the privacy page date 13/11 in usage) or a taller receipt sheet (receipt-feedback measured before Playwright scrolled the line into view). Each test was updated without weakening its check.
+  - `v1719-language` failed once while tests were being recompiled during the run; it passed on re-run, on both helper branches and on CI.
+  - `v1713` fails only in this sandbox (fonts), as on main; it passes on CI.
+- **Re-run on c5ce420** (16:34–16:53 AEDT): check, typecheck, `npm test`, test:browser, unit-picker, usage, receipt-feedback, v1719-language, v176-fixes, audit-data, receipt-list and `test:audit:browser` all OK; `v1713` sandbox-only as above.
+- **CI on 9ab5f05** found two more, fixed in c5ce420: the English receipt-currency option said "Vietnamese đồng" (now "Vietnamese dong"), and the meal swipe test started its swipe under the new "Hoàn tác" bar on CI's fonts (it now swipes mid-screen; the app is unchanged).
+- **CI on c5ce420:** push run 43372946028 all 79 jobs green. Pull-request run 43372954260 failed one job, `test:recipe-ingredients:browser`: a typed amount on the last Viết món row ("Nước mắm 2 muỗng canh") was lost.
+  - This is intermittent and older than this round: on 3507cfa (CI green this morning) it failed 1 of 8 local runs; on the current code about 1 in 3 under load. Adding logging makes it disappear.
+  - Ruled out: the general sheet keep-in-place handler (scrolls only), focus arriving late after a touch tap (the field had the focus before typing), a second enhancement of the same form (guarded).
+  - Still open; not hidden or skipped. Reported to Henry.
