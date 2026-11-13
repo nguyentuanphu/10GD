@@ -216,7 +216,7 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
    await toggle('snack',false);assert.equal(await slots().count(),before,'afternoon snack removed');
    await toggle('snackAm',true);assert.equal(await slot('snackAm').count(),1,'morning snack added');
    // swipe the (empty) morning snack to the left: removed
-   const swipe=async(t:string,dir:number)=>{const card=slot(t);await card.scrollIntoViewIfNeeded();const bx=(await card.boundingBox())!;const y=bx.y+Math.min(40,bx.height/2),x0=bx.x+bx.width/2;
+   const swipe=async(t:string,dir:number)=>{const card=slot(t);/* v1.7.19 re-check: removing a meal now shows the “Hoàn tác” bar at the foot of the screen; a card scrolled only just into view sat under it on CI's fonts, so the finger landed on the bar. Swipe the card where a person would, mid-screen. */await card.evaluate((e:any)=>e.scrollIntoView({block:'center'}));await page.waitForTimeout(80);const bx=(await card.boundingBox())!;const y=bx.y+Math.min(40,bx.height/2),x0=bx.x+bx.width/2;
     await page.mouse.move(x0,y);await page.mouse.down();await page.mouse.move(x0+dir*bx.width*0.2,y,{steps:4});
     assert.equal(await card.evaluate((e:any)=>e.classList.contains('swiping')),true,'card follows the finger');await page.mouse.move(x0+dir*bx.width*0.45,y,{steps:4});await shot('swipe-meal');await page.mouse.up();await page.waitForTimeout(300)};
    await swipe('snackAm',-1);assert.equal(await slot('snackAm').count(),0,'morning snack swiped away');

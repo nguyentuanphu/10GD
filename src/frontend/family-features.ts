@@ -21,7 +21,7 @@ function receiptLineRows(){return receiptDraft.items.map((item,index)=>`<article
 // The reader suggests it from the receipt itself (store, currency sign, size of the amounts; ReceiptParse.currencyEvidence) and the
 // hint says why. Changing it never converts an amount: the numbers stay as printed. A receipt in another currency than the family's
 // is kept but not counted in the family's totals and does not tick the list (audit C5).
-function receiptCurrencyField(d){const fam=currentCurrency(state),cur=d.currency||fam,opts=[...new Set([cur,'AUD','VND'])],name=(c:string)=>c==='VND'?tr('Đồng (VND)','Vietnamese đồng (VND)'):c==='AUD'?tr('Đô Úc (AUD)','Australian dollars (AUD)'):c;
+function receiptCurrencyField(d){const fam=currentCurrency(state),cur=d.currency||fam,opts=[...new Set([cur,'AUD','VND'])],name=(c:string)=>c==='VND'?tr('Đồng (VND)','Vietnamese dong (VND)'):c==='AUD'?tr('Đô Úc (AUD)','Australian dollars (AUD)'):c;
  const why=({store:tr('tên cửa hàng','the store name'),symbol:tr('ký hiệu tiền','the currency sign'),amounts:tr('cỡ các số tiền','the size of the amounts')} as any)[d.currencySuggested]||'';
  return`<div class="field receipt-currency-field" style="grid-column:1/-1"><label for="receipt-currency">${tr('Tiền của hoá đơn','Receipt currency')}</label><select id="receipt-currency">${opts.map(c=>`<option value="${esc(c)}" ${c===cur?'selected':''}>${esc(name(c))}</option>`).join('')}</select><p class="hint" id="receipt-currency-hint">${esc(receiptCurrencyHint(cur,fam,why))}</p></div>`}
 function receiptCurrencyHint(cur,fam,why){if(cur===fam)return why?tr(`Đọc ra từ ${why}.`,`Read from ${why}.`):'';
