@@ -2811,7 +2811,7 @@ html[data-theme="dark"] #main .shopping-group .sg-quick[aria-pressed="true"]{bac
 @media (max-width:420px){.family-meal-card .meal-head-actions .btn{flex-direction:column;gap:2px;padding:6px 8px;min-width:0;max-width:100%}
  .recipe-detail-hero{flex-wrap:wrap}.recipe-detail-hero>*{min-width:0;max-width:100%}
  .week-start-pick{flex-wrap:wrap;max-width:100%;min-width:0}.week-start-pick select{min-width:0;max-width:100%}
- .top-actions{min-width:0;flex-shrink:1}.topbar{gap:4px;padding-left:8px;padding-right:8px}}
+ .top-actions{min-width:0;flex-shrink:1}.topbar{gap:2px;padding-left:6px;padding-right:6px}.top-actions{gap:1px}}
 /* v1.7.21: dish chips (kind · meal · Hay nấu) in the meal picker — words only, 44 px, one scrolling row per group */
 .dish-chips{margin:8px 0 2px;display:grid;gap:6px}.dish-chip-group{display:flex;align-items:center;gap:8px;min-width:0}.dish-chip-title{flex:none;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor-small,0px));font-weight:600;color:var(--muted);min-width:4.2em}
 .dish-chip-row{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;min-width:0;flex:1 1 auto;padding:2px 2px 6px;scrollbar-width:thin;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
