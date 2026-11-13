@@ -230,9 +230,18 @@ test('re-check B9: one store registry; stored store ids stay valid for this and 
  assert.equal(R(`storeFromName('ALDI Bankstown')?.id`),'aldi');assert.equal(R(`storeFromName('Woolies Metro')?.id`),'woolworths');assert.equal(R(`storeFromName('Tiệm Hưng Phát')`),null);
  // stored values: an observation and a product saved with the old ids are valid; a widened id would not be (older devices)
  const obs=(r:string)=>R(`PriceScout.validObservation(PriceScout.withProvenance({id:'obs-000001',itemId:'gao-jasmine',label:'Jasmine rice',retailer:${JSON.stringify(r)},price:22,currency:'AUD',observedAt:'2026-11-12',source:'manual'},{}))`);
- assert.equal(obs('coles'),true,'baseline observation');assert.equal(obs('other'),true,'other is stored like coles');assert.equal(obs('costco'),false,'costco is never stored as its own So Giá id');
+ assert.equal(obs('coles'),true,'baseline observation');assert.equal(obs('other'),true,'other is stored like coles');
+ /* v1.7.19 (Henry, 13 Nov 2026: more stores for saved products, step 1): this version ACCEPTS every registry id, so the next
+    release can offer them; what is offered and saved is unchanged (the views above, and costco is still saved as 'other') */
+ assert.equal(obs('costco'),true,'accepted when a newer device saved it');assert.equal(obs('harris-farm'),true);assert.equal(obs('spudshed'),true,'reserved id');assert.equal(obs('nope'),false,'an unknown id is still rejected');assert.equal(obs(''),false);
  const prod=(r:string)=>R(`validProduct({id:'p1',retailer:${JSON.stringify(r)},name:'Milk',size:'2 L',branch:'',barcode:'',price:3.1,source:'manual',checkedAt:'2026-11-12',url:''})`);
- assert.equal(prod('coles'),true);assert.equal(prod('chemist'),true);assert.equal(prod('aldi'),false,'products stay on the three ids older versions accept');
+ assert.equal(prod('coles'),true);assert.equal(prod('chemist'),true);
+ for(const id of ['aldi','harris-farm','iga','costco','viet-grocer','other','spudshed','foodworks'])assert.equal(prod(id),true,'step 1: a product from '+id+' is accepted');assert.equal(prod('nope'),false,'unknown store rejected');assert.equal(prod(''),false);
+ const prodUrl=(r:string,url:string)=>R(`validProduct({id:'p1',retailer:${JSON.stringify(r)},name:'Milk',size:'2 L',branch:'',barcode:'',price:3.1,source:'manual',checkedAt:'2026-11-12',url:${JSON.stringify(url)}})`);
+ assert.equal(prodUrl('aldi','https://www.aldi.com.au/product/milk'),true,'a plain https link from a newer device is kept');assert.equal(prodUrl('aldi','javascript:alert(1)'),false);assert.equal(prodUrl('aldi','http://www.aldi.com.au/'),false);assert.equal(prodUrl('coles','https://www.aldi.com.au/x'),false,'an offered store still needs its own website');
+ assert.equal(R(`safeProductURL('https://www.aldi.com.au/product/milk','aldi')`),'','no link is shown for a store whose website the app does not know');
+ assert.throws(()=>R(`parseProductCSV('retailer,name,price,size,checkedAt\\naldi,Milk,3.1,2 L,2026-11-12')`),/CSV row 2/,'the CSV import still offers only the three stores');
+ const ok=R(`(()=>{const s=defaults();s.products=[{id:'p-aldi',retailer:'aldi',name:'Milk',size:'2 L',branch:'',barcode:'',price:3.1,source:'manual',checkedAt:'2026-11-12',url:'',currency:'AUD'}];return validImport(JSON.parse(JSON.stringify(s)))})()`);assert.equal(ok,true,'validImport accepts a family state with an ALDI product');
  assert.equal(R(`retailerSearch('coles','milk')`),'https://www.coles.com.au/search?q=milk');assert.equal(R(`retailerSearch('aldi','milk')`),null);
  // no other file keeps its own list of chain names
  for(const f of ['insights-core','receipt-parse','shopping-optimizer','voice-price','price-scout-ui','shopping-planning','products-ui']){const src=fs.readFileSync('src/frontend/'+f+'.ts','utf8');
