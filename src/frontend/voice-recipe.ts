@@ -203,7 +203,7 @@ function voiceRecipeOpen(){
  modal(vrT('🎙 Đọc công thức','🎙 Dictate a recipe'),`<div class="vr-sheet"><p class="hint">${vrT('Đọc tự nhiên như kể cho con cháu: tên món, cho mấy người, nguyên liệu, rồi từng bước (“rồi…”, “sau đó…”). Có thể tạm dừng và đọc tiếp nhiều lần. Lượng nào nói không rõ sẽ để trống và đánh dấu “cần điền”.','Read it naturally: the dish name, how many it serves, the ingredients, then each step (“then…”, “next…”). Pause and continue as often as you like. Unclear amounts are left blank and marked “to fill in”.')}</p>
  <div class="voice-live vr-live" id="vr-live" data-mode="stopped"><span class="voice-dot" aria-hidden="true"></span><b id="vr-state" aria-live="polite"></b><small id="vr-takes"></small></div>
  <div class="field"><label for="vr-text">${vrT('Lời đọc (sửa, gõ hoặc dán được)','Transcript (edit, type or paste)')}</label><textarea class="input" id="vr-text" rows="7" maxlength="20000">${vrEsc(vrState.text)}</textarea></div>
- <div class="vp-controls">${typeof voiceTakeLangToggle==='function'?voiceTakeLangToggle('data-vr-lang',vrState.lang):''}${typeof voiceHoldMode==='function'&&voiceHoldMode()?`<button type="button" class="btn primary voice-hold-btn" id="vr-mic" data-hold-mic="vr" aria-pressed="false">🎙 ${vrT('Giữ để đọc','Hold to read')}</button>`:`<button type="button" class="btn primary" id="vr-mic" data-vr="mic" aria-pressed="false">🎙 ${vrT('Bắt đầu đọc','Start reading')}</button>`}<button type="button" class="btn" data-vr="review">📝 ${vrT('Tách & xem lại','Split & review')}</button><button type="button" class="btn soft" data-vr="clear">${vrT('Xóa lời đọc','Clear transcript')}</button></div>
+ <div class="vp-controls">${typeof voiceTakeLangToggle==='function'?voiceTakeLangToggle('data-vr-lang',vrState.lang):''}${typeof voiceHoldMode==='function'&&voiceHoldMode()?`<button type="button" class="btn primary voice-hold-btn" id="vr-mic" data-hold-mic="vr" aria-pressed="false">🎙 ${vrT('Giữ để đọc','Hold to read')}</button>`:`<button type="button" class="btn primary" id="vr-mic" data-vr="mic" aria-pressed="false">🎙 ${vrT('Bắt đầu đọc','Start reading')}</button>`}<button type="button" class="btn" data-vr="review">📝 ${vrT('Tách & xem lại','Split & review')}</button><button type="button" class="btn soft" data-vr="clear">${vrT('Xoá lời đọc','Clear transcript')}</button></div>
  <div id="vr-review" aria-live="polite"></div></div>`,`<button class="btn" data-action="close-modal">${vrT('Đóng','Close')}</button><button class="btn primary" data-vr="use" id="vr-use" hidden>✓ ${vrT('Dùng bản này','Use this')}</button>`,true);
  vrState.take?.stop(true);
  vrState.take=createVoiceTake({owner:'voice-recipe',keep:true,lang:()=>vrState.lang,onState:vrSetMode,
@@ -269,22 +269,27 @@ function vrFillForm(c){
  f.prepend(note);
 }
 function voiceRecipeSaved(){vrState.take?.stop(true);vrClearDraft()}
+let vrCleared:any=null;
 if(typeof document!=='undefined'){
  document.addEventListener('click',e=>{
   const l=e.target.closest?.('[data-vr-lang]');if(l){vrState.lang=l.dataset.vrLang;VoiceTakeLang.setPref(vrState.lang);if(typeof voiceLangToggleRefresh==='function')voiceLangToggleRefresh('data-vr-lang',vrState.lang,false);if(vrState.take?.listening){vrState.take.stop(true);vrStartTake()}return}
   const b=e.target.closest?.('[data-vr]');if(!b)return;
   switch(b.dataset.vr){
    case'open':e.preventDefault();voiceRecipeOpen();break;
-   case'mic':if(vrState.take?.listening){vrState.take.stop(true);vrSetMode('stopped')}else vrStartTake();break;
+   case'mic':vrCleared=null;document.getElementById('vr-undo')?.remove();if(vrState.take?.listening){vrState.take.stop(true);vrSetMode('stopped')}else vrStartTake();break;
    case'review':{vrState.take?.stop(true);vrSetMode('stopped');const box=document.getElementById('vr-text');if(box){vrState.text=box.value;vrSaveDraft()}vrRenderReview(segmentRecipe(vrState.text,{lang:voiceUiLang()}));document.getElementById('vr-title')?.focus();break}
-   case'clear':if(vrState.text.trim()&&!confirm(vrT('Xóa toàn bộ lời đọc?','Clear the whole transcript?')))break;vrState.take?.stop(true);vrClearDraft();{const box=document.getElementById('vr-text');if(box)box.value=''}document.getElementById('vr-review').innerHTML='';document.getElementById('vr-use').hidden=true;vrSetMode('stopped');break;
+   // v1.7.19 re-check (audit B16): no browser confirm dialog; the transcript is cleared at once and “Hoàn tác” inside the sheet puts
+   // back the words, the takes and the review exactly as they were.
+   case'clear':{const had=vrState.text.trim()?{text:vrState.text,takes:vrState.takes,parsed:vrState.parsed,review:document.getElementById('vr-review')?.innerHTML||'',use:!document.getElementById('vr-use')?.hidden}:null;vrState.take?.stop(true);vrClearDraft();{const box=document.getElementById('vr-text');if(box)box.value=''}document.getElementById('vr-review').innerHTML='';document.getElementById('vr-use').hidden=true;vrSetMode('stopped');
+    document.getElementById('vr-undo')?.remove();vrCleared=had;if(had)document.getElementById('vr-text')?.insertAdjacentHTML('afterend',`<p class="vr-undo" id="vr-undo" role="status"><span>${vrT('Đã xoá lời đọc.','Transcript cleared.')}</span><button type="button" class="btn small" data-vr="undo-clear">${vrT('Hoàn tác','Undo')}</button></p>`);break}
+   case'undo-clear':{const had=vrCleared;vrCleared=null;document.getElementById('vr-undo')?.remove();if(!had)break;vrState.text=had.text;vrState.takes=had.takes;vrState.parsed=had.parsed;vrSaveDraft();{const box=document.getElementById('vr-text') as any;if(box)box.value=had.text}const rv=document.getElementById('vr-review');if(rv)rv.innerHTML=had.review;const u=document.getElementById('vr-use');if(u)u.hidden=!had.use;document.getElementById('vr-text')?.focus({preventScroll:true});break}
    case'del-ing':b.closest('.vr-ing')?.remove();break;
    case'add-ing':{const ul=document.querySelector('.vr-ings');if(ul){ul.querySelector('.hint')?.remove();const x=ul.children.length;ul.insertAdjacentHTML('beforeend',vrIngRow({name:'',qty:null,unit:'',needs:'qty'},x));ul.lastElementChild.querySelector('input')?.focus()}break}
    case'add-step':{const ol=document.querySelector('.vr-steps');if(ol){const x=ol.children.length;ol.insertAdjacentHTML('beforeend',`<li><label class="sr-only" for="vr-step-${x}">${vrT('Bước','Step')} ${x+1}</label><textarea class="input" id="vr-step-${x}" rows="2" maxlength="1000"></textarea></li>`);ol.lastElementChild.querySelector('textarea').focus()}break}
    case'use':vrUse();break;
   }
  });
- document.addEventListener('input',e=>{if(e.target?.id==='vr-text'){vrState.text=e.target.value;vrSaveDraft()}});
+ document.addEventListener('input',e=>{if(e.target?.id==='vr-text'){vrState.text=e.target.value;vrSaveDraft();if(vrCleared&&vrState.text.trim()){vrCleared=null;document.getElementById('vr-undo')?.remove()}}});
  // The family recipe view shows the original transcript (collapsible) under a dictated recipe.
  if(typeof showRecipe==='function'){const vrShowRecipe=showRecipe;showRecipe=function(id,snapshot,mealContext){vrShowRecipe.apply(this,arguments);const r=snapshot||voiceAppState()?.recipes?.find(x=>x.id===id);if(r&&typeof r.transcript==='string'&&r.transcript.trim()){const c=document.querySelector('#modal-root .modal-content');if(c&&!c.querySelector('.vr-raw'))c.insertAdjacentHTML('beforeend',`<details class="vr-raw"><summary>${vrT('Lời đọc gốc','Original transcript')}</summary><p data-user-content>${vrEsc(r.transcript).replace(/\n/g,'<br>')}</p></details>`)}}}
 }

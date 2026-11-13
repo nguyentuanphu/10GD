@@ -13755,7 +13755,7 @@ function recipeNeedsDietCheck(r){return recipeDiet(r)==='check'}
 function isSeedSaladRecipe(r){return r?.recipeKind==='seed-salad'}
 function recipeCategoryLabel(r){const en=typeof appLanguage!=='undefined'&&appLanguage==='en';return isDressingRecipe(r)?(en?'Salad dressing':'Sốt dressing'):isSeedSaladRecipe(r)?(en?'Seed & grain salad':'Salad hạt & ngũ cốc'):CATEGORY[r.category]}
 
-function recipePortionLabel(r,n){const en=typeof appLanguage!=='undefined'&&appLanguage==='en';return n+' '+(isDressingRecipe(r)?(en?'salad dressing portions':'phần sốt salad'):(en?'standard portions':'suất chuẩn'))}
+function recipePortionLabel(r,n){const en=typeof appLanguage!=='undefined'&&appLanguage==='en';return n+' '+(isDressingRecipe(r)?(en?'salad dressing portions':'phần sốt salad'):(en?'portions':'suất'))}
 
 // Artwork audit, 02 November 2026: repair only exact, unedited reference samples.
 // No catalog edition bump or reseed: family edits, deleted recipes and authored menu entries remain intact.
