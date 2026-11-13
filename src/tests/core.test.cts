@@ -30,7 +30,7 @@ check(fmtQty(1500,'g')==='1,5 kg','grams present as kilograms, with a decimal co
 vm.runInContext(`
 let soupState=defaults(),soupWeek=ensureWeek(soupState,monday(sydneyDate()));
 const sat=addDays(monday(sydneyDate()),5),sun=addDays(monday(sydneyDate()),6);
-check(soupState.recipes.filter(r=>r.category==='noodle').length===24,'24 weekend soup recipes available');
+/* v1.7.19 (13 Nov 2026): of the 24 quick one-bowl recipes, the 3 cháo are now main dishes and the 3 súp soups (catalog-labels test) */check(soupState.recipes.filter(r=>/^n[0-9]+$/.test(r.id)).length===24&&soupState.recipes.filter(r=>r.category==='noodle').length===18&&soupState.recipes.filter(r=>/^n[0-9]+$/.test(r.id)&&/^Cháo /.test(r.name)&&r.category==='main').length===3&&soupState.recipes.filter(r=>/^n[0-9]+$/.test(r.id)&&/^Súp /.test(r.name)&&r.category==='soup').length===3,'24 quick one-bowl recipes: 18 noodle dishes for weekends, 3 cháo (main), 3 súp (soup)');
 check(soupWeek.days[sat].lunch.recipes.length===1&&soupWeek.days[sat].lunch.recipes[0].category==='noodle','new weekend plan starts with a complete soup meal');
 let soupMeal=createMeal(soupState,'n1');let soupIngredients=mealIngredients(soupMeal,soupState);
 check(!('rice'in soupIngredients),'no automatic rice added to soup meals');

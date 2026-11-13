@@ -37,6 +37,8 @@ const EXPANDED_RECIPES=[];
  for(const[base,noodle,amount]of noodleBases)for(const[p,id,protein,qty]of soupProteins)for(const[style,veg]of brothStyles){push(base+' '+p+' '+style,'noodle',protein,base==='Nui'?30:25,{[noodle]:amount,[id]:id==='egg'?4:qty*1.7,...veg,[protein==='plant'?'vegBroth':'broth']:1800,scallion:20,salt:3},'Dùng nước dùng có sẵn; thời gian không tính hầm nước dùng. Trụng sợi theo bao bì.',['Sơ chế nguyên liệu đạm, kiểm tra xương nếu có cá; rau củ rửa và cắt vừa ăn.',`Đun nước dùng, cho phần rau củ lâu mềm và ${p} vào nấu chín hoàn toàn. Trứng có thể luộc chín riêng.`,`Trụng hoặc nấu ${base.toLowerCase()} theo hướng dẫn trên bao bì. Cho rau còn lại vào nước dùng, nấu vừa chín.`,'Nêm nhẹ, chia sợi và các nguyên liệu ra tô, chan nước dùng nóng, thêm hành lá. Đây là món nước làm bữa chính; cơm và món khác được chọn riêng.'],['Nước dùng có sẵn','Bữa chính món nước','Biến thể gia đình'])}
  const quotas={main:160,soup:100,veg:80,noodle:146};const selected=[];for(const[cat,count]of Object.entries(quotas))selected.push(...EXPANDED_RECIPES.filter(r=>r.category===cat).slice(0,count));for(const r of EXPANDED_RECIPES){if(selected.length>=486)break;if(!selected.some(x=>x.id===r.id))selected.push(r)}// Apply category repairs after quota selection so the original recipe IDs remain unchanged.
  for(const r of selected)if(['family-v3-1','family-v3-2','family-v3-3'].includes(r.id)){r.category='main';r.stapleIncluded=true}
+ // v1.7.19 (13 Nov 2026): the cháo variants are main dishes, not “Món sợi” (seed.ts referenceCategoryFix); same ids, after the quota.
+ if(typeof applyReferenceCategoryFix==='function')for(const r of selected)applyReferenceCategoryFix(r);
  RECIPES.push(...selected.slice(0,486));
 })();
 

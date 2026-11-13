@@ -70,6 +70,14 @@ quickSoup('n24','Mì trứng cà chua','egg',15,{eggNoodle:500,egg:4,tomato:350,
 );
 
 for(const r of RECIPES){if(r.category==='noodle'&&r.protein==='plant')for(const i of r.ingredients)if(i.id==='broth')i.id='vegBroth';}
+// v1.7.19 (owner, 13 Nov 2026: cháo was labelled “Món sợi”): the quick one-bowl recipes were all filed as noodle dishes. Cháo
+// (rice porridge) is a main dish and súp is a soup; both keep breakfast, lunch and dinner as their meals, so the menu still offers
+// them for breakfast. The same rule repairs the reference copies already stored in a family's data (upgradeReferenceCatalog);
+// recipes the family wrote or edited are never changed.
+const REFERENCE_CATEGORY_FIXES:[RegExp,string][]=[[/^Cháo\s/,'main'],[/^Súp\s/,'soup']];
+function referenceCategoryFix(r){if(!r||r.custom||r.origin==='family'||r.category!=='noodle'||!/^(n\d+|family-v3-\d+)$/.test(String(r.id||'')))return null;for(const [re,cat] of REFERENCE_CATEGORY_FIXES)if(re.test(String(r.name||'')))return{category:cat,purposes:['breakfast','lunch','dinner'],stapleIncluded:cat==='main'?true:undefined};return null}
+function applyReferenceCategoryFix(r){const fix=referenceCategoryFix(r);if(!fix)return false;r.category=fix.category;if(!Array.isArray(r.purposes)||!r.purposes.length)r.purposes=fix.purposes.slice();if(fix.stapleIncluded&&typeof r.stapleIncluded!=='boolean')r.stapleIncluded=true;return true}
+for(const r of RECIPES)applyReferenceCategoryFix(r);
 
 // Reference ingredients introduced with the Western/Italian/Healthy collection. Price 0 means unknown.
 const WESTERN_INGREDIENTS={
