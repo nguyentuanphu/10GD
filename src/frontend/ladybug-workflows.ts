@@ -20,6 +20,11 @@
  // what the whole day's meals need of one ingredient (the shopping list for that day changes by exactly this)
  /* v1.7.20: the first day of the weekend batch a dinner belongs to (its amounts are bought from that day); the date itself otherwise */
  const batchStartOf=(x:string)=>{const ids=new Set((mealOf(x,'dinner')?.recipes||[]).map((r:any)=>r.batchId).filter(Boolean));let f=x;if(!ids.size)return f;for(let k=1;k<=3;k++){const y=addDays(x,-k);if(MEAL_TYPES.some((t:string)=>(mealOf(y,t)?.recipes||[]).some((r:any)=>ids.has(r.batchId))))f=y}return f};
+ /* v1.7.20: the first ordinary (not weekend-batch, not cooked) dinner from today on, with `ok(next)` for the day after if given; when
+    this week has none left (a weekend), the family's next week is planned on this sample/copy first — scenarios never skip for the weekday */
+ const plainDinner=(x:string)=>{const mm=mealOf(x,'dinner');return !!mm?.recipes?.length&&!mm.cooked&&!mm.recipes.some((r:any)=>r.batchId)};
+ const ordinaryDinner=(next:(x:string)=>boolean=()=>true)=>{const fit=(x:string)=>plainDinner(x)&&next(addDays(x,1));let d=sydneyDate();for(let k=0;k<7&&!fit(d);k++)d=addDays(sydneyDate(),k+1);
+  if(!fit(d)){familyGenerate(state,planStartOf(state,addDays(sydneyDate(),7)),{sourceMode:'library'});save();render();d=sydneyDate();for(let k=0;k<14&&!fit(d);k++)d=addDays(sydneyDate(),k+1)}return fit(d)?d:''};
  const dayQty=(d:string,id:string)=>MEAL_TYPES.reduce((n:number,t:string)=>{const m=mealOf(d,t);return n+(m&&!m.cooked?+(mealIngredients(m,state)[id]||0):0)},0);
  const near=(a:number,b:number,tol=0.6)=>Math.abs(a-b)<=Math.max(tol,Math.abs(b)*0.002);
  const setVal=(el:any,v:string)=>{el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))};
@@ -92,8 +97,7 @@
   /* v1.7.20 (found 14 Nov 2026, a Saturday): Saturday dinner is part of the weekend batch, and “Đã nấu” on a batch meal rightly asks to
      cook the batch first, so this scenario failed every weekend. It now cooks the first ordinary dinner from today on (the batch has its
      own “Nấu mẻ” flow). */
-  const plain=(x:string)=>{const mm=mealOf(x,'dinner');return !!mm?.recipes?.length&&!mm.cooked&&!mm.recipes.some((r:any)=>r.batchId)};
-  let d=sydneyDate();for(let k=0;k<7&&!plain(d);k++)d=addDays(sydneyDate(),k+1);const m=mealOf(d,'dinner');if(!plain(d))skip(aT('Tuần này chưa có bữa tối thường nào để nấu thử.','No ordinary dinner to cook this week.'));const needs:Record<string,number>=mealIngredients(m,state);const ids=Object.keys(needs).filter(id=>needs[id]>0).slice(0,6);
+  const d=ordinaryDinner();const m=mealOf(d,'dinner');expect(d,aT('Không có bữa tối thường nào để nấu thử, kể cả tuần sau.','No ordinary dinner to cook, even next week.'));const needs:Record<string,number>=mealIngredients(m,state);const ids=Object.keys(needs).filter(id=>needs[id]>0).slice(0,6);
   await part(aT('Cả nhà báo ăn ở nhà','Everyone eats at home'),async()=>{await everyoneHome(d,'dinner');const nn=mealIngredients(mealOf(d,'dinner'),state);for(const id of Object.keys(needs))delete needs[id];Object.assign(needs,nn);ids.splice(0,ids.length,...Object.keys(nn).filter(id=>nn[id]>0).slice(0,6))});
   await part(aT('Thêm đồ cần cho bữa tối vào tủ','Stock tonight’s ingredients'),async()=>{for(const id of ids){if(stockOf(id)+0.6<needs[id])await addStock(id,Math.ceil(needs[id]-stockOf(id)+1))}});
   let before:Record<string,number>={};
@@ -210,7 +214,7 @@
 
  // ── 13. cook once for two meals (leftovers) ──────────────────────────────────────────────────────────────────────────────
  W('wf-ahead','Workflow: nấu một lần cho hai bữa','Workflow: cook once for two meals','Món tối nay cũng có ở bữa trưa mai: “Nấu luôn cho bữa sau”; bữa trưa mai tính là đã nấu, không phải mua hay lấy thêm.','Tonight’s dish is also on tomorrow’s lunch: “cook for the later meal too”; tomorrow counts as cooked ahead, nothing to buy.',async()=>{
-  const d=sydneyDate(),t=tomorrow(),m=mealOf(d,'dinner');const r=m?.recipes?.find((x:any)=>!x.batchId);if(!r)skip(aT('Tối nay chưa có món.','No dinner tonight.'));const later=mealOf(t,'lunch')?'lunch':'dinner';
+  /* v1.7.20: an ordinary dinner and an ordinary next day (weekends belong to the batch) */const d=ordinaryDinner(x=>['lunch','dinner'].some(tt=>{const mm=mealOf(x,tt);return !!mm&&!mm.cooked&&!(mm.recipes||[]).some((r:any)=>r.batchId)})),t=addDays(d,1),m=mealOf(d,'dinner');const r=m?.recipes?.find((x:any)=>!x.batchId);expect(d&&r,aT('Không có bữa tối thường nào để nấu thử.','No ordinary dinner to try.'));const later=mealOf(t,'lunch')?'lunch':'dinner';
   await part(aT('Cả nhà báo ăn ở nhà tối nay','Everyone home tonight'),async()=>{await everyoneHome(d,'dinner')});
   await part(aT('Đặt cùng món vào bữa sau','The same dish on the later meal'),async()=>{const lm=mealOf(t,later);lm.recipes=[clone(state.recipes.find((x:any)=>x.id===r.id)||r)];for(const p of state.members)lm.attendance[p.id]='home';save();render()});
   await part(aT('Đủ đồ trong tủ cho cả hai bữa','Enough in the pantry for both'),async()=>{const both:Record<string,number>={};for(const mm of [mealOf(d,'dinner'),mealOf(t,later)])for(const [id,q] of Object.entries(mealIngredients(mm,state)))both[id]=(both[id]||0)+(q as number);for(const [id,q] of Object.entries(both))if(stockOf(id)+0.6<q){state.pantry.push({id:'ap-'+id,ingredient:id,qty:Math.ceil(q-stockOf(id)+1),place:'fridge',expiry:''})}save();render()});

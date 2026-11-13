@@ -131,6 +131,9 @@ const VI_MSG=/^(Hãy |Số |Cần |Tối đa |Giá trị |Nhập lượng )/,EN_
    {/* v1.7.20 (Henry, pop-up “Mẻ nấu cuối tuần”): one name everywhere — the batch card, its pills and the dish line */await page.evaluate(`(()=>{closeModal();const s=planStartOf(state,sydneyDate());familyGenerate(state,s,{sourceMode:'library'});save();view='planner';weekStart=s;render()})()`);await page.waitForTimeout(300);
     const txt=await page.evaluate(`(()=>{const b=document.querySelector('#main .family-batch');return {batch:b?b.innerText:'',all:document.querySelector('#main').innerText}})()`) as any;
     assert.ok(!/Weekends feast/.test(txt.all),`${label}: no “Weekends feast” left on the menu`);if(txt.batch)assert.match(txt.batch,vi?/Mẻ nấu cuối tuần/:/Weekend batch cook/,`${label}: the batch card says ${vi?'Mẻ nấu cuối tuần':'Weekend batch cook'}`)}
+   {/* v1.7.20 (rule 24, found by the sweep on a Saturday): closing a day at the foot of the week menu does not pull the page */await page.evaluate(`(()=>{const days=[...document.querySelectorAll('#main details[data-plan-day]')];const last=days[days.length-1];if(last){last.open=true;fmOpenDays&&fmOpenDays.add(last.dataset.planDay)}scrollTo(0,document.documentElement.scrollHeight)})()`);await page.waitForTimeout(200);
+    const lastSum=page.locator('#main details[data-plan-day]').last().locator('summary');if(await lastSum.count()){const t0=await lastSum.evaluate((e:any)=>e.getBoundingClientRect().top);await lastSum.click();await page.waitForTimeout(300);const t1=await lastSum.evaluate((e:any)=>e.getBoundingClientRect().top);
+     assert.ok(Math.abs(t1-t0)<=2,`${label}: the closed day stays where it was tapped (${Math.round(t0)} → ${Math.round(t1)})`)}}
    await E(`closeModal()`);
 
    // ── 8. Dish pictures show the whole plate ────────────────────────────────────────────────────────────────────────────
