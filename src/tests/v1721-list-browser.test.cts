@@ -16,6 +16,10 @@
 //  8. “Mua thêm” and “Nhờ mua thêm” side by side (both drawn, 44 px, same line), “Nhờ mua thêm” no longer in Công cụ.
 //  9. Usual shops: 4 first (plus the chosen one), “Xem thêm (n)”, a search field — the item sheet, the extra's sheet and
 //     the add form.
+// 10. (Henry, 14 Nov 2026, 08:38: “Finished shopping” ran past its button in shopping mode with a larger text size; rule 36
+//     sweep) every button on the main screens, shopping mode and the common sheets, at 320 and 375 px with the app's largest
+//     text size (“Rất lớn”) and again with a larger phone text size on top, in VI and EN: no label cut, sticking out of its
+//     button or wider than its card, no sideways scroll.
 // Every run: week starting on Saturday; EN runs in VND with the phone in Los Angeles time; empty data first, then a full
 // week. 320×740, 375×812, 820×1100, 1280×800; VI and EN, light and dark. Chromium viewport simulation, not physical devices.
 import assert from 'node:assert/strict';
@@ -177,6 +181,7 @@ const ZERO=/(\$\s?0[.,]00|\b0\s?₫|₫\s?0\b|\b0,00\b)/;
    {await page.locator('#main .week-tools [data-action="add-extra"]').click();await page.locator('#modal-root #extra-form').waitFor();await chips('add form','');await E(`closeModal()`)}
    // 1 + 5 in shopping mode: the same compact row; the bar counts items
    {await shopping();const st=page.locator('#main [data-flow="shop-start"]');await st.click();await page.locator('#main .shop-mode-bar').waitFor();
+    {const hs:any[]=await E(`[...document.querySelectorAll('#main .shopping-group')].map(g=>({txt:g.querySelector('h2 small').innerText.trim(),rows:g.querySelectorAll('.shop-row').length}))`);for(const h of hs){const m=h.txt.match(vi?/^(\d+) món đồ$/:/^(\d+) items?$/);assert.ok(m&&+m[1]===h.rows,`${label}: shopping mode headings count items (“${h.txt}”, ${h.rows} rows)`)}}
     assert.match(await page.locator('#main .shop-mode-bar').innerText(),vi?/còn \d+ \/ \d+ món đồ/:/\d+ of \d+ left/,`${label}: shopping mode counts items`);
     const row=page.locator('#main .shopping-group[data-group="veg"] .shop-row.shop-purchase-row').first();await row.locator('.item-label').click();await page.waitForTimeout(150);
     const r:any=await row.evaluate((x:any)=>{const st=x.querySelector('.qty-stepper'),a=x.querySelector('button[data-action="purchase-quantity"]').getBoundingClientRect();const s=[...x.querySelectorAll('.qty-step')].map((b:any)=>b.getBoundingClientRect());return{open:x.classList.contains('flow-open'),inside:!!st&&s.length===2&&s[0].right<=a.left+1&&s[1].left>=a.right-1,shown:s.every(b=>b.width>=44)}});
@@ -198,6 +203,37 @@ const ZERO=/(\$\s?0[.,]00|\b0\s?₫|₫\s?0\b|\b0,00\b)/;
    assert.ok(rt.merged&&rt.aisle==='meat'&&rt.done===true&&rt.same,`${label}: the sync merge keeps the aisle and the other device's change ${JSON.stringify(rt)}`);
    assert.deepEqual(dialogs,[],`${label}: no browser dialogs`);assert.deepEqual(errors,[],`${label}: no page errors`);
    await context.close();runs0++;console.log(`PASS ${label}`)}
-  console.log(`PASS v1.7.21 shopping list (${runs0} runs, ${shots} screenshots): steps inside the amount, quick view, extras aisle, no $0, item counts, store · suburb, meat drawing, Mua thêm + Nhờ mua thêm, 4 usual shops`);
+
+  // ── 10. button rows at the largest text size (+ a larger phone text size), 320 / 375, VI / EN ────────────────────────
+  const BUTTONS=()=>{const out:string[]=[];const modal=document.querySelector('#modal-root .modal');const scope:any=modal||document.querySelector('#main');const vis=(e:any)=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'&&!e.closest('[hidden]')};
+   for(const e of scope.querySelectorAll('button,a.btn,a.chip,summary,.chip,[role="tab"],.store-pill') as any){if(!vis(e)||e.closest('.sr-only,.ladybug,#lb-root')||(e.closest('details:not([open])')&&!e.matches('details:not([open])>summary')))continue;
+    const t=(e.innerText||e.getAttribute('aria-label')||'').replace(/\s+/g,' ').trim().slice(0,40)||e.tagName+'.'+e.className,r=e.getBoundingClientRect(),cs=getComputedStyle(e);
+    if(e.scrollWidth>e.clientWidth+2&&(cs.overflowX!=='visible'||e.childElementCount===0))out.push('cut: '+t);
+    for(const c of e.querySelectorAll('span,b,small,svg')){const q=c.getBoundingClientRect();if(q.width&&(q.left<r.left-2||q.right>r.right+2)){out.push('sticks out: '+t);break}}
+    {const tw=document.createTreeWalker(e,NodeFilter.SHOW_TEXT);let n:any;while((n=tw.nextNode())){if(!n.nodeValue.trim())continue;const rg=document.createRange();rg.selectNodeContents(n);if([...rg.getClientRects()].some(q=>q.width&&(q.right>r.right+2||q.left<r.left-2))){out.push('text outside its button: '+t);break}}}
+    let p=e.parentElement;while(p&&p!==document.body){const ps=getComputedStyle(p);if(ps.overflowX==='auto'||ps.overflowX==='scroll')break;if(p.matches('.card,.modal,.shop-mode-bar,#main,.toolbar,.modal-actions,footer')){const pr=p.getBoundingClientRect();if(r.right>pr.right+2||r.left<pr.left-2)out.push('wider than its box: '+t);break}p=p.parentElement}}
+   if(document.documentElement.scrollWidth>innerWidth+1)out.push('page scrolls sideways');if(modal&&modal.scrollWidth>modal.clientWidth+1)out.push('sheet scrolls sideways');return [...new Set(out)]};
+  const SWEEP:[string,string][]=[['today',`view='today';render()`],['planner',`view='planner';render()`],['shopping',`view='shopping';render()`],['recipes',`view='recipes';render()`],['pantry',`view='pantry';render()`],['insights',`view='insights';render()`],['expenses',`view='expenses';render()`],['products',`view='products';render()`],
+   ['shopping-mode',`view='shopping';render();document.querySelector('#main [data-flow="shop-start"]').click()`],['add-item',`view='shopping';render();extraFormModal()`],['edit-item',`view='shopping';render();extraFormModal(currentWeek().extras[0])`],['request-item',`view='shopping';render();requestItemForm()`],
+   ['item-store',`view='shopping';render();document.querySelector('#main [data-planning="item-store"]').click()`],['extra-store',`view='shopping';render();document.querySelector('#main [data-planning="extra-store"]').click()`],['amount-sheet',`view='shopping';render();document.querySelector('#main [data-action="purchase-quantity"]').click()`],
+   ['skip-sheet',`view='shopping';render();document.querySelector('#main [data-action="skip-row"]').click()`],['pantry-sheet',`view='shopping';render();document.querySelector('#main [data-action="check-pantry"]').click()`],['stores',`view='shopping';render();storesModal()`],
+   ['recipe-sheet',`view='recipes';render();showRecipe('r1')`],['meal-editor',`view='planner';render();editMeal(Object.keys(currentWeek().days)[0],'dinner')`],['settings',`otherSettingsModal('')`],['appearance',`otherSettingsModal('appearance')`],
+   ['put-away',`view='shopping';render();const[s,e]=shopDates();for(const r of shopping(state,currentWeek(),s,e).filter(shoppingHasAmount).slice(0,3))setShoppingBought(currentWeek(),s,e,r,true);save();render();document.querySelector('#main [data-action="store-purchases"]').click()`]];
+  for(const lang of ['en','vi'])for(const width of [320,375])for(const mode of ['xlarge','phone']){const label=`sweep ${lang} ${width} ${mode==='xlarge'?'Rất lớn':'Rất lớn + larger phone text'}`;
+   const context=await browser.newContext({viewport:{width,height:800},serviceWorkers:'block',reducedMotion:'reduce',timezoneId:'Australia/Sydney'});
+   await context.addInitScript(({lang}:any)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('guest/bep-language',lang);localStorage.setItem('bep-local-locked','yes');localStorage.setItem('bep-guide-done','1');localStorage.setItem('bep-text-size','xlarge')},{lang});
+   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',(d:any)=>d.dismiss().catch(()=>{}));
+   await page.route(origin+'/**',async(r:any)=>{const u=new URL(r.request().url());if(u.pathname.startsWith('/.netlify/'))return r.fulfill({status:401,json:{error:'no'}});if(u.pathname==='/startup-scripts.json')return r.fulfill({json:JSON.parse(readFileSync('dist/startup-scripts.json','utf8'))});const f=resolve('dist',u.pathname==='/'?'index.html':u.pathname.slice(1));try{await r.fulfill({contentType:mime[extname(f)]||'application/octet-stream',body:readFileSync(f)})}catch{await r.fulfill({status:404,body:'Not found'})}});
+   await page.goto(origin+'/#today',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>typeof (globalThis as any).KitchenExtras==='object'&&document.querySelector('#main h1'),null,{timeout:30000});await page.evaluate(`ensureCatalog()`);
+   await page.evaluate(`(()=>{state.preferences.onboardingComplete=true;state.preferences.weekStartDay=6;selectedDate=sydneyDate();weekStart=planStartOf(state,selectedDate);state.members=${JSON.stringify(MEMBERS)}.map(([id,name,weight])=>({id,name,weight,emoji:''}));familyGenerate(state,weekStart,{sourceMode:'library'});for(const wk of Object.values(state.weeks))for(const day of Object.values(wk.days))for(const m of Object.values(day))if(m&&m.attendance)for(const p of state.members)m.attendance[p.id]??='home';state.pantry=[{id:'qa-rice',ingredient:'rice',qty:500,place:'dry',expiry:''}];ensureDefaultStores(state);state.stores.push({id:'qa-th',name:'Thái Hưng Grocery',address:'Marrickville'});currentWeek().extras=[{id:'x-banh',name:'Bánh chưng',qty:'2 cái',cost:0,costUnknown:true,currency:'AUD',done:false,storeId:'qa-th'}];save();localStorage.setItem('bep-text-size','xlarge');applyThemePreferences();closeModal()})()`);
+   assert.equal(await page.evaluate(()=>document.documentElement.dataset.textSize),'xlarge',`${label}: the app's largest text size is on`);
+   // a phone set to a larger text size on top of the app's largest (iPhone Larger Text): every size the app draws grows again
+   if(mode==='phone')await page.evaluate(`(()=>{const s=document.documentElement.style;s.setProperty('--fs-mul','1.6');s.setProperty('--fs-floor','19px');s.setProperty('--fs-floor-small','16px');s.fontSize='21px'})()`);
+   const found:string[]=[];
+   for(const [n,js] of SWEEP){await page.evaluate(`(()=>{closeModal();scrollTo(0,0);${js}})()`);await page.waitForTimeout(n==='request-item'?600:300);for(const x of await page.evaluate(BUTTONS))found.push(`${n}: ${x}`);
+    if(n==='shopping-mode'){await page.screenshot({path:`${out}/sweep-shopping-mode-${lang}-${mode}-${width}.png`});shots++;await page.evaluate(`document.querySelector('#main [data-flow="shop-exit"]')?.click()`)}}
+   assert.deepEqual(found,[],`${label}: buttons keep their words inside, nothing wider than its card`);assert.deepEqual(errors,[],`${label}: no page errors`);
+   await context.close();console.log(`PASS ${label}`)}
+  console.log(`PASS v1.7.21 shopping list (${runs0} runs, ${shots} screenshots): steps inside the amount, quick view, extras aisle, no $0, item counts, store · suburb, meat drawing, Mua thêm + Nhờ mua thêm, 4 usual shops, button rows at the largest text sizes`);
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});
