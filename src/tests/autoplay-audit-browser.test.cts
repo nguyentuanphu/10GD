@@ -15,9 +15,13 @@ import {chromium} from 'playwright';
 const origin='https://kitchen.test',out='docs/reviews/v1.7.19/autoplay-audit';mkdirSync(out,{recursive:true});
 const mime:any={'.js':'application/javascript','.css':'text/css','.html':'text/html','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.webmanifest':'application/manifest+json'};
 const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},desktop:{width:1280,height:800}};
-const AUDIT=['au-week-sat','au-week-sun','au-english','au-currency','au-yield','au-defaults','au-counts','au-counts-empty','au-extras','au-dish','au-spoon','au-useby','au-mealtimes'];
+const AUDIT=['au-week-sat','au-week-sun','au-english','au-currency','au-yield','au-defaults','au-counts','au-counts-empty','au-extras','au-dish','au-spoon','au-useby','au-mealtimes','au-phone-tz'];
 // one bug family at a time: [what is broken, scenarios to run, the patch, the failed step it must name]
 const BREAKERS:[string,string[],string,RegExp][]=[
+ // v1.7.19 (13 Nov 2026): the phone-time-zone pass. The suite's phone is on Sydney time; the scenario makes it act as Los Angeles
+ // (or Kiritimati) time itself, so an app that reads the phone's zone or clock shows another date and is caught.
+ ['Rule 34: the app takes the phone’s time zone instead of the family’s',['au-phone-tz'],`Object.defineProperty(globalThis,'BEP_TIMEZONE',{configurable:true,get(){return new Intl.DateTimeFormat().resolvedOptions().timeZone},set(){}})`,/Tuần này|This week/],
+ ['Rule 34: times shown in the phone’s zone (toLocaleTimeString without a zone)',['au-phone-tz'],`appTimeLabel=function(at,o={}){const d=at instanceof Date?at:new Date(at),out=[];if(o.date!==false)out.push(d.toLocaleDateString('en-GB',{day:'numeric',month:'numeric'}));if(o.time!==false)out.push(d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hourCycle:'h23'}));return out.join(' ')}`,/Giờ và ngày hiển thị|Times and dates shown/],
  ['B1: guests saved into a copy week keyed by the menu start day',['au-week-sat'],`dayAt=(s,d)=>ensureWeek(s,planStartOf(s,d)).days[d]`,/Có khách|Guests/],
  ['A3/C3: an unknown extra silently gets a unit',['au-defaults'],`unitMatchIngredient=()=>Object.keys(INGREDIENTS)[0]`,/không lưu “g”|no “g”/],
  ['A4/C13: an empty price saved as a known $0',['au-defaults'],`{const o=extraRecordFields;extraRecordFields=function(){const r=o.apply(this,arguments);if(r.costUnknown){delete r.costUnknown;r.cost=0}return r}}`,/không lưu “g”|no “g”/],
@@ -36,7 +40,7 @@ const BREAKERS:[string,string[],string,RegExp][]=[
 (async()=>{
  const browser=await chromium.launch(process.env.BEP_CHROMIUM?{executablePath:process.env.BEP_CHROMIUM}:{});
  try{
-  const open=async(size:string,lang:string)=>{const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],serviceWorkers:'block',reducedMotion:'reduce',timezoneId:'Australia/Sydney'});
+  const open=async(size:string,lang:string,tz='Australia/Sydney')=>{const context=await browser.newContext({locale:'vi-VN',viewport:sizes[size],serviceWorkers:'block',reducedMotion:'reduce',timezoneId:tz});
    await context.addInitScript((lang:string)=>{if(sessionStorage.getItem('qa-init'))return;sessionStorage.setItem('qa-init','1');localStorage.setItem('bep-local-locked','yes');localStorage.setItem('guest/bep-language',lang)},lang);
    const page=await context.newPage(),errors:string[]=[],calls:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',(r:any)=>{if(r.url().includes('/.netlify/'))calls.push(r.method()+' '+r.url())});
    await page.route(origin+'/**',async(r:any)=>{const u=new URL(r.request().url());if(u.pathname.startsWith('/.netlify/'))return r.fulfill({status:401,json:{error:'no'}});if(u.pathname==='/startup-scripts.json')return r.fulfill({json:JSON.parse(readFileSync('dist/startup-scripts.json','utf8'))});const f=resolve('dist',u.pathname==='/'?'index.html':u.pathname.slice(1));try{await r.fulfill({contentType:mime[extname(f)]||'application/octet-stream',body:readFileSync(f)})}catch{await r.fulfill({status:404,body:''})}});
@@ -82,16 +86,23 @@ const BREAKERS:[string,string[],string,RegExp][]=[
   // 2. the audit group at each size, in Vietnamese and in English
   for(const [size,lang] of [['mobile','en'],['tablet','vi'],['tablet','en'],['desktop','vi'],['desktop','en']] as const){const label=`${size} ${lang}`,{width,height}=sizes[size];
    const {context,page,E,errors,calls}=await open(size,lang);const real0=await E('JSON.stringify(state)'),ls0=await E(snap);calls.length=0;
-   await E('bepAutoplay.open()');await page.locator('#ap-panel .ap-group').nth(1).waitFor();assert.match(await page.locator('#ap-panel .ap-group').nth(1).innerText(),lang==='en'?/Audit 12 Nov \(13\)/:/Rà soát 12\/11 \(13\)/,`${label}: the audit heading`);
+   await E('bepAutoplay.open()');await page.locator('#ap-panel .ap-group').nth(1).waitFor();assert.match(await page.locator('#ap-panel .ap-group').nth(1).innerText(),lang==='en'?new RegExp(`Audit 12 Nov \\(${AUDIT.length}\\)`):new RegExp(`Rà soát 12/11 \\(${AUDIT.length}\\)`),`${label}: the audit heading`);
    const ow=await E('document.documentElement.scrollWidth-innerWidth');assert.ok(ow<=1,`${label}: the list does not scroll sideways (${ow})`);
    await showGroup(page);await page.screenshot({path:`${out}/list-${lang}-${width}x${height}.png`});
    await E('document.getElementById("ap-panel")?.remove()');await E(`bepAutoplay.run(${JSON.stringify(AUDIT)})`);await done(page);
    const res:any=await E('bepAutoplay.results()');const bad=Object.entries(res).filter(([,v]:any)=>!v.ok||v.skipped);assert.deepEqual(bad,[],`${label}: every audit scenario passes ${JSON.stringify(bad)}`);
    assert.equal(await E('JSON.stringify(state)'),real0,`${label}: the family's data is untouched`);assert.equal(await E(snap),ls0,`${label}: the device is as before`);assert.deepEqual(calls.filter(c=>!/feedback\?op=(access|status)/.test(c)),[],`${label}: nothing sent`);
    assert.equal(await E('appLanguage'),lang,`${label}: the language is back`);
-   await page.locator('#ap-panel .ap-sum').waitFor();assert.match(await page.locator('#ap-panel .ap-sum').innerText(),lang==='en'?/13 of 13 passed/:/Đạt 13\/13 kịch bản/,`${label}: the summary`);
+   await page.locator('#ap-panel .ap-sum').waitFor();assert.match(await page.locator('#ap-panel .ap-sum').innerText(),lang==='en'?new RegExp(`${AUDIT.length} of ${AUDIT.length} passed`):new RegExp(`Đạt ${AUDIT.length}/${AUDIT.length} kịch bản`),`${label}: the summary`);
    await showGroup(page);await page.screenshot({path:`${out}/results-${lang}-${width}x${height}.png`});
    assert.deepEqual(errors,[],`${label}: page errors`);await context.close();console.log('✓',label)}
-  console.log(`PASS autoplay audit: “Rà soát 12/11” (${AUDIT.length} scenarios — week starting Saturday and Sunday, English, VND, own yield + guests, no silent defaults, counts equal content with data and empty, extras and dish-sheet add/edit/undo, spoon notes, receipt use-by, meal times) passes on the sample family at 375 / 820 / 1280 in VI and EN; “Chạy tất cả” passes with the rule-33 round trip after every scenario; ${BREAKERS.length} deliberate bugs are each caught by the matching step`);
+  // 4. v1.7.19: the phone-time-zone scenario on a phone really set to Los Angeles time (the clock functions of Date too), VI and EN
+  for(const lang of ['vi','en']){const label=`mobile ${lang} (phone on Los Angeles time)`;const {context,page,E,errors,calls}=await open('mobile',lang,'America/Los_Angeles');/* start-up reads (product photos) finish before counting what the scenario sends */await page.waitForLoadState('networkidle').catch(()=>{});await page.waitForTimeout(500);const real0=await E('JSON.stringify(state)');calls.length=0;
+   assert.equal(await E('Intl.DateTimeFormat().resolvedOptions().timeZone'),'America/Los_Angeles');
+   await E(`bepAutoplay.run(['au-phone-tz'])`);await done(page,240000);const r:any=await E('bepAutoplay.results()');
+   assert.ok(r['au-phone-tz']?.ok&&!r['au-phone-tz'].skipped&&r['au-phone-tz'].parts>=6,`${label}: passes ${JSON.stringify(r['au-phone-tz'])}`);
+   assert.equal(await E('JSON.stringify(state)'),real0,`${label}: the family's data is untouched`);assert.equal(await E('Intl.DateTimeFormat().resolvedOptions().timeZone'),'America/Los_Angeles',`${label}: the phone's zone is back`);
+   assert.deepEqual(calls.filter(c=>!/feedback\?op=(access|status)/.test(c)),[],`${label}: nothing sent`);assert.deepEqual(errors,[],`${label}: page errors`);await context.close();console.log('✓',label)}
+  console.log(`PASS autoplay audit: “Rà soát 12/11” (${AUDIT.length} scenarios — week starting Saturday and Sunday, English, VND, own yield + guests, no silent defaults, counts equal content with data and empty, extras and dish-sheet add/edit/undo, spoon notes, receipt use-by, meal times, a phone not on Sydney time) passes on the sample family at 375 / 820 / 1280 in VI and EN; “Chạy tất cả” passes with the rule-33 round trip after every scenario; ${BREAKERS.length} deliberate bugs are each caught by the matching step`);
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -271,4 +271,46 @@
    await go('today');const card=(t:string)=>find(`#main .family-meal-card[data-meal-date="${d}"][data-meal-type="${t}"] .meal-label`)?.textContent||'';if(mealOf(d,'lunch')?.recipes?.length)expect(/12:30/.test(card('lunch')),aT('Thẻ bữa trưa không ghi 12:30.','The lunch card does not show 12:30.'));if(mealOf(d,'breakfast')?.recipes?.length)expect(!/\d\d:\d\d/.test(card('breakfast')),aT('Thẻ bữa sáng ghi giờ dù chưa đặt.','The breakfast card shows a time although none is set.'))});
   await part(aT('Nhắc nhở đọc cùng giờ ăn','Reminders read the same meal times'),async()=>{const host=document.createElement('div');host.innerHTML=mealTimesSummaryHtml();const rows=[...host.querySelectorAll('.meal-times-list li')].map(li=>(li as HTMLElement).textContent||'');
    expect(rows.some(x=>/(sáng|Breakfast).*(Chưa đặt|Not set)/i.test(x))&&rows.some(x=>/12:30/.test(x))&&rows.some(x=>/18:45/.test(x)),aT(`Nhắc nhở ghi: ${rows.join(' | ')}`,`Reminders show: ${rows.join(' | ')}`))})});
+ // ── 14. a phone that is not on the family's time (rule 34; owner, 13 Nov 2026: “do everything in this round”) ─────────────
+ // The dates and times the app shows are compared with the family's own zone (Sydney unless the family chose another), worked
+ // out here on their own, never with the app's helpers. Whatever zone the phone is really in, while this scenario runs the
+ // browser's default zone — what Intl and toLocale…String use when no zone is given — is moved to Los Angeles (or Kiritimati), a
+ // zone whose date differs from the family's at that moment, so a screen that formats with the phone's zone shows another day.
+ // (Date's own clock functions are left alone: changing them without changing date arithmetic would test the fake, not the app.
+ // The browser suite also runs this scenario on a phone really set to Los Angeles time.) Everything is put back afterwards.
+ const RealDTF=Intl.DateTimeFormat,RealDate:any={};for(const n of ['toLocaleDateString','toLocaleTimeString','toLocaleString'])RealDate[n]=(Date.prototype as any)[n];
+ const famZone=()=>(state as any).preferences?.timezone||'Australia/Sydney';
+ const zoneParts=(zone:string,at:Date=new Date())=>{const p:any=Object.fromEntries(new RealDTF('en-US',{timeZone:zone,year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',hourCycle:'h23'}).formatToParts(at).map((x:any)=>[x.type,x.value]));return{y:+p.year,m:+p.month,d:+p.day,h:+p.hour%24,min:+p.minute}};
+ const zoneDate=(zone:string,at:Date=new Date())=>{const p=zoneParts(zone,at);return `${p.y}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`};
+ const zoneHM=(zone:string,at:Date=new Date())=>{const p=zoneParts(zone,at);return `${String(p.h).padStart(2,'0')}:${String(p.min).padStart(2,'0')}`};
+ const realZone=()=>{try{return new RealDTF().resolvedOptions().timeZone}catch{return''}};
+ function phoneIn(zone:string){const D:any=Date.prototype,I:any=Intl;
+  const Fake:any=function(locales?:any,opts?:any){return new RealDTF(locales,{...(opts||{}),timeZone:opts?.timeZone||zone})};Fake.prototype=RealDTF.prototype;Fake.supportedLocalesOf=RealDTF.supportedLocalesOf;I.DateTimeFormat=Fake;
+  for(const n of ['toLocaleDateString','toLocaleTimeString','toLocaleString'])D[n]=function(l?:any,o?:any){return RealDate[n].call(this,l,{...(o||{}),timeZone:o?.timeZone||zone})};
+  return()=>{I.DateTimeFormat=RealDTF;for(const [n,f] of Object.entries(RealDate))D[n]=f}}
+ R('au-phone-tz','Điện thoại không để giờ Sydney','A phone not on Sydney time','Cho máy dùng giờ Los Angeles (hoặc Kiritimati) vào lúc ngày ở đó khác ngày của nhà; Thực đơn, Hôm nay, hoá đơn mới, đồ cất vào tủ và giờ hiển thị vẫn theo giờ của nhà (giờ Sydney nếu nhà chưa chọn giờ khác).','Put the phone on Los Angeles (or Kiritimati) time while its date differs from the family’s; the menu, Today, a new receipt, food put in the pantry and the times shown still follow the family’s zone (Sydney unless the family chose another).',async()=>{
+  const fam=famZone(),now=new Date(),phone=['America/Los_Angeles','Pacific/Kiritimati','Etc/GMT+12'].find(z=>zoneDate(z,now)!==zoneDate(fam,now))||'America/Los_Angeles';
+  const famDay=()=>zoneDate(fam);let restore:any=null;
+  try{
+   await part(aT(`Máy dùng giờ ${phone} (máy đang để ${realZone()}); ngày của nhà (${fam}) khác ngày trên máy`,`The phone uses ${phone} time (it is set to ${realZone()}); the family’s date (${fam}) differs from the phone’s`),async()=>{restore=phoneIn(phone);
+    const dev=new Date().toLocaleDateString('en-CA');
+    expect(new Intl.DateTimeFormat().resolvedOptions().timeZone===phone&&dev===zoneDate(phone),aT(`Máy chưa dùng giờ ${phone} (${dev}).`,`The phone is not using ${phone} time (${dev}).`));
+    expect(dev!==famDay(),aT('Ngày trên máy trùng ngày của nhà; không kiểm tra được.','The phone’s date is the family’s; nothing to check.'))});
+   await part(aT('Thực đơn → “Tuần này”: “Hôm nay” là ngày của nhà','Menu → “This week”: “Today” is the family’s date'),async()=>{await go('planner');weekStart=planStartOf(state,addDays(famDay(),14));render();await sleep(100);const wn=find('#main [data-action="week-now"]');if(wn)await tap(wn,{still:true});else{selectedDate=sydneyDate();weekStart=planStartOf(state,selectedDate);render()}await sleep(150);
+    const marked=[...document.querySelectorAll('#main .plan-day.is-today')].map(x=>(x as HTMLElement).dataset.planDay||(x as HTMLElement).querySelector('[data-date]')?.getAttribute('data-date')||'?');
+    expect(marked.length===1&&marked[0]===famDay(),aT(`Thực đơn đánh dấu hôm nay là ${marked.join(', ')||'không ngày nào'}, cần ${famDay()}.`,`The menu marks ${marked.join(', ')||'no day'} as today, not ${famDay()}.`));
+    expect(weekStart===planStartOf(state,famDay()),aT(`“Tuần này” mở tuần ${weekStart}, cần tuần có ${famDay()}.`,`“This week” opened the week of ${weekStart}, not the one holding ${famDay()}.`))});
+   await part(aT('Hôm nay: ngày được đánh dấu là ngày của nhà','Today: the marked day is the family’s date'),async()=>{await go('today');await sleep(120);
+    const t=find('#main .day-strip .day.today') as HTMLElement|undefined;
+    expect(t&&t.dataset.date===famDay(),aT(`Dải ngày đánh dấu hôm nay là ${t?.dataset.date||'không ngày nào'}, cần ${famDay()}.`,`The day strip marks ${t?.dataset.date||'no day'} as today, not ${famDay()}.`))});
+   await part(aT('Hoá đơn mới ghi ngày của nhà','A new receipt is dated with the family’s date'),async()=>{await go('expenses');const nb=find('[data-feature="receipt-new"]');if(nb)await tap(nb);else newReceipt();const box=await waitFor('#modal-root #receipt-date') as HTMLInputElement;
+    const v=box.value;try{closeModal()}catch{}expect(v===famDay(),aT(`Hoá đơn mới ghi ngày ${v}, cần ${famDay()}.`,`The new receipt says ${v}, not ${famDay()}.`))});
+   await part(aT('Cất đồ vào tủ: ngày cất là ngày của nhà','Food put in the pantry: stored on the family’s date'),async()=>{const egg=idOf('Trứng gà','Trứng');await go('pantry');await tap('#main [data-action="add-stock"]');await waitFor('#modal-root #stock-form');await pick('#modal-root #stock-ing',egg);await type('#modal-root #stock-qty','6');if(!(document.getElementById('stock-place') as HTMLSelectElement).value)await pick('#modal-root #stock-place','fridge');
+    const n0=state.pantry.length;await submit('stock-form');await waitGone('#modal-root #stock-form',4000);const lot:any=state.pantry.length>n0?state.pantry[state.pantry.length-1]:null;
+    expect(lot&&lot.storedOn===famDay(),aT(`Lô trứng ghi ngày cất ${lot?.storedOn||'trống'}, cần ${famDay()}.`,`The egg lot says stored on ${lot?.storedOn||'nothing'}, not ${famDay()}.`))});
+   await part(aT('Giờ và ngày hiển thị, giờ nhắc nấu theo giờ của nhà','Times and dates shown, and the reminder clock, follow the family’s zone'),async()=>{const at=new Date(),want=zoneHM(fam,at),p=zoneParts(fam,at),shown=appTimeLabel(at,{date:false}),dl=appTimeLabel(at,{time:false});
+    expect(shown===want,aT(`Giờ hiển thị ${shown}, cần ${want} (${fam}).`,`Time shown ${shown}, not ${want} (${fam}).`));
+    expect(dl===`${p.d}/${p.m}`,aT(`Ngày hiển thị ${dl}, cần ${p.d}/${p.m}.`,`Date shown ${dl}, not ${p.d}/${p.m}.`));
+    expect(Math.abs(familyClockMinute(at)-(p.h*60+p.min))<=1,aT('Giờ nhắc nấu đang theo giờ trên máy.','The cooking-reminder clock follows the phone.'))});
+  }finally{if(restore)restore();try{render()}catch{}}});
 })();
