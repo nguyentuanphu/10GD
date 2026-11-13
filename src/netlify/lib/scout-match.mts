@@ -45,6 +45,11 @@ export const SYNONYMS:Record<string,{names?:string[],exclude?:string[]}>={
  'bong-cai':{exclude:['chinese broccoli','gai lan']},
  'tom':{names:['banana prawns']},
  'tom-dong-lanh':{names:['banana prawns']},
+ // Henry, 14 Nov 2026 (pop-up review of doubtful matches): “Brown Onion Shallots” is a brown onion; “Mozzarella Cheese Slices” is mozzarella;
+ // the deli's “BBQ Roasted Chicken Breast” (Woolworths) and a whole roast chicken are the cooked roast chicken, not raw chicken
+ 'hanh-tay':{names:['brown onion shallots']},'hanh-la':{exclude:['brown onion']},'hanh-tim':{exclude:['brown onion']},
+ 'mozzarella':{names:['mozzarella cheese slices','mozzarella slices']},'pho-mai':{exclude:['mozzarella','parmesan','feta']},
+ 'ga-quay':{names:['bbq roasted chicken breast','roasted chicken breast','whole roast chicken','roast chicken']},'ga-nguyen-con':{exclude:['roast chicken','roasted','bbq']},
 };
 /** Words that describe a product but never are its kind (adjectives, origins, cuts and pack words). */
 const ADJ=new Set(['fresh','frozen','whole','raw','red','green','white','black','brown','sweet','mixed','mix','plain','full','light','baby','free','range','cage','dried','ground','roasted','sliced','thin','extra','virgin','short','large','small','mini','organic','australian','cooking','instant','soft','regular','natural','unsalted','sweetened','canned','tinned','premium','thawed','fat','reduced','lean','boneless','skinless','approved','rspca','value','big','medium','hot','mild','asian','thai','chinese','vietnamese','lebanese','greek','tasty','grated','shredded','chopped','diced','washed','loose','rolled','raw','added','hormone']);
