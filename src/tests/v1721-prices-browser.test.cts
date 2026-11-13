@@ -33,7 +33,8 @@ const EXTRAS=[['Chanh vàng','3 quả'],['Gà chạy bộ (nguyên con)','1 con'
   const page=await context.newPage(),errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route(origin+'/**',async(route:any)=>{const url=new URL(route.request().url()),path=url.pathname,op=url.searchParams.get('op');
    if(path.startsWith('/.netlify/')){
-    if(path.endsWith('/grocery')&&op==='photos'){await route.fulfill({json:{updatedAt:today,items:{}}});return}
+    // the shared list names Coles' chicken photo; the row shows ALDI's price, so it must show ALDI's photo
+    if(path.endsWith('/grocery')&&op==='photos'){await route.fulfill({json:{updatedAt:today,items:{'ga-nguyen-con':{photo:'https://productimages.coles.com.au/productimages/1/qa-other-chicken.png',retailer:'coles',label:'Coles RSPCA Approved Whole Chicken 1.6kg'}}}});return}
     if(path.endsWith('/grocery')){await route.fulfill({json:op==='prices'?{householdId:'qa-household',state:'NSW',cycleId:today,today,observations:[],official:OFFICIAL}:{}});return}
     if(path.includes('/accounts')&&op==='families'){await route.fulfill({json:{families:[{id:'qa-household',name:'QA',role:'owner'}],account:{username:'qa',name:'Mẹ'}}});return}
     const status={configured:true,connected:true,mode:'account',account:{username:'qa',name:'Mẹ'},household:{id:'qa-household',name:'QA kitchen',role:'owner',memberId:null}};
@@ -58,6 +59,10 @@ const EXTRAS=[['Chanh vàng','3 quả'],['Gà chạy bộ (nguyên con)','1 con'
    // (2) whole chicken sold per kg: the row says “/kg”
    const chicken=await rowOf(page,'Gà chạy bộ').locator('.online-line').innerText();assert.match(chicken,/ALDI\s*\$3\.99\/kg/,size+': the per-kg price says /kg');
    assert.match(await rowOf(page,'Gà chạy bộ').locator('.online-line').getAttribute('aria-label'),/\$3\.99\/kg/);
+   // the row's picture is the photo of the product whose price it shows (ALDI), not another store's
+   await page.waitForFunction(()=>[...document.querySelectorAll('.shop-row')].some(r=>/Gà chạy bộ/.test(r.textContent||'')&&r.querySelector('img.pp-img')),null,{timeout:8000});
+   assert.match(await rowOf(page,'Gà chạy bộ').locator('img.pp-img').first().getAttribute('src'),/qa-chicken\.png/,size+': row photo = the shown product');
+   assert.equal(await rowOf(page,'Gà chạy bộ').locator('.pp-wrap').first().getAttribute('data-photo-store'),'aldi');
    // (1) price history: one picture per store
    await rowOf(page,/Chanh vàng|Lemon/).locator('.online-line').click();await page.waitForSelector('.modal .price-history-store');
    const before=await page.evaluate(()=>[...document.querySelectorAll('.modal .price-history-store h3')].map(h=>Math.round(h.getBoundingClientRect().top)));
