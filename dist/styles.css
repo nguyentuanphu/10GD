@@ -2797,7 +2797,7 @@ html[data-theme="dark"] #main .shopping-group .sg-quick[aria-pressed="true"]{bac
 .store-chip-search{display:block;margin-top:8px}
 .store-chip-search input{width:100%;min-height:44px}
 .extra-aisle-field .hint{display:block;margin-top:4px}
-#main .shop-row .item-label{white-space:normal!important;overflow-wrap:anywhere;min-width:0}
+#main .shop-row .item-label{white-space:normal!important;overflow-wrap:break-word;min-width:0}
 @media (max-width:600px){.week-tools .toolbar>.shop-main-actions{flex:1 1 100%;grid-column:1/-1}}
 /* v1.7.21 (Henry, 14 Nov 2026: “Finished shopping” ran past its button with a larger text size): the words wrap inside the pill */
 .shop-mode-bar .shop-mode-actions .btn{white-space:normal!important;text-align:center;line-height:1.2;min-width:0;overflow-wrap:normal}
@@ -2811,9 +2811,10 @@ html[data-theme="dark"] #main .shopping-group .sg-quick[aria-pressed="true"]{bac
 @media (max-width:420px){.family-meal-card .meal-head-actions .btn{flex-direction:column;gap:2px;padding:6px 8px;min-width:0;max-width:100%}
  .recipe-detail-hero{flex-wrap:wrap}.recipe-detail-hero>*{min-width:0;max-width:100%}
  .week-start-pick{flex-wrap:wrap;max-width:100%;min-width:0}.week-start-pick select{min-width:0;max-width:100%}
- .top-actions{min-width:0;flex-shrink:1}.mobile-brand{min-width:0;flex-shrink:1;overflow:hidden;text-overflow:ellipsis}.topbar{gap:4px;padding-left:10px;padding-right:10px}}
+ .top-actions{min-width:0;flex-shrink:1}.topbar{gap:4px;padding-left:8px;padding-right:8px}}
 /* v1.7.21: dish chips (kind · meal · Hay nấu) in the meal picker — words only, 44 px, one scrolling row per group */
 .dish-chips{margin:8px 0 2px;display:grid;gap:6px}.dish-chip-group{display:flex;align-items:center;gap:8px;min-width:0}.dish-chip-title{flex:none;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor-small,0px));font-weight:600;color:var(--muted);min-width:4.2em}
 .dish-chip-row{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;min-width:0;flex:1 1 auto;padding:2px 2px 6px;scrollbar-width:thin;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 .dish-chip{flex:0 0 auto;white-space:nowrap;min-height:44px;min-width:44px}.dish-chip[aria-pressed="true"]{font-weight:600;box-shadow:inset 0 0 0 1px var(--green2)}.dish-chip:focus-visible{outline:3px solid var(--green2);outline-offset:2px}.dish-chip-clear:disabled{opacity:.5;cursor:default}
 html[data-theme="dark"] .dish-chip:focus-visible{outline-color:var(--accent-ink,#9fd3b4)}
+@media (max-width:360px){#main .shop-row.shop-purchase-row .item-label .ingredient-art,#main .shop-row.shop-purchase-row .item-label .pp-wrap,#main .shop-row.shop-purchase-row .item-label .pp-wrap img{width:34px!important;height:34px!important;margin-right:8px!important}#main .shop-row.shop-purchase-row,#main .shop-row.shop-extra-row{column-gap:14px!important}}
