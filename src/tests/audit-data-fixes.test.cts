@@ -167,5 +167,40 @@ test('re-check S1: a kept lot is still used when nothing else is in the pantry',
  const s=fam(),w=ensureWeek(s,'2026-11-09');w.days['2026-11-10'].dinner.recipes=[dish('a',{pork:300})];
  s.pantry.push({id:'kept',ingredient:'pork',qty:400,place:'fridge',expiry:'',forMeal:{date:'2026-11-13',type:'dinner'}});
  const r=consumeMeal(s,w.days['2026-11-10'].dinner);ok(w.days['2026-11-10'].dinner.consumed.some(c=>c.lotId==='kept'),'used last, not refused');ok(valid(s),'valid')})()`));
+// S4 (suspected in the audit; reproduced 13 Nov 2026): a "Đã mua" tick was one number per menu week, so ticking Saturday's pork
+// with "Hôm nay" showed Tuesday's pork as bought although nothing was bought for Tuesday. Ticks now belong to their date range.
+const {MAIN_INGREDIENTS,MAIN_VALID_IMPORT}=require('./fixtures/main-0bcef70-client.cjs');
+const oldValid=(()=>{const o=vm.createContext({INGREDIENTS:structuredClone(MAIN_INGREDIENTS)});vm.runInContext(MAIN_VALID_IMPORT+'\nthis.validImport=validImport;',o);return(s:any)=>o.validImport(JSON.parse(JSON.stringify(s)))})();
+for(const pref of MATRIX)test(`re-check S4: a tick belongs to its date range, across the two stored weeks (${JSON.stringify(pref)})`,()=>{const out=run(`(()=>{
+ const s=fam(${JSON.stringify(pref)}),start=planStartOf(s,'2026-11-12'),end=addDays(start,6),d1=start,d3=addDays(start,3),d5=addDays(start,5),W=()=>planWeek(s,start);
+ for(const d of Object.keys(W().days))for(const t of ['lunch','dinner'])W().days[d][t].recipes=[];
+ W().days[d1].dinner.recipes=[dish('a',{pork:300})];W().days[d3].dinner.recipes=[dish('b',{pork:300})];W().days[d5].dinner.recipes=[dish('c',{pork:300})];
+ const row=(a,b)=>shopping(s,W(),a,b).find(r=>r.id==='pork');syncStamp({},s,{now:1000,by:'x'});const base=clone(s);
+ setShoppingBought(W(),d1,d1,row(d1,d1),true);
+ ok(row(d1,d1).bought,'the day ticked is bought');ok(!row(d3,d3).bought,'another day is not bought: '+JSON.stringify(W().boughtScope));
+ ok(!row(d3,addDays(d3,2)).bought,'a 3-day range without the ticked day is not bought');ok(!row(start,end).bought,'the whole week is not bought (one day of three)');
+ ok(valid(s),'valid with a ranged tick');
+ /* a second device ticks another day; the merge keeps both ticks */
+ const B=clone(base);setShoppingBought(planWeek(B,start),d5,d5,shopping(B,planWeek(B,start),d5,d5).find(r=>r.id==='pork'),true);
+ syncStamp(base,s,{now:2000,by:'A'});syncStamp(base,B,{now:2500,by:'B'});const m=mergeFamilyStates(base,s,B,{now:3000}).state;
+ const mrow=(a,b)=>shopping(m,planWeek(m,start),a,b).find(r=>r.id==='pork');ok(mrow(d1,d1).bought&&mrow(d5,d5).bought&&!mrow(d3,d3).bought,'merged: both ticks, nothing else');ok(valid(m),'merged valid');
+ /* ticking the whole week covers every day; unticking one day removes the whole-week tick only */
+ setShoppingBought(W(),start,end,row(start,end),true);ok(row(d3,d3).bought&&row(start,end).bought,'whole-week tick covers each day');
+ setShoppingBought(W(),d3,d3,row(d3,d3),false);ok(!row(d3,d3).bought&&!row(start,end).bought,'unticked day and week');ok(row(d1,d1).bought,'the first day keeps its own tick');
+ ok(W().bought.pork===row(d1,d1).qty,'week.bought mirrors the largest tick for older app versions: '+W().bought.pork);
+ /* changing the amount for a day unticks that day only */
+ setPurchaseQuantity(W(),d1,d1,'pork',500);ok(!row(d1,d1).bought,'new amount → not bought');ok(W().bought.pork===0,'mirror 0');
+ /* data saved before this change: one whole-week number, read as before */
+ const old=fam(${JSON.stringify(pref)}),ow=planWeek(old,start);for(const d of Object.keys(ow.days))for(const t of ['lunch','dinner'])ow.days[d][t].recipes=[];
+ ow.days[d1].dinner.recipes=[dish('a',{pork:300})];ow.days[d3].dinner.recipes=[dish('b',{pork:300})];ow.bought.pork=5000;const orow=(a,b)=>shopping(old,planWeek(old,start),a,b).find(r=>r.id==='pork');
+ ok(orow(d1,d1).bought&&orow(d3,d3).bought&&orow(start,end).bought,'old whole-week tick still covers the week');ok(valid(old),'old state valid');
+ setShoppingBought(planWeek(old,start),d3,d3,orow(d3,d3),true);ok(orow(d1,d1).bought&&orow(start,end).bought,'a new day tick keeps the old whole-week tick');
+ setShoppingBought(planWeek(old,start),d1,d1,orow(d1,d1),false);ok(!orow(d1,d1).bought&&orow(d3,d3).bought,'unticking a day leaves the other day ticked');ok(valid(old),'valid after');
+ return JSON.stringify({s,m,old})})()`);const {s,m,old}=JSON.parse(out);
+ assert.ok(Object.values(m.weeks).some((w:any)=>w.boughtScope)&&Object.values(old.weeks).some((w:any)=>w.boughtScope),'ranged ticks are stored');
+ /* an older app version receiving the synced weeks: its validator ignores the new field (same check as voice-commands' voiceLearned) */
+ const legacy=JSON.parse(run('JSON.stringify(defaults())'));legacy.seedVersion=3;delete legacy.appEdition;legacy.recipes=JSON.parse(fs.readFileSync('docs/reviews/artwork-audit-20261102/source.json','utf8')).recipes.filter((r:any)=>!r.catalogEdition||r.catalogEdition<4);
+ const wk='2026-11-09';legacy.weeks={[wk]:JSON.parse(run(`(()=>{const d=defaults();return JSON.stringify(ensureWeek(d,'${wk}'))})()`))};assert.equal(oldValid(legacy),true,'baseline');
+ for(const st of [m,old])for(const w of Object.values(st.weeks) as any[])if(w.boughtScope){legacy.weeks[wk].boughtScope=w.boughtScope;legacy.weeks[wk].bought={...legacy.weeks[wk].bought,...w.bought};assert.equal(oldValid(legacy),true,'an older app version still accepts the synced week: '+JSON.stringify(w.boughtScope))}});
 
 (async()=>{for(const[name,fn]of tests){try{await fn();passed++;console.log('PASS',name)}catch(e:any){console.error('FAIL',name);throw e}}console.log(`audit data fixes: ${passed}/${tests.length} passed`)})().catch(e=>{console.error(e);process.exit(1)});

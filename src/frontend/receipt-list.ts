@@ -139,7 +139,7 @@ function apply(s:any,rec:any,week:any,start:string,end:string,ticked:any,choices
     // the weighed amount goes to the pantry now; “Cất đồ” later does not store the same bag a second time (storeShoppingPurchases)
     const lot:any={id:typeof uid==='function'?uid():'lot-'+Math.random().toString(36).slice(2),ingredient:r.ingredient,qty:r.covered,place:placeFor(s,r.ingredient,rec),expiry:'',boughtOn:rec.date,receiptId:rec.id};if(typeof pantryTouch==='function')pantryTouch(lot);s.pantry.push(lot);undo.pantryIds.push(lot.id);(undo.received??=[]).push(r.ingredient);continue}
    if(r.units){if(r.short<=0){const row=rows0.find((x:any)=>x.id===r.ingredient);week.unitBought??={};week.unitBought[scope]??={};undo.unitBought??={};undo.unitBought[r.ingredient]=week.unitBought[scope][r.ingredient]??null;undo.scope=scope;if(row&&typeof setShoppingBought==='function')setShoppingBought(week,start,end,row,true);week.boughtAt[r.ingredient]=now}}
-   else{week.bought??={};undo.bought[r.ingredient]=Object.hasOwn(week.bought,r.ingredient)?week.bought[r.ingredient]:null;week.bought[r.ingredient]=round((+week.bought[r.ingredient]||0)+r.covered);week.boughtAt[r.ingredient]=now}}
+   else{week.bought??={};undo.bought[r.ingredient]=Object.hasOwn(week.bought,r.ingredient)?week.bought[r.ingredient]:null;(undo.boughtMarks??={})[r.ingredient]=boughtSnapshot(week,r.ingredient);/* audit S4: the tick belongs to the receipt's range */markBought(week,start,end,r.ingredient,round(boughtQty(week,start,end,r.ingredient)+r.covered));week.boughtAt[r.ingredient]=now}}
   if(r.status==='stored'){undo.linked??=[];for(const lid of r.lots||[]){const x=s.pantry.find((y:any)=>y.id===lid);if(x&&!x.receiptId){x.receiptId=rec.id;x.boughtOn=rec.date;if(typeof pantryTouch==='function')pantryTouch(x);undo.linked.push(lid)}}continue}
   if(r.extra>0){const c=choices?.[r.ingredient]||{mode:'pantry'};const mode=['pantry','meal','none'].includes(c.mode)?c.mode:'pantry';undo.choices[r.ingredient]=mode==='meal'&&c.meal?{mode,meal:{date:c.meal.date,type:c.meal.type}}:{mode};
    if(mode==='none')continue;
@@ -152,7 +152,7 @@ function apply(s:any,rec:any,week:any,start:string,end:string,ticked:any,choices
 }
 function undo(s:any,rec:any){
  const u=rec.reconciled;if(!u)return false;const week=s.weeks?.[u.weekKey||mondayKey(u.week)];
- if(week){for(const[id,v]of Object.entries(u.bought||{})){if(v==null)delete week.bought[id];else week.bought[id]=v}
+ if(week){for(const[id,v]of Object.entries(u.bought||{})){if(u.boughtMarks?.[id]){restoreBought(week,id,u.boughtMarks[id]);continue}if(v==null)delete week.bought[id];else week.bought[id]=v}
   for(const[id,v]of Object.entries(u.boughtAt||{})){if(!week.boughtAt)continue;if(v==null)delete week.boughtAt[id];else week.boughtAt[id]=v}
   for(const[id,v]of Object.entries(u.unitBought||{})){const rows=week.unitBought?.[u.scope];if(!rows)continue;if(v==null)delete rows[id];else rows[id]=v}
   if(u.newBoughtAt&&week.boughtAt&&!Object.keys(week.boughtAt).length)delete week.boughtAt;
