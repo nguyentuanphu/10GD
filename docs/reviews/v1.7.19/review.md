@@ -548,10 +548,10 @@ Two helpers, each in its own worktree from 5ba19a8, merged by the lead (a871e88,
 **Henry's answers (pop-up, 13 Nov):** decimal comma in Vietnamese; receipts in another currency kept, not converted (C5); spoons round up to ¼ (C21); □ ✓ kept in the shared list (D1); D25 unchanged.
 
 **Left, with reason:**
-- Barcode sheet: an empty amount stores one pack (one scanned pack), as its hint says.
+- ~~Barcode sheet: an empty amount stores one pack~~ fixed in the last round: the amount is required.
 - Studio (owner-only) text keeps "xóa" in a few server messages.
 - Adding ALDI, Harris Farm and others to saved products or So Giá ids needs two releases (validators first), so older devices do not reject synced data.
-- Dark mode: the meal-row "Hoàn tác" button has less contrast than in light mode (readable).
+- ~~Dark mode meal-row "Hoàn tác" contrast~~ fixed in the last round.
 - Mixed versions: an older device that edits a tick for an ingredient that already has ranged ticks is not seen by newer devices until it updates.
 
 ## Local test runs and CI, 13 Nov 2026 (Sydney time)
@@ -566,3 +566,25 @@ Two helpers, each in its own worktree from 5ba19a8, merged by the lead (a871e88,
   - This is intermittent and older than this round: on 3507cfa (CI green this morning) it failed 1 of 8 local runs; on the current code about 1 in 3 under load. Adding logging makes it disappear.
   - Ruled out: the general sheet keep-in-place handler (scrolls only), focus arriving late after a touch tap (the field had the focus before typing), a second enhancement of the same form (guarded).
   - Still open; not hidden or skipped. Reported to Henry.
+
+## Last round: everything still open (Henry, 13 Nov 2026: "do everything in this round")
+
+Two helpers from fc50523 (`fix/round-race`, `fix/round-ui`), merged by the lead after reading both diffs; one conflict in `family-menu-ui.ts` (line order and meal-group labels on the same line) resolved keeping both.
+
+| Item | Change | Test (fails on fc50523) |
+|---|---|---|
+| Intermittent Viết món amount (CI) | Root cause: the sheet keep-in-place handler's late re-checks (250/600 ms after "+ Thêm nguyên liệu") scrolled the sheet while the new row's suggestion list opened, so the tap on the suggestion missed and the amount went into the name. The hold now ends on the next touch, scroll, key or input. 3 of 40 whole-file runs failed before, 0 of 56 after. | `recipe-ingredients` part (g) |
+| Reopened dish order | `recipe.lineOrder` keeps the family's own order (stored only when it differs); old recipes open as before; validImport and sync merge checked. | part (h), `recipe-ingredients`, `sync-merge` |
+| More stores, step 1 | Validators accept every registry store id for products and So Giá observations; nothing new is offered yet (next release). | `audit-data-fixes` |
+| Quiet hours (Henry, pop-up) | Cooking and thaw reminders come during quiet hours by default; a per-device switch "Nhắc nấu cả trong giờ yên lặng" turns that off. The device's choice is kept with its notification settings on the server, like its quiet hours. | `push`, `notifications`, `meal-times`, `round-ui` |
+| Barcode amount | Required; nothing saved without it (rule 32). | `round-ui` |
+| "Nơi cất" at 375 px | Full row; nothing cut. | `round-ui` |
+| Browser form messages | One handler gives every required field a VI/EN message (`form-validity.ts`). | `round-ui` |
+| Cháo / súp groups | Cháo are main dishes (breakfast, lunch, dinner), súp are soups; catalogue copies in family data follow on load; family recipes untouched. | `catalog-labels`, `catalog-filters` |
+| Dark "Hoàn tác" | A light pill that stands out from the dark sheet (text 13:1). | `round-ui` |
+| Meal-group labels | "Mẻ nấu cuối tuần" / "Weekend batch cook" (`FAMILY_PURPOSES_EN`). | `round-ui` |
+| Dish pictures | A drawn book was laid over library pictures (11 px dish); meal-card pictures were larger than their frame and cut to a circle. Both fixed; before/after in `round-ui/`. | `round-ui` |
+| Tự chạy thử | New audit scenario: the phone in another time zone, dates and times follow the family's zone; two breakers proven caught. | `autoplay-audit` |
+| Receipt photo (Henry's Orange Supermarket photo) | Marked Beta; crop frame keeps the first items; scraps not saved as the store. | `receipt-parse`, `audit-data-browser` |
+
+Still open, listed for Henry: the weekend batch card heading still reads "Weekends feast" (an owner-approved loanword in the language audit); the Studio device overview does not show the new quiet-hours switch; the server still accepts only the seven So Giá ids (widen after devices run this version).
