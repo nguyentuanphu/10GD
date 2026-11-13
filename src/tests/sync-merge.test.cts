@@ -115,4 +115,10 @@ test('meal guests: removed on one device while changed on another → the newer 
  for(const m of [mergeFamilyStates(base,A,B).state,mergeFamilyStates(base,B,A).state]){const x=m.weeks['2026-11-02'].days[d].dinner;if(x.guests&&x.guests.length)throw Error('removed guests came back '+JSON.stringify(x.guests))}
  const C=edit(base,s=>{s.weeks['2026-11-02'].days[d].dinner.guests[0].adults=3},3000,'mum');
  const m2=mergeFamilyStates(base,A,C).state.weeks['2026-11-02'].days[d].dinner;if(!m2.guests||m2.guests.length!==1||m2.guests[0].adults!==3)throw Error('a newer edit keeps the group whole '+JSON.stringify(m2.guests))})()`));
+// v1.7.19: a recipe's line order (Viết món) is one value: two devices that reorder differently never get a mixed or
+// repeated order, and a device that does not know the field (older version) keeps the other device's order.
+test('recipe line order: merged whole, newer order wins, kept when the other device only changes something else',()=>run(`(()=>{const b=mk();b.recipes[0].missingIngredients=['Tỏi 3 tép'];
+ const A=edit(b,s=>{s.recipes[0].lineOrder=['n:0','i:chicken','i:ginger']},2000,'dad'),B=edit(b,s=>{s.recipes[0].lineOrder=['i:ginger','n:0','i:chicken']},1000,'mum');
+ for(const m of [mergeFamilyStates(b,A,B).state,mergeFamilyStates(b,B,A).state]){if(m.recipes[0].lineOrder.join()!=='n:0,i:chicken,i:ginger')throw Error('newer order whole '+m.recipes[0].lineOrder);if(!validImport(clone(m)))throw Error('valid')}
+ const C=edit(b,s=>{s.recipes[0].favorite=true},3000,'mum');const m=mergeFamilyStates(b,A,C).state;if(m.recipes[0].lineOrder?.join()!=='n:0,i:chicken,i:ginger'||m.recipes[0].favorite!==true)throw Error('order kept beside another change '+JSON.stringify(m.recipes[0]))})()`));
 (async()=>{for(const[name,fn] of tests){try{await fn();passed++}catch(e){console.error('FAIL',name);throw e}}console.log(`PASS sync-merge: ${passed} tests (three-way merge per collection/field, deletes vs edits, recipe revisions, tombstones, reactions, stamping, push loop)`)})().catch(e=>{console.error(e);process.exit(1)});

@@ -20,7 +20,8 @@ const SYNC_META=new Set(['updatedAt','updatedBy']);
 const SYNC_RECIPE_CONTENT=['name','ingredients','steps','prep'];
 // Arrays that are whole values (recipe content, cooked-meal records, reaction histories, a meal's chosen dishes).
 // v1.7.16: a meal's guest groups are one value too, so a removal on one device is not undone by a change on another
-const SYNC_ATOMIC=new Set(['ingredients','steps','consumed','h','why','missingIngredients','guests']);
+// v1.7.19: a recipe's line order is one value as well (a union of two orders would repeat or shuffle lines)
+const SYNC_ATOMIC=new Set(['ingredients','steps','consumed','h','why','missingIngredients','guests','lineOrder']);
 const SYNC_TOMBSTONE_DAYS=120,SYNC_TOMBSTONE_MAX=4000,SYNC_REVISION_MAX=200;
 const syncIsObj=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
 function syncEq(a,b){if(a===b)return true;if(typeof a!==typeof b||!a||!b||typeof a!=='object')return false;if(Array.isArray(a)){if(!Array.isArray(b)||a.length!==b.length)return false;for(let i=0;i<a.length;i++)if(!syncEq(a[i],b[i]))return false;return true}if(Array.isArray(b))return false;const ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;for(const k of ka){if(!Object.hasOwn(b,k)||!syncEq(a[k],b[k]))return false}return true}

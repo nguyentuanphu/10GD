@@ -57,4 +57,13 @@ assert.equal(refreshPlannedDishes(t,{id:'nope'}),0);
 // (e) sync round trip: the saved state survives JSON (what the family sync uploads/downloads) and still validates
 w.days['2026-11-04'].dinner.recipes=[];const round=JSON.parse(JSON.stringify(t));assert.ok(validImport(round),'synced state validates');
 assert.deepEqual(round.recipes[0].missingIngredients,['Tỏi 3 tép','Nước mắm 2 muỗng canh']);assert.equal(recipeIngredientRows(round.recipes[0],1,round).length,5);
+// v1.7.19 (line order): the family's own order of amounts and kept lines; recipes without it keep amounts first; stale
+// keys (an older device edited the lines) never drop or repeat a line; the field passes validImport and survives JSON
+const ordered={...clone(live),id:'mq-order',lineOrder:['n:0','i:shrimp','n:1','i:family-ing-mq','i:pork']};
+assert.deepEqual(recipeLineOrder(ordered),['n0','i1','n1','i0','i2']);
+assert.deepEqual(recipeIngredientRows(ordered,1,t).map(r=>r.kind==='counted'?r.id:r.text),['Tỏi 3 tép','shrimp','Nước mắm 2 muỗng canh','family-ing-mq','pork'],'detail rows follow the family order');
+assert.deepEqual(recipeLineOrder(live),['i0','i1','i2','n0','n1'],'no order stored: amounts first, as before');
+assert.deepEqual(recipeLineOrder({...ordered,lineOrder:['n:5','i:gone','n:1','n:1',7,'i:pork']}),['n1','i2','i0','i1','n0'],'unknown, repeated or bad keys are skipped; every line once');
+t.recipes.push(ordered);const round2=JSON.parse(JSON.stringify(t));assert.ok(validImport(round2),'a recipe with its line order validates');assert.deepEqual(round2.recipes.at(-1).lineOrder,ordered.lineOrder);
+round2.recipes.at(-1).lineOrder='n:0';assert.equal(validImport(round2),false,'a malformed order is rejected');t.recipes.pop();
 `,c);console.log('PASS meal copies: planned meals show and shop the edited recipe, cooked/batch/library copies kept, view writes nothing, sync round trip');

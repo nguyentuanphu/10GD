@@ -178,7 +178,7 @@ async function openApp({viewport=sizes.mobile,ua=IPHONE,touch=true,lang='vi',the
   // straight after the reload the recipe library is not loaded yet, so the editor opens asynchronously (v1.7.2: without rows)
   await openDish(page,tap);/* v1.7.19 owner: “Sửa món” is in the sheet footer */await tap(page.locator('#modal-root .modal-footer [data-action="dish-edit"]'));await page.locator('#family-recipe-form #rc-ing-list').waitFor();
   assert.deepEqual(await rows.evaluateAll((a:any[])=>a.map(li=>[li.querySelector('.rc-ing-name-input').value,li.querySelector('.rc-ing-qty').value,li.querySelector('.rc-ing-unit').value].join('/'))),
-   /* v1.7.19 (owner, spoon amounts are notes): amounts to buy first, then the lines kept as written, each group in the order typed */
+   /* v1.7.19: in the order the family typed them (here the amounts happen to come first; part h mixes them) — the old “amounts first” was a side effect of storage, not an owner decision */
    ['Thịt Ba Chỉ/500/g','Tôm/300/g','Bánh phở (sợi to)/500/g','Bánh tráng/1/gói','Rau xà lách/200/g','Rau thơm (ăn kèm)//','Dầu phụng/2/muỗng canh'],'reopened form shows the saved amounts');
   await rows.first().locator('.rc-ing-qty').scrollIntoViewIfNeeded();await shot(page,'mobile-edit-form-reopened-vi-light');
   // unchanged save of the reopened form keeps the recipe exactly
@@ -215,6 +215,40 @@ async function openApp({viewport=sizes.mobile,ua=IPHONE,touch=true,lang='vi',the
   assert.deepEqual(errors,[],'no page errors');await context.close()}
  console.log('PASS (g) typing into a new row: the sheet stays still, the tapped suggestion is picked and the amount lands in its box');
 
+ // ================= (h) the family's own line order survives save → reopen (13 Nov 2026) =================
+ // Before v1.7.19 a reopened dish listed the amounts first and the lines kept as written (spoon lines, notes, no amount) after
+ // them: a side effect of how lines are stored, not an owner decision. The order typed is kept (recipe.lineOrder), in the
+ // editor and the dish sheet; recipes saved without it still open amounts first (part b); validImport + sync merge keep it.
+ {const {context,page,errors,tap}=await openApp();
+  const id=await seedEmptyDishInMeal(page,'Canh QA thứ tự');await page.evaluate((id:string)=>familyRecipeEditor(id),id);await page.locator('#family-recipe-form').waitFor();
+  const typed=[['Tỏi','3','tép',false],['Tôm','300','g',true],['Nước mắm','2','muỗng canh',true],['Thịt heo','300','g',true],['Rau thơm','','',true]] as const;
+  const list=page.locator('#rc-ing-list .rc-ing-row');
+  for(let i=0;i<typed.length;i++){const [name,qty,unit,shop]=typed[i];if(i>=await list.count())await tap(page.locator('[data-rci="add"]'));const row=list.nth(i);
+   await row.locator('.rc-ing-name-input').fill(name);if(qty)await row.locator('.rc-ing-qty').fill(qty);await page.waitForTimeout(220);if(unit)await pickRcUnit(page,row,unit);if(!shop)await tap(row.locator('.rc-ing-shop-input'))}
+  await saveForm(page,tap);
+  const saved=await page.evaluate((id:string)=>{const r=state.recipes.find((x:any)=>x.id===id);return{order:r.lineOrder,ing:r.ingredients.map((i:any)=>i.id),missing:r.missingIngredients}},id);
+  assert.deepEqual(saved.ing,['shrimp','pork'],JSON.stringify(saved));assert.deepEqual(saved.missing,['Tỏi 3 tép','Nước mắm 2 muỗng canh','Rau thơm'],JSON.stringify(saved));
+  assert.deepEqual(saved.order,['n:0','i:shrimp','n:1','i:pork','n:2'],'the typed order is stored next to the lines '+JSON.stringify(saved));
+  const names=()=>list.evaluateAll((a:any[])=>a.map(li=>li.querySelector('.rc-ing-name-input').value));
+  await page.evaluate((id:string)=>familyRecipeEditor(id),id);await page.locator('#family-recipe-form #rc-ing-list').waitFor();
+  assert.deepEqual(await names(),typed.map(x=>x[0]),'the reopened form lists the lines in the order the family typed them');
+  const before=await page.evaluate((id:string)=>JSON.stringify(state.recipes.find((x:any)=>x.id===id)),id);await saveForm(page,tap);
+  assert.equal(await page.evaluate((id:string)=>JSON.stringify(state.recipes.find((x:any)=>x.id===id)),id),before,'an unchanged save keeps the recipe exactly');
+  await page.evaluate((id:string)=>showRecipe(id),id);await page.locator('#modal-root .ingredients').waitFor();
+  const shown=await page.locator('#modal-root .ingredients li .ing-line-name').evaluateAll((a:any[])=>a.map(x=>x.textContent.trim()));
+  assert.deepEqual(shown.map((t:string)=>typed.find(x=>t.startsWith(x[0]))?.[0]),typed.map(x=>x[0]),'the dish sheet follows the same order '+JSON.stringify(shown));
+  // moving a line (↑) changes the stored order; back to amounts-first drops the field (no meaning changes for older devices)
+  await page.evaluate(()=>closeModal());await page.evaluate((id:string)=>familyRecipeEditor(id),id);await page.locator('#family-recipe-form #rc-ing-list').waitFor();
+  await tap(list.nth(1).locator('[data-rci="up"]'));assert.deepEqual((await names()).slice(0,2),['Tôm','Tỏi']);await saveForm(page,tap);
+  assert.deepEqual(await page.evaluate((id:string)=>state.recipes.find((x:any)=>x.id===id).lineOrder,id),['i:shrimp','n:0','n:1','i:pork','n:2']);
+  await page.evaluate((id:string)=>{const r=state.recipes.find((x:any)=>x.id===id);delete r.lineOrder;save()},id);await page.evaluate((id:string)=>familyRecipeEditor(id),id);await page.locator('#family-recipe-form #rc-ing-list').waitFor();
+  assert.deepEqual(await names(),['Tôm','Thịt heo','Tỏi','Nước mắm','Rau thơm'],'a recipe saved without an order still opens amounts first');await saveForm(page,tap);
+  assert.equal(await page.evaluate((id:string)=>'lineOrder' in state.recipes.find((x:any)=>x.id===id),id),false,'amounts-first stores no order');
+  // rule 33: the saved state validates and a sync merge (a second device that changed something else) keeps the order whole
+  const trip=await page.evaluate((id:string)=>{const r=state.recipes.find((x:any)=>x.id===id);r.lineOrder=['n:0','i:shrimp','n:1','i:pork','n:2'];const base=clone(state),other=clone(state);other.recipes.find((x:any)=>x.id===id).favorite=true;const m=mergeFamilyStates(base,clone(state),other).state;return{valid:validImport(clone(state)),merged:validImport(clone(m)),order:m.recipes.find((x:any)=>x.id===id).lineOrder,fav:m.recipes.find((x:any)=>x.id===id).favorite}},id);
+  assert.deepEqual(trip,{valid:true,merged:true,order:['n:0','i:shrimp','n:1','i:pork','n:2'],fav:true},'validImport + sync merge round trip');
+  assert.deepEqual(errors,[],'no page errors');await context.close()}
+ console.log('PASS (h) line order: typed order kept on reopen and in the dish sheet, moves saved, old recipes amounts first, validImport + sync merge keep it');
 
  // ================= (e) two signed-in devices of one family =================
  {const A=await openApp({account:true});
