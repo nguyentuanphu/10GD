@@ -163,7 +163,8 @@ const seed=()=>{state.preferences.onboardingComplete=true;state.receipts=[];save
   if(size==='desktop'){
    const [dl]=await Promise.all([page.waitForEvent('download'),page.locator('#rr-fixture').click()]);const fx=fs.readFileSync(await dl.path(),'utf8');
    assert.match(dl.suggestedFilename(),/^receipt-coles-[a-f0-9]{6}\.txt$/);assert.match(fx,/'coles-coles-waterloo-[a-f0-9]{6}':\{text:`[\s\S]*Total for 5 items: \$31\.20[\s\S]*`,expect:\{"retailer":"coles","printedTotal":31\.2,"date":"2023-05-24","goods":4,"names":\["WESTERN STAR SPREADABLE 375G"/);
-   for(const s of PRIVATE)assert.ok(!fx.includes(s),'fixture never holds '+s);
+   /* v1.7.20: a private value counts on its own, not inside the fixture's random hex id or a timestamp (CI once drew an id holding “4321”); a masked card “XXXX4321” / “**** 4321” is still caught */
+   for(const s of PRIVATE)assert.ok(!new RegExp('(?<![0-9a-f])'+s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![0-9a-f])').test(fx),'fixture never holds '+s);
    await page.locator('#rr-status select').selectOption('test-added');await page.locator('#rr-status button').click();await page.waitForFunction(()=>/Đã thêm test/.test(document.querySelector('#receipts-main .rr-list')?.textContent||'')&&/Đã thêm test/.test(document.querySelector('#rr-detail .rr-detail-top .chip')?.textContent||''));
    assert.match(await page.locator('#receipts-main .rr-list').innerText(),/Đã thêm test/);}
   assert.deepEqual(errors,[],'no Studio page errors '+tag);await context.close();

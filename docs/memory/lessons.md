@@ -2,6 +2,13 @@
 
 Each lesson records what went wrong, what it cost, and the habit and rule that prevent it. Newest first. All dates are Sydney time.
 
+## 14 Nov 2026 (night): v1.7.20
+1. **Asked Henry a privacy question on a false premise.**
+   - What happened: a helper wrote that shared community recipes do not carry the family's own lines; the lead put that to Henry as "send them too?" without reading `rcSendShare`, which already sends `missingIngredients`.
+   - Habit: before asking Henry anything about data or privacy, read the code that sends the data. A helper's claim about what is or isn't sent is not evidence (rule 30).
+2. **Tự chạy thử failed every weekend.** Saturday and Sunday dinners belong to the weekend batch: "Đã nấu" rightly asks to cook the batch first, and its amounts are bought on the batch's own day. Four workflows assumed an ordinary dinner and failed from Friday 23:59 to Sunday; found only because the release ran on a Saturday. Habit: scenarios that pick "today" must handle the family's own week shapes (batch days), and the audit sweep should run with the clock on a Saturday too.
+3. **Search hid the coming meals.** A dish planned many times showed only its first 6 matches in scan order, i.e. two weeks ago; the coming meal was cut off. Lists that are cut to N items must sort what matters first.
+
 ## 13 Nov 2026: re-check of every audit fix (Henry: "different chats … may create mistakes or miss to fix errors")
 1. **A guarded call hid a function that does not exist.**
    - What happened: the S2 fix called `receiptWeekStart(record)` behind `typeof receiptWeekStart==='function'`. That function lives inside the IIFE of `receipt-ui.ts`, so the guard was always false and the old "week on screen" path ran. Only the new browser test showed it. The same pattern had hidden `ingredientName` (never defined) since v1.7.1, so EN taste labels showed Vietnamese names.

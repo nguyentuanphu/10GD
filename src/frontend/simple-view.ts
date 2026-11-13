@@ -32,7 +32,7 @@ function applySimpleView(){
     const grid=main.querySelector('.week-grid, .family-week-grid');grid?.classList.add('meal-list-layout');
     main.querySelector('[data-action="planner-layout"]')?.remove();
     const weekend=main.querySelector('.weekend-panel');simpleDisclosure(weekend,'Ưu tiên món nước cuối tuần','weekend');
-    main.querySelectorAll('.family-batch').forEach((b,idx)=>simpleDisclosure(b,'🍲 Chi tiết mẻ nấu cuối tuần (Weekends feast)','batch-'+idx));
+    main.querySelectorAll('.family-batch').forEach((b,idx)=>simpleDisclosure(b,'🍲 Chi tiết mẻ nấu cuối tuần','batch-'+idx));
     simpleDisclosure(main.querySelector('.summary-banner'),'Khẩu phần & dự tính chi phí','summary');
     const tools=main.querySelector('.week-tools .toolbar');simpleDisclosure(tools,'Tùy chọn thực đơn','planner-tools');
   }

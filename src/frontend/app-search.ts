@@ -49,7 +49,7 @@ const sIng=(id:string)=>typeof shopIngName==='function'?shopIngName(id):(INGREDI
 const sBoth=(id:string)=>`${INGREDIENTS[id]?.[0]||''} ${typeof INGREDIENT_EN!=='undefined'?(INGREDIENT_EN as any)[id]||'':''}`;
 function sFocus(sel:string){setTimeout(()=>{const el=document.querySelector(sel) as HTMLElement|null;if(!el)return;el.scrollIntoView({block:'center'});el.classList.add('search-hit');setTimeout(()=>el.classList.remove('search-hit'),2400)},120)}
 function sDay(d:string){return `${typeof dayShort==='function'?dayShort(d):''} ${typeof dateLabel==='function'?dateLabel(d):d}`.trim()}
-function searchHits(raw:string):Hit[]{const q=sNorm(raw);if(!q)return[];const words=q.split(' ').filter(Boolean),out:Hit[]=[];const add=(g:string,title:string,sub:string,hay:string,go:()=>void)=>{const sc=sScore(q,words,sNorm(hay));if(sc)out.push({g,title,sub,score:sc,go})};
+function searchHits(raw:string):Hit[]{const q=sNorm(raw);if(!q)return[];const words=q.split(' ').filter(Boolean),out:Hit[]=[];const add=(g:string,title:string,sub:string,hay:string,go:()=>void,ord=0)=>{const sc=sScore(q,words,sNorm(hay));if(sc)out.push({g,title,sub,score:sc,go,ord})};
  const close=()=>{if(typeof closeModal==='function')closeModal()};
  // dishes
  for(const r of (state.recipes||[]) as any[]){if(!r?.name)continue;add('recipe',r.name,[typeof CATEGORY!=='undefined'?CATEGORY[r.category]:'',r.time?`${r.time} ${sT('phút','min')}`:''].filter(Boolean).join(' · '),String(r.name),()=>{close();setTimeout(()=>showRecipe(r.id),0)})}
@@ -61,7 +61,7 @@ function searchHits(raw:string):Hit[]{const q=sNorm(raw);if(!q)return[];const wo
   add('shopping',name,r.bought?sT('Đã mua','Bought'):sT('Cần mua','To buy')+(typeof fmtQty==='function'&&r.missing>0?' '+fmtQty(r.missing,INGREDIENTS[r.id][1]):''),`${name} ${sBoth(r.id)}`,()=>{close();location.hash='shopping';sFocus(`#main .shop-row:has([data-id="${CSS.escape(r.id)}"])`)})}}catch{}
  // menu: two weeks back to four weeks ahead
  if(typeof sydneyDate==='function'){const today=sydneyDate();for(let i=-14;i<=28;i++){const d=addDays(today,i),wk=state.weeks?.[monday(d)],day=wk?.days?.[d];if(!day)continue;
-  for(const t of MEAL_TYPES){const m=day[t];if(!m?.recipes?.length)continue;for(const r of m.recipes as any[])add('menu',r.name,`${mealName(t)} · ${sDay(d)}${i===0?' · '+sT('hôm nay','today'):''}`,r.name,()=>{close();selectedDate=d;weekStart=planStartOf(state,d);location.hash='today';render();sFocus(`#main .family-meal-card[data-meal-date="${d}"][data-meal-type="${t}"]`)})}
+  for(const t of MEAL_TYPES){const m=day[t];if(!m?.recipes?.length)continue;for(const r of m.recipes as any[])add('menu',r.name,`${mealName(t)} · ${sDay(d)}${i===0?' · '+sT('hôm nay','today'):''}`,r.name,()=>{close();selectedDate=d;weekStart=planStartOf(state,d);location.hash='today';render();sFocus(`#main .family-meal-card[data-meal-date="${d}"][data-meal-type="${t}"]`)},i>=0?i:1000-i)}
   // guests on those meals
   for(const t of MEAL_TYPES){const m=day[t];for(const g of (typeof guestGroups==='function'?guestGroups(m):[]) as any[]){if(!g.name||i<0)continue;const st=typeof rsvpLabel==='function'&&g.invite?rsvpLabel(g):(typeof guestGroupShort==='function'?guestGroupShort(g):'');
    add('guest',g.name,`${st} · ${mealName(t).toLowerCase()} ${sDay(d)}`,g.name,()=>{close();setTimeout(()=>guestSheet(d,t),0)})}}}}
@@ -73,7 +73,7 @@ function searchHits(raw:string):Hit[]{const q=sNorm(raw);if(!q)return[];const wo
  return out}
 function searchResultsHtml(raw:string){const q=sNorm(raw);if(!q)return `<p class="hint search-empty">${sT('Gõ tên món, nguyên liệu, cửa hàng, tên khách hoặc việc cần làm (ví dụ: bun bo, thit ba chi, Coles, moi khach, sao luu).','Type a dish, ingredient, shop, guest or something to do (e.g. pho, pork belly, Coles, invite, backup).')}</p>`;
  const hits=searchHits(raw);if(!hits.length)return `<p class="hint search-empty">${sT('Không thấy gì khớp.','Nothing matches.')}</p>`;
- searchLast=[];let html='';for(const [g,vi,en] of GROUPS){const list=hits.filter(h=>h.g===g).sort((a,b)=>b.score-a.score||a.title.localeCompare(b.title)).filter((h,i,a)=>a.findIndex(x=>x.title===h.title&&x.sub===h.sub)===i).slice(0,6);if(!list.length)continue;
+ searchLast=[];let html='';for(const [g,vi,en] of GROUPS){const list=hits.filter(h=>h.g===g).sort((a,b)=>b.score-a.score||(a.ord||0)-(b.ord||0)/* v1.7.20: a dish planned many times lists today and the coming meals first, nearest first, then past ones (only 6 show) */||a.title.localeCompare(b.title)).filter((h,i,a)=>a.findIndex(x=>x.title===h.title&&x.sub===h.sub)===i).slice(0,6);if(!list.length)continue;
   html+=`<section class="search-group" aria-label="${esc(sT(vi,en))}"><h3>${esc(sT(vi,en))}</h3><ul>${list.map(h=>{searchLast.push(h);return `<li><button type="button" class="search-hit-row" data-search-go="${searchLast.length-1}"><b data-user-content>${esc(h.title)}</b>${h.sub?`<small data-user-content>${esc(h.sub)}</small>`:''}</button></li>`}).join('')}</ul></section>`}
  return html}
 let searchLast:Hit[]=[],searchTimer:any=null;
@@ -86,7 +86,7 @@ function installSearchButton(){const top=document.querySelector('.topbar .top-ac
  const b=top.querySelector('#app-search');if(b&&typeof uiArt==='function'){b.innerHTML=uiArt('search','btn-art');(b as HTMLElement).dataset.btnArt='search'}}
 {const searchBaseRender=render;render=function(this:any,...a:any[]){const r=searchBaseRender.apply(this,a);try{installSearchButton();const b=document.getElementById('app-search');if(b){const l=sT('Tìm kiếm','Search');b.setAttribute('aria-label',l);b.title=l}}catch(err){console.warn('search button',err)}return r}}
 installSearchButton();
-(globalThis as any).openSearch=openSearch;(globalThis as any).searchHits=searchHits;
+(globalThis as any).openSearch=openSearch;(globalThis as any).searchHits=searchHits;(globalThis as any).searchResultsHtml=searchResultsHtml;
 
 // ── “Tính năng” tab in Hướng dẫn sử dụng (owner: “trong how to use thì cần có 1 tab để cho người ta biết mình có features gì và nó là
 //    như thế nào”): Bắt đầu (the steps, as before) │ Tính năng (every feature with its drawing, what it does and “Mở”).

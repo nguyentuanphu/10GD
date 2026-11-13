@@ -2,6 +2,14 @@
 
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
+## 13 Nov 2026 (night)
+- **DEPLOY v1.7.19** (Henry, about 22:00: "Deploy sau đó set up 11:50pm làm tiếp phần còn lại"). PR #40 squash-merged as d7cba87 at 22:03 AEDT, CI green on a3d102d. The working branch carries on from main (merged, not reset) for v1.7.20.
+- **Continue at 23:50 Sydney time:** a one-off scheduled message into this chat at 23:50 picks up the remaining items for v1.7.20: the "Weekends feast" batch card heading and its old emoji, the quiet-hours switch in the Studio device overview and the dead `pushSettings` in push-ui.ts, the shared community recipe line order (`rcSharedIngredients`), a stronger check for scrap store names ("Be elle"), and step 2 of more stores (offer ALDI, Harris Farm… in products and So Giá; widen the server's So Giá ids) once enough devices run v1.7.19. Same gate: Henry says DEPLOY.
+- **Pop-up answers, 14 Nov (night):**
+  - One name for the weekend batch: "Mẻ nấu cuối tuần" in Vietnamese, "Weekend batch cook" in English, everywhere (card, pills, dish line, share text, simple view, insights). "Weekends feast" is no longer shown.
+  - Community recipes: "Gửi cả dòng tự ghi". Checked afterwards: the family's own lines (missingIngredients) were already sent, stored and shown in a shared recipe since v1.7.1, so this changes nothing and needs no privacy wording; the question rested on a helper's wrong claim (see lessons).
+  - Studio: no screen for each device's notification settings ("Không cần"). The family scan carries the new quiet-hours field next to urgentBypass, nothing more.
+
 ## 13 Nov 2026 (re-check of the audit fixes, new chat)
 - **Check every fix again:** Henry: "Once ran, make sure you double check to see if all the errors you found are fixed, my concerns are different chats handling which may create mistakes or miss to fix errors". Two read-only agents re-checked A1–D30, the sweep list and the Tự chạy thử bugs on 3507cfa; the lead checked their findings and fixed the misses in v1.7.19 (see `docs/reviews/v1.7.19/review.md`, "Re-check of every audit fix").
 - **Counted items in the pantry (C25), pop-up answer "Giữ bước ¼":** Tủ → Thêm thực phẩm keeps ¼ steps for counted units (½ quả bí, ½ con gà). The shopping list still rounds up to whole numbers.

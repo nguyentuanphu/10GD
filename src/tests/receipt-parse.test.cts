@@ -271,8 +271,8 @@ check('receipt currency: đồng receipts are VND from the receipt itself; dolla
  assert.equal(R.vndAmounts('Thịt ba chỉ 0,5kg 125.000'),'Thịt ba chỉ 0,5kg 125000.00');assert.equal(R.vndAmounts('Gạo 1.200 kg 30.000'),'Gạo 1.200 kg 30000.00');assert.equal(R.vndAmounts('Ngày 13.11.2026'),'Ngày 13.11.2026');assert.equal(R.vndAmounts('Ngày: 13/11/2026'),'Ngày: 13/11/2026');
 });
 check('Henry 13 Nov 2026 (rule 32): a store line read as scraps is left empty, a real name or a chain is kept',()=>{
- for(const bad of ['RA SRE eR Zi I 3 web 4 5 TY os','|| ~ 3 4 | :','I l 1 | ii o']) assert.equal(R.plausibleStoreName(bad),false,bad);
- for(const good of ['Orange Supermarke Wolli Creek','Chợ Cabramatta','Co.op Mart','IGA','TAN VIET GROCERY CABRAMATTA']) assert.equal(R.plausibleStoreName(good),true,good);
+ for(const bad of ['RA SRE eR Zi I 3 web 4 5 TY os','|| ~ 3 4 | :','I l 1 | ii o','Be elle','ae ro Tia']) assert.equal(R.plausibleStoreName(bad),false,bad);
+ for(const good of ['Orange Supermarke Wolli Creek','Chợ Cabramatta','Co.op Mart','IGA','TAN VIET GROCERY CABRAMATTA','Chợ Hà Nội','Siêu thị Bé Na','Ba Le Bakery','Thai Kee']) assert.equal(R.plausibleStoreName(good),true,good);
  const r=R.parseReceipt('RA SRE eR Zi I 3 web 4 5 TY os\nABN: 13 601 298 917\nTAX INVOICE\nDate: 13/11/2026\nHK CHOY SUM / BUNCH 1.99\nCARROT LOOSE 0.70\nTOTAL: $2.69');
  assert.equal(r.store,'','scraps are not saved as the store: '+r.store);assert.equal(r.printedTotal,2.69);
  const ok=R.parseReceipt('Orange Supermarke Wolli Creek\nABN: 13 601 298 917\nTAX INVOICE\nDate: 13/11/2026\nCARROT LOOSE 0.70\nTOTAL: $0.70');assert.match(ok.store,/Orange Supermarke/i)});

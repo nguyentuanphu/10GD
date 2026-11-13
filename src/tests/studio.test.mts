@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createAccountsHandler,resolveAccount} from '../netlify/lib/accounts.mjs';
 import {createFamilyHandler} from '../netlify/functions/family.mjs';
 import {createStudioHandler} from '../netlify/functions/studio.mjs';
-import {recordEvent,recordSync,recordCronRun,isAccountDisabled,isFamilySuspended,signupPolicy,platformSettings,maskEmail,maskEndpoint,resetSettingsCache} from '../netlify/lib/studio.mjs';
+import {scanFamily,recordEvent,recordSync,recordCronRun,isAccountDisabled,isFamilySuspended,signupPolicy,platformSettings,maskEmail,maskEndpoint,resetSettingsCache} from '../netlify/lib/studio.mjs';
 import {memoryStores} from './helpers/accounts.mjs';
 
 const getStoreFn=memoryStores(),origin='https://test.example',password='synthetic-studio-passphrase-42';
@@ -29,6 +29,9 @@ await data.setJSON(`households/${fam.id}/push/vapid-keys`,{publicKey:'pub',priva
 await data.setJSON(`households/${henryFam.id}/push/vapid-keys`,{publicKey:'pub',privateKey:'PRIVATEKEY'});
 await data.setJSON(`households/${fam.id}/push/subscriptions/device-alice-1`,{accountUsername:'alice',deviceId:'device-alice-1',memberId:'m-alice',subscription:{endpoint:'https://fcm.googleapis.com/fcm/send/SECRETENDPOINTabcdef',keys:{auth:'AUTHSECRET',p256dh:'P256SECRET'}},language:'vi',types:{urgent:true}});
 await data.setJSON(`households/${henryFam.id}/push/subscriptions/device-henry-1`,{accountUsername:'henrynguyen',deviceId:'device-henry-1',memberId:null,subscription:{endpoint:'https://web.push.apple.com/HENRYENDPOINT123456',keys:{auth:'a',p256dh:'b'}},language:'en',types:{}});
+{/* v1.7.20: the cooking/thaw quiet-hours choice sits next to urgentBypass in the family scan (default on; a device that turned it off says so) */const sc1=await scanFamily(getStoreFn,fam,{withState:false,photoSample:0});assert.equal(sc1.devices.find((x:any)=>x.deviceId==='lice-1')?.mealQuietBypass,true,'default on');
+ await data.setJSON(`households/${fam.id}/push/subscriptions/device-alice-2`,{accountUsername:'alice',deviceId:'device-alice-2',memberId:'m-alice',subscription:{endpoint:'https://fcm.googleapis.com/fcm/send/SECOND',keys:{auth:'a',p256dh:'b'}},language:'vi',types:{urgent:true},mealQuietBypass:false});
+ const sc2=await scanFamily(getStoreFn,fam,{withState:false,photoSample:0});assert.equal(sc2.devices.find((x:any)=>x.deviceId==='lice-2')?.mealQuietBypass,false,'turned off');await data.delete(`households/${fam.id}/push/subscriptions/device-alice-2`)}
 await data.setJSON(`households/${fam.id}/family-alert/a1`,{id:'a1',message:'PRIVATE ALERT TEXT',createdAt:new Date().toISOString(),pushStatus:'not_sent',targets:['m-bob']});
 
 // ---- access control

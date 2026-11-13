@@ -359,6 +359,11 @@ let keepSpacerView='';const keepSpacerClear=()=>{const sp=document.getElementByI
 addEventListener('hashchange',keepSpacerClear);
 addEventListener('scroll',()=>{const sp=document.getElementById('keep-place-spacer');if(!sp)return;const h=parseFloat(sp.style.height)||0;if(!h)return;if(view!==keepSpacerView)return keepSpacerClear();const need=scrollY+innerHeight-(document.documentElement.scrollHeight-h);sp.style.height=Math.max(0,Math.min(h,need))+'px'},{passive:true});
 function keepRoomFor(targetY:number){const sp=keepSpacer(),h=parseFloat(sp.style.height)||0,doc=document.documentElement.scrollHeight-h,need=Math.ceil(targetY+innerHeight-doc);keepSpacerView=view;sp.style.height=Math.max(0,need)+'px'}
+// v1.7.20 (audit sweep on Saturday 14 Nov 2026, rule 24): closing a day of the week menu near the foot of the page made the page
+// shorter, so the browser pulled the scroll up and the tapped day moved (today is open by default and sits last-but-one on a Saturday).
+// The same spacer the buttons use keeps room below, so the day stays where it was tapped.
+document.addEventListener('click',e=>{const sum=(e.target as any)?.closest?.('#main details[data-plan-day] > summary');if(!sum)return;const det=sum.parentElement as HTMLDetailsElement,y=scrollY,top=sum.getBoundingClientRect().top;if(!det.open)return;
+ keepRoomFor(y);const fix=()=>{const d=sum.getBoundingClientRect().top-top;if(Math.abs(d)>1){keepRoomFor(y);window.scrollTo({top:y,behavior:'instant' as ScrollBehavior})}};requestAnimationFrame(()=>{fix();requestAnimationFrame(fix)})},true);
 document.addEventListener('click',e=>{const el=(e.target as any)?.closest?.('button,[role="tab"],a[data-action],[data-fm],[data-house],input[type="checkbox"][data-pantry-deduct]');if(!el||el.closest('#modal-root,.modal,#undo-bar')||el.hasAttribute('data-keep-scroll-off'))return;
  const sel=keepPlaceSelector(el);if(!sel)return;if(view!==keepSpacerView)keepSpacerClear();const v=view,hash=location.hash,top=el.getBoundingClientRect().top,root=document.documentElement,prev=root.style.overflowAnchor;
  // hold the control in place right after the redraw and for half a second more, because parts of a screen can redraw a moment

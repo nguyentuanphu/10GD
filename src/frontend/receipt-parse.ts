@@ -210,7 +210,12 @@ function amountIn(line){const all=[...String(line).matchAll(/(-)?\s?\$?\s?(\d{1,
 
 // A store name read from the photo looks like words: mostly letters, and not mostly one- or two-character scraps.
 function plausibleStoreName(name){const t=String(name||'').trim();if(!t)return false;const chars=t.replace(/\s+/g,''),letters=(chars.match(/[A-Za-z\u00C0-\u1EF9]/g)||[]).length;if(!chars.length||letters/chars.length<0.6)return false;
- const words=t.split(/\s+/),scraps=words.filter(w=>w.replace(/[^A-Za-z\u00C0-\u1EF9]/g,'').length<=2).length;if(words.length>=4&&scraps/words.length>0.5)return false;return words.some(w=>w.replace(/[^A-Za-z\u00C0-\u1EF9]/g,'').length>=3)}
+ const words=t.split(/\s+/),scraps=words.filter(w=>w.replace(/[^A-Za-z\u00C0-\u1EF9]/g,'').length<=2).length;if(words.length>=4&&scraps/words.length>0.5)return false;
+ /* v1.7.20 ("Be elle" read from a faint Orange Supermarket line): a real name has a long word or a shop word (short Vietnamese names keep “Chợ …”) */
+ const lw=words.map(w=>w.toLowerCase().replace(/[^a-z\u00C0-\u1EF9.&']/g,''));if(lw.some(w=>w.replace(/[^a-z\u00C0-\u1EF9]/g,'').length>=5))return true;
+ if(words.length>=2&&lw.every(w=>w.replace(/[^a-z\u00C0-\u1EF9]/g,'').length>=3))return true;/* “Thai Kee”: every word whole, no 1–2 letter scraps */
+ return lw.some(w=>STORE_WORDS.has(w))||/si[eê]u\s*th[iị]|t[aạ]p\s*h[oó]a/i.test(t)}
+const STORE_WORDS=new Set(['chợ','cho','mart','shop','store','market','grocer','grocery','deli','foods','food','bakery','butcher','asian','fresh','fruit','meat','meats','seafood','quán','hàng','tiệm','cửa','co.op','iga','aldi','kmart','big','supa','spar','farm','farms','emporium','trading','mini','super','hiệu']);
 
 // Item code (ALDI 4–7 digits, Woolworths UK 9 digits): everything before it is OCR noise from the
 // receipt edge / shadow ("Si", "hen", "STE ve", ":"), and the code itself is not part of the name.
