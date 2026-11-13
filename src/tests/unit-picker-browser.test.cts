@@ -63,7 +63,7 @@ const GA='family-ing-ga-ta',EMOJI=/\p{Extended_Pictographic}/u;
    assert.equal(await E('purchasePicker.basePerUnit'),null,`${label}: no conversion invented for kg of a chicken`);
    assert.match(await page.locator('label[for="buying-per-unit"]').innerText(),vi?/1 con ≈ bao nhiêu kg/:/1 con ≈ how many kg/);
    await page.fill('#weight-exact','1.6');await page.locator('#weight-exact').dispatchEvent('change');await page.waitForTimeout(80);
-   assert.equal(await page.locator('#purchase-chosen-qty').innerText(),'1.6 kg',`${label}: amount shown in kg`);
+   assert.equal(await page.locator('#purchase-chosen-qty').innerText(),vi?'1,6 kg':'1.6 kg'/* Henry, 13 Nov 2026: decimal comma in Vietnamese */,`${label}: amount shown in kg`);
    assert.match(await page.locator('#purchase-shortage').innerText(),vi?/Chưa biết 1 con bằng bao nhiêu kg/:/not known how many kg make 1 con/);
    if(full||size==='mobile')await shot('kg-unknown');
    // a tap on con brings back the counted wheel; keep it in place too
