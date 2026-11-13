@@ -8,7 +8,7 @@
 // Matching is guarded (the product name must contain the item's name or an alias). Pinch and WhichGrocer
 // prices for the same retailer that differ by more than 15 % are held for review, not shown. When a provider
 // fails, the last saved prices (with their dates) stay; a price is never invented.
-import {productIsItem,catalogItems,itemScore} from './scout-match.mjs';
+import {productIsItem,catalogItems,itemScore,plainRank} from './scout-match.mjs';
 const PINCH='https://pinch-app.com/api',WG='https://api.whichgrocer.com/v2';
 // Matching uses the reviewed So Giá matcher (every word of one of the item's names, and no variant word such as
 // canned/flavour/chips/crackers/dip/cleaner unless the item is that variant). A live run on 5 Nov 2026 showed the
@@ -17,6 +17,19 @@ let MATCH_ITEMS:any=null;const matchItems=()=>MATCH_ITEMS??=catalogItems();
 // v1.7.8: a family search word (lib/online-wanted.mts) matches when every word of it is in the product name and no
 // variant word (sauce, chips, cooked …) is — it does not compete with the catalogue, the family chose the word.
 export function isItem(item:any,name:any){try{if(item?.wanted)return itemScore(String(name||''),{itemId:item.id,names:[String(item.nameEn||'')]})>0;return productIsItem(String(name||''),item.id,matchItems())}catch{return false}}
+// v1.7.21 (Henry, 14 Nov 2026: wrong products such as Lemon → “Lemon & Pepper Tuna”): a store department, when the provider
+// sends one, must fit the item's department (fresh lemons are not in “Pantry · Canned fish”). Unknown department → the name
+// rules alone decide; nothing is guessed.
+const DEPT_NOT:Record<string,RegExp>={
+ fresh:/\b(pantry|canned|tinned|snack|confectionery|drinks?|beverages?|ready meals?|frozen meals?|deli|health|beauty|baby|pet|household|cleaning|bakery|spices?|herbs and spices)\b/,
+ meat:/\b(ready meals?|frozen meals?|deli|snack|pantry|canned|tinned|pet|health|beauty|household)\b/,
+ seafood:/\b(ready meals?|deli|snack|pantry|canned|tinned|pet|health|beauty|household)\b/};
+export function departmentFits(itemId:any,dept:any){const d=norm(dept);if(!d)return true;const it=matchItems().find((x:any)=>x.itemId===itemId),re=it&&DEPT_NOT[String(it.category||'')];return !re||!re.test(d)}
+const deptOf=(c:any)=>[c?.category,c?.department,c?.category_name,c?.aisle].find(x=>typeof x==='string'&&x.trim())||'';
+/** Is a stored online price still a confident match under today's rules? Saved data from earlier runs is re-checked when it is
+ * read, so a wrong product (and its photo) disappears at once, without a migration and without inventing a price. Items that
+ * are not in the catalogue (family search words) keep their own check. */
+export function stillMatches(o:any){const id=String(o?.itemId||'');if(!id)return false;const it=matchItems().find((x:any)=>x.itemId===id);if(!it)return true;return productIsItem(String(o?.label||''),id,matchItems())}
 /** Unit prices outside these bounds are a data error (e.g. a per-gram value read as per-kg) and are dropped. */
 const UNIT_MAX:Record<string,number>={per_kg:300,per_100g:30,per_L:200,per_100mL:20,per_each:500};
 const RETAILER_OF:Record<string,string>={woolworths:'woolworths',coles:'coles',aldi:'aldi','chemist warehouse':'chemist',chemist_warehouse:'chemist',chemistwarehouse:'chemist'};
@@ -88,7 +101,7 @@ export async function pinchPrices(items:any[],{key,fetchFn=fetch,today,maxReques
   const rows=Array.isArray(r.body?.data?.items)?r.body.data.items:[];
   rows.forEach((row:any,j:number)=>{const item=chunk[j];if(!item)return;const cands=Array.isArray(row?.candidates)?row.candidates:[];
    const pool=[...cands,...Object.entries(row?.cheapest||{}).map(([store,c]:any)=>({...c,retailer:store}))];const best:any={};
-   for(const c of pool){const retailer=RETAILER_OF[norm(c?.retailer)];if(!retailer||!(+c.price>0)||!isItem(item,c.name))continue;const unitPrice=saneUnit(item.unitBasis,unitPriceFor(item.unitBasis,c.cup_price,c.cup_measure)),cur=best[retailer],mine=mapping?.[item.id]?.[retailer],chosen=mine?.ok&&String(mine.productId)===String(c.product_id),rejected=(mine?.rejected||[]).includes(String(c.product_id)),rank=chosen?-1:unitPrice??+c.price;if(rejected)continue;if(!cur||rank<cur.rank)best[retailer]={c,unitPrice,rank}}
+   for(const c of pool){const retailer=RETAILER_OF[norm(c?.retailer)];if(!retailer||!(+c.price>0)||!isItem(item,c.name)||!departmentFits(item.id,deptOf(c)))continue;const unitPrice=saneUnit(item.unitBasis,unitPriceFor(item.unitBasis,c.cup_price,c.cup_measure)),cur=best[retailer],mine=mapping?.[item.id]?.[retailer],chosen=mine?.ok&&String(mine.productId)===String(c.product_id),rejected=(mine?.rejected||[]).includes(String(c.product_id)),rank=chosen?-1:unitPrice??+c.price,plain=chosen?0:plainRank(String(c.name||''),item.id,matchItems());if(rejected)continue;if(!cur||plain<cur.plain||plain===cur.plain&&rank<cur.rank)best[retailer]={c,unitPrice,rank,plain}}
    for(const [retailer,b] of Object.entries(best) as any){const c=b.c;out.push(observation(item,{retailer,label:c.name,price:+c.price,wasPrice:typeof c.was_price==='number'?c.was_price:null,special:c.is_on_special===true,size:parseSize(c.size),unitPrice:b.unitPrice,provider:'Pinch',today,productId:c.product_id,photo:c.image_url}))}})}
  return{observations:out,errors,requests}}
 /** WhichGrocer search for a few items (1 credit each): matching products per retailer, cheapest by unit price. */
@@ -97,7 +110,7 @@ export async function whichGrocerPrices(items:any[],{key,fetchFn=fetch,today,max
   const r=await getJSON(fetchFn,WG+'/products/search?'+new URLSearchParams({q:item.nameEn,page:'1'}),{headers:{Authorization:'Bearer '+key,Accept:'application/json'}});
   if(!r.ok){errors.push('whichgrocer '+(r.status||r.error));if([401,402,403,429].includes(r.status))break;continue}
   if(typeof r.body?.meta?.credits_remaining==='number')remaining=r.body.meta.credits_remaining;
-  const best:any={};for(const p of Array.isArray(r.body?.data)?r.body.data:[]){const retailer=RETAILER_OF[norm(p.store)];if(!retailer||p.out_of_stock||p.is_stale||!isItem(item,p.name))continue;const unitPrice=saneUnit(item.unitBasis,unitPriceFor(item.unitBasis,p.cup_price,null));const cur=best[retailer];if(!cur||(unitPrice??p.price)<(cur.unitPrice??cur.price))best[retailer]={...p,unitPrice}}
+  const best:any={};for(const p of Array.isArray(r.body?.data)?r.body.data:[]){const retailer=RETAILER_OF[norm(p.store)];if(!retailer||p.out_of_stock||p.is_stale||!isItem(item,p.name)||!departmentFits(item.id,deptOf(p)))continue;const unitPrice=saneUnit(item.unitBasis,unitPriceFor(item.unitBasis,p.cup_price,null)),plain=plainRank(String(p.name||''),item.id,matchItems());const cur=best[retailer];if(!cur||plain<cur.plain||plain===cur.plain&&(unitPrice??p.price)<(cur.unitPrice??cur.price))best[retailer]={...p,unitPrice,plain}}
   for(const [retailer,p] of Object.entries(best) as any)out.push(observation(item,{retailer,label:p.name,price:+p.price,wasPrice:null,special:p.is_special===true,size:p.weight&&p.uom?parseSize(p.weight+p.uom):{packQty:null,packUnit:null},unitPrice:p.unitPrice,provider:'WhichGrocer',today,productId:p.id,photo:p.image_url}))}
  return{observations:out,errors,credits,remaining}}
 // v1.7.5 owner decision: the supermarket's product photo is the picture for ingredients and products. Only https
@@ -129,10 +142,10 @@ export async function refreshOnlinePrices({items,env=process.env,settings={},fet
   for(const o of kept){const line=hist.items[o.itemId+'|'+o.retailer];o.insight=dealSignal(line&&line.productId===String(o.productId||'')?line:null,o,today)}
   await cacheStore.setJSON(ONLINE_HISTORY_KEY,addToHistory(hist,kept,today));
   // product photos of owner-confirmed products, one per catalogue item (cheapest store's photo wins); kept between runs
-  {let ph:any=null;try{ph=await cacheStore.get(ONLINE_PHOTOS_KEY,{type:'json'})}catch{}const items:any=ph?.items&&typeof ph.items==='object'?ph.items:{};const seen=new Set();
+  {let ph:any=null;try{ph=await cacheStore.get(ONLINE_PHOTOS_KEY,{type:'json'})}catch{}const items:any=ph?.items&&typeof ph.items==='object'?ph.items:{};for(const[k,v]of Object.entries(items) as any)if(!stillMatches({itemId:k,label:v?.label}))delete items[k];const seen=new Set();
    for(const o of [...kept].sort((a:any,b:any)=>(a.unitPrice??a.price)-(b.unitPrice??b.price))){if(!o.photo||seen.has(o.itemId))continue;seen.add(o.itemId);items[o.itemId]={photo:o.photo,retailer:o.retailer,label:String(o.label||'').slice(0,160),productId:o.productId,at:today}}
    await cacheStore.setJSON(ONLINE_PHOTOS_KEY,{version:1,updatedAt:today,items});status.photos=Object.keys(items).length}status.deals={real:kept.filter((o:any)=>o.insight.signal==='real').length,fake:kept.filter((o:any)=>o.insight.signal==='fake').length};
-  const prev=await cacheStore?.get?.(ONLINE_KEY(cycle),{type:'json'}).catch(()=>null);const merged=new Map((prev?.observations||[]).map((o:any)=>[o.id,o]));for(const o of kept)merged.set(o.id,o);
+  const prev=await cacheStore?.get?.(ONLINE_KEY(cycle),{type:'json'}).catch(()=>null);const merged=new Map((prev?.observations||[]).filter(stillMatches).map((o:any)=>[o.id,o]));for(const o of kept)merged.set(o.id,o);
   await cacheStore.setJSON(ONLINE_KEY(cycle),{version:1,cycle,importedAt:status.at,source:'online',attribution:[usePinch?'Price data by Pinch':null,useWg?'Product data by WhichGrocer':null].filter(Boolean),observations:[...merged.values()].slice(0,5000)})}
  else status.kept='previous';
  await statusStore?.setJSON?.(ONLINE_STATUS_KEY,status);return status}
