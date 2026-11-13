@@ -40,7 +40,8 @@ for(const [name,width,height] of [['mobile',375,812],['tablet',820,1100],['deskt
  assert.equal(counts['samples:dressing'],7);assert.equal(counts['all:dressing'],await page.evaluate(()=>PLANT_RECIPES.filter(r=>r.recipeKind==='dressing').length));
  for(const scope of ['own','samples','all'])assert.ok(counts[scope+':vegetarian']>counts[scope+':vegan'],`${scope}: Vegetarian is strictly larger than Thuần chay`);
  assert.equal(counts['own:vegan'],1);assert.equal(counts['own:vegetarian'],2);assert.equal(counts['own:noodle'],1);
- assert.ok(counts['samples:western']>=45&&counts['samples:healthy']>=20&&counts['samples:noodle']>=19/* v1.7.10: recognised dishes only */);
+ /* v1.7.19 (13 Nov 2026): the 3 cháo and 3 súp of the quick one-bowl set left “Món sợi” (main / soup), so the sample “Món sợi” chip counts 13 (19 before) */assert.ok(counts['samples:western']>=45&&counts['samples:healthy']>=20&&counts['samples:noodle']>=13/* v1.7.10: recognised dishes only */);
+ assert.equal(await page.evaluate(()=>state.recipes.filter((r:any)=>r.category==='noodle'&&!r.custom&&/^(Cháo|Súp)\s/.test(r.name)).length),0,'no cháo or súp in the noodle group (“Món sợi”)');
  summary[name]=counts;
  // Vegetarian and Thuần chay really show different dishes (an egg dish appears only under Vegetarian).
  await page.locator('[data-fm="samples"]').first().click();await chip(page,'tag','vegetarian').click();const vegNames=new Set(await page.evaluate(()=>familyRecipeRows().map(r=>r.name)));await chip(page,'tag','vegan').click();const veganNames=await page.evaluate(()=>familyRecipeRows().map(r=>r.name));assert.ok(veganNames.every(n=>vegNames.has(n))&&vegNames.has('Canh cà chua trứng')&&!veganNames.includes('Canh cà chua trứng'));
