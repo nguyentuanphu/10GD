@@ -190,7 +190,7 @@ function clippedPrice(line){
  if(!m)return null;const a=repairNumber(m[2],true),b=m[3]?repairNumber(m[3],true):'';
  return{pattern:a!=null&&b!=null?a+'.'+b:'',label:String(line).slice(0,m.index).trim()};
 }
-function amountIn(line){const all=[...String(line).matchAll(/(-)?\s?\$?\s?(\d{1,5})[.,](\d{2})(?![\d%])/g)];if(!all.length)return null;const m=all[all.length-1];const neg=m[1]==='-'||/-\s?\$?\s?$/.test(String(line).slice(Math.max(0,m.index-3),m.index+1));return round((neg?-1:1)*(+m[2]+ +m[3]/100))}
+function amountIn(line){const all=[...String(line).matchAll(/(-)?\s?\$?\s?(\d{1,7})[.,](\d{2})(?![\d%])/g)];if(!all.length)return null;const m=all[all.length-1];const neg=m[1]==='-'||/-\s?\$?\s?$/.test(String(line).slice(Math.max(0,m.index-3),m.index+1));return round((neg?-1:1)*(+m[2]+ +m[3]/100))}
 
 // Item code (ALDI 4–7 digits, Woolworths UK 9 digits): everything before it is OCR noise from the
 // receipt edge / shadow ("Si", "hen", "STE ve", ":"), and the code itself is not part of the name.
@@ -341,7 +341,7 @@ function parseReceipt(text,opts={}){
   if(/^\W*refund\b/i.test(line)&&!/\d[.,]\d{2}/.test(line)){refund=true;if(section==='head'&&i>=bodyStart)section='body';continue}
   // printed totals and item count
   const tot=classifyTotal(line);
-  if(tot){let v=amountIn(line);if(v==null&&lines[i+1]&&/^\W*-?\$?\s?-?\d{1,5}[.,]\d{2}\W*$/.test(lines[i+1]))v=amountIn(lines[i+1]);
+  if(tot){let v=amountIn(line);if(v==null&&lines[i+1]&&/^\W*-?\$?\s?-?\d{1,7}[.,]\d{2}\W*$/.test(lines[i+1]))v=amountIn(lines[i+1]);
    if(tot.count!=null)printedCount=tot.count;
    if(v!=null)totals.push({value:v,p:tot.p,line:i,label:line.replace(/\s*-?\$?\s?-?\d[\d.,\s]*\W*$/,'').trim()});
    pending=null;if(section!=='pay')section=tot.p>=4?'pay':tot.p>=2?'sub':section;continue}
@@ -355,7 +355,7 @@ function parseReceipt(text,opts={}){
   if(/you have saved|^\W*D\d{3}\b/i.test(line)&&det.id==='woolworths-uk'){const v=amountIn(line);if(v!=null&&lastItem){lastItem.discount=round((lastItem.discount||0)-Math.abs(v));lastItem.raw+=' / '+line}continue}
   if(/^\W*(credit|discount|less|promo|coupon|voucher|member\s*(discount|saving)|multi\s*buy|saving)\b/i.test(line)&&!/surcharge/i.test(line)&&/-\s?\$?\s?\d|\d[.,]\d{2}\s*-/.test(line)){const v=amountIn(line);if(v!=null){add(adjust('discount',line,-Math.abs(v)));continue}}
   // v1.7.14: a bare amount right under the subtotal is the total whose word OCR lost (“: $80.83” under “SUB TOTAL”)
-  if(section==='sub'&&/^\W*\$?\s?\d{1,5}[.,]\d{2}\W*$/.test(line)){const v=amountIn(line);if(v!=null)totals.push({value:v,p:3,line:i,label:'TOTAL'});pending=null;continue}
+  if(section==='sub'&&/^\W*\$?\s?\d{1,7}[.,]\d{2}\W*$/.test(line)){const v=amountIn(line);if(v!=null)totals.push({value:v,p:3,line:i,label:'TOTAL'});pending=null;continue}
   if(PAY_RE.test(n)){if(/^(purchase|refund|total aud|mastercard|master card|visa|eftpos|eft|debit|amex)\b/.test(n)||/^cash\b(?! ?out)/.test(n)){const v=amountIn(line);if(v!=null)payAmounts.push(v)}if(section!=='head'||i>bodyStart&&bodyStart>=0)section='pay';pending=null;continue}
   if(isSensitive(line)){pending=null;continue}
   if(/\bnet\b.*\b(gst|vat)\b|^\W*[ab]\s+\d+[.,]\d\s*%/i.test(line))continue;

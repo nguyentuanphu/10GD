@@ -86,7 +86,7 @@ function mealsUsing(s:any,id:string,from:string,days=28){
 }
 
 // ------------------------------------------------------------ reconciliation
-const sydDay=(iso:string)=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Australia/Sydney',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso))}catch{return''}};
+const sydDay=(iso:string)=>{try{return new Intl.DateTimeFormat('en-CA',{timeZone:(typeof familyTimeZone==='function'?familyTimeZone():'Australia/Sydney')/* audit S3: the family's own zone */,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(iso))}catch{return''}};
 function shopRows(s:any,week:any,start:string,end:string){try{return typeof shopping==='function'?shopping(s,week,start,end):[]}catch{return[]}}
 function weekNeed(s:any,week:any,start:string,end:string){const out:any={};for(const r of shopRows(s,week,start,end)){if(r.skip)continue;const already=+(week.bought?.[r.id]||0);out[r.id]=Math.max(0,(+r.qty||0)-already)}return out}
 function receiptLines(s:any,rec:any){return(rec.items||[]).filter((i:any)=>i.ingredient&&hasIng(i.ingredient)&&(!i.lineKind||i.lineKind==='item')).map((i:any)=>{

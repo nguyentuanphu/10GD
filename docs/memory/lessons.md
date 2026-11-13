@@ -2,6 +2,14 @@
 
 Each lesson records what went wrong, what it cost, and the habit and rule that prevent it. Newest first. All dates are Sydney time.
 
+## 13 Nov 2026: re-check of every audit fix (Henry: "different chats … may create mistakes or miss to fix errors")
+1. **A guarded call hid a function that does not exist.**
+   - What happened: the S2 fix called `receiptWeekStart(record)` behind `typeof receiptWeekStart==='function'`. That function lives inside the IIFE of `receipt-ui.ts`, so the guard was always false and the old "week on screen" path ran. Only the new browser test showed it. The same pattern had hidden `ingredientName` (never defined) since v1.7.1, so EN taste labels showed Vietnamese names.
+   - Habit: a `typeof x==='function'` guard is for load order, not for "maybe it exists". Check the name is global (top-level in a non-IIFE file, or set on `globalThis`), and add a test that fails when the fallback runs.
+2. **"Fixed" in one helper's file, missed in the twin.** The re-check found the price form in Tiền tệ & giá still saving a price for the first ingredient (twin of A15/C25), the receipt total reader still at 5 digits (twin of L6's line fix), the receipt-match reasons still in AUD (twin of B13), and the mark-bought path still on the screen's week (twin of the receipt-check sheet). Rule 29 applies to every fix; grep for the same helper or regex before calling it done.
+3. **A test compared the app with itself.** `extras-audit` checked A12 against the button's aria-label, the same source the app used, so it could never fail. Tests compare with what the family sees (`innerText`).
+4. **The sweep skipped a control by accident.** Its sign-in filter `/log-?in/` matched `extra-catalog-ing`. Skip filters need word ends.
+
 ## 13 Nov 2026: v1.7.19 merge and CI
 1. **A wording fix crashed start-up on a new device.**
    - What happened: the lead agent wrapped the planner banner in `tr()`. The planner is drawn once during start-up, before `language.js` loads, so a new device opening on Thực đơn saw “Chưa mở được Bếp Nhà”. Only `test:menu-reactions` caught it, on CI.

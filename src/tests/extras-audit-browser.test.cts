@@ -63,6 +63,16 @@ const GA='family-ing-ga-trong',EMOJI=/\p{Extended_Pictographic}/u;
    await page.locator('#modal-root [data-action="submit-form"][data-id="extra-form"]').click();await page.waitForTimeout(200);
    const ga=await E(`currentWeek().extras.find(e=>e.name==='Gà trống')`);assert.ok(ga,`${label}: added`);assert.equal(ga.qty,'1 con');assert.equal(ga.ingredient,GA,'A9 linked to the ingredient');assert.equal(ga.amount,1);assert.equal(ga.unit,'con');assert.equal(ga.costUnknown,true,`${label}: A4 empty price is unknown`);assert.equal(ga.cost,0);
    assert.match(await page.locator(`#main .shop-row:has([data-id="${ga.id}"]) .price`).innerText(),vi?/Chưa rõ giá/:/(Chưa rõ giá|unknown|not known)/i,`${label}: C13 shows “Chưa rõ giá”, not 0`);
+   // re-check 13 Nov 2026 (Henry, pop-up “Sửa luôn trong v1.7.19”): in English the quick pick fills the English name, keeps the
+   // ingredient link, and the pantry hint is English
+   {const EN_NAME:string=await E(`INGREDIENT_EN['${MILK}']||''`);await E(`(()=>{state.pantry=(state.pantry||[]).filter(p=>p.id!=='qa-milk-lot');state.pantry.push({id:'qa-milk-lot',ingredient:'${MILK}',qty:500,place:'fridge',expiry:'2099-01-01'});save()})()`);
+    await addBtn.scrollIntoViewIfNeeded();await addBtn.click();await page.waitForSelector('#extra-form');await page.selectOption('#extra-catalog-ing',MILK);await page.waitForTimeout(80);
+    const nm=await page.locator('#extra-name').inputValue(),hint=await page.locator('#extra-pantry-hint').innerText();
+    if(vi){assert.equal(nm,MILKNAME,`${label}: VI name`);assert.match(hint,/Trong tủ đang có sẵn/,`${label}: VI hint`)}
+    else{assert.ok(EN_NAME,'the milk has an English name');assert.equal(nm,EN_NAME,`${label}: EN quick pick fills the English name`);assert.match(hint,/The pantry already has/,`${label}: EN hint (${hint})`);assert.ok(!/Trong tủ|Kiểm tra/.test(hint),`${label}: no Vietnamese in the EN hint`)}
+    await page.fill('#extra-amount','1');await page.locator('#extra-amount').dispatchEvent('input');await page.locator('#modal-root [data-action="submit-form"][data-id="extra-form"]').click();await page.waitForTimeout(200);
+    const mk=await E(`currentWeek().extras.find(e=>e.ingredient==='${MILK}')`);assert.ok(mk&&mk.ingredient===MILK,`${label}: the ${vi?'Vietnamese':'English'} name keeps the ingredient link ${JSON.stringify(mk)}`);
+    await E(`(()=>{const w=currentWeek();w.extras=w.extras.filter(e=>e.ingredient!=='${MILK}');state.pantry=state.pantry.filter(p=>p.id!=='qa-milk-lot');save();render()})()`)}
    // a typed catalogue name gets its own unit
    await addBtn.click();await page.waitForSelector('#extra-form');await page.fill('#extra-name',MILKNAME);await page.locator('#extra-name').dispatchEvent('input');await page.waitForTimeout(60);assert.equal(await page.locator('#extra-unit').inputValue(),'ml',`${label}: A3 typed ${MILKNAME} gets ml, not g`);await E('closeModal()');
 
@@ -90,7 +100,7 @@ const GA='family-ing-ga-trong',EMOJI=/\p{Extended_Pictographic}/u;
    const aside=await E(`(()=>{const b=[...document.querySelectorAll('#main aside [data-action="store-purchases"],#main aside .text-btn')].find(x=>/Cất đồ|Put/.test(x.textContent));return b?{dis:b.disabled,why:document.getElementById('store-purchases-why')?.textContent||''}:null})()`);
    if(aside){assert.equal(aside.dis,true,`${label}: A10 disabled when nothing is ticked`);assert.ok(aside.why.length>5,'A10 says why')}
    else assert.equal(await page.locator('#main [data-action="store-purchases"]:not([disabled])').count(),0,`${label}: A10 no live put-away control with nothing ticked`);
-   const skip=page.locator('#main [data-action="skip-row"]').first();if(await skip.count()){const lab=(await E(`(()=>{const b=document.querySelector('#main [data-action="check-pantry"]');return (b?.getAttribute('aria-label')||b?.textContent||'').replace(/\\s*\\(\\d+\\)\\s*$/,'').replace(/^[^\\p{L}]+/u,'').trim()})()`)) as string;
+   const skip=page.locator('#main [data-action="skip-row"]').first();if(await skip.count()){const lab=(await E(`(()=>{const b=document.querySelector('#main [data-action="check-pantry"]');return (b?.innerText||'')/* re-check 13 Nov 2026: the words on screen; the aria-label made this test unable to fail */.replace(/\\s*\\(\\d+\\)\\s*$/,'').replace(/^[^\\p{L}]+/u,'').trim()})()`)) as string;
     await skip.click();await page.waitForSelector('#modal-root .modal');const t=await page.locator('#modal-root .modal-content').innerText();assert.ok(lab&&t.includes(lab),`${label}: A12 names “${lab}” (${t.slice(-140)})`);assert.ok(!/Kiểm tra đồ đã có \/ bỏ qua|Check pantry \/ skipped items/.test(t),'A12 old label gone');await E('closeModal()')}
 
    // ---- B8: the extra's store sheet is the full one

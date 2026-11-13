@@ -2,6 +2,12 @@
 
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
+## 13 Nov 2026 (re-check of the audit fixes, new chat)
+- **Check every fix again:** Henry: "Once ran, make sure you double check to see if all the errors you found are fixed, my concerns are different chats handling which may create mistakes or miss to fix errors". Two read-only agents re-checked A1–D30, the sweep list and the Tự chạy thử bugs on 3507cfa; the lead checked their findings and fixed the misses in v1.7.19 (see `docs/reviews/v1.7.19/review.md`, "Re-check of every audit fix").
+- **Counted items in the pantry (C25), pop-up answer "Giữ bước ¼":** Tủ → Thêm thực phẩm keeps ¼ steps for counted units (½ quả bí, ½ con gà). The shopping list still rounds up to whole numbers.
+- **Mua thêm in English, pop-up answer "Sửa luôn trong v1.7.19":** picking a suggestion in English fills the English name, still linked to the same ingredient.
+- **Resume routine:** "Resume FamTray v1.7.19 release work" no longer exists on the account (delete returned not found, 13 Nov 10:55); no schedules are active.
+
 ## 12 Nov 2026 (evening, new chat)
 - **Audit scenarios in "Tự chạy thử" (autoplay):** Henry: "i knew there would be this issues so thats why i asked you to create the autoplay to test all the scenarios, now based on what you learn and what you have audited, incoporate it in the autoplay". The ladybug "Tự chạy thử" (`ladybug-autoplay.ts`, `ladybug-workflows.ts`) gets scenarios for the audit's lessons (rules 29–34): week starting on a day other than Monday, English, money in another currency, recipe yield, guests, no silent defaults, counts equal what they open, no empty sheets, add/edit/undo parity, the dish sheet, meal times and reminders, spoon amounts as notes, extras, and the validImport / sync-merge round trip after every workflow. Ships in v1.7.19. Same safety as before: sample family or a copy, nothing saved or sent except the failure report.
 - **Agents:** run at most 2 helper agents at a time ("chay 2 agents 1 luc thoi").

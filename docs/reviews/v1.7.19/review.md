@@ -486,3 +486,41 @@ now fixed here with tests:
 
 Not covered by the helper's scenarios (recorded): a phone time zone other than Sydney (the audit sweep covers it with its
 Ho Chi Minh pass); physical phones.
+
+## Re-check of every audit fix (13 Nov 2026, Sydney time)
+
+Henry asked for this check because several chats and helper agents made the fixes: "make sure you double check to see if all the errors you found are fixed, my concerns are different chats handling which may create mistakes or miss to fix errors".
+
+**How:** two read-only agents re-checked every finding on 3507cfa against the code and in Chromium probes, without trusting this record. One took A1–A27, B1–B23 and the sweep list; the other took C1–C25, S1–S4, D1–D30 and the Tự chạy thử bugs. The lead then checked each item they did not mark fixed (rule 30). Tables: [A-B-table.md](recheck/A-B-table.md), [C-D-table.md](recheck/C-D-table.md).
+
+**Result on 3507cfa** (counted from the two tables): A, B and the sweep list, 64 rows: 57 fixed, 6 partly fixed (A12, B9, B12, B13, B16, B19), 1 was a wrong check (N6, rewritten). C, S, D and the Tự chạy thử bugs, 68 rows: 56 fixed, 2 partly fixed (C25, L6), 4 not fixed (S1–S4, all "suspected" in the audit), 6 left by Henry's decision (D25–D30, privacy wording). `dist/privacy.html` and `dist/feedback-privacy.html` are unchanged from main.
+
+**Fixed in this re-check** (each has a test that fails on 3507cfa):
+
+| Item | What was wrong | Fix | Test |
+|---|---|---|---|
+| L6 (twin) | The printed total read only 5 digits: a 160.000 đ receipt read as 60.000 | `receipt-parse.ts` total readers take 7 digits, like the item lines | `audit-data-fixes` "re-check L6" |
+| S2 | "Đánh dấu đã mua" marked the week on screen, not the receipt's week; a part amount of a counted item threw after the receipt was already in memory | `family-features.ts` uses `planStartOf(state, receipt date)`; a part amount is skipped and named in the toast | `audit-data-browser` "S2" |
+| S1 | Cooking took a lot kept for another meal ("Dành cho bữa …") | `core.ts` `takeFromPantry`: the meal's own kept lots first, other meals' kept lots last | `audit-data-fixes` "re-check S1" (Sat/Sun/Mon, AUD/VND) |
+| S3 | Receipt matching used Sydney days on a Vietnam-time family | `receipt-list.ts` uses `familyTimeZone()` | covered by the existing receipt-list runs in both zones |
+| B13 (twin) | Receipt-match reasons wrote đồng as dollars and lost the sign of the total gap | `receipt-match.ts` `moneyL` in the receipt currency; So Giá stays AUD | `receipt-match` "re-check B13" |
+| A15/C25 (twin) | Tiền tệ & giá → "Nhập giá để dự toán" saved a price for Thịt heo when nobody chose it | empty first option, required, refused with a message | `audit-data-browser` "price form" |
+| A12 | The skip sheet named the button by its aria-label, not its words on screen; the test compared with the same aria-label | visible text in the app and in the test | `extras-audit` |
+| Mua thêm EN | Picking a suggestion in English filled the Vietnamese name and a Vietnamese hint | English name and hint; the link to the ingredient is kept (Henry, pop-up: "Sửa luôn trong v1.7.19") | `extras-audit` "re-check 13 Nov" |
+| B8/B22 | The extra's store sheet used different English words from the ingredient's | same words | `extras-audit` |
+| push-ui | An untranslated fallback error that said "push" | VI/EN, plain words | — |
+| Family tastes EN | `ingredientName` never existed, so EN showed Vietnamese ingredient names (since v1.7.1) | `shopIngName` | — |
+| Sweep | The sign-in skip filter matched `extra-catalog-ing`, so "Chọn nhanh" was never tapped | word end in the filter | `audit-sweep` |
+
+**Henry's decision:** C25, counted items in the pantry keep ¼ steps (pop-up "Giữ bước ¼").
+
+**Still open, for Henry** (not serious; listed, not fixed):
+- S4 (suspected, not reproduced): bought ticks are per week, not per date range.
+- B9: five store lists; joining them needs a check that older devices accept the synced data.
+- B12: the So Giá pack units (g, kg, mL, L, each, wash, roll, sheet) differ from the shared picker; Tủ → Thêm thực phẩm takes the base unit only.
+- B16: two native `confirm()` dialogs (removing a meal, clearing a dictated transcript); deleting a pantry lot has no undo; mixed spellings Xóa/Xoá, Hủy/Huỷ.
+- B19: the buying display uses 2 decimals; "suất" vs "suất chuẩn".
+- A1 note: two buttons open the same pantry sheet under different names ("Đồ trong tủ", "Đồ đã có").
+- Receipt currency: a VND receipt is detected as AUD unless the family's currency is VND.
+- The plant-v5 dishes and "Cháo gà từ cơm chín" have no English name.
+- Unconfirmed agent calls: C5 (GBP/EUR receipts kept but not in AUD/VND totals), C21 (spoons round up to ¼); D1 keeps the □ ✓ marks in the shared list text.

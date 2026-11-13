@@ -56,7 +56,7 @@ const KNOWN_TS='2026-11-11T14:47:00.000Z',KNOWN_SYD='01:47',KNOWN_HCM='21:47';
 // ---------------------------------------------------------------------------------------------------------------------------
 // Skips: destructive or outward actions only. Every skip is printed with its reason.
 const SKIPS:[RegExp,string][]=[
- [/sign-?in|sign-?up|register|login|log-?in|auth|magic-?link|otp|passkey/i,'sign-in / account creation (outward)'],
+ [/sign-?in|sign-?up|register|login(?![a-z])|log-?in(?![a-z])|auth|magic-?link|otp|passkey/i,/* re-check 13 Nov 2026: “catalog-ing” is not a sign-in */'sign-in / account creation (outward)'],
  [/sign-?out|log-?out|delete-account|account-delete|close-account|leave-family|leave\b|unpair|forget-device|revoke/i,'sign-out / leaves or deletes the account'],
  [/wipe|erase|reset-all|reset-data|reset-app|reset-family|clear-all-data|factory/i,'wipes every family record on the device'],
 [/\bsend\b|send-|share(?!-request)|invite|rsvp-send|copy-link|copy-invite|feedback|ladybug|report-bug|github|^report|\bbug\b|mailto|tel:/i,'sends or shares outside the app'],

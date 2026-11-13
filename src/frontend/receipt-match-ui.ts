@@ -57,7 +57,7 @@ function suggestionsFor(d,bk){
  const used=new Set(d.items.filter(i=>!unmatched(i)).flatMap(targetsOf));
  const known=Math.round(d.items.filter(i=>!(isGeneric(i)&&unmatched(i))).reduce((n,i)=>n+(+i.total||0),0)*100)/100;
  const printed=d.meta?.printedTotal??(Number.isFinite(d.total)&&d.total>0?d.total:null);
- return RM.suggest({lines,basket:bk,exclude:[...used],history:RM.familyHistory(state.receipts,{store:d.store,excludeId:d.id}),community:communityRows(),learned:RM.learnedAt(state.receiptLearning,d.store),printedTotal:printed,knownTotal:known});
+ return RM.suggest({lines,basket:bk,exclude:[...used],history:RM.familyHistory(state.receipts,{store:d.store,excludeId:d.id}),community:communityRows(),learned:RM.learnedAt(state.receiptLearning,d.store),printedTotal:printed,knownTotal:known,currency:d.currency||(typeof currentCurrency==='function'?currentCurrency(state):'AUD')});
 }
 
 // ------------------------------------------------------------ apply a match (with undo)

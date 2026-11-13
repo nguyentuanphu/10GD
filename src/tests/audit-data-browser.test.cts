@@ -54,6 +54,17 @@ const overflow=(page:any)=>page.evaluate(()=>document.documentElement.scrollWidt
   // C20: weighing the pack clears the estimate
   await E(()=>stockForm('lot-qa'));await page.waitForSelector('#unit-stock-total');await page.fill('#unit-stock-total','350');await page.locator('[data-action="submit-form"][data-id="unit-stock-form"]').click();await page.waitForTimeout(300);
   const lot=await E(()=>{const p=state.pantry.find((x:any)=>x.id==='lot-qa');return{qty:p.qty,est:p.qtyEstimated,note:pantryBuyingNote(p)}});ok(lot.qty===350&&lot.est===undefined&&!/ước tính|estimated/.test(lot.note),`C20 ${lang}: ${JSON.stringify(lot)}`);
+  // re-check 13 Nov 2026 (rule 32): “Nhập giá để dự toán” starts with no ingredient and refuses to save one nobody chose
+  {const before=await E(()=>priceFor(state,'pork'));await E(()=>currencyModal());await page.waitForSelector('#ingredient-price-form');
+   ok(await page.locator('#ingredient-price-form select[name="ingredient"]').inputValue()==='',`price form ${lang}: no ingredient chosen at first`);
+   await page.fill('#ingredient-price-form input[name="price"]','0.02');await E(()=>(document.querySelector('#ingredient-price-form') as any).requestSubmit());await page.waitForTimeout(200);
+   ok(await E(()=>priceFor(state,'pork'))===before,`price form ${lang}: nothing saved for an ingredient nobody chose`);if(await E(()=>!!document.querySelector('#modal-root .modal')))await E(()=>closeModal())}
+  // re-check 13 Nov 2026 (audit S2): “Đánh dấu đã mua” marks the receipt's own menu week, not the week on screen
+  {const r=await E(()=>{const g:any=globalThis,[start]=shopDates(),nextStart=addDays(planStartOf(state,start),7),cur=currentWeek(),nxt=planWeek(state,nextStart),dish=(id:string)=>({id,name:id,category:'main',protein:'pork',time:20,prep:'',steps:[],ingredients:[{id:'pork',qty:300}]});
+    const d0=Object.keys(cur.days).find((x:string)=>x>=start)||Object.keys(cur.days)[0],d1=addDays(nextStart,2);cur.days[d0].lunch.recipes=[dish('qa-s2-a')];nxt.days[d1].lunch.recipes=[dish('qa-s2-b')];delete cur.bought?.pork;delete nxt.bought?.pork;save();
+    newReceipt();closeModal();/* the draft is filled here, not through the sheet */const d:any=receiptDraft;d.date=addDays(nextStart,1);d.store='QA S2';d.total=9;d.markBought=true;d.currency=currentCurrency(state);d.items=[{id:'s2',label:'PORK MINCE',total:9,match:'pork',qty:500,unit:'g',confidence:'high'}];
+    return saveReceipt(true).then(()=>({cur:+(currentWeek().bought?.pork||0),next:+(planWeek(state,nextStart).bought?.pork||0)}))});
+   ok(r.next>0&&r.cur===0,`S2 ${lang}: marked in the receipt's week ${JSON.stringify(r)}`);if(await E(()=>!!document.querySelector('#modal-root .modal')))await E(()=>closeModal())}
   // round trip (rule 33): everything written loads, and merges
   ok(await E(()=>validImport(JSON.parse(JSON.stringify(state)))),`${lang}: state valid`);ok(await E(()=>{const g:any=globalThis;const r=mergeFamilyStates(g.qaBase,JSON.parse(JSON.stringify(state)),g.qaBase,{now:Date.now()});return validImport(JSON.parse(JSON.stringify(r.state)))&&r.state.pantry.find((p:any)=>p.id==='lot-qa')?.qty===350}),`${lang}: merged state valid and keeps the edit`);
   assert.deepEqual(errors,[],`${lang}: no page errors`);await context.close()}

@@ -152,4 +152,20 @@ test('C18: the same family unit made on two devices is one unit and keeps its co
  const old=fam();old.customUnits=[{id:'cu-old1',name:'túi lưới to',createdAt:'2026-11-01T00:00:00Z'},{id:'cu-old2',name:'Túi lưới to',base:'g',perBase:2000,createdAt:'2026-11-02T00:00:00Z'}];ok(customUnitFactor(old,'spinach','Túi lưới to')===2000,'lookup prefers the copy with a conversion');
  const m2=mergeFamilyStates(null,old,fam(),{now:7000}).state;ok(m2.customUnits.length===1&&m2.customUnits[0].perBase===2000,'duplicates folded: '+JSON.stringify(m2.customUnits));ok(valid(m2),'valid')})()`));
 
+// ---------------------------------------------------------------- re-check of every audit fix, 13 Nov 2026 (Sydney time)
+test('re-check L6: a printed đồng total of 6–7 digits is read whole',()=>run(`(()=>{
+ const r=ReceiptParse.parseReceipt("CO.OP MART\\nTRUNG GA 10 QUA 35000.00\\nTHIT BA CHI 500G 125000.00\\nTONG CONG 160000.00");ok(r.printedTotal===160000,'printed total '+r.printedTotal);
+ const r2=ReceiptParse.parseReceipt("CO.OP MART\\nGAO 5KG 1394567.00\\nTONG CONG 1394567.00");ok(r2.printedTotal===1394567,'7 digits '+r2.printedTotal)})()`));
+for(const pref of MATRIX)test(`re-check S1: a lot kept for one meal is not taken by another while other stock is there (${JSON.stringify(pref)})`,()=>run(`(()=>{
+ const s=fam(${JSON.stringify(pref)}),start=planStartOf(s,'2026-11-12'),w=planWeek(s,start),d1=addDays(start,1),d3=addDays(start,3);
+ w.days[d1].dinner.recipes=[dish('a',{pork:300})];w.days[d3].dinner.recipes=[dish('b',{pork:300})];
+ s.pantry.push({id:'kept',ingredient:'pork',qty:400,place:'fridge',expiry:'2099-01-01',forMeal:{date:d3,type:'dinner'}},{id:'free',ingredient:'pork',qty:400,place:'fridge',expiry:'2098-01-01'});
+ const need=mealIngredients(w.days[d1].dinner,s).pork;consumeMeal(s,w.days[d1].dinner);
+ ok(s.pantry.find(p=>p.id==='kept').qty===400,'kept lot untouched: '+JSON.stringify(s.pantry));ok(Math.abs(s.pantry.find(p=>p.id==='free').qty-(400-need))<1e-6,'free lot used');
+ consumeMeal(s,w.days[d3].dinner);ok(w.days[d3].dinner.consumed.some(c=>c.lotId==='kept'),'the kept lot goes to its own meal first');ok(valid(s),'valid')})()`));
+test('re-check S1: a kept lot is still used when nothing else is in the pantry',()=>run(`(()=>{
+ const s=fam(),w=ensureWeek(s,'2026-11-09');w.days['2026-11-10'].dinner.recipes=[dish('a',{pork:300})];
+ s.pantry.push({id:'kept',ingredient:'pork',qty:400,place:'fridge',expiry:'',forMeal:{date:'2026-11-13',type:'dinner'}});
+ const r=consumeMeal(s,w.days['2026-11-10'].dinner);ok(w.days['2026-11-10'].dinner.consumed.some(c=>c.lotId==='kept'),'used last, not refused');ok(valid(s),'valid')})()`));
+
 (async()=>{for(const[name,fn]of tests){try{await fn();passed++;console.log('PASS',name)}catch(e:any){console.error('FAIL',name);throw e}}console.log(`audit data fixes: ${passed}/${tests.length} passed`)})().catch(e=>{console.error(e);process.exit(1)});
