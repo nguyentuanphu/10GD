@@ -8,7 +8,7 @@ Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; thi
 - **Mua thêm in English, pop-up answer "Sửa luôn trong v1.7.19":** picking a suggestion in English fills the English name, still linked to the same ingredient.
 - **"Nếu làm thì làm hết 1 lượt"** (13 Nov, about 13:00): every remaining re-check item (S4, B9, B12, B16, B19, A1 naming, receipt currency, English dish names) is done in v1.7.19 too.
 - **D25 feedback privacy page** (pop-up, 13 Nov): "Để nguyên như cũ". Page and filing stay as they are; decide later.
-- **D26–D30 privacy wording:** the pop-up preview did not show the draft ("Chưa thấy draft thì sao mà duyệt"). Draft is in `docs/plans/privacy-draft-20261113.md`; waiting for his answer. Never put a draft only in a pop-up preview.
+- **D26–D30 privacy wording:** the pop-up preview did not show the draft ("Chưa thấy draft thì sao mà duyệt"). Draft in `docs/plans/privacy-draft-20261113.md`, shown in chat; pop-up answer "Duyệt nguyên văn" (13 Nov, about 13:20). Section 9 "Những lần app gọi ra ngoài" / "When the app reaches outside" is added to `dist/privacy.html` word for word, page date 13/11/2026. It describes what the app already sends; no data handling changed. Never put a draft only in a pop-up preview.
 - **Resume routine:** "Resume FamTray v1.7.19 release work" no longer exists on the account (delete returned not found, 13 Nov 10:55); no schedules are active.
 
 ## 12 Nov 2026 (evening, new chat)

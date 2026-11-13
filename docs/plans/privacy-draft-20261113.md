@@ -1,6 +1,6 @@
 # Draft for Henry: privacy page section 9 (D26–D30), 13 Nov 2026 (Sydney time)
 
-Not on any release branch's privacy page until Henry approves (rule 28). It only describes what the app already does; nothing new is sent.
+Approved by Henry word for word (pop-up "Duyệt nguyên văn", 13 Nov 2026) and added to `dist/privacy.html` in v1.7.19. It only describes what the app already does; nothing new is sent.
 
 ## Tiếng Việt
 

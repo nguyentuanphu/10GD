@@ -524,3 +524,6 @@ Henry asked for this check because several chats and helper agents made the fixe
 - Receipt currency: a VND receipt is detected as AUD unless the family's currency is VND.
 - The plant-v5 dishes and "Cháo gà từ cơm chín" have no English name.
 - Unconfirmed agent calls: C5 (GBP/EUR receipts kept but not in AUD/VND totals), C21 (spoons round up to ¼); D1 keeps the □ ✓ marks in the shared list text.
+
+### Privacy page change (rule 28), 13 Nov 2026
+Henry approved the wording word for word (pop-up "Duyệt nguyên văn"; draft in `docs/plans/privacy-draft-20261113.md`). `dist/privacy.html` gets section 9 "Những lần app gọi ra ngoài" / "When the app reaches outside" (weather, Tìm giá online, voice statistics codes, app-update notes, third-party fonts/libraries/photos), a contents link in both languages, and the date 13/11/2026. This closes D26–D30. It describes what the app already does: **no change to what is collected, sent, stored or shared.** D25 (feedback page) stays as it is (Henry: "Để nguyên như cũ").
