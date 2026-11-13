@@ -150,6 +150,8 @@ const sizes:any={mobile:{width:375,height:812},tablet:{width:820,height:1100},de
   assert.ok(await page.evaluate(()=>!!document.activeElement?.closest('#meal-lib-list')),'focus stays in the list');
   await page.locator('#meal-dish-search').fill('xyzkhongco');await page.waitForTimeout(400);assert.match(await page.locator('#meal-search-status').innerText(),/Không tìm thấy món ăn khớp.*\(0 món\)/);assert.equal(await page.locator('[data-meal-more]').count(),0,'no Show more on an empty result');
   await page.locator('#meal-dish-search').fill('');await page.waitForTimeout(400);assert.equal(await libRows(),3,'clearing the search returns to 3 suggestions');
+  {/* v1.7.20 (rule 29): the shared dish keeps the family's own line order (lineOrder), like Viết món and the dish sheet */const sh=await page.evaluate(()=>{const r:any={id:'qa-order',ingredients:[{id:'pork',qty:300},{id:'garlic',qty:10},{id:'onion',qty:100}],missingIngredients:['Nước mắm 2 muỗng canh'],lineOrder:['i:onion','n:0','i:pork','i:garlic']};return (globalThis as any).rcSharedIngredients(r).map((x:any)=>x.name)});
+   assert.deepEqual(sh,await page.evaluate("['onion','pork','garlic'].map(id=>INGREDIENTS[id][0])"),label+': shared lines follow the family order '+JSON.stringify(sh))}
   await noOverflow(page,label+' meal');assert.deepEqual(errors,[]);await context.close();
  }
 
