@@ -2,6 +2,15 @@
 
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
+## 14 Nov 2026 (about 08:00, v1.7.21; phone screenshots of the shopping list)
+- Henry's report: Lemon on the list is priced as ALDI "Lemon & Pepper Tuna 95g" (wrong match, and the tuna photo shows on the row); the So Giá price history shows no product photos; "Add item" and "Request item" should sit side by side; finding a dish should work by kind/meal, not only by name; the shopping row is too tall (unit, round down/up, shop); each category needs a quick view; extras like "Bánh chưng" land in "Household items" when grouped by aisle; the usual-shops list grows too long.
+- Pop-up answers:
+  - Extras aisle: the app guesses from the name (bánh → bakery & dry goods, đèn cầy → household…), "Khác" when it cannot tell; a choice to change it when adding and editing; the app remembers the choice.
+  - Quick view: a "Xem nhanh" button per category folds it to one short line per item (tick · name · amount); tap again to open; remembered on the device.
+  - Row layout (Henry's own answer): the round down/up buttons go INTO the unit button (tap its arrows to step up or down), the empty space under the tick box is used, and the shop name sits next to it.
+  - Dish search: chips by kind (Món chính, Món phụ, Canh/Súp, Món sợi, Cháo…), by meal (sáng/trưa/tối/phụ) and "Hay nấu", combinable with typing.
+- Also from the screenshots (agent's finds, rule 36): extras with an unknown price show "$0.00"; category counts say "dishes" for items; store and suburb run together ("Thái Hưng GroceryMarrickville"); a stray dot in a category heading; the whole chicken matched to an ALDI $3.99 product.
+
 ## 14 Nov 2026 (morning)
 - **DEPLOY v1.7.20** (Henry, about 06:55). PR #43 squash-merged as 1bf0b29 at 06:57 AEDT; CI green on 9669cf7; production served the new build at 06:58. The working branch carries on from main.
 
