@@ -66,8 +66,8 @@ for(const [size,opts] of SIZES){
  assert.equal(await page.locator('#meal-lib-list .family-select-row').count(),3,'3 reference suggestions (v1.7.8 ladybug #26; was 5)');
  const more=page.locator('#meal-lib-list [data-meal-more="lib"]');await tap(more);assert.equal(await page.locator('#meal-lib-list .family-select-row').count(),6,'Xem thêm shows 3 more');
  assert.ok(await page.locator('#meal-own-list .family-select-row').count()<=3,'at most 3 family dishes before Xem thêm');
- const portion=page.locator('#modal-root select[name^="size-"]').first();if(await portion.count()){const opts2=await portion.locator('option').allInnerTexts();assert.equal(opts2[0],'Tự tính theo số người');assert.ok(opts2.includes('½ lượng (50%)')&&opts2.includes('Gấp đôi (200%)'))}
- assert.match(await page.locator('#modal-root').innerText(),/Tự tính theo số người.*nấu đủ cho những người ăn bữa này/s,'portion choice explained');
+ const portion=page.locator('#modal-root select[name^="size-"]').first();if(await portion.count()){const opts2=await portion.locator('option').allInnerTexts();assert.equal(opts2[0],'Tự tính','v1.7.21: short visible label (the full meaning is in the select name and the hint)');assert.ok(opts2.includes('½ lượng (50%)')&&opts2.includes('Gấp đôi (200%)'))}
+ assert.match(await page.locator('#modal-root').innerText(),/“Tự tính” \(theo số người\) nấu đủ cho những người ăn bữa này/s,'portion choice explained');
  await noOverflow('meal editor');await shot('meal-editor');await page.evaluate(()=>(globalThis as any).eval('closeModal()'));
  // ---- Lịch mang cơm (5 Nov 2026): “Cả nhà” ticks a day for everyone; saving marks the coming lunches “Mang đi”
  await page.evaluate(()=>{location.hash='today'});await page.waitForTimeout(500);

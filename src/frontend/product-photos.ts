@@ -10,7 +10,11 @@ function ppItemFor(key:string){if(!key)return null;const cat=ppCatalog();
  const byIng=cat.find((i:any)=>i.ingredientId===key);if(byIng)return byIng;
  const byId=cat.find((i:any)=>i.id===key);if(byId)return byId;
  const PS=(globalThis as any).PriceScout;if(PS?.matchCatalog){const m=PS.matchCatalog(String(key),cat,1)[0];if(m&&m.score>=0.6)return m.item}return null}
-function productPhotoFor(key:string){const item=ppItemFor(key),p=item&&ppData.items[item.id];return p&&/^https:\/\//.test(p.photo)?{...p,itemId:item.id}:null}
+// v1.7.21: the row's picture is the photo of the product whose price the row shows (So Giá's cheapest online product for this
+// item), so a photo always goes with its product; the shared list (already re-checked on the server) fills in otherwise.
+function productPhotoFor(key:string){const item=ppItemFor(key);if(!item)return null;const g:any=globalThis;
+ try{if(typeof g.scoutOnlineFor==='function'&&typeof g.scoutOnlineBest==='function'){const o=g.scoutOnlineBest(g.scoutOnlineFor(item.id));if(o&&typeof o.photo==='string'&&/^https:\/\//.test(o.photo))return{photo:o.photo,retailer:o.retailer,label:o.label,itemId:item.id}}}catch{}
+ const p=ppData.items[item.id];return p&&/^https:\/\//.test(p.photo)?{...p,itemId:item.id}:null}
 function ppWrap(drawn:string,p:any){const src=String(p.photo).replace(/"/g,'%22');return`<span class="pp-wrap" data-photo-store="${String(p.retailer||'').replace(/[^a-z-]/g,'')}"><img class="pp-img" src="${src}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">${drawn}</span>`}
 async function ppRefresh(force=false){if(!navigator.onLine||(globalThis as any).BEP_OFFLINE)return;if(!force&&Date.now()-(ppData.at||0)<PP_MAX_AGE)return;
  try{const r=await fetch('/.netlify/functions/grocery?op=photos',{cache:'no-store'});if(!r.ok)return;const d=await r.json();ppData={at:Date.now(),items:d&&typeof d.items==='object'?d.items:{}};try{localStorage.setItem(PP_KEY,JSON.stringify(ppData))}catch{}
