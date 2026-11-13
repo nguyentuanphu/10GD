@@ -67,6 +67,7 @@ try{for(const [name,width,height,lang,theme,tz] of sizes){
  assert.ok(await page.evaluate(()=>validImport(JSON.parse(JSON.stringify(state)))),'round trip: the state still loads');
  // 7. the Món ăn tab: the same meal and “Hay nấu” chips
  await page.evaluate(()=>{location.hash='recipes'});await page.locator('#family-recipe-chips').waitFor();
+ assert.equal(await page.locator('#family-recipe-chips button svg, #family-recipe-chips button img').count(),0,'Món ăn tab: chips are words only, no drawing or emoji (rule 27)');assert.ok(!/[\u{1F300}-\u{1FAFF}]/u.test(await page.locator('#family-recipe-chips').innerText()),'Món ăn tab: no emoji in the chips');
  const lib=(fm,key)=>page.locator(`#family-recipe-chips [data-fm="${fm}"][data-key="${key}"]`);
  await page.locator('[data-fm="own"]').first().click();await page.waitForTimeout(200);
  const b0=await lib('often-filter','often').boundingBox();assert.ok(b0.height>=44,'library chip ≥44 px');await lib('often-filter','often').click();await page.waitForTimeout(250);
