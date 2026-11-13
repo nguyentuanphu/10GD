@@ -293,7 +293,7 @@
   const famDay=()=>zoneDate(fam);let restore:any=null;
   try{
    await part(aT(`Máy dùng giờ ${phone} (máy đang để ${realZone()}); ngày của nhà (${fam}) khác ngày trên máy`,`The phone uses ${phone} time (it is set to ${realZone()}); the family’s date (${fam}) differs from the phone’s`),async()=>{restore=phoneIn(phone);
-    const dev=new Date().toLocaleDateString('en-CA');
+    /* deliberately the phone's own zone (no timeZone): this checks that the phone now uses the zone set above */const at0=new Date(),dev=at0.toLocaleDateString('en-CA');
     expect(new Intl.DateTimeFormat().resolvedOptions().timeZone===phone&&dev===zoneDate(phone),aT(`Máy chưa dùng giờ ${phone} (${dev}).`,`The phone is not using ${phone} time (${dev}).`));
     expect(dev!==famDay(),aT('Ngày trên máy trùng ngày của nhà; không kiểm tra được.','The phone’s date is the family’s; nothing to check.'))});
    await part(aT('Thực đơn → “Tuần này”: “Hôm nay” là ngày của nhà','Menu → “This week”: “Today” is the family’s date'),async()=>{await go('planner');weekStart=planStartOf(state,addDays(famDay(),14));render();await sleep(100);const wn=find('#main [data-action="week-now"]');if(wn)await tap(wn,{still:true});else{selectedDate=sydneyDate();weekStart=planStartOf(state,selectedDate);render()}await sleep(150);
