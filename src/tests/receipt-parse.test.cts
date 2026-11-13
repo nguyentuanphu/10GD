@@ -247,5 +247,28 @@ check('Cuong Thien grocer: wrapped “I / BIG BUNCH” is no item, “66 $1.20�
  assert.ok(r.warnings.some((w:any)=>w.code==='short'));
  const b=R.parseReceipt('CUONG THIEN PTY ©\nA.B.N. 24 684 946 085\nMARRICKVILLE NSW 2204\nTAX INVOICE\nBUK CHOY   $5.00\nTOTAL: $5.00\n');assert.equal(b.store,'Cuong Thien Marrickville');
 });
+// v1.7.19 re-check (receipt currency, 13 Nov 2026): a đồng receipt says VND by itself (store, sign, size of the amounts) and its
+// amounts are read whole (35.000 → 35000, never 35); dollar receipts stay AUD, a receipt that does not say leaves the family's.
+check('receipt currency: đồng receipts are VND from the receipt itself; dollar receipts stay AUD; amounts are read, not converted',()=>{
+ const vnd:[string,string,number,number[]][]=[
+  ['CO.OP MART\nTRUNG GA 10 QUA 35000.00\nTHIT BA CHI 500G 125000.00\nTONG CONG 160000.00','store',160000,[35000,125000]],
+  ['SIÊU THỊ CO.OPMART CỐNG QUỲNH\nHÓA ĐƠN BÁN LẺ\nTrứng gà 10 quả   35.000\nThịt ba chỉ 0,5kg   125.000\nTỔNG CỘNG   160.000\nTiền mặt   200.000\nTiền thối lại   40.000\nCảm ơn quý khách','store',160000,[35000,125000]],
+  ['BÁCH HÓA XANH\nRau muống 1 bó 12,000\nCà chua 500g 18,500\nTổng tiền: 30,500 đ','store',30500,[12000,18500]],
+  ['TIỆM TẠP HOÁ CÔ BA\nNước mắm 1 chai 45.000đ\nĐường 1kg 28.000đ\nTổng cộng 73.000đ','symbol',73000,[45000,28000]],
+  ['CHO BEN THANH\nCa hu 2 con 90000\nRau cai 15000\nTong cong 105000','amounts',105000,[90000,15000]]];
+ for(const[t,from,total,lines]of vnd){const r=R.parseReceipt(t);assert.equal(r.currency,'VND',t.split('\n')[0]);assert.equal(r.currencyFrom,from,t.split('\n')[0]+' reason');
+  assert.equal(r.printedTotal,total,t.split('\n')[0]+' total');deq(goods(r).map((i:any)=>i.price),lines,t.split('\n')[0]+' lines')}
+ // a Vietnamese grocer in Sydney prints Vietnamese words on a dollar receipt: AUD
+ for(const t of ['CHỢ VIỆT CABRAMATTA\nCảm ơn quý khách\nRau muống 2.50\nTổng cộng $2.50','TIEM HUNG PHAT PTY LTD\nABN 12 345 678 901\nThit heo 1kg 12.90\nCa chua 3.50\nTOTAL 16.40']){const r=R.parseReceipt(t);assert.equal(r.currency,'AUD',t);assert.ok(r.currencyFrom,'says AUD: '+t)}
+ // nothing says the currency: the family's is used (currencyFrom null), and a Vietnamese word alone is not enough
+ {const r=R.parseReceipt('Cảm ơn quý khách\nRau muong 2.50\nCa chua 3.50\nTong cong 6.00');assert.equal(r.currencyFrom,null);assert.equal(r.currency,'AUD')}
+ {const r=R.parseReceipt('CHO VIET\nTong cong 1000.00');assert.equal(r.currencyFrom,null,'one round amount is not enough')}
+ // every dollar / pound fixture is read exactly as before and never as đồng
+ const all:[string,string][]=[];const walk=(v:any,k:string)=>{if(typeof v==='string'){if(v.length>40&&v.includes('\n'))all.push([k,v])}else if(v&&typeof v==='object')for(const[kk,x]of Object.entries(v))walk(x,k+'.'+kk)};
+ for(const f of ['receipts','generic-receipts','receipt-list','bench-receipts'])walk(require('./fixtures/'+f+'.cjs'),f);
+ assert.ok(all.length>=24,'fixtures found: '+all.length);for(const[k,t]of all){const r=R.parseReceipt(t);assert.ok(['AUD','GBP'].includes(r.currency),k+' → '+r.currency);assert.notEqual(r.currencyFrom,'amounts',k)}
+ // the đồng amount rewrite leaves weights, dates and codes alone
+ assert.equal(R.vndAmounts('Thịt ba chỉ 0,5kg 125.000'),'Thịt ba chỉ 0,5kg 125000.00');assert.equal(R.vndAmounts('Gạo 1.200 kg 30.000'),'Gạo 1.200 kg 30000.00');assert.equal(R.vndAmounts('Ngày 13.11.2026'),'Ngày 13.11.2026');assert.equal(R.vndAmounts('Ngày: 13/11/2026'),'Ngày: 13/11/2026');
+});
 console.log(`receipt parser tests passed (${n})`);
 })().catch(e=>{console.error(e);process.exit(1)});

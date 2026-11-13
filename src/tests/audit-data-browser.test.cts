@@ -65,6 +65,22 @@ const overflow=(page:any)=>page.evaluate(()=>document.documentElement.scrollWidt
     newReceipt();closeModal();/* the draft is filled here, not through the sheet */const d:any=receiptDraft;d.date=addDays(nextStart,1);d.store='QA S2';d.total=9;d.markBought=true;d.currency=currentCurrency(state);d.items=[{id:'s2',label:'PORK MINCE',total:9,match:'pork',qty:500,unit:'g',confidence:'high'}];
     return saveReceipt(true).then(()=>({cur:+(currentWeek().bought?.pork||0),next:+(planWeek(state,nextStart).bought?.pork||0)}))});
    ok(r.next>0&&r.cur===0,`S2 ${lang}: marked in the receipt's week ${JSON.stringify(r)}`);if(await E(()=>!!document.querySelector('#modal-root .modal')))await E(()=>closeModal())}
+  // re-check 13 Nov 2026 (receipt currency): a đồng receipt read in a dollar family is suggested as VND from the receipt itself (the
+  // store, the amounts), with the reason; the family can change it, and the amounts stay as printed. A Coles receipt stays AUD.
+  {const fam=await E(()=>currentCurrency(state));const prices=()=>page.locator('.receipt-line .receipt-price').evaluateAll((els:any[])=>els.map(e=>+e.value));
+   for(const[text,want,why]of [['CO.OP MART\nTRUNG GA 10 QUA 35.000\nTHIT BA CHI 500G 125.000\nTONG CONG 160.000','VND',lang==='en'?/store name/:/tên cửa hàng/],['CHO BEN THANH\nCa hu 2 con 90000\nRau cai 15000\nTong cong 105000','VND',lang==='en'?/size of the amounts/:/cỡ các số tiền/],['COLES SUPERMARKETS\nBANANAS 3.50\nMILK 2L 3.10\nTOTAL $6.60','AUD',null]] as any[]){
+    await E(()=>newReceipt());await page.waitForSelector('#receipt-raw');await page.fill('#receipt-raw',text);await page.locator('[data-feature="receipt-parse"]').click();await page.waitForTimeout(250);
+    ok(await page.locator('#receipt-currency').inputValue()===want,`currency ${lang}: ${text.split('\n')[0]} → ${await page.locator('#receipt-currency').inputValue()}`);
+    const hint=(await page.locator('#receipt-currency-hint').innerText()).trim();if(want!==fam){ok(why.test(hint)&&hint.includes(want)&&hint.includes(fam),`currency ${lang}: hint says why and that it is not the family's: “${hint}”`)}else ok(!/không cộng|not added/.test(hint),`currency ${lang}: no warning for the family's currency: “${hint}”`);
+    ok((await page.locator('#receipt-total-currency').innerText()).trim()===want,`currency ${lang}: total label`);
+    if(want==='VND'){const before=await prices();ok(before.includes(text.includes('35.000')?35000:90000),`currency ${lang}: đồng amounts read whole ${JSON.stringify(before)}`);
+     await page.selectOption('#receipt-currency','AUD');await page.waitForTimeout(100);ok((await page.locator('#receipt-total-currency').innerText()).trim()==='AUD',`currency ${lang}: label follows the choice`);
+     ok(JSON.stringify(await prices())===JSON.stringify(before),`currency ${lang}: changing the currency converts nothing`);
+     await page.selectOption('#receipt-currency','VND');await page.waitForTimeout(100);
+     const saved=await E(()=>{const id=receiptDraft.id;return saveReceipt(true).then(()=>{const r=state.receipts.find((x:any)=>x.id===id);return r?{cur:r.currency,total:r.total}:null})});
+     ok(saved&&saved.cur==='VND'&&saved.total===(text.includes('35.000')?160000:105000),`currency ${lang}: saved as VND, total as printed ${JSON.stringify(saved)}`);
+     ok(await E(()=>validImport(JSON.parse(JSON.stringify(state)))),`currency ${lang}: state with a VND receipt is valid`)}
+    if(await E(()=>!!document.querySelector('#modal-root .modal')))await E(()=>closeModal())}}
   // round trip (rule 33): everything written loads, and merges
   ok(await E(()=>validImport(JSON.parse(JSON.stringify(state)))),`${lang}: state valid`);ok(await E(()=>{const g:any=globalThis;const r=mergeFamilyStates(g.qaBase,JSON.parse(JSON.stringify(state)),g.qaBase,{now:Date.now()});return validImport(JSON.parse(JSON.stringify(r.state)))&&r.state.pantry.find((p:any)=>p.id==='lot-qa')?.qty===350}),`${lang}: merged state valid and keeps the edit`);
   assert.deepEqual(errors,[],`${lang}: no page errors`);await context.close()}
