@@ -9,6 +9,9 @@ Each lesson records what went wrong, what it cost, and the habit and rule that p
 2. **"Fixed" in one helper's file, missed in the twin.** The re-check found the price form in Tiền tệ & giá still saving a price for the first ingredient (twin of A15/C25), the receipt total reader still at 5 digits (twin of L6's line fix), the receipt-match reasons still in AUD (twin of B13), and the mark-bought path still on the screen's week (twin of the receipt-check sheet). Rule 29 applies to every fix; grep for the same helper or regex before calling it done.
 3. **A test compared the app with itself.** `extras-audit` checked A12 against the button's aria-label, the same source the app used, so it could never fail. Tests compare with what the family sees (`innerText`).
 4. **The sweep skipped a control by accident.** Its sign-in filter `/log-?in/` matched `extra-catalog-ing`. Skip filters need word ends.
+5. **The lead ruled out the real cause.**
+   - What happened: the intermittent Viết món amount loss was blamed on test timing; the lead had written off the sheet keep-in-place handler as "scrolls only". The helper's event trace showed the late scroll (250 ms after "+ Thêm nguyên liệu") moved the suggestion out from under the finger, so the pick was lost and the amount went into the name. It had been there since b860268 and showed on CI about 1 run in 10.
+   - Habit: "it only scrolls" is not harmless — anything that moves the page after a tap can move a target under the finger. Trace events in an in-page array (console logging changes timing), and treat a test that fails sometimes as a real bug until the trace says otherwise.
 
 ## 13 Nov 2026: v1.7.19 merge and CI
 1. **A wording fix crashed start-up on a new device.**
