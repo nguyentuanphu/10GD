@@ -93,6 +93,10 @@ export async function devices(store){const keys=[];for await(const page of store
 export function deviceBelongs(d,accountMembers){if(!accountMembers)return true;const owner=typeof d.accountUsername==='string'&&Object.prototype.hasOwnProperty.call(accountMembers,d.accountUsername)?accountMembers[d.accountUsername]:null;if(!owner)return false;if(d.sharedMember===true)return true;return!owner.memberId||owner.memberId===d.memberId}
 // Urgent messages pass quiet hours by default (owner decision, v1.5). A device opts out with urgentPolicy 'v2' + urgentBypass:false.
 export const urgentBypasses=d=>d?.urgentPolicy==='v2'?d.urgentBypass!==false:true;
+// v1.7.19 (owner pop-up, 13 Nov 2026: “như recommend và trong notification cho option để user cho phép gửi noti sau giờ im lặng hay không”):
+// the cooking and thaw reminders of each meal arrive during the device's quiet hours by default; a device turns that off with
+// mealQuietBypass:false (“Nhắc nấu cả trong giờ yên lặng”). Devices saved before this setting existed have no field: delivered.
+export const mealReminderBypasses=d=>d?.mealQuietBypass!==false;
 const utf8=s=>Buffer.byteLength(s,'utf8');
 // Trim by encoded JSON bytes (Vietnamese diacritics and emoji are multi-byte), never splitting a code point.
 export function trimToBytes(text,max){const s=String(text??'');if(utf8(JSON.stringify(s))<=max)return s;const chars=Array.from(s);let lo=0,hi=chars.length;while(lo<hi){const mid=Math.ceil((lo+hi)/2);if(utf8(JSON.stringify(chars.slice(0,mid).join('')+'…'))<=max)lo=mid;else hi=mid-1}return chars.slice(0,lo).join('')+'…'}
@@ -111,7 +115,7 @@ export async function sendPushBatch(store,message,{targets=[],automatic=false,no
  const candidates=all.filter(d=>deviceBelongs(d,store.accountMembers)&&(!targets.length||targets.includes(d.memberId))&&(!deviceIds.length||deviceIds.includes(d.deviceId)));
  const live=candidates.filter(d=>d.needsResubscribe!==true);
  const wanted=live.filter(d=>(message.type==='test'||d.types?.[message.type]!==false)&&(!automatic||d.role!=='shopper'||!['prep','thaw','expiry','weekly'].includes(message.type))&&(!automatic||d.role!=='cook'||!['shopping','receipt','budget'].includes(message.type)));
- const seenEndpoints=new Set<string>();/* v1.7.9 (owner: the same reminder arrived 4 times): one send per push address */const selected=wanted.filter(d=>!isQuiet(clock,d)||message.type==='test'||message.type==='urgent'&&urgentBypasses(d)).filter(d=>{const e=d.subscription?.endpoint;if(!e)return true;if(seenEndpoints.has(e))return false;seenEndpoints.add(e);return true});
+ const seenEndpoints=new Set<string>();/* v1.7.9 (owner: the same reminder arrived 4 times): one send per push address */const selected=wanted.filter(d=>!isQuiet(clock,d)||message.type==='test'||message.type==='urgent'&&urgentBypasses(d)||MEAL_REMINDER_TYPES.includes(message.type)&&mealReminderBypasses(d)).filter(d=>{const e=d.subscription?.endpoint;if(!e)return true;if(seenEndpoints.has(e))return false;seenEndpoints.add(e);return true});
  // v1.7.1: devices = matching registered devices; needsResubscribe / typeOff / quiet say why some were skipped.
  const skipped={devices:candidates.length,needsResubscribe:candidates.length-live.length,typeOff:live.length-wanted.length,quiet:wanted.length-selected.length};
  if(!selected.length)return{accepted:0,failed:0,recipients:0,...skipped,reason:!candidates.length?'no_device':!live.length?'needs_resubscribe':!wanted.length?'no_recipient':'quiet_hours'};

@@ -24,6 +24,12 @@ assert.equal((await authStore.get('families/'+f.household.id)).members.fixtureow
 r=await call('push-test',{deviceId:'device-owner-01'});assert.equal(r.data.reason,'sent');assert.equal(r.data.accepted,1);const firstTag=sent.at(-1).payload.tag;
 r=await call('push-test',{deviceId:'device-owner-01'});assert.notEqual(sent.at(-1).payload.tag,firstTag,'each test notification has a unique tag');
 console.log('PASS unlinked owner is linked on subscribe and receives the test push; reasons not_configured/no_device/sent');
+// v1.7.19 quiet hours: the per-device “Cooking reminders during quiet hours” switch is stored; a device that does not send it keeps it on.
+assert.equal((await f.store.get('push/subscriptions/device-owner-01',{type:'json'})).mealQuietBypass,true,'no choice sent: cooking reminders during quiet hours stay on');
+r=await call('push-subscribe',{deviceId:'device-owner-01',memberId:'dad',label:'Owner phone',subscription:sub(1),urgentPolicy:'v2',urgentBypass:true,mealQuietBypass:false});assert.equal(r.status,200);
+assert.equal((await f.store.get('push/subscriptions/device-owner-01',{type:'json'})).mealQuietBypass,false,'the device turned cooking reminders during quiet hours off');
+r=await call('push-subscribe',{deviceId:'device-owner-01',memberId:'dad',label:'Owner phone',subscription:sub(1),urgentPolicy:'v2',urgentBypass:true,mealQuietBypass:true});assert.equal(r.status,200);
+assert.equal((await f.store.get('push/subscriptions/device-owner-01',{type:'json'})).mealQuietBypass,true);
 // A phone for a member without an account (shared/grandparent) is registered explicitly by an owner/editor and receives.
 r=await call('push-subscribe',{deviceId:'device-grandma-01',memberId:'grandma',subscription:sub(2)});assert.equal(r.status,409);assert.equal(r.data.reason,'member_mismatch');
 r=await call('push-subscribe',{deviceId:'device-grandma-01',memberId:'grandma',label:'Máy của Bà',subscription:sub(2),shared:true});assert.equal(r.status,200);assert.equal(r.data.shared,true);
