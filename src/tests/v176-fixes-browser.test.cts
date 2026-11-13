@@ -222,9 +222,10 @@ for(const lang of ['vi','en'])for(const [size,viewport] of SIZES){
    await swipe('snackAm',-1);assert.equal(await slot('snackAm').count(),0,'morning snack swiped away');
    // a short swipe springs back
    {const card=slot('lunch'),bx=(await card.boundingBox())!;const y=bx.y+30,x0=bx.x+bx.width/2;await page.mouse.move(x0,y);await page.mouse.down();await page.mouse.move(x0+bx.width*0.2,y,{steps:4});await page.mouse.up();await page.waitForTimeout(300);assert.equal(await slot('lunch').count(),1,'short swipe keeps the meal')}
-   // breakfast (with dishes): swipe right asks first, then it is gone for the day; "Bữa ±" brings it back
-   const hasDishes=await page.evaluate(`currentWeek().days[sydneyDate()]?.breakfast?.recipes?.length||0`);if(hasDishes)page.once('dialog',(d:any)=>d.accept());
-   await swipe('breakfast',1);assert.equal(await slot('breakfast').count(),0,'breakfast swiped away');
+   // breakfast (with dishes): swipe right removes it for the day at once, with “Hoàn tác” (v1.7.19 re-check, audit B16: no browser
+   // confirm()); "Bữa ±" brings the meal back
+   const hasDishes=await page.evaluate(`currentWeek().days[sydneyDate()]?.breakfast?.recipes?.length||0`);let asked=false;const onDialog=(d:any)=>{asked=true;d.dismiss().catch(()=>{})};page.on('dialog',onDialog);
+   await swipe('breakfast',1);page.off('dialog',onDialog);assert.equal(asked,false,'no browser confirm()');assert.equal(await slot('breakfast').count(),0,'breakfast swiped away');if(hasDishes)assert.equal(await page.locator('#undo-bar button').count(),1,'“Hoàn tác” offered');
    await toggle('breakfast',true);assert.equal(await slot('breakfast').count(),1,'breakfast added back');
    assert.equal(await td2().locator('[data-plan-meal="remove"], .plan-day-tools').count(),0,'no extra remove buttons or add row under the meals')}
   await shot('planner-days')}

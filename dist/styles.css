@@ -1940,6 +1940,16 @@ html[data-theme="dark"] .swipe-under{background:#3d1c19;color:#ffb3a8}
 .skip-dishes{margin:6px 0 10px;padding-left:20px}.skip-dishes li{margin:4px 0}.skip-dishes small{color:var(--muted)}
 #undo-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:12px;max-width:min(92vw,520px);padding:8px 8px 8px 16px;border-radius:14px;background:#1f3a2e;color:#fff;box-shadow:0 6px 24px #0004}
 #undo-bar .btn{min-height:44px;background:#fff;color:#1f3a2e;border-color:#fff;font-weight:700;white-space:nowrap}
+/* v1.7.19 re-check (audit B16): the same undo strip inside a sheet (the undo bar sits under sheets) */
+.vr-undo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0;padding:8px 8px 8px 14px;border-radius:14px;background:#1f3a2e;color:#fff}
+.vr-undo .btn{flex:none;min-height:44px;background:#fff;color:#1f3a2e;border-color:#fff;font-weight:700;white-space:nowrap}
+html[data-theme="dark"] .vr-undo .btn{background:#fff;color:#1f3a2e;border-color:#fff}
+/* v1.7.19 re-check (B12): the amount and its unit picker take a whole row, so the number stays readable on a 320 px phone */
+.form-grid>.stock-qty-field{grid-column:1/-1}
+.pm-row:has(.pm-undo-btn){position:relative}
+.pm-row:has(.pm-undo-btn)>span{padding-right:110px}
+.pm-row .pm-undo-btn{position:absolute;right:0;top:50%;transform:translateY(-50%);min-height:44px;margin:0;font-weight:700;white-space:nowrap}
+
 .simple-screen .shop-row>.large-check-target,.shop-row.shop-purchase-row>.large-check-target{grid-row:1!important;align-self:center!important}
 /* v1.7.9 (owner: "chỗ màu nâu là gì?"): an empty pantry note stays hidden — .hidden always hides */
 .hidden{display:none!important}
