@@ -208,6 +208,10 @@ function clippedPrice(line){
 function vndAmounts(line){return String(line).replace(/(^|[^\d.,])(\d{1,3}(?:[.,]\d{3})+)(?![\d]|[.,]\d)(?!\s*(?:k?g\b|ml\b|l\b|%))\s*(?:đ|vnđ|vnd|₫)?/gi,(m,a,b)=>a+b.replace(/[.,]/g,'')+'.00').replace(/(^|[^\d.,\/:-])(\d{4,9})\s*(?:đ|vnđ|vnd|₫)?\s*$/i,(m,a,b)=>a+b+'.00')}
 function amountIn(line){const all=[...String(line).matchAll(/(-)?\s?\$?\s?(\d{1,7})[.,](\d{2})(?![\d%])/g)];if(!all.length)return null;const m=all[all.length-1];const neg=m[1]==='-'||/-\s?\$?\s?$/.test(String(line).slice(Math.max(0,m.index-3),m.index+1));return round((neg?-1:1)*(+m[2]+ +m[3]/100))}
 
+// A store name read from the photo looks like words: mostly letters, and not mostly one- or two-character scraps.
+function plausibleStoreName(name){const t=String(name||'').trim();if(!t)return false;const chars=t.replace(/\s+/g,''),letters=(chars.match(/[A-Za-z\u00C0-\u1EF9]/g)||[]).length;if(!chars.length||letters/chars.length<0.6)return false;
+ const words=t.split(/\s+/),scraps=words.filter(w=>w.replace(/[^A-Za-z\u00C0-\u1EF9]/g,'').length<=2).length;if(words.length>=4&&scraps/words.length>0.5)return false;return words.some(w=>w.replace(/[^A-Za-z\u00C0-\u1EF9]/g,'').length>=3)}
+
 // Item code (ALDI 4–7 digits, Woolworths UK 9 digits): everything before it is OCR noise from the
 // receipt edge / shadow ("Si", "hen", "STE ve", ":"), and the code itself is not part of the name.
 function cleanLabel(label,retailer){
@@ -287,6 +291,9 @@ function findStore(lines,head,retailer){
   if(co){const name=co[1].replace(/^(?:[A-Z]\s+|[^A-Z]+)/,'').trim();const sub=lines.slice(0,14).map(l=>l.match(new RegExp(`([A-Z][A-Z' ]{2,28}?)\\s+(${STATES})\\s+\\d{4}\\b`))).find(Boolean);
    if(name.length>=2){store=name.split(/\s+/).map(w=>w.length<=2?w:titleCase(w)).join(' ')+(sub&&!suburb?' '+titleCase(sub[1].trim()):'');if(sub&&!suburb)suburb=titleCase(sub[1].trim())}}}
  if(!store){const first=head.find(l=>/[A-Za-z]{3}/.test(l)&&l.length<50&&!/\d[.,]\d{2}/.test(l)&&!SKIP_RE.test(norm(l))&&!isSensitive(l));store=first?first.trim():''}
+ /* Henry, 13 Nov 2026 (rule 32): a faint store line read as "RA SRE eR Zi I 3 web 4 5 TY os" was filled in as the store. A name that
+    does not look like words stays empty, so the family types it; a known chain keeps its name. */
+ if(store&&!retailer?.name&&!plausibleStoreName(store))store='';
  return{store,suburb,storeNo};
 }
 
@@ -841,6 +848,6 @@ async function recognize(file,{lang='eng',status=null,createWorker=null,original
  }finally{if(worker)try{await worker.terminate()}catch{}}
 }
 
-const api={preparedWord,COUNTED_BASE,genericLabel,GENERIC_WORDS,readScore,preferOther,RETAILERS,ABBREVIATIONS,EN_ALIASES,KNOWN_WORDS,addWords,detectRetailer,detectCurrency,currencyEvidence,vndAmounts,expandAbbrev,splitGlued,isSnack,isNonFood,extractSize,repairNumber,plausible,tidy,cleanLabel,priceOf,clippedPrice,parseReceipt,warningsFor,warningText,looksLikeReceipt,differenceNote,redact,isSensitive,matchIngredient,memoryKeys,lineQuantity,fingerprint,receiptKey,sha256Hex,findDuplicate,sameStore,reconcile,findDate,preprocess,toGray,otsu,blankExtents,paperExtents,charAccuracy,prepareImage,recognize,norm,warpField};
+const api={plausibleStoreName,preparedWord,COUNTED_BASE,genericLabel,GENERIC_WORDS,readScore,preferOther,RETAILERS,ABBREVIATIONS,EN_ALIASES,KNOWN_WORDS,addWords,detectRetailer,detectCurrency,currencyEvidence,vndAmounts,expandAbbrev,splitGlued,isSnack,isNonFood,extractSize,repairNumber,plausible,tidy,cleanLabel,priceOf,clippedPrice,parseReceipt,warningsFor,warningText,looksLikeReceipt,differenceNote,redact,isSensitive,matchIngredient,memoryKeys,lineQuantity,fingerprint,receiptKey,sha256Hex,findDuplicate,sameStore,reconcile,findDate,preprocess,toGray,otsu,blankExtents,paperExtents,charAccuracy,prepareImage,recognize,norm,warpField};
 root.ReceiptParse=api;
 })(globalThis);

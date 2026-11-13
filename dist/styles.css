@@ -2724,3 +2724,6 @@ html[data-theme="dark"] .shop-row .extra-covers{color:#8fd6b0}
 .family-meal-card h3.meal-label .meal-clock{font-weight:500;color:var(--muted)}
 .meal-times-section{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
 .meal-times-section h4{margin:0 0 4px}
+/* v1.7.19 (Henry, 13 Nov 2026): receipt reading from a photo is marked Beta — text pill, no drawing (rule 27), AA contrast in both themes */
+.receipt-beta{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.beta-pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#fbe3d3;color:#7a3410;font-weight:700;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));letter-spacing:.02em}
+[data-theme="dark"] .beta-pill{background:#5a2a10;color:#ffd9c2}

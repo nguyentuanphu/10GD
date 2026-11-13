@@ -81,6 +81,14 @@ const overflow=(page:any)=>page.evaluate(()=>document.documentElement.scrollWidt
      ok(saved&&saved.cur==='VND'&&saved.total===(text.includes('35.000')?160000:105000),`currency ${lang}: saved as VND, total as printed ${JSON.stringify(saved)}`);
      ok(await E(()=>validImport(JSON.parse(JSON.stringify(state)))),`currency ${lang}: state with a VND receipt is valid`)}
     if(await E(()=>!!document.querySelector('#modal-root .modal')))await E(()=>closeModal())}}
+  // Henry, 13 Nov 2026 (Orange Supermarket photo): receipt photo reading is marked Beta, and the crop frame keeps the items between
+  // the receipt's head and the first item the quick pass recognised
+  {await E(()=>{newReceipt()});await page.waitForSelector('#modal-root .receipt-beta');const beta=await page.locator('#modal-root .receipt-beta').innerText();
+   ok(/Beta/.test(beta)&&(lang==='vi'?/thử nghiệm/.test(beta):/testing/.test(beta)),`beta ${lang}: the receipt sheet says reading photos is in testing (${beta})`);await E(()=>closeModal());
+   const fr=await E(()=>{const L=(t:string,i:number)=>({t,y0:100+i*40,y1:130+i*40,x0:50,x1:500});const lines=['Orange Supermarke Wolli Creek','ABN: 13 601 298 917','TAX INVOICE','Date: 13/11/2026 No: P2611130238','LARGE SEEDLESS WATERMELON','2.430kg @ $2.99/kg $7.27','HK CHOY SUM / BUNCH $1.99','CARROT LOOSE $0.70','PRAWN WONTON 900G $18.99','TOTAL: $61.77'].map(L);
+    return (globalThis as any).ReceiptUI.itemFrame(lines,[7,8],600,1000)});
+   ok(fr&&fr.t<=(100+4*40)/1000+1e-9&&fr.b>=(130+9*40)/1000-1e-9,`crop frame ${lang}: from the first line after the head (watermelon) to TOTAL ${JSON.stringify(fr)}`);
+   ok(fr.t>(100+3*40)/1000-0.02,`crop frame ${lang}: the head is not read as items ${JSON.stringify(fr)}`)}
   // round trip (rule 33): everything written loads, and merges
   ok(await E(()=>validImport(JSON.parse(JSON.stringify(state)))),`${lang}: state valid`);ok(await E(()=>{const g:any=globalThis;const r=mergeFamilyStates(g.qaBase,JSON.parse(JSON.stringify(state)),g.qaBase,{now:Date.now()});return validImport(JSON.parse(JSON.stringify(r.state)))&&r.state.pantry.find((p:any)=>p.id==='lot-qa')?.qty===350}),`${lang}: merged state valid and keeps the edit`);
   assert.deepEqual(errors,[],`${lang}: no page errors`);await context.close()}
