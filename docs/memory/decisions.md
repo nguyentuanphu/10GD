@@ -2,6 +2,9 @@
 
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
+## 14 Nov 2026 (morning)
+- **DEPLOY v1.7.20** (Henry, about 06:55). PR #43 squash-merged as 1bf0b29 at 06:57 AEDT; CI green on 9669cf7; production served the new build at 06:58. The working branch carries on from main.
+
 ## 13 Nov 2026 (night)
 - **DEPLOY v1.7.19** (Henry, about 22:00: "Deploy sau đó set up 11:50pm làm tiếp phần còn lại"). PR #40 squash-merged as d7cba87 at 22:03 AEDT, CI green on a3d102d. The working branch carries on from main (merged, not reset) for v1.7.20.
 - **Continue at 23:50 Sydney time:** a one-off scheduled message into this chat at 23:50 picks up the remaining items for v1.7.20: the "Weekends feast" batch card heading and its old emoji, the quiet-hours switch in the Studio device overview and the dead `pushSettings` in push-ui.ts, the shared community recipe line order (`rcSharedIngredients`), a stronger check for scrap store names ("Be elle"), and step 2 of more stores (offer ALDI, Harris Farm… in products and So Giá; widen the server's So Giá ids) once enough devices run v1.7.19. Same gate: Henry says DEPLOY.
