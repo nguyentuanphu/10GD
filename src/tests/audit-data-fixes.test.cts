@@ -235,8 +235,8 @@ test('re-check B9: one store registry; stored store ids stay valid for this and 
  assert.equal(prod('coles'),true);assert.equal(prod('chemist'),true);assert.equal(prod('aldi'),false,'products stay on the three ids older versions accept');
  assert.equal(R(`retailerSearch('coles','milk')`),'https://www.coles.com.au/search?q=milk');assert.equal(R(`retailerSearch('aldi','milk')`),null);
  // no other file keeps its own list of chain names
- for(const f of ['insights-core','receipt-parse','shopping-optimizer','voice-price','price-scout-ui','shopping-planning']){const src=fs.readFileSync('src/frontend/'+f+'.ts','utf8');
-  for(const n of ["'Harris Farm'","'harris farm'","'Chemist Warehouse'","'Costco'","name:'ALDI'","['woolworths','coles','aldi','chemist'","{id:'store-coles'"])assert.ok(!src.includes(n),f+' still has its own store list: '+n)}
+ for(const f of ['insights-core','receipt-parse','shopping-optimizer','voice-price','price-scout-ui','shopping-planning','products-ui']){const src=fs.readFileSync('src/frontend/'+f+'.ts','utf8');
+  for(const n of ["'Harris Farm'","'harris farm'","'Chemist Warehouse'","'Costco'","name:'ALDI'","['woolworths','coles','aldi','chemist'","{id:'store-coles'","includes('wool')"])assert.ok(!src.includes(n),f+' still has its own store list: '+n)}
 });
 
 (async()=>{for(const[name,fn]of tests){try{await fn();passed++;console.log('PASS',name)}catch(e:any){console.error('FAIL',name);throw e}}console.log(`audit data fixes: ${passed}/${tests.length} passed`)})().catch(e=>{console.error(e);process.exit(1)});
