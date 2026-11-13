@@ -15,6 +15,8 @@ Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; thi
   - Spoon and bowl note amounts round up to ¼ ("Giữ làm tròn lên ¼"). Confirms C21.
   - The shared list text keeps □ and ✓ ("Giữ □ và ✓"). Confirms D1.
   - Barcode sheet: an empty amount still stores 1 pack (one scanned pack), as the sheet's hint says (lead's call, listed for Henry).
+- **"do everything in this round"** (13 Nov, about 18:05): every open item ships in v1.7.19 too: the intermittent Viết món amount, reopened dish line order, the 375 px "Nơi cất" select, the browser's own "Please select an item" text, cháo labelled "Món sợi", a phone-time-zone pass in Tự chạy thử, the barcode sheet's empty amount (asks, rule 32), the dark-mode "Hoàn tác" contrast, the English meal-group labels in Viết món (FAMILY_PURPOSES), plate cropping on dish cards, and step 1 of more stores for saved products (validators accept new ids; offering them comes in the next release). Henry has updated his henry-master skill on claude.ai (to-do done).
+- **Quiet hours** (pop-up, 13 Nov): "như recommend và trong notification cho option để user cho phép gửi noti sau giờ im lặng hay không". Cooking and thaw reminders are delivered during quiet hours by default; the notification settings get a per-device switch to allow them or not. Other notifications stay quiet.
 - **Resume routine:** "Resume FamTray v1.7.19 release work" no longer exists on the account (delete returned not found, 13 Nov 10:55); no schedules are active.
 
 ## 12 Nov 2026 (evening, new chat)
@@ -68,11 +70,10 @@ Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; thi
 - **Hosting:** nothing is loaded on hosting before DEPLOY.
 
 ## Open questions for Henry
-- Meal-group labels in English.
-- Plate cropping on cards.
+- (13 Nov 2026: meal-group labels and plate cropping are being fixed in v1.7.19.)
 
 ## Henry's to-dos (things only he can do)
-- Update the henry-master skill on claude.ai with the FamTray row and the release lessons. Drafted 12 Nov; reminder set for 13 Nov 09:10.
+- ~~Update the henry-master skill on claude.ai~~ done by Henry, 13 Nov 2026.
 - SCOUT_EXTENSION_IDS setting; the duplicate device; the Web Store link.
 - Re-enter the Mỳ Quảng amounts; the iPhone voice self-check.
 - Pinch / WhichGrocer terms e-mails. The integration plan is not yet approved.
