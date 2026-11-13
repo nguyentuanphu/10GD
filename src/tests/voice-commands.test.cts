@@ -4,7 +4,7 @@
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const {MAIN_INGREDIENTS,MAIN_VALID_IMPORT}=require('./fixtures/main-0bcef70-client.cjs');
 const c=vm.createContext({console,Intl,Date,Math,URL,structuredClone,crypto:require('node:crypto').webcrypto});
-for(const f of ['seed.js','recipe-catalog.js','core.js','spending-core.js','unit-registry.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','voice-learning.js','shopping-optimizer.js','voice-commands.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
+for(const f of ['store-registry.js','seed.js','recipe-catalog.js','core.js','spending-core.js','unit-registry.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','voice-learning.js','shopping-optimizer.js','voice-commands.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
 const run=(src:string)=>vm.runInContext(src,c);
 run(`globalThis.S=defaults();S.preferences.familyPlanner=true;S.weeks={};S.pantry=[];
 S.members=[{id:'m1',name:'Phú',emoji:'👨',weight:1},{id:'m2',name:'Mẹ',emoji:'👩',weight:1},{id:'m3',name:'Bé Na',emoji:'👧',weight:.5},{id:'m4',name:'Mai',emoji:'👩',weight:1}];

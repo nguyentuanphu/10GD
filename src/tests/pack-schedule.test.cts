@@ -2,7 +2,7 @@
 // bận”, and “Chưa báo” counted like eating at home. Runs the real frontend scripts in a VM (no DOM).
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const c=vm.createContext({console,Intl,Date,Math,URL,structuredClone,crypto:require('node:crypto').webcrypto});
-for(const f of ['seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
+for(const f of ['store-registry.js','seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
 c.assert=assert;
 vm.runInContext(`
 const s=defaults();s.preferences.maxTime=120;const mon='2026-11-09',day=i=>addDays(mon,i);ensureWeek(s,mon);

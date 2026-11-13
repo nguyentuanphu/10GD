@@ -2,7 +2,7 @@
 // the daily Bữa phụ slot and the opt-in school lunch box. Pure logic; the form itself is covered by the browser suite.
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const c=vm.createContext({console,Intl,Date,Math,URL,structuredClone,crypto:require('node:crypto').webcrypto});
-for(const f of ['seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
+for(const f of ['store-registry.js','seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
 c.assert=assert;
 vm.runInContext(`
 // ---- amounts as typed (#13): fractions are read, and shown as fractions instead of being rounded up to 1

@@ -3,7 +3,7 @@
 // promo, was-price, several prices per utterance, and the confirm-sheet seed (family-only evidence).
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const ctx=vm.createContext({console,Intl,Date,Math,URL,JSON,structuredClone});
-for(const f of ['master-catalog.js','shopping-optimizer.js','voice-price.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),ctx);
+for(const f of ['store-registry.js','master-catalog.js','shopping-optimizer.js','voice-price.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),ctx);
 const VP=ctx.VoicePrice,PS=ctx.PriceScout;
 const STORES=[{id:'store-cab',name:'Chợ Việt Cabramatta',address:'Cabramatta'},{id:'store-coles',name:'Coles',address:'Siêu thị'}];
 const parse=(t:string,opts:any={})=>JSON.parse(JSON.stringify(VP.parsePriceUtterance(t,{stores:STORES,...opts})));

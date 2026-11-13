@@ -2,7 +2,7 @@
 // explanations, on-behalf reactions. Runs the real frontend scripts in a VM (no DOM).
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const c=vm.createContext({console,Intl,Date,Math,URL,structuredClone,crypto:require('node:crypto').webcrypto});
-for(const f of ['seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','menu-reactions-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
+for(const f of ['store-registry.js','seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','menu-reactions-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
 const run=(code:string)=>vm.runInContext(code,c);
 let passed=0;const test=(name:string,fn:()=>void)=>{try{fn();passed++}catch(e){console.error('FAIL',name);throw e}};
 run(`globalThis.mk=()=>{const s=defaults();s.weeks={};s.pantry=[];s.recipes=[];const add=(id,name,cat,protein,ings,purposes)=>s.recipes.push({...recipe(id,name,cat,protein,20,ings,'prep',['cook']),custom:true,purposes,yield:4});

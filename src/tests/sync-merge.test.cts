@@ -3,7 +3,7 @@
 // the client push/merge/retry loop. Runs the real frontend scripts in a VM (no DOM). Synthetic data only.
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const c=vm.createContext({console,Intl,Date,Math,URL,structuredClone,crypto:require('node:crypto').webcrypto});
-for(const f of ['seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','menu-reactions-core.js','sync-merge-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
+for(const f of ['store-registry.js','seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js','menu-reactions-core.js','sync-merge-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
 const run=(code:string)=>vm.runInContext(code,c);
 let passed=0;const tests:[string,()=>any][]=[];const test=(name:string,fn:()=>any)=>tests.push([name,fn]);
 // Base family: two custom recipes, a week with a shopping extra, pantry, receipts, members, preferences.

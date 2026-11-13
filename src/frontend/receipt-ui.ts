@@ -85,7 +85,9 @@ function fillDraft(text,{keepStore=true}={}){
  d.store=keepStore&&d.store?d.store:parsed.store||d.store||'';
  if(parsed.date)d.date=parsed.date;
  d.total=parsed.printedTotal!=null?parsed.printedTotal:keepStore&&d.total!=null?d.total:null;/* v1.7.14: the text box holds item lines only, so a re-read keeps the total already read */
- d.currency=parsed.currency==='AUD'?(d.currency&&d.currency!=='GBP'&&d.currency!=='EUR'?d.currency:currentCurrency(state)):parsed.currency;
+ /* v1.7.19 re-check (receipt currency): the receipt says its currency (store, sign, amounts) → suggested; a currency the family chose
+    in the editor is kept; a receipt that does not say keeps the family's (as before). Amounts are never converted. */
+ const said=!!parsed.currencyFrom;d.currency=d.currencyChosen&&d.currency?d.currency:said?parsed.currency:(d.currency&&d.currency!=='GBP'&&d.currency!=='EUR'?d.currency:currentCurrency(state));d.currencySuggested=said&&!d.currencyChosen?parsed.currencyFrom:null;
  d.refund=!!parsed.refund;d.dupDecided=false;d.allowDuplicate=false;
  d.extra={retailer:parsed.retailer||null,refund:parsed.refund||undefined,printed:{time:parsed.time||null,count:parsed.printedCount??null,storeNo:parsed.storeNo||null},source:'ocr'};
  return parsed;

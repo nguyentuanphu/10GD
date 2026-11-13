@@ -4,7 +4,7 @@
 // nothing is guessed. Also checks the recipe-form lines and that saving never overwrites a recipe.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const ctx=vm.createContext({console,Intl,Date,Math,URL,JSON,structuredClone});
-for(const f of ['seed.js','master-catalog.js','shopping-optimizer.js','voice-price.js','voice-recipe.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),ctx);
+for(const f of ['store-registry.js','seed.js','master-catalog.js','shopping-optimizer.js','voice-price.js','voice-recipe.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),ctx);
 const VR=ctx.VoiceRecipe;
 const seg=(t:string,lang='vi')=>JSON.parse(JSON.stringify(VR.segmentRecipe(t,{lang})));
 const ing=(r:any)=>r.ingredients.map((i:any)=>[i.name,i.qty,i.unit]);

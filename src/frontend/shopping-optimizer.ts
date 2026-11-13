@@ -5,15 +5,9 @@
 // "Lưu giá" bookmark, receipts, catalogue entries, manual entry) or an optional
 // licensed feed. Nothing here fetches retailer websites.
 (function(root){
-const RETAILERS={
- chemist:{name:'Chemist Warehouse',short:'Chemist',icon:'💊',order:0,kind:'pharmacy',catalogue:'https://www.chemistwarehouse.com.au/catalogue'},
- aldi:{name:'ALDI',short:'ALDI',icon:'🔷',order:1,kind:'supermarket',catalogue:'https://www.aldi.com.au/special-buys'},
- woolworths:{name:'Woolworths',short:'Woolies',icon:'🟢',order:2,kind:'supermarket',catalogue:'https://www.woolworths.com.au/shop/catalogue'},
- coles:{name:'Coles',short:'Coles',icon:'🔴',order:2,kind:'supermarket',catalogue:'https://www.coles.com.au/catalogues'},
- other:{name:'Other store',vi:'Cửa hàng khác',short:'Khác',icon:'🏪',order:2.5,kind:'other',catalogue:null},
- 'viet-grocer':{name:'Vietnamese grocer',vi:'Chợ Việt',short:'Chợ Việt',icon:'🏮',order:3,kind:'local',catalogue:null},
- amazon:{name:'Amazon AU',short:'Amazon',icon:'📦',order:-1,kind:'delivery',delivery:true,catalogue:'https://www.amazon.com.au/deals'}
-};
+// The stores So Giá keeps prices for: the registry's `scout` view (store-registry.ts, audit B9). These ids are what observations
+// store and what validObservation accepts; they never change (older devices validate synced observations against them).
+const RETAILERS=Object.fromEntries(root.STORE_REGISTRY.filter(s=>s.scout).map(s=>[s.id,{name:s.name,...(s.vi?{vi:s.vi}:{}),...s.scout}]));
 const RETAILER_IDS=Object.keys(RETAILERS);
 const CATEGORIES=['fresh','meat','seafood','pantry','dairy','frozen','bakery','household','personal'];
 const SAFETY=['ambient','chilled','frozen','raw-meat','household'];

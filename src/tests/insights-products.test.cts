@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const ctx=vm.createContext({console,Intl,Date,Math,URL,structuredClone,crypto:require('node:crypto').webcrypto});
-for(const f of ['seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),ctx);
+for(const f of ['store-registry.js','seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),ctx);
 vm.runInContext(`
 const s=defaults(),date='2026-10-30';const w=ensureWeek(s,monday(date));const r=s.recipes[0],m=w.days[date].dinner;m.recipes=[clone(r)];
 if(recipeHistory(s,r.id,date).count!==0)throw Error('Planned is not eaten');
