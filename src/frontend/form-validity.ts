@@ -33,8 +33,11 @@ function fvField(t:any){return t&&(t instanceof HTMLInputElement||t instanceof H
 // is what the bubble shows. A field the app already marked with its own message keeps it.
 document.addEventListener('invalid',e=>{const el:any=fvField(e.target);if(!el)return;if(el.validity.customError&&!el.dataset[FV_MARK])return;
  el.setCustomValidity('');const msg=formValidityMessage(el);if(!msg)return;el.setCustomValidity(msg);el.dataset[FV_MARK]='1'},true);
-// Changing the field clears the message, so the browser's own checks decide again on the next submit.
-function fvClear(e:Event){const el:any=fvField(e.target);if(!el||!el.dataset[FV_MARK])return;el.setCustomValidity('');delete el.dataset[FV_MARK];
- if(el.type==='radio'&&el.name&&el.form)for(const r of el.form.querySelectorAll(`input[type="radio"][name="${CSS.escape(el.name)}"]`)){if((r as any).dataset[FV_MARK]){(r as any).setCustomValidity('');delete (r as any).dataset[FV_MARK]}}}
-document.addEventListener('input',fvClear,true);document.addEventListener('change',fvClear,true);
+// A message set here lives only until the family does something next — a tap, a click, a key, or a change to any field. Then every
+// field is checked afresh on the next submit, so a field the app filled in by itself (the place chosen with the ingredient,
+// for example) never keeps an old message that would block the form. The bubble already shown keeps its words.
+const fvMarked=new Set<any>();
+document.addEventListener('invalid',e=>{const el:any=fvField(e.target);if(el&&el.dataset[FV_MARK])fvMarked.add(el)},true);
+function fvClearAll(){if(!fvMarked.size)return;for(const el of fvMarked){if(el.dataset[FV_MARK]){el.setCustomValidity('');delete el.dataset[FV_MARK]}}fvMarked.clear()}
+for(const type of ['pointerdown','keydown','click','input','change'])document.addEventListener(type,fvClearAll,true);
 (globalThis as any).formValidityMessage=formValidityMessage;

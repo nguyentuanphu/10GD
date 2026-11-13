@@ -93,6 +93,17 @@ const VI_MSG=/^(Hãy |Số |Cần |Tối đa |Giá trị |Nhập lượng )/,EN_
    assert.equal(await E(`document.getElementById('stock-ing').validationMessage`),'',`${label}: choosing clears the message`);
    await page.locator('#modal-root [data-action="submit-form"][data-id="stock-form"]').click();await page.waitForTimeout(150);
    const qm=await E(`document.getElementById('stock-qty').validationMessage`);msgOk(qm,'amount');
+   // “Nơi cất” was empty at the first save and the app filled it in by itself with the ingredient: no old message may block the save
+   await page.fill('#stock-qty','2');await page.locator('#modal-root [data-action="submit-form"][data-id="stock-form"]').click();await page.waitForTimeout(250);
+   assert.equal(await E(`state.pantry.length`),n0+2,`${label}: the form saves once every field is filled, including the place the app chose`);
+   assert.equal(await page.locator('#modal-root #stock-form').count(),0,`${label}: the sheet closes after saving`);
+   // the same without a second failed save in between: save empty, choose the ingredient (the app fills in “Nơi cất” itself), type the
+   // amount, save — it must save at once (an old message left on “Nơi cất” blocked this form)
+   await E(`stockForm()`);await page.locator('#modal-root #stock-place').waitFor();
+   await page.locator('#modal-root [data-action="submit-form"][data-id="stock-form"]').click();await page.waitForTimeout(150);
+   await page.selectOption('#stock-ing','egg');await page.waitForTimeout(80);assert.ok(await E(`document.getElementById('stock-place').value!==''`),`${label}: the app chose the place with the ingredient`);
+   await page.fill('#stock-qty','3');await page.locator('#modal-root [data-action="submit-form"][data-id="stock-form"]').click();await page.waitForTimeout(250);
+   assert.equal(await E(`state.pantry.length`),n0+3,`${label}: saved on the first try after the ingredient and amount were filled in`);
    // every required field in the app's forms: the message the browser would show is the app's own, in the app's language
    const openers=[`stockForm()`,`extraFormModal()`,`familyRecipeEditor()`,`pushSettings()`,`kitchenModal('menu')`,`kitchenModal('members')`,`typeof productForm==='function'&&productForm()`];let checked=0;
    for(const op of openers){await E(`closeModal()`);try{await E(op)}catch{continue}await page.waitForTimeout(250);
