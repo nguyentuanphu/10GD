@@ -192,6 +192,30 @@ async function openApp({viewport=sizes.mobile,ua=IPHONE,touch=true,lang='vi',the
   assert.deepEqual(errors,[],'no page errors');await context.close()}
  console.log('PASS (f) name-only rows: card counts 7, detail lists every row, edit entry in detail + meal card, amounts typed on the decimal keypad and changed without input events survive save → reload → reopen');
 
+ // ================= (g) the sheet stays still while the family types into a new row (intermittent “Tỏi3”, 13 Nov 2026) ==
+ // The keep-in-place after “+ Thêm nguyên liệu” (app.ts, rule 24) re-checked the add button 250 and 600 ms later. Typing the
+ // new row's name opens the suggestion list, which pushes the add button down, so the late check scrolled the sheet while
+ // the family was about to tap a suggestion: the tap missed, and the amount went into the name (“Tỏi3”) or was lost. Once
+ // the person types or touches again, nothing may scroll the sheet under them. Deterministic: the late checks are waited
+ // out before tapping (on fc50523 the suggestion moved by ~22 px here).
+ {const {context,page,errors,tap}=await openApp();
+  const id=await seedEmptyDishInMeal(page,'Canh QA dòng mới');await page.evaluate((id:string)=>familyRecipeEditor(id),id);await page.locator('#family-recipe-form').waitFor();
+  const list=page.locator('#rc-ing-list .rc-ing-row');
+  for(let i=0;i<3;i++){const row=list.nth(i),[name,qty]=ROWS[i];await row.locator('.rc-ing-name-input').fill(name);await row.locator('.rc-ing-qty').fill(qty)}await page.waitForTimeout(250);
+  for(const [name,qty] of [['Tỏi','3'],['Nước mắm','2']]){
+   await tap(page.locator('[data-rci="add"]'));const row=list.last();await tap(row.locator('.rc-ing-name-input'));await page.keyboard.type(name);
+   const opt=row.locator(`.rc-sug-opt[data-name="${name}"]`);await opt.waitFor();
+   const where=()=>page.evaluate(()=>{const o=[...document.querySelectorAll('#rc-ing-list .rc-sug:not([hidden]) .rc-sug-opt')].at(0) as any,m=document.querySelector('#modal-root .modal') as any;return{opt:Math.round(o.getBoundingClientRect().top),scroll:Math.round(m.scrollTop)}});
+   const before=await where();await page.waitForTimeout(750);const after=await where();
+   assert.deepEqual(after,before,`${name}: the sheet does not move under the suggestion list after the family started typing`);
+   await tap(opt);await page.keyboard.type(qty);
+   assert.deepEqual(await row.evaluate((li:any)=>[li.querySelector('.rc-ing-name-input').value,li.querySelector('.rc-ing-qty').value]),[name,qty],`${name}: the suggestion is picked and the amount lands in the amount box`)}
+  // rule 24 still holds when nothing else is touched: the add button stays where it was tapped
+  const add=page.locator('[data-rci="add"]'),y0=(await add.boundingBox())!.y;await tap(add);await page.waitForTimeout(700);assert.ok(Math.abs((await add.boundingBox())!.y-y0)<2,'the add button keeps its place');
+  assert.deepEqual(errors,[],'no page errors');await context.close()}
+ console.log('PASS (g) typing into a new row: the sheet stays still, the tapped suggestion is picked and the amount lands in its box');
+
+
  // ================= (e) two signed-in devices of one family =================
  {const A=await openApp({account:true});
   const id=await seedEmptyDishInMeal(A.page);await A.page.evaluate((id:string)=>familyRecipeEditor(id),id);await A.page.locator('#family-recipe-form').waitFor();
