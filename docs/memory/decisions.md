@@ -11,6 +11,7 @@ Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; thi
   - Dish search: chips by kind (Món chính, Món phụ, Canh/Súp, Món sợi, Cháo…), by meal (sáng/trưa/tối/phụ) and "Hay nấu", combinable with typing.
 - Also from the screenshots (agent's finds, rule 36): extras with an unknown price show "$0.00"; category counts say "dishes" for items; store and suburb run together ("Thái Hưng GroceryMarrickville"); a stray dot in a category heading; the whole chicken matched to an ALDI $3.99 product.
 
+- **Doubtful online matches** (Henry, 14 Nov about 09:40): “Brown Onion Shallots” = Hành tây (brown onion); “Pork Loin Chops” = Sườn cốt lết; “Mozzarella Cheese Slices” = mozzarella; the deli “BBQ Roasted Chicken Breast” (Woolworths) = roast chicken (gà quay). A whole roast chicken is roast chicken too, not raw whole chicken. In `SYNONYMS` of scout-match.ts; the fixture verdicts follow these answers.
 ## 14 Nov 2026 (morning)
 - **DEPLOY v1.7.20** (Henry, about 06:55). PR #43 squash-merged as 1bf0b29 at 06:57 AEDT; CI green on 9669cf7; production served the new build at 06:58. The working branch carries on from main.
 
