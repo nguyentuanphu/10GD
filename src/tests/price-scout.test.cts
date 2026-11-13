@@ -3,7 +3,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const ctx=vm.createContext({console,Intl,Date,Math,URL,JSON,structuredClone});
 vm.runInContext(fs.readFileSync('dist/master-catalog.js','utf8'),ctx);
-vm.runInContext(fs.readFileSync('dist/shopping-optimizer.js','utf8'),ctx);
+vm.runInContext(fs.readFileSync('dist/store-registry.js','utf8'),ctx);vm.runInContext(fs.readFileSync('dist/shopping-optimizer.js','utf8'),ctx);
 const P=ctx.PriceScout,catalog=JSON.parse(fs.readFileSync('data/master-catalog.json','utf8')).items;
 const plain=(v:any)=>JSON.parse(JSON.stringify(v));
 

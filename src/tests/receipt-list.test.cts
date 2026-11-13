@@ -7,7 +7,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const {COSTCO,HP_MEATS}=require('./fixtures/receipt-list.cjs');
 const ctx=vm.createContext({console,Intl,Date,Math,TextEncoder,crypto:require('node:crypto').webcrypto});
-vm.runInContext(['seed','core','spending-core','unit-registry','purchase-units','receipt-parse','receipt-list'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n;\n')+
+vm.runInContext(['store-registry','seed','core','spending-core','unit-registry','purchase-units','receipt-parse','receipt-list'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n;\n')+
  '\n;this.R=ReceiptParse;this.L=ReceiptList;this.I=INGREDIENTS;this.AL=INGREDIENT_ALIASES;this.api={defaults,ensureWeek,addDays,shopping,stock,validSpending,purchaseScope,planStartOf};',ctx);
 const R=ctx.R,L=ctx.L,A=ctx.api;let n=0;const check=(name:string,fn:()=>void)=>{fn();n++;console.log('PASS',name)};
 const J=(x:any)=>JSON.parse(JSON.stringify(x));

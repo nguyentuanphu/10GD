@@ -6,7 +6,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const {RECEIPTS}=require('./fixtures/receipts.cjs');
 const ctx=vm.createContext({console,Intl,Date,Math,TextEncoder,crypto:require('node:crypto').webcrypto});
-vm.runInContext(['seed','core','spending-core','receipt-parse'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n;\n')+'\n;this.R=ReceiptParse;this.S=defaults();this.I=INGREDIENTS;this.AL=INGREDIENT_ALIASES;this.validSpending=validSpending;this.oldParse=parseReceiptText;',ctx);
+vm.runInContext(['store-registry','seed','core','spending-core','receipt-parse'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n;\n')+'\n;this.R=ReceiptParse;this.S=defaults();this.I=INGREDIENTS;this.AL=INGREDIENT_ALIASES;this.validSpending=validSpending;this.oldParse=parseReceiptText;',ctx);
 const R=ctx.R;let n=0;const check=(name:string,fn:()=>void)=>{fn();n++;console.log('PASS',name)};
 const J=(x:any)=>x===undefined?x:JSON.parse(JSON.stringify(x)),deq=(a:any,b:any,m?:string)=>assert.deepEqual(J(a),J(b),m);
 const goods=(r:any)=>r.items.filter((i:any)=>i.kind==='item');

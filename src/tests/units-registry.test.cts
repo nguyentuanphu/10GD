@@ -3,7 +3,7 @@
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const {MAIN_INGREDIENTS,MAIN_VALID_IMPORT}=require('./fixtures/main-0bcef70-client.cjs');
 const {MAIN_UNIT_CODE}=require('./fixtures/main-0bcef70-units.cjs');
-const files=['seed','recipe-catalog','core','spending-core','unit-registry','purchase-units','planning-core'];
+const files=['store-registry','seed','recipe-catalog','core','spending-core','unit-registry','purchase-units','planning-core'];
 const ctx=vm.createContext({console,Intl,Date,Math:Object.create(Math),structuredClone,crypto:require('node:crypto').webcrypto});
 vm.runInContext(files.map(f=>fs.readFileSync('dist/'+f+'.js','utf8')).join('\n')+'\n;this.api={UNIT_REGISTRY,UNIT_ICON_PATHS,UNIT_AMBIGUOUS,UNIT_CATEGORIES,findUnit,sameUnit,canonicalUnitLabel,unitLabel,unitAmountLabel,unitIconSvg,unitSynonymIndex,unitMatchAtStart,unitScoutQuantity,unitPriceBasisFor,unitChoicesFor,unitIsMeasured,unitNorm,BUYING_UNITS,validPurchaseUnitRecord,validUnitState,validImport,defaults,ensureWeek,monday,sydneyDate,addDays,shopping,setBuyingUnits,purchaseScope,INGREDIENTS};',ctx);
 const a=ctx.api,json=x=>JSON.parse(JSON.stringify(x));
@@ -84,6 +84,6 @@ assert.deepEqual(q('2 lạng'),[200,'g']);assert.deepEqual(q('1 tá'),[12,'each'
 assert.deepEqual(q(''),[1,'pack']);assert.deepEqual(q('ít thôi'),[1,'pack']);
 assert.equal(a.unitPriceBasisFor('chai',500,'ml'),'per_100mL');assert.equal(a.unitPriceBasisFor('bao',5,'kg'),'per_kg');assert.equal(a.unitPriceBasisFor('chai'),null,'no pack size → no unit-price basis');
 assert.equal(a.unitPriceBasisFor('viên'),'per_wash');assert.equal(a.unitPriceBasisFor('lần giặt'),'per_wash');assert.equal(a.unitPriceBasisFor('cuộn'),'per_roll');
-const ps=vm.createContext({console,Intl,Date,Math,URL});vm.runInContext(fs.readFileSync('dist/shopping-optimizer.js','utf8')+'\n;this.P=typeof PriceScout!=="undefined"?PriceScout:globalThis.PriceScout',ps);
+const ps=vm.createContext({console,Intl,Date,Math,URL});vm.runInContext(fs.readFileSync('dist/store-registry.js','utf8')+'\n;'+fs.readFileSync('dist/shopping-optimizer.js','utf8')+'\n;this.P=typeof PriceScout!=="undefined"?PriceScout:globalThis.PriceScout',ps);
 assert.equal(typeof ps.P?.basisMultiplier,'function','Price Scout loaded');{const finish={commonPacks:[{packQty:60,packUnit:'wash',units:60}]};assert.equal(ps.P.basisMultiplier(...q('3 viên'),'per_wash',finish),3,'tablets feed per_wash');assert.equal(ps.P.basisMultiplier(...q('2 cuộn'),'per_roll',{}),2,'rolls feed per_roll');assert.equal(ps.P.basisMultiplier(...q('2 chai 500 ml'),'per_L',{}),1,'2×500 mL bottles = 1 L');n+=3}
 console.log(`Unit registry: ${a.UNIT_REGISTRY.length} units, ${n}+ checks passed.`);

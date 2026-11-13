@@ -24,7 +24,7 @@ let passed=0;const ok=(name:string)=>{passed++;console.log('PASS',name)};
 
 // ---------- the app's own code, loaded as in the browser (no DOM: pure parts only)
 const ctx:any=vm.createContext({console,Intl,Date,Math,TextEncoder,crypto:webcrypto});
-vm.runInContext(['seed','core','spending-core','receipt-parse','receipt-quality','receipt-share'].map(n=>readFileSync('dist/'+n+'.js','utf8')).join('\n;\n')+'\n;this.RP=ReceiptParse;this.RQ=ReceiptQuality;this.RS=ReceiptShare;',ctx);
+vm.runInContext(['store-registry','seed','core','spending-core','receipt-parse','receipt-quality','receipt-share'].map(n=>readFileSync('dist/'+n+'.js','utf8')).join('\n;\n')+'\n;this.RP=ReceiptParse;this.RQ=ReceiptQuality;this.RS=ReceiptShare;',ctx);
 const {RP,RQ,RS}=ctx;
 
 // A synthetic receipt with every kind of number that must never leave the phone.

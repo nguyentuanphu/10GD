@@ -25,15 +25,9 @@ const pad=n=>String(n).padStart(2,'0');
 const MAX_YEAR=new Date().getFullYear()+1;
 
 // ---------------------------------------------------------------- retailers
-const RETAILERS={
- aldi:{name:'ALDI',currency:'AUD',scout:'aldi'},
- woolworths:{name:'Woolworths',currency:'AUD',scout:'woolworths'},
- coles:{name:'Coles',currency:'AUD',scout:'coles'},
- 'woolworths-uk':{name:'Woolworths UK',currency:'GBP',scout:null},
- iga:{name:'IGA',currency:'AUD',scout:null},
- costco:{name:'Costco',currency:'AUD',scout:null},
- 'harris-farm':{name:'Harris Farm',currency:'AUD',scout:null}
-};
+// The chains a receipt can name: the registry's `receipt` view (store-registry.ts, audit B9). `scout` is the So Giá id when the
+// scout tracks that chain on its own (ALDI, Woolworths, Coles), else null, as before.
+const RETAILERS=Object.fromEntries(STORE_REGISTRY.filter((s:any)=>s.receipt).map((s:any)=>[s.id,{name:s.name,currency:s.receipt.currency,scout:s.scout?s.id:null}]));
 function detectCurrency(text){
  const t=String(text||''),pounds=(t.match(/£\s?\d/g)||[]).length;
  if(/\bVAT\s*(No|Reg|Number)\b|woolworths\.co\.uk|\.co\.uk\b/i.test(t)||pounds>=2||pounds>=1&&/\bVAT\b/i.test(t))return'GBP';

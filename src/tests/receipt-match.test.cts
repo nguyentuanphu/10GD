@@ -9,7 +9,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const {GENERIC_RECEIPTS}=require('./fixtures/generic-receipts.cjs');
 const {RECEIPTS}=require('./fixtures/receipts.cjs');
 const ctx=vm.createContext({console,Intl,Date,Math,TextEncoder});
-vm.runInContext(['seed','core','spending-core','receipt-parse','receipt-match'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n;\n')+'\n;this.R=ReceiptParse;this.M=ReceiptMatch;this.I=INGREDIENTS;this.AL=INGREDIENT_ALIASES;',ctx);
+vm.runInContext(['store-registry','seed','core','spending-core','receipt-parse','receipt-match'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n;\n')+'\n;this.R=ReceiptParse;this.M=ReceiptMatch;this.I=INGREDIENTS;this.AL=INGREDIENT_ALIASES;',ctx);
 const R=ctx.R,M=ctx.M,I=ctx.I;let n=0;const check=(name:string,fn:()=>void)=>{fn();n++;console.log('PASS',name)};
 const J=(x:any)=>JSON.parse(JSON.stringify(x));
 const goods=(r:any)=>r.items.filter((i:any)=>i.kind==='item');

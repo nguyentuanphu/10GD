@@ -5,7 +5,7 @@
 // plans or list lines; receipt reconciliation undo restores the bought marks; planning in "Nấu mỗi bữa" writes the shown days.
 // Every changed state ends with validImport true.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const files=['seed','recipe-catalog','core','spending-core','unit-registry','purchase-units','planning-core','insights-core','family-menu-core','availability-core','personal-core','receipt-parse','receipt-list'];
+const files=['store-registry','seed','recipe-catalog','core','spending-core','unit-registry','purchase-units','planning-core','insights-core','family-menu-core','availability-core','personal-core','receipt-parse','receipt-list'];
 function make(){const store:any={};const ctx=vm.createContext({console,Intl,Date,Math,URL,TextEncoder,structuredClone,crypto:require('node:crypto').webcrypto,familyStorage:{getItem:(k:string)=>store[k]??null,setItem:(k:string,v:string)=>store[k]=String(v),removeItem:(k:string)=>delete store[k]}});
  vm.runInContext(files.map(f=>fs.readFileSync('dist/'+f+'.js','utf8')).join('\n;\n'),ctx);return(c:string)=>JSON.parse(vm.runInContext('JSON.stringify('+c+')',ctx))}
 let n=0;const check=(name:string,fn:()=>void)=>{fn();n++;console.log('PASS',name)};
