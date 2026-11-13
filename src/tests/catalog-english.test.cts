@@ -4,7 +4,7 @@
 // are not part of this check.
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const c=vm.createContext({console,Intl,Date,Math,URL,structuredClone,crypto:require('node:crypto').webcrypto});
-for(const f of ['seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
+for(const f of ['store-registry.js','seed.js','recipe-catalog.js','core.js','spending-core.js','purchase-units.js','planning-core.js','insights-core.js','family-menu-core.js','availability-core.js','personal-core.js'])vm.runInContext(fs.readFileSync('dist/'+f,'utf8'),c);
 {const lang=fs.readFileSync('dist/language.js','utf8');vm.runInContext('var familyStorage={getItem(){return null},setItem(){}};'+lang.slice(0,lang.indexOf('function applyLanguage(')),c)}
 const VI=/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/i;
 const lists:Record<string,any[]>=vm.runInContext(`({seed:typeof RECIPES!=='undefined'?RECIPES:[],plant:PLANT_RECIPES,western:WESTERN_HEALTHY_RECIPES,expanded:EXPANDED_RECIPES,defaults:defaults().recipes})`,c);

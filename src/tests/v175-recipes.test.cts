@@ -9,7 +9,7 @@ vm.runInContext(`
 for(const [text,want] of [['2',2],['0.5',.5],['0,5',.5],['1/2',.5],['½',.5],['1 1/2',1.5],['1½',1.5],['¼',.25],['3/4',.75]])assert.equal(parseQty(text),want,text);
 for(const text of ['','abc','1/0','2kg','-1'])assert.ok(Number.isNaN(parseQty(text)),'not an amount: '+text);
 assert.equal(fmtQty(.5,'quả'),'½ quả');assert.equal(fmtQty(1.5,'quả'),'1½ quả');assert.equal(fmtQty(.25,'muỗng canh'),'¼ muỗng canh');
-assert.equal(fmtQty(2,'tép'),'2 tép');assert.equal(fmtQty(1500,'g'),'1.5 kg');assert.equal(fmtQty(250,'g'),'250 g');
+assert.equal(fmtQty(2,'tép'),'2 tép');assert.equal(fmtQty(1500,'g'),'1,5 kg');assert.equal(fmtQty(250,'g'),'250 g');
 const half=recipeIngredientRows({ingredients:[{id:'lemon',qty:.5},{id:'egg',qty:.5}]},1,defaults());
 assert.deepEqual(half.map(r=>r.qty),[.5,.5],'½ stays ½ in the recipe view');
 

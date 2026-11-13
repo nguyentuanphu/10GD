@@ -6,7 +6,7 @@
 //  B19 — a bought lot's amount is written like the other pantry amounts; portions are “suất” with a decimal comma in Vietnamese.
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const c=vm.createContext({console,Intl,Date,Math:Object.create(Math),structuredClone,crypto:require('node:crypto').webcrypto});
-vm.runInContext(['seed','recipe-catalog','core','spending-core','unit-registry','purchase-units','planning-core','family-menu-core'].map(f=>fs.readFileSync('dist/'+f+'.js','utf8')).join('\n')+'\n;this.a={pantryAmountInUnit,pantryBuyingDisplay,pantryUnitStep,portionNumber,recipePortionLabel,defaults,INGREDIENTS,validImport};',c);
+vm.runInContext(['store-registry','seed','recipe-catalog','core','spending-core','unit-registry','purchase-units','planning-core','family-menu-core'].map(f=>fs.readFileSync('dist/'+f+'.js','utf8')).join('\n')+'\n;this.a={pantryAmountInUnit,pantryBuyingDisplay,pantryUnitStep,portionNumber,recipePortionLabel,defaults,INGREDIENTS,validImport};',c);
 const a=c.a,j=(x:any)=>JSON.parse(JSON.stringify(x));let n=0;const ok=(cond:any,m:string)=>{assert.ok(cond,m);n++};const eq=(x:any,y:any,m:string)=>{assert.deepEqual(j(x),y,m);n++};
 const MILK=Object.keys(a.INGREDIENTS).find(k=>a.INGREDIENTS[k][1]==='ml'&&!/^family-ing-/.test(k))!;
 const s=a.defaults();s.customUnits=[{id:'cu-qa-tui',name:'túi QA',base:'ml',perBase:500,ingredient:MILK,createdAt:'2026-11-13T00:00:00Z'}];s.purchaseUnitPreferences={pork:{unit:'khay',amount:1,basePerUnit:450,pricePerUnit:null}};
@@ -30,7 +30,7 @@ ok(a.validImport(j(s)),'validImport keeps the bought lots');
 
 // ---- B19: amounts and portions ----------------------------------------------------------------------------------------
 const lot=(unit:string,amount:number)=>({ingredient:'pork',qty:0,purchase:{unit,amount,basePerUnit:null}});
-eq([lot('túi',2.5),lot('hộp',1),lot('chục',1.25),lot('kg',1.333),lot('g',472.54),lot('hộp',2.37)].map(a.pantryBuyingDisplay),['2½ túi','1 hộp','1¼ chục','1.33 kg','472.5 g','2.37 hộp'],'bought lots read like the other pantry amounts');
+eq([lot('túi',2.5),lot('hộp',1),lot('chục',1.25),lot('kg',1.333),lot('g',472.54),lot('hộp',2.37)].map(a.pantryBuyingDisplay),['2½ túi','1 hộp','1¼ chục','1,33 kg','472,5 g','2,37 hộp'],'bought lots read like the other pantry amounts');
 eq([a.portionNumber(3.15),a.portionNumber(2),a.portionNumber(0.6499)],['3,15','2','0,65'],'portions: a decimal comma in Vietnamese');
 eq(a.recipePortionLabel({name:'x',ingredients:[]},4),'4 suất','“suất”, as on the meal cards');
 

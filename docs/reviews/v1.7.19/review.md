@@ -527,3 +527,29 @@ Henry asked for this check because several chats and helper agents made the fixe
 
 ### Privacy page change (rule 28), 13 Nov 2026
 Henry approved the wording word for word (pop-up "Duyệt nguyên văn"; draft in `docs/plans/privacy-draft-20261113.md`). `dist/privacy.html` gets section 9 "Những lần app gọi ra ngoài" / "When the app reaches outside" (weather, Tìm giá online, voice statistics codes, app-update notes, third-party fonts/libraries/photos), a contents link in both languages, and the date 13/11/2026. This closes D26–D30. It describes what the app already does: **no change to what is collected, sent, stored or shared.** D25 (feedback page) stays as it is (Henry: "Để nguyên như cũ").
+
+## Every open item in one go (Henry, 13 Nov 2026: "Nếu làm thì làm hết 1 lượt")
+
+Two helpers, each in its own worktree from 5ba19a8, merged by the lead (a871e88, then the UI merge). The lead read both diffs and fixed what only showed after merging: the two new unit tests did not load the new `store-registry.js`.
+
+| Item | What changed | Test (fails on 5ba19a8) |
+|---|---|---|
+| S4 (real) | A "Đã mua" tick belongs to its date range (`week.boughtScope["start/end"]`), like amounts and buying units; ticking Saturday's pork no longer ticks Tuesday's. `week.bought` is still written (largest tick) and read alone for old data, so older devices keep working; the released validator accepts the synced weeks. | `audit-data-fixes` "re-check S4" (Sat/Sun/Mon, AUD/VND, two devices) |
+| B9 | One store registry (`store-registry.ts`) for receipts, So Giá, voice prices, the optimiser, insights, store suggestions and the products page. Stored ids are unchanged (products: Coles, Woolworths, Chemist Warehouse; So Giá: its 7 ids, others as 'other'), so older devices accept the data. | `audit-data-fixes` "re-check B9" |
+| Receipt currency | A đồng receipt is suggested as VND from the receipt itself (Vietnamese chain, ₫/VNĐ, whole-thousand amounts); Vietnamese words alone do not count (Sydney grocers). The editor shows "Tiền của hoá đơn" with the reason; changing it never converts amounts. All 24 AUD/GBP fixtures parse as before. | `receipt-parse`, `audit-data-browser` |
+| B12 | So Giá pack units in the registry's words (stored values unchanged; an unknown old value is kept). Tủ → Thêm thực phẩm and the barcode sheet use the shared unit picker; conversions through `pantryAmountInUnit`, a unit without conversion stays a lot in that unit with no guessed grams; counted units in ¼ steps. | `recheck-ui`, `test:recheck-ui:browser` |
+| B16 | No native `confirm()`: removing a meal and clearing a dictated transcript happen at once with "Hoàn tác"; deleting a pantry lot has "Hoàn tác" (same lot back). One spelling "Xoá"/"Huỷ" in app text (42 strings) and the availability push. | `recheck-ui`, browser suite, `v176-fixes` |
+| B19 | Bought lots formatted like other pantry amounts; "suất" everywhere (no "suất chuẩn"), portions with a decimal comma in Vietnamese. | `recheck-ui`, `v1712-fixes` |
+| Decimal comma (Henry, pop-up) | Every amount shown in Vietnamese uses a decimal comma (`fmtQty`, buying display, pantry lots, unit labels); English keeps the point. Amount text that is stored and read back (an extra's qty) keeps the point (`fmtQtyData`). | `core`, `v175-recipes`, `recheck-ui` |
+| A1 note | Both pantry buttons read "Đồ trong tủ (n)" and open the same sheet with that count; the sheet no longer says "Tủ đang trống" when every lot is listed above. | browser suite |
+| English names | 86 built-in dishes had no English name (45 Western, 17 plant, 24 cháo from cooked rice). | `catalog-english` (every built-in dish) |
+| Privacy D26–D30 | Section 9 on the privacy page, wording approved word for word. | — |
+
+**Henry's answers (pop-up, 13 Nov):** decimal comma in Vietnamese; receipts in another currency kept, not converted (C5); spoons round up to ¼ (C21); □ ✓ kept in the shared list (D1); D25 unchanged.
+
+**Left, with reason:**
+- Barcode sheet: an empty amount stores one pack (one scanned pack), as its hint says.
+- Studio (owner-only) text keeps "xóa" in a few server messages.
+- Adding ALDI, Harris Farm and others to saved products or So Giá ids needs two releases (validators first), so older devices do not reject synced data.
+- Dark mode: the meal-row "Hoàn tác" button has less contrast than in light mode (readable).
+- Mixed versions: an older device that edits a tick for an ingredient that already has ranged ticks is not seen by newer devices until it updates.
