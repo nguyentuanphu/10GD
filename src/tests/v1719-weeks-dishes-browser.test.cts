@@ -64,6 +64,9 @@ const RUNS=[
    ok(g.keys,'B1: no hidden copy of the week is created');ok(g.names.includes('Cô Lan QA'),'B1: the guest is on the meal the menu shows');ok(servings0===2&&g.add>=2&&Math.abs(g.menu-(servings0+g.add))<1e-6,`B1: the guests' portions count on the menu's meal (${servings0} + ${g.add} → ${g.menu})`);
    const hits=await E(`searchHits('Món QA tuần riêng').filter(h=>h.g==='planned'||/QA tuần riêng/.test(h.title)).map(h=>h.sub)`);
    ok(hits.some((s:string)=>new RegExp(L('hôm nay','today')).test(s)),`B2: global search finds tonight's dish ${JSON.stringify(hits)}`);
+   {/* v1.7.20: a dish planned many times — the search's 6 menu rows start with today and the coming meals, not two weeks ago */const r=await E(`(()=>{const dish={id:'qa-rep',name:'Món QA lặp lại',category:'main',protein:'pork',time:20,prep:'',steps:[],ingredients:[{id:'pork',qty:100}]};const t=sydneyDate();for(let k=-14;k<=4;k+=2){const d=addDays(t,k);const day=dayAt(state,d);if(day?.lunch){day.lunch.recipes=[dish]}}save();
+     const box=document.createElement('div');box.innerHTML=searchResultsHtml('Món QA lặp lại');const rows=[...box.querySelectorAll('.search-hit-row')].map(b=>b.textContent);return{rows,today:t}})()`);
+    ok(r.rows.length>0&&new RegExp(L('hôm nay','today')).test(r.rows[0]),`search lists today's meal first for a repeated dish ${JSON.stringify(r.rows)}`)}
 
    // ── voice undo with the family's week (EN: list lines; VI: the pantry keeps its lots — B10) ────────────────────────────────────
    if(en){await E(`(()=>{const w=currentWeek();w.extras=w.extras.filter(e=>e.id!=='qa-egg');w.extras.push({id:'qa-egg',name:'Trứng',nameEn:'Eggs',qty:'10 quả',cost:0,currency:'AUD',costKnown:false,costUnknown:true,done:false,ingredient:'egg'});save();closeModal();voiceModal()})()`);

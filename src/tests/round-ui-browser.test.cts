@@ -128,6 +128,9 @@ const VI_MSG=/^(Hãy |Số |Cần |Tối đa |Giá trị |Nhập lượng )/,EN_
    const purposes=await E(`[...document.querySelectorAll('#modal-root input[name="purpose"]')].map(i=>i.closest('label').innerText.trim())`);
    assert.deepEqual(purposes,vi?['Bữa sáng','Bữa trưa','Bữa tối','Bữa phụ','Mẻ nấu cuối tuần']:['Breakfast','Lunch','Dinner','Snack','Weekend batch cook'],`${label}: meal-group labels in the app's language`);
    await page.locator('#modal-root input[name="purpose"]').first().scrollIntoViewIfNeeded();await overflow('recipe form');await shot('recipe-meal-groups');
+   {/* v1.7.20 (Henry, pop-up “Mẻ nấu cuối tuần”): one name everywhere — the batch card, its pills and the dish line */await page.evaluate(`(()=>{closeModal();const s=planStartOf(state,sydneyDate());familyGenerate(state,s,{sourceMode:'library'});save();view='planner';weekStart=s;render()})()`);await page.waitForTimeout(300);
+    const txt=await page.evaluate(`(()=>{const b=document.querySelector('#main .family-batch');return {batch:b?b.innerText:'',all:document.querySelector('#main').innerText}})()`) as any;
+    assert.ok(!/Weekends feast/.test(txt.all),`${label}: no “Weekends feast” left on the menu`);if(txt.batch)assert.match(txt.batch,vi?/Mẻ nấu cuối tuần/:/Weekend batch cook/,`${label}: the batch card says ${vi?'Mẻ nấu cuối tuần':'Weekend batch cook'}`)}
    await E(`closeModal()`);
 
    // ── 8. Dish pictures show the whole plate ────────────────────────────────────────────────────────────────────────────

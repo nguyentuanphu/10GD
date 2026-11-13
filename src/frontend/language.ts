@@ -67,10 +67,10 @@ Object.assign(EN_UI,{
 'Sao chép nội dung rồi mở cuộc trò chuyện hoặc nhóm Messenger để dán. App không tự gửi tin nhắn.':'Copy the text, then open a Messenger chat or group and paste it. The app never sends messages itself.',
 'Sao chép tuần trước?':'Copy last week?','Số lượng & đơn vị':'Quantity & unit','Thêm vào danh sách đi chợ':'Add to shopping list','Tên nguyên liệu / món ăn / đồ gia dụng cần mua thêm':'Ingredient, dish or household item to buy',
 'Ví dụ: Sữa tươi, Trái cây, Thịt bò thêm, Giấy ăn…':'e.g. Milk, Fruit, Extra beef, Tissues…','Ví dụ: đùi gà, thịt nạc, bó nhỏ':'e.g. chicken thigh, lean, small bunch','Vừa đủ lượng cần mua theo thực đơn.':'Exactly what the menu needs.',
-'— Hoặc tự nhập tên món / đồ dùng ở ô bên dưới —':'— Or type an item name below —','🍲 Chi tiết mẻ nấu cuối tuần (Weekends feast)':'🍲 Weekend batch details (Weekends feast)',
+'— Hoặc tự nhập tên món / đồ dùng ở ô bên dưới —':'— Or type an item name below —','🍲 Chi tiết mẻ nấu cuối tuần':'🍲 Weekend batch cook details',
 'Hà Nội':'Hanoi','TP. Hồ Chí Minh':'Ho Chi Minh City','lạng (100 g)':'100 g','Chợ Việt / Á Châu · Thực phẩm tươi & gia vị Việt':'Vietnamese / Asian grocer · Fresh food & Vietnamese pantry','Siêu thị':'Supermarket',
 'Món chính':'Main dishes','Món phụ':'Side dishes','Món canh / soup':'Soups','Món sợi':'Noodle dishes','Món tráng miệng':'Desserts','Món ăn vặt':'Snacks','Món school lunch box':'School lunch box',
-'Bữa phụ':'Snack','Weekends feast':'Weekends feast','Phân loại bữa ăn':'Meal types','Phân loại món ăn':'Dish type',
+'Bữa phụ':'Snack','Weekends feast':'Weekend batch cook','Mẻ nấu cuối tuần':'Weekend batch cook','Phân loại bữa ăn':'Meal types','Phân loại món ăn':'Dish type',
 'Đồ đã quá hạn nhập không được trừ khỏi danh sách mua. Khi đánh dấu “Đã nấu”, app chỉ trừ lượng tồn đang được ghi nhận và còn hạn.':'Items past their entered expiry are not deducted from the shopping list. When a meal is marked “Cooked”, only recorded, unexpired stock is deducted.',
 'So sánh hai lần mua gần nhất của cùng nguyên liệu tại cùng cửa hàng, theo dữ liệu bạn xác nhận. Quy cách, nhãn hàng và khuyến mãi có thể khác nhau; đây là biến động giá ghi nhận, không phải chỉ số lạm phát.':'Compares the two most recent purchases of the same ingredient at the same store, from data you confirmed. Pack size, brand and promotions may differ; this is recorded price change, not an inflation index.'
 });
@@ -136,7 +136,7 @@ const EN_SENTENCE_RULES=[
  [/^(\d+) món chưa rõ giá\. Tổng trên chỉ gồm phần đã tính được\.$/,'$1 items have no price yet. The total covers priced items only.'],
  [/^Vượt mục tiêu (\$[\d.,]+)\. Thử đổi vài món hoặc kiểm tra lại tủ\.$/,'$1 over target. Try swapping a few dishes or check the pantry.'],
  [/^Ví dụ: (\d+) g, (\d+) hộp, (\d+) bó…$/,'e.g. $1 g, $2 boxes, $3 bunch…'],
- [/^🍲 Weekends feast · (.+)$/,(_,n)=>'🍲 Weekends feast · '+(translateRecipeViToEn(n)||n)],
+ [/^🍲 (?:Weekends feast|Mẻ nấu cuối tuần) · (.+)$/,(_,n)=>'🍲 Weekend batch cook · '+(translateRecipeViToEn(n)||n)],
  [/^(?:🧺 )?ĐI CHỢ NHÀ MÌNH · (.+)$/,'OUR SHOPPING LIST · $1'],/* v1.7.19 D1: the shared list heading has no emoji */
  [/^(Ước tính )?ít hơn ([\d.,]+) ?(\S+) so với lượng cần mua\.$/,(_,e,a,u)=>(e?'Estimated ':'')+a+' '+enUnit(u)+' less than the menu needs.'],[/^(Ước tính )?dư ([\d.,]+) ?(\S+) so với lượng cần mua\.$/,(_,e,a,u)=>(e?'Estimated ':'')+a+' '+enUnit(u)+' more than the menu needs.'],
  [/^Bạn chọn ít hơn ([\d.,]+) ?(\S+) so với lượng cần mua theo thực đơn\.$/,(_,a,u)=>`You chose ${a} ${enUnit(u)} less than the menu needs.`],[/^Mua dư ([\d.,]+) ?(\S+) so với lượng cần; có thể để dành cho bữa khác\.$/,(_,a,u)=>`Buying ${a} ${enUnit(u)} more than needed; it can be kept for another meal.`],
