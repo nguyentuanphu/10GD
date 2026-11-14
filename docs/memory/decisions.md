@@ -2,6 +2,10 @@
 
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
+## 14 Nov 2026 (23:00 AEDT): v1.7.21 released
+- Henry said DEPLOY (pop-up). PR #44 squash-merged as 6a64167 at 23:00 AEDT; live at 23:01 AEDT (startup-scripts hash
+  5f4dfb9741b6). Checked on production: the new stores are in So Giá and saved products, no page errors.
+
 ## 14 Nov 2026 (about 21:00 AEDT, v1.7.21)
 - **More stores, step 2, now (Henry: "Làm luôn đi đừng chờ").** Do not wait for the 27 Nov 2026 device check in
   docs/plans/stores-step2.md. ALDI, Harris Farm, IGA, Costco, Spudshed and FoodWorks are offered in saved products and So Giá
