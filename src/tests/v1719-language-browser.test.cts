@@ -52,7 +52,7 @@ const E=(page:any,s:string)=>page.evaluate(s);
 const SEED=`(()=>{state.preferences.onboardingComplete=true;if(!state.members.some(m=>m.id==='qa-m3'))state.members.push({id:'qa-m3',name:'Bé Na',weight:0.6,emoji:''});
  familyGenerate(state,weekStart,{sourceMode:'library'});state.stores=[{id:'qa-store',name:'Chợ Cabramatta',address:'Freedom Plaza'}];
  const rows=shopping(state,currentWeek(),...shopDates()).filter(r=>r.needed>0).slice(0,3);rows.forEach((r,i)=>state.pantry.push({id:'qa-p-'+i,ingredient:r.id,qty:1,place:['fridge','freezer','dry'][i],expiry:i?'':addDays(sydneyDate(),2)}));
- {const w=currentWeek(),[a,b]=shopDates();w.quantities??={};w.quantities[purchaseScope(a,b)]={[rows[1].id]:0.1}}
+ {const w=currentWeek(),[a,b]=shopDates();w.quantities??={};/* v1.7.21: a decimal amount only for an ingredient bought by weight or volume; the random week sometimes put 0.1 on one counted in quả (eggs), which validImport rightly refuses */const dec=rows.find(r=>INGREDIENTS[r.id][1]!=='quả')||rows[1];w.quantities[purchaseScope(a,b)]={[dec.id]:INGREDIENTS[dec.id][1]==='quả'?1:0.1}}
  currentWeek().extras.push({id:'qa-x1',name:'Giấy bếp',qty:'1 gói',cost:4.5,currency:'AUD',done:false});
  state.receipts=(state.receipts||[]).concat([{id:'qa-r-vnd',store:'Chợ Bến Thành',date:sydneyDate(),currency:'VND',total:125000,createdAt:'2026-11-12T01:00:00.000Z',items:[{id:'qa-rl1',label:'Thịt ba chỉ',total:125000,quantity:null}]}]);
  save();closeModal();render();return rows.map(r=>r.id)})()`;
@@ -166,7 +166,10 @@ const COLLECT=(scope:string)=>`(()=>{const st=state;const names=[...st.members.m
    const acc=await E(page,`(()=>{editingDate=Object.keys(currentWeek().days)[0];editingType='dinner';pickerCategory='noodle';const a=pickerItems('pho');recipeSearch='pho';const b=filteredRecipes().map(r=>r.name);recipeSearch='';const c=soupItems('pho',999);return{a,b,c}})()`);
    chk.match(acc.a,/Phở bò QA/,'meal picker: “pho” finds “Phở bò QA”');chk.ok(acc.b.includes('Phở bò QA'),'recipe list: “pho” finds “Phở bò QA”');chk.match(acc.c,/Phở bò QA/,'weekend soup: “pho” finds “Phở bò QA”');
    // round trip (rule 33)
-   chk.equal(await E(page,`(state.recipes=state.recipes.filter(r=>r.id!=='qa-pho'),validImport(JSON.parse(JSON.stringify(state))))`),true,'the saved state still loads');
+   {const rt=await E(page,`(()=>{state.recipes=state.recipes.filter(r=>r.id!=='qa-pho');const base=JSON.parse(JSON.stringify(state));if(validImport(JSON.parse(JSON.stringify(base))))return 'ok';/* v1.7.21: say which part is refused, so a failure on CI can be fixed */const why=[];for(const k of Object.keys(base)){const c=JSON.parse(JSON.stringify(base));if(Array.isArray(c[k]))c[k]=[];else if(c[k]&&typeof c[k]==='object')c[k]={};else delete c[k];if(validImport(c))why.push(k)}
+   if(why.includes('weeks'))for(const wk of Object.keys(base.weeks))for(const d of Object.keys(base.weeks[wk].days||{}))for(const t of Object.keys(base.weeks[wk].days[d]||{})){const c=JSON.parse(JSON.stringify(base));delete c.weeks[wk].days[d][t];if(validImport(c))why.push(wk+'/'+d+'/'+t+'='+JSON.stringify(base.weeks[wk].days[d][t]).slice(0,600))}
+   for(const k of ['recipes','products','receipts','pantry','stores'])if(why.includes(k)&&Array.isArray(base[k]))base[k].forEach((x,i)=>{const c=JSON.parse(JSON.stringify(base));c[k].splice(i,1);if(validImport(c))why.push(k+'['+i+']='+JSON.stringify(x).slice(0,600))});
+   return why.join(' | ')||'no single part'})()`);chk.equal(rt,'ok','the saved state still loads: '+rt)}
    chk.deepEqual(errors,[],'no page errors (money/search)');await context.close()}
  }finally{await browser.close()}
  assert.deepEqual(failures,[],'language / time / money problems:\n'+failures.join('\n'));
