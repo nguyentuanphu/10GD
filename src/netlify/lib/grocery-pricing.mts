@@ -8,7 +8,7 @@ export const OBSERVATIONS_KEY='grocery/observations.json';
 export const CACHE_STORE='bep-grocery-cache';
 export const MAX_OBSERVATIONS=3000;
 export const RATE_WINDOW_MS=10*60*1000,RATE_MAX=120;
-const RETAILERS=['woolworths','coles','aldi','chemist','amazon','viet-grocer','other'];
+const RETAILERS=['woolworths','coles','aldi','chemist','amazon','viet-grocer','other','harris-farm','iga','costco','spudshed','foodworks'];/* v1.7.21 (Henry, 14 Nov 2026): more stores, step 2 — the app's So Giá ids (store-registry scout view) */
 const SOURCES=['screenshot','bookmark','receipt','catalogue','manual','official','voice'];
 const PROMOS=['half-price','special','special-buy','price-drop','multibuy','deal','clearance'];
 // 'manual-voice' (spoken price, v1.6) is family-only: it is not in the community evidence list.

@@ -25,7 +25,7 @@ assert.deepEqual([saved.visibility,saved.evidence.imageHash,saved.evidence.ocrMa
 assert.equal(data.cycleId,'2026-10-28');assert.equal(data.official,null);
 assert.equal((await grocery(req('prices&state=VIC'))).status,400);
 // Validation
-for(const bad of [obs('bad-price',{price:0}),obs('bad-curr',{currency:'USD'}),obs('bad-retailer',{retailer:'costco'}),obs('bad-official',{source:'official'}),obs('bad-future',{observedAt:'2027-01-01'}),obs('bad-community',{visibility:'community'}),obs('bad-hash',{evidence:{type:'screenshot',imageHash:'nothex'}}),obs('x'),obs('bad-state',{state:'VIC'})])
+for(const bad of [obs('bad-price',{price:0}),obs('bad-curr',{currency:'USD'}),obs('bad-retailer',{retailer:'kmart'})/* v1.7.21: costco is a So Giá store now */,obs('bad-official',{source:'official'}),obs('bad-future',{observedAt:'2027-01-01'}),obs('bad-community',{visibility:'community'}),obs('bad-hash',{evidence:{type:'screenshot',imageHash:'nothex'}}),obs('x'),obs('bad-state',{state:'VIC'})])
  assert.equal((await grocery(req('observe','POST',{observation:bad}))).status,400,'rejects '+bad.id);
 assert.equal((await grocery(req('observe','POST',{observations:Array.from({length:26},(_,i)=>obs('obs-many-'+i))}))).status,400);
 assert.equal((await grocery(new Request('https://test.example/.netlify/functions/grocery?op=observe',{method:'POST',headers:{Origin:'https://test.example',Cookie:f.cookie},body:'x'.repeat(40001)}))).status,413);

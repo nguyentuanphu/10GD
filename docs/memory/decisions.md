@@ -2,6 +2,11 @@
 
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
+## 14 Nov 2026 (about 21:00 AEDT, v1.7.21)
+- **More stores, step 2, now (Henry: "Làm luôn đi đừng chờ").** Do not wait for the 27 Nov 2026 device check in
+  docs/plans/stores-step2.md. ALDI, Harris Farm, IGA, Costco, Spudshed and FoodWorks are offered in saved products and So Giá
+  in v1.7.21. Accepted risk: a device still on v1.7.18 stops syncing until it updates.
+
 ## 14 Nov 2026 (about 08:00, v1.7.21; phone screenshots of the shopping list)
 - Henry's report: Lemon on the list is priced as ALDI "Lemon & Pepper Tuna 95g" (wrong match, and the tuna photo shows on the row); the So Giá price history shows no product photos; "Add item" and "Request item" should sit side by side; finding a dish should work by kind/meal, not only by name; the shopping row is too tall (unit, round down/up, shop); each category needs a quick view; extras like "Bánh chưng" land in "Household items" when grouped by aisle; the usual-shops list grows too long.
 - Pop-up answers:

@@ -15,6 +15,9 @@
 //    below, step 1); the views, and so what the forms offer and save, are unchanged;
 //  • chains the scout does not track on their own (Harris Farm, IGA, Costco, Spudshed, FoodWorks) reach it through the alias
 //    layer storeScoutId(): their scout id is 'other', exactly the value voice prices already saved for them.
+// v1.7.21 (Henry, 14 Nov 2026: “Làm luôn đi đừng chờ”), step 2: the `product` and `scout` views now include ALDI, Harris Farm,
+// IGA, Costco, Spudshed and FoodWorks (Henry chose not to wait for the 27 Nov 2026 device check; a device still on v1.7.18
+// that receives such a value stops syncing until it updates). The notes above describe step 1.
 // The family's own places (state.stores) are names the family typed; they stay free text and come first in every suggestion.
 // Plain script, loaded before every module that reads it (bootstrap.ts), and in node:vm by the tests.
 const STORE_REGISTRY=Object.freeze([
@@ -22,6 +25,7 @@ const STORE_REGISTRY=Object.freeze([
   product:{host:'chemistwarehouse.com.au',search:'https://www.chemistwarehouse.com.au/search?searchtext='},
   scout:{short:'Chemist',icon:'💊',order:0,kind:'pharmacy',catalogue:'https://www.chemistwarehouse.com.au/catalogue'}},
  {id:'aldi',name:'ALDI',rank:3,chain:true,receipt:{currency:'AUD'},words:['aldi','al di','andi'],starter:{id:'store-aldi',order:3,address:'Siêu thị'},
+  product:{host:'aldi.com.au',search:'https://www.aldi.com.au/results?q='},
   scout:{short:'ALDI',icon:'🔷',order:1,kind:'supermarket',catalogue:'https://www.aldi.com.au/special-buys'}},
  {id:'woolworths',name:'Woolworths',rank:1,chain:true,receipt:{currency:'AUD'},words:['woolworths','woolworth','woolies','woollies','wool worths','wool worth'],starter:{id:'store-woolworths',order:2,address:'Siêu thị'},
   product:{host:'woolworths.com.au',search:'https://www.woolworths.com.au/shop/search/products?searchTerm='},
@@ -29,16 +33,21 @@ const STORE_REGISTRY=Object.freeze([
  {id:'coles',name:'Coles',rank:2,chain:true,receipt:{currency:'AUD'},words:['coles','cole s'],starter:{id:'store-coles',order:1,address:'Siêu thị'},
   product:{host:'coles.com.au',search:'https://www.coles.com.au/search?q='},
   scout:{short:'Coles',icon:'🔴',order:2,kind:'supermarket',catalogue:'https://www.coles.com.au/catalogues'}},
- {id:'other',name:'Other store',vi:'Cửa hàng khác',rank:9,words:['spudshed','foodworks'],
+ {id:'other',name:'Other store',vi:'Cửa hàng khác',rank:9,words:[],
   scout:{short:'Khác',icon:'🏪',order:2.5,kind:'other',catalogue:null}},
  {id:'viet-grocer',name:'Vietnamese grocer',vi:'Chợ Việt',rank:6,words:['chợ việt','tiệm việt','asian grocer','asian grocery','asian supermarket','tiệm á châu','chợ á châu'],
   starter:{id:'store-viet',order:4,name:'Chợ Việt / Á Châu',nameEn:'Vietnamese / Asian grocer',address:'Thực phẩm tươi & gia vị Việt'},
   scout:{short:'Chợ Việt',icon:'🏮',order:3,kind:'local',catalogue:null}},
  {id:'amazon',name:'Amazon AU',rank:5,words:['amazon'],
   scout:{short:'Amazon',icon:'📦',order:-1,kind:'delivery',delivery:true,catalogue:'https://www.amazon.com.au/deals'}},
- {id:'harris-farm',name:'Harris Farm',rank:7,chain:true,receipt:{currency:'AUD'},words:['harris farm','harris farms']},
- {id:'iga',name:'IGA',rank:7,chain:true,receipt:{currency:'AUD'},words:['iga']},
- {id:'costco',name:'Costco',rank:7,chain:true,receipt:{currency:'AUD'},words:['costco']},
+ {id:'harris-farm',name:'Harris Farm',rank:7,chain:true,receipt:{currency:'AUD'},words:['harris farm','harris farms'],
+  product:{host:'harrisfarm.com.au',search:'https://www.harrisfarm.com.au/search?q='},scout:{short:'Harris Farm',icon:'🏪',order:2,kind:'supermarket',catalogue:null}},
+ {id:'iga',name:'IGA',rank:7,chain:true,receipt:{currency:'AUD'},words:['iga'],product:{host:null,search:null},scout:{short:'IGA',icon:'🏪',order:2,kind:'supermarket',catalogue:null}},
+ {id:'costco',name:'Costco',rank:7,chain:true,receipt:{currency:'AUD'},words:['costco'],
+  product:{host:'costco.com.au',search:'https://www.costco.com.au/search?text='},scout:{short:'Costco',icon:'🏪',order:2,kind:'supermarket',catalogue:null}},
+ /* v1.7.21 (Henry, 14 Nov 2026: “Làm luôn đi đừng chờ”): more stores, step 2 — Spudshed and FoodWorks get their own entries (they were words under 'other') */
+ {id:'spudshed',name:'Spudshed',rank:8,chain:true,receipt:{currency:'AUD'},words:['spudshed','spud shed'],product:{host:null,search:null},scout:{short:'Spudshed',icon:'🏪',order:2,kind:'supermarket',catalogue:null}},
+ {id:'foodworks',name:'FoodWorks',rank:8,chain:true,receipt:{currency:'AUD'},words:['foodworks','food works'],product:{host:null,search:null},scout:{short:'FoodWorks',icon:'🏪',order:2,kind:'supermarket',catalogue:null}},
  {id:'woolworths-uk',name:'Woolworths UK',rank:99,receipt:{currency:'GBP'}},
  // v1.7.19 re-check (receipt currency): Vietnamese chains, so a receipt from them is read in đồng (receipt-parse detectCurrency).
  {id:'coopmart',name:'Co.op Mart',rank:20,receipt:{currency:'VND'},words:['co.op mart','coop mart','co op mart','coopmart','co.opmart','co.opxtra','coopxtra','co.op food','coop food']},

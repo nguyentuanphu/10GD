@@ -2833,6 +2833,6 @@ html[data-theme="dark"] .dish-chip:focus-visible{outline-color:var(--accent-ink,
 /* v1.7.21 CI sweep: in the weekly planner a long dish name wraps inside its row (a flex item is as wide as its longest word
    unless told it may shrink), the × / ✏ stay their size, and the menu-reaction bar never grows past its card */
 .family-dish>span:not(.family-dish-art){min-width:0;overflow-wrap:break-word}.family-dish-row>.icon{flex-shrink:0}
-.mr-bar{max-width:100%}.mr-bar>*{min-width:0;max-width:100%}
+.mr-bar{max-width:100%}.mr-bar>*{max-width:100%}
 @media (max-width:420px){.protein-stats{grid-template-columns:repeat(auto-fit,minmax(min(100%,5.6em),1fr))}}
 /* v1.7.21: the one-column dish list is minmax(0,1fr) (it was 1fr, as wide as the longest dish word), so a row never runs past its card */

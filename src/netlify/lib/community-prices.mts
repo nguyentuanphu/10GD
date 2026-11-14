@@ -52,7 +52,7 @@ export const COMMUNITY_EVIDENCE=['shelf-photo','receipt','screenshot','bookmark'
 /** Evidence copied from a retailer app/website: labelled "Giá online", never confirmed by a single report. */
 export const ONLINE_EVIDENCE=['screenshot','bookmark'];
 export const REPORT_REASONS=['wrong-price','expired','wrong-item','wrong-store','offensive','other'];
-const RETAILERS=['woolworths','coles','aldi','chemist','amazon','viet-grocer','other'];
+const RETAILERS=['woolworths','coles','aldi','chemist','amazon','viet-grocer','other','harris-farm','iga','costco','spudshed','foodworks'];/* v1.7.21 (Henry, 14 Nov 2026): more stores, step 2 — the app's So Giá ids (store-registry scout view) */
 const PROMOS=['half-price','special','special-buy','price-drop','multibuy','deal','clearance'];
 const BASES=['per_kg','per_100g','per_L','per_100mL','per_each','per_wash','per_roll','per_sheet'];
 export const sha=(x:string)=>createHash('sha256').update(x).digest('hex');
