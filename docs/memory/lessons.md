@@ -14,6 +14,12 @@ Each lesson records what went wrong, what it cost, and the habit and rule that p
    - Habit: before changing code to satisfy a check, make sure the check's own data is right. Fix the sample, say why, and leave
      the check itself as strict as it was.
 
+3. **"Flaky" was a random seed (v1.7.21).**
+   - What happened: v1719-language failed on some CI runs only. Its seed gave 0.1 to a random ingredient; when that was eggs
+     (quả), validImport refused the state, as it should.
+   - Habit: a check that passes and fails on the same code has a cause. Make it print what was refused, find the random
+     input, and fix the seed. Do not call it flaky and move on.
+
 ## 14 Nov 2026 (night): v1.7.20
 1. **Asked Henry a privacy question on a false premise.**
    - What happened: a helper wrote that shared community recipes do not carry the family's own lines; the lead put that to Henry as "send them too?" without reading `rcSendShare`, which already sends `missingIngredients`.
