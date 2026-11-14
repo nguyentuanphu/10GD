@@ -145,6 +145,9 @@ const ZERO=/(\$\s?0[.,]00|\b0\s?₫|₫\s?0\b|\b0,00\b)/;
     await E(`document.querySelector('${g}').scrollIntoView()`);await page.waitForTimeout(80);await shot('quick-view');
     await page.locator(`${g} .shop-row .large-check-target`).first().click();await page.waitForTimeout(100);
     await page.locator(`${g} [data-shop-quick]`).click();await page.waitForTimeout(100);assert.ok(!(await E(`document.querySelector('${g}').classList.contains('sg-quick-on')`))&&await E(`document.querySelectorAll('${g} .store-pill').length>0`),`${label}: tap again to open the category fully`)}
+   // the last category folded at the very foot of the page: the page gets shorter, the toggle still stays put (rule 24, audit sweep)
+   {const last=page.locator('#main .shopping-group [data-shop-quick]').last();await E(`scrollTo(0,document.documentElement.scrollHeight)`);await page.waitForTimeout(150);await last.scrollIntoViewIfNeeded();const y0=(await last.boundingBox())!.y;await last.click();await page.waitForTimeout(250);const y1=(await page.locator('#main .shopping-group [data-shop-quick]').last().boundingBox())!.y;
+    assert.ok(Math.abs(y1-y0)<=1,`${label}: folding the last category keeps its toggle in place (${y0} → ${y1})`);await page.locator('#main .shopping-group [data-shop-quick]').last().click();await page.waitForTimeout(150)}
    // 3. the add / edit forms: guess, choice, remembered
    {await page.locator('#main .week-tools [data-action="add-extra"]').click();await page.locator('#modal-root #extra-form').waitFor();
     const sel=page.locator('#extra-aisle');await page.locator('#extra-name').fill('Bánh mì');assert.equal(await sel.inputValue(),'dry',`${label}: Bánh mì is guessed as bakery & dry goods`);

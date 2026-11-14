@@ -61,7 +61,9 @@ function shopQuickKey(group:string){return(typeof shopGrouping!=='undefined'?sho
 function shopQuickButton(key:string){const on=shopQuickOn(key);return `<button type="button" class="btn small chip sg-quick" data-shop-quick="${esc(key)}" aria-pressed="${on}">${on?slT('Mở đầy đủ','Show details'):slT('Xem nhanh','Quick view')}</button>`}
 document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('[data-shop-quick]');if(!b)return;e.preventDefault();const key=b.dataset.shopQuick,m=shopQuickRead(),on=!m[key];if(on)m[key]=true;else delete m[key];try{localStorage.setItem('bep-shop-quick',JSON.stringify(m))}catch{}
  // rule 24: no redraw; the group folds in place and the button stays where it was on screen
- const top=b.getBoundingClientRect().top;b.closest('.shopping-group')?.classList.toggle('sg-quick-on',on);b.setAttribute('aria-pressed',String(on));b.textContent=on?slT('Mở đầy đủ','Show details'):slT('Xem nhanh','Quick view');const d=b.getBoundingClientRect().top-top;if(Math.abs(d)>1)window.scrollBy(0,d)});
+ // (folding near the foot of the page makes it shorter, so the same spacer the app's buttons use keeps room below — audit sweep)
+ const top=b.getBoundingClientRect().top,y=scrollY;b.closest('.shopping-group')?.classList.toggle('sg-quick-on',on);b.setAttribute('aria-pressed',String(on));b.textContent=on?slT('Mở đầy đủ','Show details'):slT('Xem nhanh','Quick view');
+ const fix=()=>{const d=b.getBoundingClientRect().top-top;if(Math.abs(d)>1){if(typeof keepRoomFor==='function')keepRoomFor(scrollY+d);window.scrollTo({top:scrollY+d,behavior:'instant' as ScrollBehavior})}};if(typeof keepRoomFor==='function')keepRoomFor(y);fix();requestAnimationFrame(()=>{fix();requestAnimationFrame(fix)})});
 
 // ── Usual-shop chips: 4 first, “Xem thêm (n)” and a search field for the rest ───────────────────────────────────────────
 const SHOP_CHIPS_FIRST=4;
