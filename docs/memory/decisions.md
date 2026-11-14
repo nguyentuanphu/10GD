@@ -2,6 +2,25 @@
 
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
+## 14 Nov 2026 (about 21:00 AEDT, v1.7.21)
+- **More stores, step 2, now (Henry: "Làm luôn đi đừng chờ").** Do not wait for the 27 Nov 2026 device check in
+  docs/plans/stores-step2.md. ALDI, Harris Farm, IGA, Costco, Spudshed and FoodWorks are offered in saved products and So Giá
+  in v1.7.21. Accepted risk: a device still on v1.7.18 stops syncing until it updates.
+
+## 14 Nov 2026 (about 08:00, v1.7.21; phone screenshots of the shopping list)
+- Henry's report: Lemon on the list is priced as ALDI "Lemon & Pepper Tuna 95g" (wrong match, and the tuna photo shows on the row); the So Giá price history shows no product photos; "Add item" and "Request item" should sit side by side; finding a dish should work by kind/meal, not only by name; the shopping row is too tall (unit, round down/up, shop); each category needs a quick view; extras like "Bánh chưng" land in "Household items" when grouped by aisle; the usual-shops list grows too long.
+- Pop-up answers:
+  - Extras aisle: the app guesses from the name (bánh → bakery & dry goods, đèn cầy → household…), "Khác" when it cannot tell; a choice to change it when adding and editing; the app remembers the choice.
+  - Quick view: a "Xem nhanh" button per category folds it to one short line per item (tick · name · amount); tap again to open; remembered on the device.
+  - Row layout (Henry's own answer): the round down/up buttons go INTO the unit button (tap its arrows to step up or down), the empty space under the tick box is used, and the shop name sits next to it.
+  - Dish search: chips by kind (Món chính, Món phụ, Canh/Súp, Món sợi, Cháo…), by meal (sáng/trưa/tối/phụ) and "Hay nấu", combinable with typing.
+- Also from the screenshots (agent's finds, rule 36): extras with an unknown price show "$0.00"; category counts say "dishes" for items; store and suburb run together ("Thái Hưng GroceryMarrickville"); a stray dot in a category heading; the whole chicken matched to an ALDI $3.99 product.
+
+- **Doubtful online matches** (Henry, 14 Nov about 09:40): “Brown Onion Shallots” = Hành tây (brown onion); “Pork Loin Chops” = Sườn cốt lết; “Mozzarella Cheese Slices” = mozzarella; the deli “BBQ Roasted Chicken Breast” (Woolworths) = roast chicken (gà quay). A whole roast chicken is roast chicken too, not raw whole chicken. In `SYNONYMS` of scout-match.ts; the fixture verdicts follow these answers.
+- **Rely on CI, not a full local run** (Henry, pop-up, 14 Nov about 15:45: "Chỉ dựa vào CI"): a release is ready when CI is green on the exact head; locally only the checks for what changed and whatever finds the cause of a CI failure. AGENTS.md rule 17a and the release-check skill are updated.
+## 14 Nov 2026 (morning)
+- **DEPLOY v1.7.20** (Henry, about 06:55). PR #43 squash-merged as 1bf0b29 at 06:57 AEDT; CI green on 9669cf7; production served the new build at 06:58. The working branch carries on from main.
+
 ## 13 Nov 2026 (night)
 - **DEPLOY v1.7.19** (Henry, about 22:00: "Deploy sau đó set up 11:50pm làm tiếp phần còn lại"). PR #40 squash-merged as d7cba87 at 22:03 AEDT, CI green on a3d102d. The working branch carries on from main (merged, not reset) for v1.7.20.
 - **Continue at 23:50 Sydney time:** a one-off scheduled message into this chat at 23:50 picks up the remaining items for v1.7.20: the "Weekends feast" batch card heading and its old emoji, the quiet-hours switch in the Studio device overview and the dead `pushSettings` in push-ui.ts, the shared community recipe line order (`rcSharedIngredients`), a stronger check for scrap store names ("Be elle"), and step 2 of more stores (offer ALDI, Harris Farm… in products and So Giá; widen the server's So Giá ids) once enough devices run v1.7.19. Same gate: Henry says DEPLOY.

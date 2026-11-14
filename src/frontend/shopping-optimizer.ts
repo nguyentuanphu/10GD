@@ -278,9 +278,9 @@ const DEFAULT_TRAVEL_MIN=10;
 function tripMinutes(stores,travel){const m=stores.map(r=>{const v=Number(travel?.[r]);return v>=0&&v<=240?v:DEFAULT_TRAVEL_MIN});return m.length?m.reduce((a,b)=>a+b,0)+Math.max(...m):0}
 function tripPlans(lines,prefs={}){
  const travel=prefs.travel||{};
- const usable=l=>Object.keys(l.prices).filter(r=>!RETAILERS[r]?.delivery&&allowedChannel(l.item,r,prefs));
+ const usable=l=>Object.keys(l.prices).filter(r=>!!RETAILERS[r]/* v1.7.21: a store id this version does not know is skipped, never a crash */&&!RETAILERS[r].delivery&&allowedChannel(l.item,r,prefs));
  const priced=lines.filter(l=>usable(l).length);if(!priced.length)return null;
- const stores=[...new Set(priced.flatMap(usable))].sort((a,b)=>RETAILERS[a].order-RETAILERS[b].order).slice(0,7);
+ const stores=[...new Set(priced.flatMap(usable))].sort((a,b)=>(RETAILERS[a]?.order??9)-(RETAILERS[b]?.order??9)).slice(0,7);
  const plans=[];
  for(let mask=1;mask<1<<stores.length;mask++){const set=stores.filter((_,i)=>mask&1<<i),byStore=new Map(set.map(r=>[r,{retailer:r,items:[],total:0}])),missing=[];let total=0;
   for(const l of priced){const opts=usable(l).filter(r=>set.includes(r));if(!opts.length){missing.push(l.label);continue}const r=opts.sort((a,b)=>l.prices[a].cost-l.prices[b].cost)[0],c=l.prices[r].cost;total+=c;const st=byStore.get(r);st.items.push({key:l.key,label:l.label,itemId:l.item.id,cost:c,approx:l.prices[r].approx,cold:l.cold});st.total+=c}
@@ -340,7 +340,7 @@ function optimizeBasket(items,observations,prefs={}){
   const[r,s]=failing[0];retained.delete(r);folded.push({retailer:r,savings:round(s.savings),total:round(s.total)});assignment=assign();
  }
  const stopMap=new Map();
- for(const[l,r]of assignment){const key=r||mainStore;const s=stopMap.get(key)||{retailer:key,delivery:!!RETAILERS[key].delivery,items:[],total:0,savings:0,unknownCount:0};
+ for(const[l,r]of assignment){const key=r||mainStore;const s=stopMap.get(key)||{retailer:key,delivery:!!RETAILERS[key]?.delivery,items:[],total:0,savings:0,unknownCount:0};
   if(r){s.items.push({key:l.key,label:l.label,itemId:l.item.id,origin:l.prices[r].origin,cost:l.prices[r].cost,unitPrice:l.prices[r].unitPrice,unitBasis:l.item.unitBasis,approx:l.prices[r].approx,cold:l.cold,chilled:l.chilled,promo:l.prices[r].observation.promo||null,capturedAt:captureTimeOf(l.prices[r].observation),source:l.prices[r].observation.source||null});s.total+=l.prices[r].cost;if(r!==mainStore&&l.prices[mainStore])s.savings+=l.prices[mainStore].cost-l.prices[r].cost}
   else{s.items.push({key:l.key,label:l.label,itemId:l.item.id,cost:null,cold:l.cold,chilled:l.chilled});s.unknownCount++}
   stopMap.set(key,s)}
@@ -383,7 +383,7 @@ function shopObservations(list){return(list||[]).filter(p=>p&&p.itemId&&p.price>
 function routeOrder(stops){
  const visit=stops.filter(s=>!RETAILERS[s.retailer]?.delivery&&s.items.length);
  const cold=s=>s.items.some(i=>i.cold);
- visit.sort((a,b)=>(cold(a)-cold(b))||(RETAILERS[a.retailer].order-RETAILERS[b.retailer].order));
+ visit.sort((a,b)=>(cold(a)-cold(b))||((RETAILERS[a.retailer]?.order??9)-(RETAILERS[b.retailer]?.order??9)));
  const steps=visit.map((s,i)=>({step:i+1,retailer:s.retailer,delivery:false,itemCount:s.items.length,coldItems:s.items.filter(x=>x.cold).map(x=>x.label),chilledItems:s.items.filter(x=>x.chilled).map(x=>x.label),last:i===visit.length-1}));
  const delivery=stops.filter(s=>RETAILERS[s.retailer]?.delivery&&s.items.length).map(s=>({step:0,retailer:s.retailer,delivery:true,itemCount:s.items.length,coldItems:[],chilledItems:[],last:false}));
  return[...delivery,...steps];

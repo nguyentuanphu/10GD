@@ -3,12 +3,12 @@
 // inside their own household. Optional official prices come from a licensed
 // feed imported by grocery-cron into a shared cache. No retailer scraping.
 import {supportedState} from './geo-resolver.mjs';
-import {cleanInsight,cleanPhoto} from './online-prices.mjs';
+import {cleanInsight,cleanPhoto,stillMatches} from './online-prices.mjs';
 export const OBSERVATIONS_KEY='grocery/observations.json';
 export const CACHE_STORE='bep-grocery-cache';
 export const MAX_OBSERVATIONS=3000;
 export const RATE_WINDOW_MS=10*60*1000,RATE_MAX=120;
-const RETAILERS=['woolworths','coles','aldi','chemist','amazon','viet-grocer','other'];
+const RETAILERS=['woolworths','coles','aldi','chemist','amazon','viet-grocer','other','harris-farm','iga','costco','spudshed','foodworks'];/* v1.7.21 (Henry, 14 Nov 2026): more stores, step 2 — the app's So Giá ids (store-registry scout view) */
 const SOURCES=['screenshot','bookmark','receipt','catalogue','manual','official','voice'];
 const PROMOS=['half-price','special','special-buy','price-drop','multibuy','deal','clearance'];
 // 'manual-voice' (spoken price, v1.6) is family-only: it is not in the community evidence list.
@@ -78,7 +78,7 @@ export async function officialPrices(cacheStore,state,cycle){
  if(state)try{feed=await cacheStore.get(cacheKey(state,cycle),{type:'json'})}catch{}
  // v1.7.5: national online prices (Pinch / WhichGrocer); the previous cycle's file until this cycle's run
  try{online=await cacheStore.get(`online/${cycle}.json`,{type:'json'})||await cacheStore.get(`online/${addDays(cycle,-7)}.json`,{type:'json'})}catch{}
- const rows=[...(Array.isArray(feed?.observations)?feed.observations:[]),...(Array.isArray(online?.observations)?online.observations:[])];
+ const rows=[...(Array.isArray(feed?.observations)?feed.observations:[]),...(Array.isArray(online?.observations)?online.observations.filter(stillMatches):[])];
  if(!rows.length)return null;
  return{cycleId:cycle,importedAt:feed?.importedAt||online?.importedAt||null,source:feed?(online?'licensed-feed+online':feed.source||'licensed-feed'):'online',attribution:Array.isArray(online?.attribution)?online.attribution.slice(0,3):[],observations:rows.map(o=>{const c=cleanObservation({...o,state:state||null,source:'official'},{official:true});if(c&&o?.insight){const i=cleanInsight(o.insight);if(i)c.insight=i}if(c&&o?.photo){const ph=cleanPhoto(o.photo);if(ph)c.photo=ph}return c}).filter(Boolean).slice(0,20000)}
 }

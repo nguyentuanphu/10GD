@@ -33,7 +33,7 @@ This is an agent workflow rule, not a claim that GitHub branch protection or hos
 
 ## Local test runs — owner instruction, 7 November 2026 (Sydney time)
 
-17a. GitHub CI can wait about two hours in the queue, so the agent runs every `test:all` step on its own machine and may tell Henry a release is ready, with the local results (each step OK, the exact commit, the date and time in Sydney time). Henry, 7 Nov 2026: “Test trên GitHub đợi 2 tiếng nữa là ít, nên nếu được chạy local” — pop-up: local is enough to report ready, CI follows. This replaces the parts of rules 15 and 17 that require GitHub CI before reporting ready. GitHub CI still runs on every push and **must be green on the exact head before anything is merged into `main` after Henry says DEPLOY**; if it fails, fix it and tell Henry. Rules 1–3, 16 and 18 are unchanged.
+17a. ~~GitHub CI can wait about two hours … local is enough to report ready, CI follows.~~ Replaced 14 Nov 2026 (Sydney time), Henry's pop-up answer "Chỉ dựa vào CI": CI runs every `test:all` step in parallel on GitHub, so the agent no longer runs the whole `test:all` on its own machine. A release is ready to report when the `CI` workflow is green on the exact head of its PR (rule 15). Locally the agent runs only the checks for what it changed (rule 17) and whatever is needed to find the cause of a CI failure. Rules 1–3, 16 and 18 are unchanged.
 
 ## Hosting build credits — owner instruction, 1 November 2026
 

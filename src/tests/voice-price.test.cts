@@ -44,7 +44,7 @@ exp('a dozen eggs 6 dollars',[{itemId:'trung',price:6,packQty:12,units:12}]);
 exp('ba chỉ 2 ký 30 đô',[{itemId:'thit-ba-chi',price:30,packQty:2,packUnit:'kg',unitPrice:15}]);
 exp('mì gói 1 thùng 30 gói 18 đô',[{itemId:'mi-goi',label:'Mì gói',price:18,...NO_PACK,per:{vi:'thùng',en:'carton',count:1}}]);
 exp('rau muống 3 đô',[{itemId:'rau-muong',price:3,...NO_PACK,warn:['pack-unknown','no-retailer']}]);
-exp('jasmine rice 10 kilos 22 dollars at Costco',[{itemId:'gao-jasmine',price:22,packQty:10,packUnit:'kg',retailer:'other',retailerName:'Costco'}]);
+exp('jasmine rice 10 kilos 22 dollars at Costco',[{itemId:'gao-jasmine',price:22,packQty:10,packUnit:'kg',retailer:'costco',retailerName:null}]);/* v1.7.21 step 2: Costco has its own So Giá id */
 // ---- Retailer, branch, promo, was ----
 exp('dầu ăn 2 lít 6 đô 99 at Aldi, normally 8 dollars',[{itemId:'dau-an',price:6.99,packQty:2,packUnit:'L',retailer:'aldi',wasPrice:8,promo:'special'}]);
 exp('salmon 32 dollars per kg at Woolworths save 6 dollars',[{price:32,wasPrice:38,promo:'special',retailer:'woolworths',packQty:1,packUnit:'kg'}]);
@@ -58,7 +58,7 @@ exp('Rau muống hai đô rưỡi một bó, cà chua bốn đô một ký ở C
 exp('milk 2 litres $3.10 at Woolworths, bread $4 at Coles',[{itemId:'sua-tuoi',price:3.1,packQty:2,packUnit:'L',retailer:'woolworths'},{label:'Bread',price:4,retailer:'coles',...NO_PACK}]);
 exp('hành lá một đô một bó, ngò hai đô một bó, chợ Việt',[{itemId:'hanh-la',price:1,retailer:'viet-grocer'},{label:'Ngò',price:2,retailer:'viet-grocer'}]);
 exp('thịt bò xay 12 đô một ký ở chợ Cabramatta rồi tôm 25 đô một ký',[{itemId:'thit-bo-xay',price:12,retailer:'viet-grocer',branch:'Cabramatta'},{itemId:'tom',price:25,packQty:1,packUnit:'kg',retailer:'viet-grocer',branch:'Cabramatta'}]);
-exp('bananas 3.90 a kilo, apples 4.50 a kilo, at Harris Farm',[{itemId:'chuoi',price:3.9,retailer:'other',retailerName:'Harris Farm'},{itemId:'tao',price:4.5,retailer:'other'}]);
+exp('bananas 3.90 a kilo, apples 4.50 a kilo, at Harris Farm',[{itemId:'chuoi',price:3.9,retailer:'harris-farm',retailerName:null},{itemId:'tao',price:4.5,retailer:'harris-farm'}]);/* v1.7.21 step 2: Harris Farm has its own id */
 {const r=exp('thịt ba chỉ 14 đô 99 một ký, trước là 18 đô, cà chua 4 đô ở Coles',[{itemId:'thit-ba-chi',price:14.99,wasPrice:18},{itemId:'ca-chua',price:4,wasPrice:null,retailer:'coles'}]);assert.equal(r.rows[1].packQty,null,'a was-price after a separator stays with its row')}
 // ---- No price → no rows; numbers in names are not prices ----
 assert.equal(parse('không có giá ở đây').rows.length,0);assert.equal(parse('hôm nay đi chợ mua rau').error,'no-price');count+=2;

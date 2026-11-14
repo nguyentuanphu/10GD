@@ -25,7 +25,7 @@ assert.deepEqual([saved.visibility,saved.evidence.imageHash,saved.evidence.ocrMa
 assert.equal(data.cycleId,'2026-10-28');assert.equal(data.official,null);
 assert.equal((await grocery(req('prices&state=VIC'))).status,400);
 // Validation
-for(const bad of [obs('bad-price',{price:0}),obs('bad-curr',{currency:'USD'}),obs('bad-retailer',{retailer:'costco'}),obs('bad-official',{source:'official'}),obs('bad-future',{observedAt:'2027-01-01'}),obs('bad-community',{visibility:'community'}),obs('bad-hash',{evidence:{type:'screenshot',imageHash:'nothex'}}),obs('x'),obs('bad-state',{state:'VIC'})])
+for(const bad of [obs('bad-price',{price:0}),obs('bad-curr',{currency:'USD'}),obs('bad-retailer',{retailer:'kmart'})/* v1.7.21: costco is a So Giá store now */,obs('bad-official',{source:'official'}),obs('bad-future',{observedAt:'2027-01-01'}),obs('bad-community',{visibility:'community'}),obs('bad-hash',{evidence:{type:'screenshot',imageHash:'nothex'}}),obs('x'),obs('bad-state',{state:'VIC'})])
  assert.equal((await grocery(req('observe','POST',{observation:bad}))).status,400,'rejects '+bad.id);
 assert.equal((await grocery(req('observe','POST',{observations:Array.from({length:26},(_,i)=>obs('obs-many-'+i))}))).status,400);
 assert.equal((await grocery(new Request('https://test.example/.netlify/functions/grocery?op=observe',{method:'POST',headers:{Origin:'https://test.example',Cookie:f.cookie},body:'x'.repeat(40001)}))).status,413);
@@ -52,7 +52,8 @@ data=await(await grocery(req('prices&state=NSW'))).json();assert.equal(data.offi
 data=await(await grocery(req('prices&state=QLD'))).json();assert.equal(data.official,null);
 // v1.7.8 (owner, 6 Nov 2026: "Giá online cũng chưa hiện"): online supermarket prices are national — a family with no postcode
 // (no state) still gets them, and a state family gets them alongside its state feed
-await cache.setJSON('online/2026-10-28.json',{version:1,importedAt:'2026-10-28T20:00:00Z',source:'online',attribution:['Price data by Pinch'],observations:[obs('online-pinch-suon-bo-coles',{source:'official',itemId:'suon-bo',retailer:'coles',observedBy:'Pinch',state:null})]});
+// v1.7.21: an online price is re-checked against its item when read, so the fixture names a real short-rib product (it said “Jasmine rice 5kg”)
+await cache.setJSON('online/2026-10-28.json',{version:1,importedAt:'2026-10-28T20:00:00Z',source:'online',attribution:['Price data by Pinch'],observations:[obs('online-pinch-suon-bo-coles',{source:'official',itemId:'suon-bo',label:'Coles Beef Short Ribs',retailer:'coles',observedBy:'Pinch',state:null})]});
 data=await(await grocery(req('prices'))).json();assert.equal(data.official?.observations?.length,1,'no state: online prices still returned');assert.equal(data.official.observations[0].observedBy,'Pinch');assert.equal(data.official.observations[0].state,null);
 data=await(await grocery(req('prices&state=NSW'))).json();assert.equal(data.official.observations.length,2,'NSW: state feed + online');
 data=await(await grocery(req('prices&state=QLD'))).json();assert.equal(data.official.observations.length,1,'QLD: online only');

@@ -14,3 +14,12 @@ Step 1 shipped in v1.7.19 (13 Nov 2026, Sydney time): this version's validators 
 **Tests for step 2:** an older-validator round trip (the v1.7.18 `validImport` from main's history) rejects the new ids — proving why we waited — and the current one accepts them; the offered lists include every registry store; So Giá saves `aldi`; the server accepts it.
 
 Same gate: Henry says DEPLOY.
+
+## Done early in v1.7.21 (Henry, 14 Nov 2026, evening AEDT: "Làm luôn đi đừng chờ")
+- Henry chose not to wait for the 27 Nov device check. Risk he accepted: a device still on v1.7.18 that syncs a family state
+  holding one of the new store ids stops syncing until it updates (opening the app updates it).
+- Offered now: ALDI, Harris Farm, IGA, Costco, Spudshed, FoodWorks in saved products (form, filter, CSV) and So Giá (own ids,
+  voice prices, receipts). Online search links only for ALDI, Harris Farm and Costco (IGA, Spudshed, FoodWorks have none).
+- Kept for older data: products from these stores still accept any plain https link (the step-1 rule); a link is shown only
+  when it is on the store's own website. Server So Giá ids widened in community-prices and grocery-pricing; the optimiser
+  skips an id it does not know instead of failing.

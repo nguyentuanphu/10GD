@@ -11,12 +11,12 @@ function clText(vi:string,en:string){return typeof tr==='function'?tr(vi,en):vi}
 // the menu is one flat list of buttons: groups and nested disclosures added by other modules are opened up
 function clFlattenTools(main:HTMLElement){const body=main.querySelector('.cl-tools-body');if(!body)return;const tools=main.querySelector('.week-tools .toolbar');
  // late additions (other modules render after us) join the menu too
- if(tools)for(const el of [...tools.children])if(!el.matches('[data-change="shop-range"],[data-action="add-extra"],.cl-tools'))body.appendChild(el);
+ if(tools)for(const el of [...tools.children])if(!el.matches('[data-change="shop-range"],[data-action="add-extra"],.shop-main-actions,.cl-tools'))body.appendChild(el);
  for(let i=0;i<3;i++)for(const g of [...body.children])if(!g.matches('button,a')){const inner=[...g.querySelectorAll('button,a.btn')].filter(x=>!x.closest('summary'));for(const x of inner)body.insertBefore(x,g);g.remove()}
  const seen=new Set<string>();for(const b of [...body.querySelectorAll('button,a')] as HTMLElement[]){const k=(b.dataset.action||b.dataset.feature||b.dataset.planning||b.dataset.pushAction||'')+'|'+b.textContent!.trim();if(!b.textContent!.trim()||seen.has(k)){b.remove();continue}seen.add(k);b.classList.add('btn','small')}}
 function clCompactShopping(main:HTMLElement){
  const tools=main.querySelector('.week-tools .toolbar');
- if(tools&&!tools.querySelector('.cl-tools')){const keep=(b:Element)=>b.matches('[data-change="shop-range"],[data-action="add-extra"]');const moving=[...tools.children].filter(b=>!keep(b));
+ if(tools&&!tools.querySelector('.cl-tools')){const keep=(b:Element)=>b.matches('[data-change="shop-range"],[data-action="add-extra"],.shop-main-actions');/* v1.7.21: “Mua thêm” + “Nhờ mua thêm” stay out of Tools */const moving=[...tools.children].filter(b=>!keep(b));
   if(moving.length){const d=document.createElement('details');d.className='cl-tools';d.innerHTML=`<summary class="btn small">${clText('Công cụ','Tools')} <span aria-hidden="true">▾</span></summary><div class="cl-tools-body"></div>`;const body=d.querySelector('.cl-tools-body')!;for(const b of moving)body.appendChild(b);
    // other tool buttons that sit between the week tools and the list (products, notes) join the same menu
    for(const b of main.querySelectorAll('.week-tools ~ .toolbar .btn, .shopping-extra-tools .btn'))body.appendChild(b);tools.appendChild(d)}}

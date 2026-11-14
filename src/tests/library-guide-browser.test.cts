@@ -69,7 +69,7 @@ for(const [name,width,height] of [['narrow',320,740],['mobile',375,812],['tablet
  const tops=await row.locator('.chip').evaluateAll(els=>[...new Set(els.map(e=>Math.round(e.offsetTop)))]);assert.equal(tops.length,1,'category chips stay on one line');
  // v1.7.5 owner order (Phân loại món ăn): Món chính, Món phụ, Món canh / soup, Món sợi; empty dish types (dessert, snack,
  // lunch box) have no chip until the family has such a recipe.
- assert.deepEqual(await row.locator('.chip').evaluateAll(els=>els.map(e=>e.dataset.key)),['all','main','veg','soup','noodle','western','dressing'],'v1.7.10: the Salad hạt chip went with the retired seed-salad mixes');
+ assert.deepEqual(await row.locator('.chip').evaluateAll(els=>els.map(e=>e.dataset.key)),['all','main','veg','soup','noodle','western','dressing','breakfast','lunch','dinner'],'v1.7.10: the Salad hạt chip went with the retired seed-salad mixes; v1.7.21 (Henry, 14 Nov 2026): meal chips follow, empty ones (Bữa phụ) and Hay nấu before anything is cooked have none');
  assert.equal(await page.locator('#family-recipe-chips [data-fm="diet-filter"],#family-recipe-chips [data-fm="time-filter"]').count(),0,'diet/time live in the Filters sheet');
  const rowBox=await page.locator('#family-recipe-chips').boundingBox();assert.ok(rowBox.height<=(phone?72:72),`chip area is compact (${rowBox.height}px)`);
  if(phone)assert.ok(await row.evaluate(e=>e.scrollWidth>e.clientWidth),'row scrolls sideways on a phone');

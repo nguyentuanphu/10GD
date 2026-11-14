@@ -2,6 +2,24 @@
 
 Each lesson records what went wrong, what it cost, and the habit and rule that prevent it. Newest first. All dates are Sydney time.
 
+## 14 Nov 2026: v1.7.21 CI
+1. **Passed on my machine, failed on CI because CI fonts are wider (v1.7.21, 14 Nov 2026).**
+   - What happened: the largest-text sweep passed locally but CI showed buttons and the put-away sheet running past their box.
+   - Habit: when a layout check fails only on CI, rerun it locally with the text pushed further (`--fs-mul` 1.75 plus a little
+     letter-spacing) to see the same overflow, fix the CSS so it wraps (`min-width:0`, `minmax(0,1fr)`; a `fieldset` is
+     min-content wide by default), then check at normal settings again.
+2. **A test sample can hold a wrong answer (v1.7.21).**
+   - What happened: studio-online's sample priced `ngo` (ngò, coriander) with a "Sweet corn" product. The stricter matcher dropped
+     it correctly and the count check failed.
+   - Habit: before changing code to satisfy a check, make sure the check's own data is right. Fix the sample, say why, and leave
+     the check itself as strict as it was.
+
+3. **"Flaky" was a random seed (v1.7.21).**
+   - What happened: v1719-language failed on some CI runs only. Its seed gave 0.1 to a random ingredient; when that was eggs
+     (quả), validImport refused the state, as it should.
+   - Habit: a check that passes and fails on the same code has a cause. Make it print what was refused, find the random
+     input, and fix the seed. Do not call it flaky and move on.
+
 ## 14 Nov 2026 (night): v1.7.20
 1. **Asked Henry a privacy question on a false premise.**
    - What happened: a helper wrote that shared community recipes do not carry the family's own lines; the lead put that to Henry as "send them too?" without reading `rcSendShare`, which already sends `missingIngredients`.
