@@ -68,17 +68,19 @@ function usageOnline(){return typeof navigator==='undefined'||navigator.onLine!=
 // confirms it, so a page-hide beacon followed by a retry is counted once.
 let usageInflight=null;
 function usageFlush(opts={}){if(opts.beacon)return usageSend(opts);if(usageInflight)return usageInflight;usageInflight=usageSend(opts).finally(()=>{usageInflight=null});return usageInflight}
+function usageSelfTesting(){return typeof document!=='undefined'&&(!!document.getElementById('ap-panel')||document.documentElement.classList.contains('ap-running'))}
 async function usageSend({beacon=false,fetchFn}={}){
  if(!usageEnabled())return false;
  // v1.7.18: nothing is sent while the “Tự chạy thử” self-test panel is open — the 5-minute flush could fall between opening the
  // panel and starting the run (CI, desktop EN), outside the run's own sandbox; the counts wait for the next flush
- if(typeof document!=='undefined'&&(document.getElementById('ap-panel')||document.documentElement.classList.contains('ap-running')))return false;
+ if(usageSelfTesting())return false;
  // v1.7: the app's offline flag can lag behind a restored network until the connectivity checker confirms it.
  if(!usageOnline()){const c=(globalThis as any).BepConnectivity;if(beacon||!c||(typeof navigator!=='undefined'&&navigator.onLine===false))return false;if(!(await c.wake().catch(()=>false))||!usageOnline())return false}
  const st=usageLoad(),install=usageInstall();if(!install)return false;
  if(!st.pending){const days=usageDaysPayload(st);if(!days.length)return false;const p=usagePlatform();
   st.pending={batch:usageRandom(12),body:{v:1,install,batch:'',ver:usageVersion(),lang:typeof appLanguage!=='undefined'&&appLanguage==='en'?'en':'vi',platform:p.platform,standalone:p.standalone,postcode:usagePostcode(),days}};
   st.pending.body.batch=st.pending.batch;st.days={};usageSave()}
+ /* v1.7.21: checked again after the awaits above (the network wake-up): a self-test that opened meanwhile still sends nothing */if(usageSelfTesting())return false;
  const body=JSON.stringify(st.pending.body),batch=st.pending.batch,url=USAGE_API+'?op=ingest',credentials=usageAccountMode()?'same-origin':'omit';
  if(beacon){
   // Device-only mode never attaches the account cookie (beacons always would), so it uses keepalive fetch.

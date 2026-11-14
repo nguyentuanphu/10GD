@@ -77,6 +77,10 @@ const sizes:any={narrow:{width:320,height:740},mobile:{width:375,height:812},tab
   await page.evaluate(()=>{const g:any=globalThis;g.usageFeature('plan')});await context.setOffline(true);posts.length=0;
   assert.equal(await page.evaluate('usageFlush()'),false);assert.equal(posts.length,0,'nothing sent offline');assert.ok(await page.evaluate(()=>{const g:any=globalThis;return Object.keys(g.usageLoad().days).length>0}),'queue kept offline');
   await context.setOffline(false);assert.equal(await page.evaluate('usageFlush()'),true);assert.equal(posts.filter(x=>x.op==='ingest').length,1,'sent after reconnect');assert.equal(posts[0].body.days[0].features.plan,1);
+  // v1.7.21 (CI, v1716): a self-test (“Tự chạy thử”) that starts while a send waits for the network wake-up still sends nothing
+  {posts.length=0;const r=await page.evaluate(async()=>{const g:any=globalThis;g.usageFeature('today');const on=g.usageOnline,bc=g.BepConnectivity;let first=true;g.usageOnline=()=>{if(first){first=false;return false}return true};g.BepConnectivity={wake:async()=>{document.documentElement.classList.add('ap-running');return true}};try{return await g.usageFlush()}finally{document.documentElement.classList.remove('ap-running');g.usageOnline=on;g.BepConnectivity=bc}});
+   assert.equal(r,false,'no send once a self-test started during the wake-up');await page.waitForTimeout(300);assert.equal(posts.filter(x=>x.op==='ingest').length,0,'nothing reached the server');
+   assert.equal(await page.evaluate('usageFlush()'),true,'the counts go with the next flush after the test');}
   assert.deepEqual(errors,[]);await context.close()}
 
  // ---------- 4. settings toggle (VI/EN, 3 sizes) and opt-out ----------
