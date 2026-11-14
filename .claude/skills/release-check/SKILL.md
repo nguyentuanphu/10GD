@@ -30,7 +30,7 @@ This skill follows the lessons from the 12 Nov 2026 whole-app audit: 105 problem
 ## 4. Before saying “ready”
 - [ ] **Check helper work yourself (rule 30).** Read the diff, open each changed screen yourself, and check the related places.
 - [ ] **Audit sweep (rule 35).** Run `npm run test:audit:browser`, plus review against this checklist. Record what you found, fix the serious items, and list the rest for Henry.
-- [ ] **Full local run.** Run every `test:all` step locally (rule 17a), and record the Sydney date and time plus the exact commit.
+- [ ] **Local checks.** Run the checks for what changed (rule 17), not the whole `test:all` (Henry, 14 Nov 2026: rely on CI, rule 17a). Use local runs to find the cause of a CI failure.
 - [ ] **CI.** GitHub CI must be green on the exact head before merge after DEPLOY.
 - [ ] **Report to Henry** in Vietnamese, in Sydney time. Include:
   - what changed;
