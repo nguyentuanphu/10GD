@@ -79,7 +79,7 @@ const dim=(s:string)=>`${sizes[s].width}x${sizes[s].height}`;
   assert.equal(await page.locator('.lb-sheet').count(),0,'a drag never opens the sheet');
   // drag far down: never over the navigation
   await page.mouse.move(b.x+26,b.y+26);await page.mouse.down();await page.mouse.move(40,800,{steps:10});await page.mouse.up();await page.waitForTimeout(300);b=await box(page);assert.ok(b.y+b.height<=nav!.y-7,'clamped above the navigation');
-  await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>(globalThis as any).bepLadybug?.state().mounted,null,{timeout:25000});await page.waitForTimeout(200);b=await box(page);assert.ok(b.x<=10,'remembered after reload');
+  await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>(globalThis as any).bepLadybug?.state().mounted,null,{timeout:25000});b=await settled(page);/* v1.7.21: wait until it stops moving (a slow CI machine read it mid-way after 200 ms) */assert.ok(b.x<=10,'remembered after reload: '+b.x);
   await bug(page).dblclick();await page.waitForTimeout(450);b=await box(page);assert.ok(b.x>=375-52-12,'double-click puts it back on the right');assert.equal(await page.evaluate(()=>localStorage.getItem('bep-ladybug-pos')),null);
   // long press tucks it away; tap brings it back (and opens the sheet)
   b=await box(page);await page.mouse.move(b.x+20,b.y+20);await page.mouse.down();await page.waitForTimeout(800);await page.mouse.up();await page.waitForTimeout(100);
