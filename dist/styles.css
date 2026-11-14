@@ -2307,7 +2307,7 @@ body.shop-mode #main .shopping-group>.shop-row.is-bought .item-label{text-decora
 body.shop-mode #main .shop-row .item-label{font-size:1.12em;font-weight:700}
 body.shop-mode #main .shop-row .large-check-target{min-width:56px;min-height:56px}
 body.shop-mode #main .shop-row .large-check-target input.check{transform:scale(1.25)}
-body.shop-mode #main .shop-row:not(.flow-open) :is(.qty-round-pair,.store-pill,.row-skip,.price,.online-line,.online-find,.pantry-peek,.shop-pantry,.buy-extra-note,.pp-wrap){display:none!important}
+body.shop-mode #main .shop-row:not(.flow-open) :is(.qty-step,.store-pill,.row-skip,.price,.online-line,.online-find,.pantry-peek,.shop-pantry,.buy-extra-note,.pp-wrap){display:none!important}
 body.shop-mode #main .shop-row.flow-open{background:color-mix(in srgb,var(--mint,#eef5ec) 60%,transparent);border-radius:12px}
 @media (prefers-reduced-motion:no-preference){body.shop-mode #main .shopping-group>.shop-row{transition:opacity .2s}}
 body.shop-mode .kitchen-action-dock,body.shop-mode #main .shopping-layout section>.card:not(.shopping-group),body.shop-mode #main .shopping-layout section>.btn.full{display:none!important}
@@ -2746,8 +2746,80 @@ html[data-theme="dark"] .shop-row .extra-covers{color:#8fd6b0}
 .family-dish-art .food-illustration.food-illustration,.family-dish-art svg.food-illustration{width:100%;height:100%;max-width:100%;max-height:100%;border-radius:6px}
 .family-dish-art{aspect-ratio:1/1;height:auto}
 .family-dish-art svg:not(.food-illustration){width:100%;height:100%}
+
+/* v1.7.21 (Henry, 14 Nov 2026, phone screenshots of the shopping list): a shorter row. The amount carries its own round-down /
+   round-up steps (no separate round row), the controls start under the tick column and the store sits next to the amount,
+   wrapping on narrow phones. Same rows in shopping mode (“Bắt đầu đi chợ”). */
+#main .shop-row.shop-purchase-row,#main .shop-row.shop-extra-row{display:grid!important;grid-template-columns:44px minmax(0,1fr) auto!important;column-gap:16px!important;row-gap:8px!important;align-items:center}
+#main .shop-row.shop-extra-row>.large-check-target{grid-column:1!important;grid-row:1!important;width:44px;height:44px;align-self:center}
+#main .shop-row.shop-extra-row>.item-label{grid-column:2!important;grid-row:1!important;min-width:0}
+#main .shop-row.shop-extra-row>.extra-delete{grid-column:3!important;grid-row:1!important;justify-self:end}
+#main .shop-row>.shop-row-controls{grid-column:1/-1!important;grid-row:2!important;display:flex;flex-wrap:wrap;align-items:center;gap:8px 6px;min-width:0;justify-self:stretch}
+#main .shop-row-controls>.price{margin:0 0 0 auto!important;align-self:center;text-align:right;white-space:nowrap}
+#main .shop-row.shop-purchase-row>.online-line,#main .shop-row.shop-purchase-row>.online-find{grid-column:1/-1!important;grid-row:3!important}
+#main .shop-row.shop-purchase-row.has-pantry>.shop-pantry{grid-column:1/-1!important;grid-row:2!important}
+#main .shop-row.shop-purchase-row.has-pantry>.shop-row-controls{grid-row:3!important}
+#main .shop-row.shop-purchase-row.has-pantry>.online-line,#main .shop-row.shop-purchase-row.has-pantry>.online-find{grid-row:4!important}
+#main .shop-row-controls>.qty{margin:0!important;max-width:100%}
+#main .shop-row-controls .store-pill{display:inline-block!important;white-space:normal!important;max-width:100%;padding:11px 8px;line-height:1.3;text-align:left;margin:0!important}
+#main .shop-row-controls .store-pill .emo-art{display:inline-block;vertical-align:middle;margin-right:4px}
+#main .shop-row-controls .store-pill small{display:inline!important;margin:0!important}
+/* the amount with its two steps: ↓ | 300 g ⌄ | ↑, one pill */
+#main .shop-row .qty-cell.qty-stepper{display:inline-flex!important;flex-wrap:nowrap;align-items:stretch;gap:0!important;min-width:0;border:1px solid #dce4d4;border-radius:12px;background:#f5f7ef;overflow:hidden}
+#main .shop-row .qty-stepper>*{margin:0!important;grid-column:auto!important}
+#main .shop-row .qty-stepper>.qty-step{min-width:44px;min-height:44px;padding:0 4px;border:0;border-radius:0;background:transparent;flex:0 0 auto}
+#main .shop-row .qty-stepper>.qty-step .btn-art{width:24px;height:24px}
+#main .shop-row .qty-stepper>.qty-step:active{background:#e5ecd9}
+#main .shop-row .qty-stepper>button[data-action="purchase-quantity"]{width:auto!important;min-height:44px;min-width:0;gap:4px;border:0;border-left:1px solid #dce4d4;border-right:1px solid #dce4d4;border-radius:0;background:transparent;padding:4px 6px}
+#main .shop-row .qty-stepper .qty-chevrons,#main .shop-row .qty-stepper .unit-icon{display:none}
+html[data-theme="dark"] #main .shop-row .qty-cell.qty-stepper{border-color:var(--line);background:#1f2d26}
+html[data-theme="dark"] #main .shop-row .qty-stepper>button[data-action="purchase-quantity"]{border-color:var(--line)}
+html[data-theme="dark"] #main .shop-row .qty-stepper>.qty-step:active{background:#2a3a31}
+/* category heading: the count says items; “Xem nhanh” folds the category to one short line per item */
+#main .shopping-group>h2{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 10px}
+#main .shopping-group>h2 .sg-title{display:inline-flex;align-items:center;gap:6px;min-width:0}
+#main .shopping-group>h2 .sg-meta{display:inline-flex;align-items:center;gap:8px;margin-left:auto}
+#main .shopping-group>h2 .sg-meta small{white-space:nowrap}
+#main .shopping-group .sg-quick{min-height:44px;min-width:44px;padding:6px 12px;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor,0px));white-space:nowrap}
+#main .shopping-group .sg-quick[aria-pressed="true"]{background:var(--mint);border-color:var(--green2);color:var(--green)}
+html[data-theme="dark"] #main .shopping-group .sg-quick[aria-pressed="true"]{background:#24392e;color:var(--text)}
+#main .shopping-group.sg-quick-on .shop-row{row-gap:0!important;padding-top:4px!important;padding-bottom:4px!important;min-height:0}
+#main .shopping-group.sg-quick-on .shop-row :is(.ingredient-art,.pp-wrap,.item-label small,.price,.unit-icon,.row-skip,.extra-delete,.store-pill,.qty-step,.online-line,.online-find,.shop-pantry,.pantry-peek,.buy-extra-note,.extra-covers,.pantry-inline-badge,.qty-chevrons){display:none!important}
+#main .shopping-group.sg-quick-on .shop-row>.shop-row-controls{grid-column:3!important;grid-row:1!important;justify-self:end}
+#main .shopping-group.sg-quick-on .shop-row .item-label{display:block!important;min-height:44px;line-height:44px;grid-column:2!important;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+#main .shopping-group.sg-quick-on .shop-row .qty-cell.qty-stepper{border:0;background:none}
+#main .shopping-group.sg-quick-on .shop-row .qty-stepper>button[data-action="purchase-quantity"]{border:0}
+/* “Mua thêm” and “Nhờ mua thêm”: one row, the same size, both with their drawing */
+.week-tools .toolbar>.shop-main-actions{display:flex;flex:1 1 220px;gap:8px;min-width:0}
+.shop-main-actions>.btn{flex:1 1 0;min-width:0;min-height:44px;white-space:normal!important;line-height:1.2}
+/* usual shops: 4 first, the rest behind “Xem thêm (n)” and a search field */
+.store-chips [hidden]{display:none!important}
+.store-chip-search{display:block;margin-top:8px}
+.store-chip-search input{width:100%;min-height:44px}
+.extra-aisle-field .hint{display:block;margin-top:4px}
+#main .shop-row .item-label{white-space:normal!important;overflow-wrap:break-word;min-width:0}
+@media (max-width:600px){.week-tools .toolbar>.shop-main-actions{flex:1 1 100%;grid-column:1/-1}}
+/* v1.7.21 (Henry, 14 Nov 2026: “Finished shopping” ran past its button with a larger text size): the words wrap inside the pill */
+.shop-mode-bar .shop-mode-actions .btn{white-space:normal!important;text-align:center;line-height:1.2;min-width:0;overflow-wrap:normal}
+/* v1.7.21 sweep (rule 36): button rows at the largest text size, 320/375 px, VI/EN — words wrap inside their button, never past it */
+@media (max-width:420px){.shop-mode-bar .shop-mode-actions .btn{flex-direction:column;gap:2px;padding:6px 6px}}
+#main.cl .callout.cl-slim>span{min-width:0}
+#main.cl .callout.cl-slim .btn{white-space:normal!important;text-align:center;line-height:1.2;flex:0 1 auto;max-width:60%}
+#main .text-btn[data-action="use-ingredient"],#modal-root .list-heading .text-btn[data-action="empty-meal"]{white-space:normal!important;text-align:right;max-width:100%;line-height:1.2;min-height:44px}
+#modal-root .list-heading:has(>.text-btn[data-action="empty-meal"]){flex-wrap:wrap;gap:6px 10px}
+.dish-size-label{flex-wrap:wrap;min-width:0}.dish-size-label select{min-width:0;max-width:100%!important;flex:1 1 160px}
+@media (max-width:420px){.family-meal-card .meal-head-actions .btn{flex-direction:column;gap:2px;padding:6px 8px;min-width:0;max-width:100%}
+ .recipe-detail-hero{flex-wrap:wrap}.recipe-detail-hero>*{min-width:0;max-width:100%}
+ .week-start-pick{flex-wrap:wrap;max-width:100%;min-width:0}.week-start-pick select{min-width:0;max-width:100%}
+ .top-actions{min-width:0;flex-shrink:1}.topbar{gap:2px;padding-left:6px;padding-right:6px}.top-actions{gap:1px}}
 /* v1.7.21: dish chips (kind · meal · Hay nấu) in the meal picker — words only, 44 px, one scrolling row per group */
 .dish-chips{margin:8px 0 2px;display:grid;gap:6px}.dish-chip-group{display:flex;align-items:center;gap:8px;min-width:0}.dish-chip-title{flex:none;font-size:max(calc(12px * var(--fs-mul,1)),var(--fs-floor-small,0px));font-weight:600;color:var(--muted);min-width:4.2em}
 .dish-chip-row{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;min-width:0;flex:1 1 auto;padding:2px 2px 6px;scrollbar-width:thin;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 .dish-chip{flex:0 0 auto;white-space:nowrap;min-height:44px;min-width:44px}.dish-chip[aria-pressed="true"]{font-weight:600;box-shadow:inset 0 0 0 1px var(--green2)}.dish-chip:focus-visible{outline:3px solid var(--green2);outline-offset:2px}.dish-chip-clear:disabled{opacity:.5;cursor:default}
 html[data-theme="dark"] .dish-chip:focus-visible{outline-color:var(--accent-ink,#9fd3b4)}
+@media (max-width:360px){#main .shop-row.shop-purchase-row .item-label .ingredient-art,#main .shop-row.shop-purchase-row .item-label .pp-wrap,#main .shop-row.shop-purchase-row .item-label .pp-wrap img{width:34px!important;height:34px!important;margin-right:12px!important}#main .shop-row.shop-purchase-row,#main .shop-row.shop-extra-row{column-gap:14px!important}}
+/* extras: the name keeps the whole first line (owner, 5 Nov 2026); the × sits at the end of the amount line */
+#main .shop-row.shop-extra-row>.item-label{grid-column:2/-1!important}
+#main .shop-row.shop-extra-row>.extra-delete{grid-column:3!important;grid-row:2!important;align-self:center}
+#main .shop-row.shop-extra-row>.shop-row-controls{grid-column:1/3!important}
+#main .shopping-group.sg-quick-on .shop-row.shop-extra-row>.item-label{grid-column:2!important}

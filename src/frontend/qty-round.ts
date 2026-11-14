@@ -23,16 +23,24 @@ function qrApply(id:string,mode:QRMode={dir:'up'}){const{start,end,row}=qrRow(id
 // the tapped row exactly where it was on screen (and the focus on the same button)
 function qrKeepPlace(id:string,draw:()=>void){const sel=`#main .shop-row button[data-action="purchase-quantity"][data-id="${CSS.escape(id)}"]`,before=document.querySelector(sel)?.getBoundingClientRect().top,dir=(document.activeElement as any)?.dataset?.qrDir;
  const root=document.documentElement,prev=root.style.overflowAnchor;root.style.overflowAnchor='none';/* Chrome's own scroll anchoring would move it a second time; iPhone has none */
- draw();const el=document.querySelector(sel);if(el&&before!=null){const after=el.getBoundingClientRect().top;if(Math.abs(after-before)>1)window.scrollBy(0,after-before)}requestAnimationFrame(()=>requestAnimationFrame(()=>{root.style.overflowAnchor=prev}));if(dir)(document.querySelector(`.qty-round[data-qr-id="${CSS.escape(id)}"][data-qr-dir="${dir}"]`) as any)?.focus({preventScroll:true})}
-function qrDecorate(){if(view!=='shopping')return;for(const b of document.querySelectorAll('#main button[data-action="purchase-quantity"]') as any){const id=b.dataset.id;if(!id||b.nextElementSibling?.classList?.contains('qty-round-pair'))continue;if(!b.closest('.shop-row'))continue;const{row}=qrRow(id);if(!row||!qrMeasured(row))continue;
+ draw();/* v1.7.21: the store pill now shares the amount's line, so the drawings that replace its text emoji (emoji-art, a microtask
+ later) can change where the line wraps; draw them now so the measure below is the layout that stays */try{(globalThis as any).emojiArtify?.(document.getElementById('main'))}catch{}
+ const el=document.querySelector(sel);if(el&&before!=null){const after=el.getBoundingClientRect().top,d=after-before;if(Math.abs(d)>1){
+  // v1.7.21: a row that grows a line near the end of a short list needs room below to scroll into; a spacer at the end of
+  // the list gives it (it goes with the next redraw), so the amount still stays under the finger (rule 24)
+  const room=document.documentElement.scrollHeight-innerHeight-scrollY;if(d>room){const m=document.getElementById('main');if(m){const sp=document.createElement('div');sp.className='qr-keep-space';sp.setAttribute('aria-hidden','true');sp.style.height=Math.ceil(d-room+2)+'px';m.append(sp)}}
+  window.scrollBy(0,d)}}requestAnimationFrame(()=>requestAnimationFrame(()=>{root.style.overflowAnchor=prev}));if(dir)(document.querySelector(`.qty-round[data-qr-id="${CSS.escape(id)}"][data-qr-dir="${dir}"]`) as any)?.focus({preventScroll:true})}
+function qrDecorate(){if(view!=='shopping')return;for(const b of document.querySelectorAll('#main button[data-action="purchase-quantity"]') as any){const id=b.dataset.id;if(!id||b.parentElement?.classList?.contains('qty-stepper'))continue;if(!b.closest('.shop-row'))continue;const{row}=qrRow(id);if(!row||!qrMeasured(row))continue;
   const extra=(Number(row.qty)||0)-(Number(row.suggested)||0),[sd,ed]=shopDates(),why=typeof buyNoteGet==='function'?buyNoteGet(currentWeek(),sd,ed,id):'';
   if(row.custom&&extra>0.0001)(b.closest('.shop-row')?.querySelector('.item-label')||b).insertAdjacentHTML('beforeend',`<small class="buy-extra-note">${esc(tr('mua dư','extra'))} +${esc(fmtQty(extra,INGREDIENTS[id][1]))}${why?` · <span data-user-content>${esc(why)}</span>`:''}</small>`);
   // (data-keep-scroll-off: qrKeepPlace keeps the AMOUNT in place; the app-wide keep-place hold would pin the button instead)
-  // v1.7.8 (owner, 6 Nov 2026: "không có nút round down?"): two buttons side by side — ≈↓ rounds down, ≈↑ rounds up
-  const btn=(dir:'up'|'down')=>`<button type="button" class="qty-round" data-keep-scroll-off data-qr-id="${esc(id)}" data-qr-dir="${dir}" aria-label="${esc(tr(`Làm tròn ${dir==='up'?'lên':'xuống'}`,`Round ${dir}`))}" title="${esc(tr(`Làm tròn ${dir==='up'?'lên':'xuống'}`,`Round ${dir}`))}"><span aria-hidden="true">≈</span><span class="qr-dir" aria-hidden="true">${dir==='up'?'↑':'↓'}</span></button>`;
-  // the amount and its two round buttons share one cell, so they wrap together and never sit under the store button
-  if(!b.parentElement?.classList.contains('qty-cell')){const cell=document.createElement('span');cell.className='qty-cell';b.before(cell);cell.append(b)}
-  b.insertAdjacentHTML('afterend',`<span class="qty-round-pair" role="group" aria-label="${esc(tr('Làm tròn lượng mua','Round the amount'))}">${btn('down')}${btn('up')}</span>`)}}
+  // v1.7.8 (owner, 6 Nov 2026: "không có nút round down?"): ≈↓ rounds down, ≈↑ rounds up.
+  // v1.7.21 (Henry, 14 Nov 2026, his own answer): the two buttons go INTO the amount button — ↓ on its left, ↑ on its right,
+  // each a 44 px drawn step — and the separate round row is gone. Tapping the amount itself still opens the buying-unit sheet.
+  const nm=typeof shopIngName==='function'?shopIngName(id):INGREDIENTS[id][0];
+  const btn=(dir:'up'|'down')=>{const l=tr(`Làm tròn ${dir==='up'?'lên':'xuống'}: ${nm}`,`Round ${nm} ${dir}`);return `<button type="button" class="qty-round qty-step" data-keep-scroll-off data-qr-id="${esc(id)}" data-qr-dir="${dir}" aria-label="${esc(l)}" title="${esc(tr(`Làm tròn ${dir==='up'?'lên':'xuống'}`,`Round ${dir}`))}"><span aria-hidden="true">≈</span><span class="qr-dir" aria-hidden="true">${dir==='up'?'↑':'↓'}</span></button>`};
+  const cell=document.createElement('span');cell.className='qty-cell qty-stepper';cell.setAttribute('role','group');cell.setAttribute('aria-label',tr(`Lượng mua ${nm}`,`Amount of ${nm} to buy`));b.before(cell);cell.append(b);
+  b.insertAdjacentHTML('beforebegin',btn('down'));b.insertAdjacentHTML('afterend',btn('up'))}}
 document.addEventListener('click',e=>{const b=(e.target as any)?.closest?.('.qty-round');if(!b)return;e.preventDefault();qrApply(b.dataset.qrId,{dir:b.dataset.qrDir==='down'?'down':'up'})});
 /* v1.7.11: the round buttons get their drawing in the same redraw (like every other button in render()), so the row is
    measured as it will stay; decorated a moment later, a wider font could wrap the row and move the amount (rule 24) */
