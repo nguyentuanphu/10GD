@@ -6,7 +6,11 @@
 // rest on the list, buying-unit rows, the family's own list lines, and undo of every choice.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const {COSTCO,HP_MEATS}=require('./fixtures/receipt-list.cjs');
-const ctx=vm.createContext({console,Intl,Date,Math,TextEncoder,crypto:require('node:crypto').webcrypto});
+// The fixtures use the week of 9 Nov 2026; "today" is fixed inside it so use-by dates in the fixtures never expire on the
+// real calendar (20 Nov 2026: the kept beef's use-by, 19 Nov, had passed and the pantry check failed).
+const FIXED_NOW=Date.parse('2026-11-11T01:00:00Z');
+class FixedDate extends Date{constructor(...a:any[]){if(a.length)super(...(a as [any]));else super(FIXED_NOW)}static now(){return FIXED_NOW}}
+const ctx=vm.createContext({console,Intl,Date:FixedDate,Math,TextEncoder,crypto:require('node:crypto').webcrypto});
 vm.runInContext(['store-registry','seed','core','spending-core','unit-registry','purchase-units','receipt-parse','receipt-list'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n;\n')+
  '\n;this.R=ReceiptParse;this.L=ReceiptList;this.I=INGREDIENTS;this.AL=INGREDIENT_ALIASES;this.api={defaults,ensureWeek,addDays,shopping,stock,validSpending,purchaseScope,planStartOf};',ctx);
 const R=ctx.R,L=ctx.L,A=ctx.api;let n=0;const check=(name:string,fn:()=>void)=>{fn();n++;console.log('PASS',name)};

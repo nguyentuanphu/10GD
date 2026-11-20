@@ -18,21 +18,28 @@ chrome.runtime.onInstalled.addListener(async(d:any)=>{const st=await chrome.stor
  if(d?.reason==='update'&&st.warnings&&CORE.versionCmp(d.previousVersion||'0',SC.version())<0)init.warnings={...st.warnings,signedIn:{}};
  await chrome.storage.local.set(init);setup()});
 chrome.runtime.onStartup.addListener(setup);
-// v1.7 remote control: heartbeat every minute while Chrome runs (the chrome.alarms
-// minimum) and once right away on startup/wake, so Studio commands arrive within ~1 min.
-function setup(){chrome.alarms.create('scout-tick',{periodInMinutes:1});chrome.alarms.create('scout-heartbeat',{periodInMinutes:1});chrome.alarms.create('scout-flush',{periodInMinutes:1});SC.refreshConfig();heartbeat()}
+// v1.7 remote control: the alarm fires every minute while Chrome runs (the chrome.alarms minimum), and the
+// extension checks in right away on startup/wake. 1.7.5: a routine check-in is sent only as often as the server
+// asks (`heartbeatEveryMin`: 1 while running, during the schedule window or with Studio commands waiting; 15 when Auto is
+// on but outside the window; 60 when Auto is off);
+// in between, the last answer is reused. Before, every computer checked in twice a minute all day.
+function setup(){chrome.alarms.create('scout-tick',{periodInMinutes:1});chrome.alarms.create('scout-heartbeat',{periodInMinutes:1});chrome.alarms.create('scout-flush',{periodInMinutes:1});SC.refreshConfig();heartbeat(true)}
 setup();
-try{chrome.idle.onStateChanged.addListener((s:string)=>{if(s==='active')heartbeat()})}catch{}
+try{chrome.idle.onStateChanged.addListener((s:string)=>{if(s==='active')heartbeat(true)})}catch{}
 
 var beating:Promise<any>|null=null;// var: setup() above calls heartbeat() before this line runs
-function heartbeat(){beating=beating||beat().finally(()=>{beating=null});return beating}
+async function heartbeat(force=false){if(!force&&!beating){const st=await SC.get(['run','beatAt','beatEveryMin','device']);const every=Math.min(Math.max(Number(st.beatEveryMin)||15,1),60);
+  if(!st.run&&st.device&&st.beatAt&&Date.now()-st.beatAt<every*60000-5000)return st.device}
+ beating=beating||beat().finally(()=>{beating=null});return beating}
 async function beat(){const st=await SC.get(['token','autoEnabled','semiEnabled','warnings','run','lastRun','blockedEvents','paused','battery','lastWhy','semiSites']);if(!st.token)return null;const online=await onlineOn(st.semiSites);
  let chromeOpen=true,idle:any=null;try{chromeOpen=(await chrome.windows.getAll({windowTypes:['normal']})).length>0}catch{}try{idle=await chrome.idle.queryState(60)}catch{}
  const b=(st.blockedEvents||[])[0],lr=st.lastRun;
  try{const view=await SC.api('heartbeat',{version:SC.version(),configVersion:(await SC.get(['config'])).config?.version||SC.BUILD.configVersion||null,autoEnabled:st.autoEnabled===true,semiEnabled:st.semiEnabled!==false,running:!!st.run,signedIn:st.warnings.signedIn,storesSeen:st.warnings.storesSeen,storeMismatch:st.warnings.storeMismatch,online,
    chromeOpen,idle,paused:st.paused===true,why:st.run?null:st.lastWhy||null,battery:st.battery||null,run:st.run?{pages:st.run.pages||0,prices:st.run.prices||0,startedAt:st.run.startedAt}:null,
    lastRun:lr?{at:lr.at,pages:lr.pages,prices:lr.prices,skipped:lr.skipped,errors:lr.errors||0,stop:lr.stop}:null,lastError:b?{at:b.at,retailer:b.retailer,kind:b.kind}:null});
-  const {commands,...dev}=view;await SC.set({device:dev,deviceAt:Date.now()});if(dev.configVersion)SC.refreshConfig();
+  const {commands,heartbeatEveryMin,...dev}=view,had=(await SC.get(['config'])).config?.version||null;await SC.set({device:dev,deviceAt:Date.now(),beatAt:Date.now(),beatEveryMin:Number(heartbeatEveryMin)||15});
+  // Ask for the parser config only when the server has a different version than the one stored here.
+  if(dev.configVersion&&dev.configVersion!==had)SC.refreshConfig();
   if(Array.isArray(commands)&&commands.length)await runCommands(commands);
   if(dev.stopRequestedAt&&st.run&&dev.stopRequestedAt>=st.run.startedAt)await stopNow();
   return dev}catch{return null}}
@@ -100,7 +107,7 @@ async function startRun(opts:any={}){const why=await canStart(opts);if(why!=='ru
  // window, created minimized so it never covers the person's work or takes focus; where Chrome refuses
  // a minimized window, a small unfocused one instead.
  const win=await openRunnerWindow();
- await SC.set({run:{windowId:win.id,startedAt:Date.now(),heartbeatAt:Date.now(),workTabId:null,explicit:!!opts.explicit,local:!!(opts.explicit&&opts.local)}});heartbeat();return null}
+ await SC.set({run:{windowId:win.id,startedAt:Date.now(),heartbeatAt:Date.now(),workTabId:null,explicit:!!opts.explicit,local:!!(opts.explicit&&opts.local)}});heartbeat(true);return null}
 // Popup "Run now": ask the server for a one-run grant (only works when allowed), then start.
 async function requestRunNow(local=false){try{const view=await SC.api('run-now',{});await SC.set({device:view});return await startRun({explicit:true,local})}catch(e:any){return e.code||'refused'}}
 chrome.alarms.onAlarm.addListener(async(a:any)=>{if(a.name==='scout-tick')startRun();else if(a.name==='scout-heartbeat')heartbeat();else if(a.name==='scout-flush')flushSemi()});
@@ -114,7 +121,7 @@ chrome.runtime.onMessage.addListener((msg:any,sender:any,reply:any)=>{
   if(msg?.type==='flush')return flushSemi();
   // The runner page (minimized → throttled timers) waits here between pages; the worker stays awake while a reply is pending.
   if(msg?.type==='sleep'&&sender.id===chrome.runtime.id){await new Promise(r=>setTimeout(r,Math.max(0,Math.min(120000,Number(msg.ms)||0))));return true}
-  if(msg?.type==='heartbeat')return heartbeat();
+  if(msg?.type==='heartbeat')return heartbeat(true);
   if(msg?.type==='notify')return chrome.notifications.create('scout-'+Date.now(),{type:'basic',iconUrl:'icon.png',title:msg.title,message:msg.message,priority:2});
   // Graceful stop: the runner sees stopRun, releases its leases and closes its window.
   // If it does not answer within 10 s the window is closed; leases then expire server-side.
@@ -153,4 +160,4 @@ chrome.runtime.onMessageExternal.addListener((msg:any,sender:any,reply:any)=>{
 // "Pair now". Other tabs are never touched.
 async function reloadWaitingTabs(){let n=0;try{for(const t of await chrome.tabs.query({})){let u:URL;try{u=new URL(t.url||'')}catch{continue}if(u.searchParams.get('scout-wait')==='1'&&SC.appOriginAllowed(u.origin)){await chrome.tabs.reload(t.id);n++}}}catch{}return n}
 chrome.runtime.onInstalled.addListener((d:any)=>{if(d?.reason==='install')reloadWaitingTabs()});
-(globalThis as any).scoutDebug={startRun,flushSemi,heartbeat,canStart,requestRunNow,reloadWaitingTabs,originAllowed:(o:string)=>SC.appOriginAllowed(o)};
+(globalThis as any).scoutDebug={startRun,flushSemi,heartbeat:(force:boolean=true)=>heartbeat(force),canStart,requestRunNow,reloadWaitingTabs,originAllowed:(o:string)=>SC.appOriginAllowed(o)};

@@ -13,7 +13,7 @@ import {getStore} from '@netlify/blobs';
 import {timingSafeEqual} from 'node:crypto';
 import {resolveAccount} from '../lib/accounts.mjs';
 import {platformSettings,roleFor,csrfFor,writeAudit,recordEvent,readIndex} from '../lib/studio.mjs';
-import {networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,replaceDevice,staleDuplicates,labelOf,scanList,replanToday,setPinned,setMatchWords,ownerProductLink,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,extensionAllowlist,isExtensionAllowed,setExtensionAllowed,NOT_ASSIGNED,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo,effectivePacing,validPacing,grantRunNow,stopRun,runNowActive,backoffRetailer,dayKey,queueCommand,takeCommands,commandResult,deviceTimeline,logEvent,scoutHooks,storesOf,devicePlan,saveDiagnostic,listDiagnostics,ONLINE_RETAILERS} from '../lib/scout.mjs';
+import {extensionAllowedFrom,heartbeatEveryMin,networkSettings,validateNetworkPatch,saveNetwork,scoutConfig,validateConfig,scoutStore,createDefaultAdapter,createPairCode,pairDevice,replaceDevice,staleDuplicates,labelOf,scanList,replanToday,setPinned,setMatchWords,ownerProductLink,deviceFromRequest,deviceView,editDevice,getDevice,listDevices,revokeDevice,cleanStores,validSchedule,refusal,leaseTasks,releaseTasks,reportBlock,ingestResults,studioOverview,coverage,setTrusted,isTrusted,extensionAllowlist,isExtensionAllowed,setExtensionAllowed,NOT_ASSIGNED,setRetailerPause,listEvents,rate,sha,RETAILERS,publicInstallInfo,effectivePacing,validPacing,grantRunNow,stopRun,runNowActive,backoffRetailer,dayKey,queueCommand,takeCommands,commandResult,deviceTimeline,logEvent,scoutHooks,storesOf,devicePlan,saveDiagnostic,listDiagnostics,ONLINE_RETAILERS} from '../lib/scout.mjs';
 import {notifyOwners,notifyAssigned} from '../lib/scout-notify.mjs';
 import {catalogItems} from '../lib/scout-match.mjs';
 
@@ -27,19 +27,24 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
  const ad=adapter||createDefaultAdapter(getStoreFn,{env,nowFn});
  if(notify)scoutHooks.notify=notify;else scoutHooks.notify=(type:string,data:any,gs:any)=>notifyOwners(gs,type,data,env);
  return async(request:Request)=>{
-  const url=new URL(request.url),op=url.searchParams.get('op')||'',method=request.method,now=nowFn(),origin=request.headers.get('origin')||'',isRead=['GET','HEAD'].includes(method);
-  const ext=extensionOriginAllowed(origin,env),cors:any=ext?{'Access-Control-Allow-Origin':origin,'Vary':'Origin','Access-Control-Allow-Headers':'Authorization, Content-Type','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Max-Age':'600'}:{'Vary':'Origin'};
+  const url=new URL(request.url),method=request.method,now=nowFn(),origin=request.headers.get('origin')||'',isRead=['GET','HEAD'].includes(method);
+  // Extensions up to 1.7.4 sent `op=config%26v%3D<version>` (the `&` was encoded into the op), so the config check
+  // fell through to the sign-in check and failed with 401 every minute. Read that form as op=config&v=<version>.
+  let op=url.searchParams.get('op')||'',configV=url.searchParams.get('v');
+  if(op.startsWith('config&')){const p=new URLSearchParams(op.slice(7));op='config';configV=configV??p.get('v')}
+  const ext=extensionOriginAllowed(origin,env),cors:any=ext?{'Access-Control-Allow-Origin':origin,'Vary':'Origin','Access-Control-Allow-Headers':'Authorization, Content-Type','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Max-Age':'7200'}:{'Vary':'Origin'};
   const json=(data:any,status=200,headers:any={})=>Response.json(data,{status,headers:{...BASE_HEADERS,...cors,...headers}});
   try{
    if(method==='OPTIONS')return ext?new Response(null,{status:204,headers:{...cors}}):json({error:'Nguồn không được phép.',errorEn:'Origin not allowed.'},403);
    const body=async(max=200000)=>{const raw=await request.text();if(raw.length>max)throw Object.assign(Error('Quá lớn.'),{status:413,en:'Too large.'});try{return raw?JSON.parse(raw):{}}catch{throw Object.assign(Error('Dữ liệu không hợp lệ.'),{status:400,en:'Invalid JSON.'})}};
-   const settings=await networkSettings(getStoreFn,env);
+   // ----- public parser config (data only; versioned; cacheable). Answered before any other read: it needs only the config. -----
+   if(op==='config'&&isRead){const c=await scoutConfig(getStoreFn);if(configV&&configV===c?.version)return json({version:c.version,unchanged:true},200,{'Cache-Control':'public, max-age=300'});return json({version:c?.version||null,config:c},200,{'Cache-Control':'public, max-age=300'})}
+   // Read side by side (each is a separate storage round trip; one heartbeat used to make ~20 in a row).
+   const [settings,al]=await Promise.all([networkSettings(getStoreFn,env),extensionAllowlist(getStoreFn,now)]);
    // v1.7.1 extension allowlist: the first request after the upgrade migrates trusted price checkers and accounts with paired devices (audited once).
-   {const al=await extensionAllowlist(getStoreFn,now);if(al.migrated)await writeAudit(getStoreFn,{actor:'system',role:'system',action:'scout_extension_allowlist_migrated',target:{type:'scout',id:'extension-allowlist'},details:{accounts:al.migrated}},now)}
+   {if(al.migrated)await writeAudit(getStoreFn,{actor:'system',role:'system',action:'scout_extension_allowlist_migrated',target:{type:'scout',id:'extension-allowlist'},details:{accounts:al.migrated}},now)}
    const notAssigned=()=>json({error:NOT_ASSIGNED[0],errorEn:NOT_ASSIGNED[1],code:'not_assigned'},403);
 
-   // ----- public parser config (data only; versioned; cacheable) -----
-   if(op==='config'&&isRead){const c=await scoutConfig(getStoreFn);if(url.searchParams.get('v')===c?.version)return json({version:c.version,unchanged:true},200,{'Cache-Control':'public, max-age=300'});return json({version:c?.version||null,config:c},200,{'Cache-Control':'public, max-age=300'})}
    // ----- public install info for the app's "Pair this computer" card (non-secret) -----
    if(op==='public'&&isRead)return json(publicInstallInfo(settings,env),200,{'Cache-Control':'public, max-age=300'});
 
@@ -60,7 +65,7 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
      return json({token,device:await deviceView(getStoreFn,fresh,settings,now,env),replaceCandidates:replaced.length?[]:replaceCandidates,replaced},201)}
     const device=await deviceFromRequest(getStoreFn,request);await rate(getStoreFn,'dev:'+device.id,120,now);
     // Only accounts assigned in Studio may run the extension; unpair always works.
-    if(op!=='unpair'&&!(await isExtensionAllowed(getStoreFn,device.owner,env,now)))return notAssigned();
+    if(op!=='unpair'&&!extensionAllowedFrom(al.users,device.owner,env))return notAssigned();
     if(op==='replace'&&method==='POST'){const b=await body(2000),replaced=await replaceAll(device,b?.replace);return json({ok:true,replaced})}
     if((op==='device'&&isRead)||(op==='heartbeat'&&method==='POST')){
      if(op==='heartbeat'){const b=await body(8000),signedIn:any={},storeSeen:any={},mismatch:any={};for(const r of RETAILERS){if(typeof b.signedIn?.[r]==='boolean')signedIn[r]=b.signedIn[r];if(typeof b.storesSeen?.[r]==='string')storeSeen[r]=String(b.storesSeen[r]).slice(0,80);if(typeof b.storeMismatch?.[r]==='boolean')mismatch[r]=b.storeMismatch[r]}
@@ -71,11 +76,17 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
       const lastRun=b.lastRun&&typeof b.lastRun==='object'&&ts(b.lastRun.at)?{at:ts(b.lastRun.at),pages:int(b.lastRun.pages),prices:int(b.lastRun.prices),skipped:int(b.lastRun.skipped),errors:int(b.lastRun.errors),stop:String(b.lastRun.stop||'').replace(/[^\w-]/g,'').slice(0,30)||null}:null;
       const lastError=b.lastError&&typeof b.lastError==='object'&&ts(b.lastError.at)?{at:ts(b.lastError.at),retailer:RETAILERS.includes(b.lastError.retailer)?b.lastError.retailer:null,kind:String(b.lastError.kind||'').replace(/[^\w-]/g,'').slice(0,30)||null}:null;
       const battery=b.battery&&typeof b.battery==='object'?{charging:b.battery.charging===true,level:typeof b.battery.level==='number'&&b.battery.level>=0&&b.battery.level<=1?Math.round(b.battery.level*100)/100:null,at:ts(b.battery.at)}:null;
-      let prevRunAt:any=null;
-      await editDevice(getStoreFn,device.id,d=>{prevRunAt=d.client?.lastRun?.at||null;return{...d,lastHeartbeat:new Date(now).toISOString(),client:{version:String(b.version||'').slice(0,20)||null,configVersion:/^[\w.-]{1,40}$/.test(String(b.configVersion||''))?String(b.configVersion):null,autoEnabled:b.autoEnabled===true,semiEnabled:b.semiEnabled!==false,running:b.running===true,signedIn,storesSeen:storeSeen,storeMismatch:mismatch,...(onlineOn?{online:onlineOn}:{}),onBattery:battery?!battery.charging:b.onBattery===true,
+      let prevRunAt:any=null,every=1;
+      const saved:any=await editDevice(getStoreFn,device.id,d=>{prevRunAt=d.client?.lastRun?.at||null;
+       // The interval given to this computer is decided from what it reports now and kept on the record (Studio's online rule).
+       every=heartbeatEveryMin({...d,client:{running:b.running===true,autoEnabled:b.autoEnabled===true}},settings,now,(d.commands||[]).some((c:any)=>c.status==='pending'&&c.expiresAt>now));
+       return{...d,beatEveryMin:every,lastHeartbeat:new Date(now).toISOString(),client:{version:String(b.version||'').slice(0,20)||null,configVersion:/^[\w.-]{1,40}$/.test(String(b.configVersion||''))?String(b.configVersion):null,autoEnabled:b.autoEnabled===true,semiEnabled:b.semiEnabled!==false,running:b.running===true,signedIn,storesSeen:storeSeen,storeMismatch:mismatch,...(onlineOn?{online:onlineOn}:{}),onBattery:battery?!battery.charging:b.onBattery===true,
        chromeOpen:b.chromeOpen!==false,idle:['active','idle','locked'].includes(b.idle)?b.idle:null,battery,paused:b.paused===true,why:typeof b.why==='string'?b.why.replace(/[^\w-]/g,'').slice(0,30)||null:null,run:b.running===true?{pages:int(b.run?.pages),prices:int(b.run?.prices),startedAt:ts(b.run?.startedAt)}:null,lastRun:lastRun||d.client?.lastRun||null,lastError:lastError||d.client?.lastError||null}}});
       if(lastRun&&lastRun.at!==prevRunAt)await logEvent(getStoreFn,'run_finished',{deviceId:device.id,account:device.owner,name:device.name,pages:lastRun.pages,prices:lastRun.prices,skipped:lastRun.skipped,stop:lastRun.stop},now);
-      const view=await deviceView(getStoreFn,await getDevice(getStoreFn,device.id),settings,now,env);return json({...view,commands:await takeCommands(getStoreFn,device.id,now)})}
+      // The record just written is the device (no second read); commands are only taken when some are waiting.
+      const cur=saved||await getDevice(getStoreFn,device.id),waiting=(cur.commands||[]).some((c:any)=>c.status==='pending');
+      const [view,commands]=await Promise.all([deviceView(getStoreFn,cur,settings,now,env),waiting?takeCommands(getStoreFn,device.id,now):Promise.resolve([])]);
+      return json({...view,commands,heartbeatEveryMin:every})}
      return json(await deviceView(getStoreFn,{...device},settings,now,env))}
     // v1.7.2: what this computer will look at today (runner page, Settings preview).
     // v1.7.2: a sanitised page-structure sample the person chose to send (selector fixes go out as data-only config).
