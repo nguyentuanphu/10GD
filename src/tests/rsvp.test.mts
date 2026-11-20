@@ -10,12 +10,12 @@ const ok=(c:any,m:string)=>{assert.ok(c,m);console.log('PASS',m)};
 const getStoreFn=memoryStores(),fixture=await accountFixture(getStoreFn),{cookie}=fixture;
 const pushes:any[]=[];const pushSend=async(sub:any,payload:any)=>{pushes.push(JSON.parse(payload));return{statusCode:201}};
 let clock=Date.parse('2026-11-10T00:00:00Z');
-const family=createFamilyHandler({getStoreFn}),rsvp=createRsvpHandler({getStoreFn,pushSend,clock:()=>clock});
+const family=createFamilyHandler({getStoreFn,nowFn:()=>clock}),rsvp=createRsvpHandler({getStoreFn,pushSend,clock:()=>clock});
 const freq=(op:string,body?:any,ck=cookie)=>new Request('https://test.example/.netlify/functions/family?op='+op,{method:body?'POST':'GET',headers:{Origin:'https://test.example',...(ck?{Cookie:ck}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
 const rreq=(t:string,body?:any,origin='https://test.example')=>new Request('https://test.example/.netlify/functions/rsvp?t='+t,{method:body?'POST':'GET',headers:{...(body?{'Content-Type':'application/json',Origin:origin}:{})},...(body?{body:JSON.stringify(body)}:{})});
 await fixture.store.setJSON('state',{version:1,members:[{id:'dad',name:'Dad'},{id:'mum',name:'Mum'}],recipes:[],weeks:{},pantry:[],preferences:{}});
 const sub=(n:number)=>({endpoint:'https://fcm.googleapis.com/fcm/send/synthetic-'+n,keys:{auth:'a'.repeat(22),p256dh:'b'.repeat(87)}});
-const famPush=createFamilyHandler({getStoreFn,pushSend});assert.equal((await famPush(freq('push-key',{}))).status,200);
+const famPush=createFamilyHandler({getStoreFn,pushSend,nowFn:()=>clock});assert.equal((await famPush(freq('push-key',{}))).status,200);
 assert.equal((await famPush(freq('push-subscribe',{deviceId:'device-dad-0001',memberId:'dad',label:'Dad phone',subscription:sub(1),quietStart:'00:00',quietEnd:'00:00'}))).status,200);
 assert.equal((await famPush(freq('push-subscribe',{deviceId:'device-mum-0001',memberId:'mum',label:'Mum phone',subscription:sub(2),shared:true,quietStart:'00:00',quietEnd:'00:00'}))).status,200);
 const base={inviteId:'inv-tuan001',meals:[{date:'2026-11-14',type:'dinner'},{date:'2026-11-15',type:'lunch'}],guestName:'Nhà anh Tuấn',host:'Nhà Phú',adults:2,kids:1,deadline:'2026-11-13T10:00:00Z',expiresAt:'2026-11-15T12:59:00Z',maybe:'half',lang:'vi'};
@@ -62,7 +62,7 @@ let last=0;for(let i=0;i<21;i++)last=(await rsvp(rreq(t3,{status:i%2?'yes':'mayb
 clock=Date.parse('2026-12-30T00:00:00Z');ok(forgettable({expiresAt:'2026-11-15T12:59:00Z'},clock),'records are deleted 30 days after the link ends');ok((await rsvp(rreq(token))).status===404,'a forgotten invitation is gone');
 ok(replyFromRequest({...base,cancelled:false,response:null,writes:[]},{status:'yes',adults:31,kids:0},Date.parse('2026-11-10T00:00:00Z')).error,'at most 30 adults');
 // v1.7.15: short codes can be guessed, so wrong codes are limited per network address and overall, per hour
-{const g=memoryStores(),fx=await accountFixture(g),fam=createFamilyHandler({getStoreFn:g});let now=Date.parse('2026-11-10T00:00:00Z');const rv=createRsvpHandler({getStoreFn:g,clock:()=>now});
+{const g=memoryStores(),fx=await accountFixture(g),fam=createFamilyHandler({getStoreFn:g,nowFn:()=>now});let now=Date.parse('2026-11-10T00:00:00Z');const rv=createRsvpHandler({getStoreFn:g,clock:()=>now});
  const r=await fam(freq('invite-create',{...base,inviteId:'inv-guess001'},fx.cookie));const real=(await r.json()).token;
  const from=(t:string,ip:string)=>new Request('https://test.example/.netlify/functions/rsvp?t='+t,{headers:{'x-nf-client-connection-ip':ip}});
  const wrong=(i:number)=>{let t;do{t=newToken()}while(t===real);return t};
