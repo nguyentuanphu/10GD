@@ -9,14 +9,14 @@ const BUILD=root.SCOUT_BUILD||{test:false,version:'0.0.0',configVersion:root.SCO
 const DEFAULTS={server:BUILD.server||'',token:'',deviceId:'',device:null,notAssigned:false,lang:'',theme:'auto',
  autoEnabled:false,semiEnabled:true,paused:false,semiSites:{woolworths:true,coles:true,aldi:true,chemist:true,amazon:true},
  lastRun:null,lastSemi:null,blockedEvents:[],warnings:{signedIn:{},storesSeen:{},storeMismatch:{}},onboarding:{profile:false,rewards:false,store:false},
- config:null,robotsCache:{},run:null,tabStatus:{},pendingSemi:[],testPacing:null};
+ config:null,robotsCache:{},run:null,tabStatus:{},pendingSemi:[],testPacing:null,beatAt:0,beatEveryMin:5};
 async function get(keys?:string[]){const all=await chrome.storage.local.get(keys||null);const out:any={};for(const k of keys||Object.keys(DEFAULTS))out[k]=all[k]===undefined?structuredClone((DEFAULTS as any)[k]):all[k];return out}
 async function set(patch:any){await chrome.storage.local.set(patch)}
 function serverOk(s:string){try{const u=new URL(s);return u.protocol==='https:'||BUILD.test&&u.protocol==='http:'}catch{return false}}
-async function api(op:string,body?:any,{token}:any={}){
+async function api(op:string,body?:any,{token,query}:any={}){
  const st=await get(['server','token']);if(!serverOk(st.server))throw Object.assign(Error('no-server'),{code:'no-server'});
  const headers:any={Accept:'application/json'};const tk=token===undefined?st.token:token;if(tk)headers.Authorization='Bearer '+tk;if(body!==undefined)headers['Content-Type']='application/json';
- const r=await fetch(st.server.replace(/\/$/,'')+'/.netlify/functions/scout?op='+encodeURIComponent(op),{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:JSON.stringify(body),credentials:'omit',cache:'no-store'});
+ const r=await fetch(st.server.replace(/\/$/,'')+'/.netlify/functions/scout?op='+encodeURIComponent(op)+(query?'&'+new URLSearchParams(query):''),{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:JSON.stringify(body),credentials:'omit',cache:'no-store'});
  let data:any={};try{data=await r.json()}catch{}
  if(r.status===401&&(data.code==='revoked'||data.code==='no-token'))await set({token:'',deviceId:'',device:null,autoEnabled:false});
  // v1.7.1: only accounts assigned in Studio may use the extension. Remember the refusal so the popup can say so.
@@ -24,7 +24,9 @@ async function api(op:string,body?:any,{token}:any={}){
  if(!r.ok&&!(op==='tasks'&&data.code))throw Object.assign(Error(data.errorEn||data.error||('HTTP '+r.status)),{status:r.status,data,code:data.code});
  return data}
 async function lang(){const s=await get(['lang']);return s.lang||(String(navigator.language||'').toLowerCase().startsWith('vi')?'vi':'en')}
-async function refreshConfig(){try{const st=await get(['config']);const r=await api('config'+(st.config?.version?'&v='+encodeURIComponent(st.config.version):''));if(r.config)await set({config:{version:r.version,data:r.config,at:Date.now()}})}catch{}}
+// 1.7.5: `v` goes as its own query parameter. Up to 1.7.4 it was glued into the op (`config&v=…`), which encodeURIComponent
+// turned into one op the server did not know, so every config check failed (401) once a minute.
+async function refreshConfig(){try{const st=await get(['config']);const r=await api('config',undefined,{query:st.config?.version?{v:st.config.version}:undefined});if(r.config)await set({config:{version:r.version,data:r.config,at:Date.now()}})}catch{}}
 async function config(){const st=await get(['config']);return st.config?.data||root.SCOUT_DEFAULT_CONFIG}
 // robots.txt: fetched from this browser profile (credentials omitted), cached 24 h.
 // RFC 9309: 4xx → no rules (allow); 5xx / network error → treat as disallow all.

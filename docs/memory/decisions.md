@@ -2,6 +2,16 @@
 
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
+## 20 Nov 2026 (about 20:30 AEDT): hosting compute too high every day
+- Henry asked why the hosting compute is high every day and whether Sparkle Valley causes it. Findings (13–20 Nov, hosting logs):
+  almost all of it is this app's `scout` function, called by the So Giá extension on ONE Windows computer: about 13,700 calls a
+  day (two check-ins a minute, all day, each 9–15 s of server time; a config check that failed with 401 every minute because of an
+  encoding bug; and the browser's pre-checks). Sparkle Valley used under an hour of function time in the whole week.
+- Pop-up answer "Fix both (Recommended)": fix the config bug, check in every 5 minutes when idle (every minute while running,
+  inside the schedule window or with Studio commands waiting), and make each check-in cheaper on the server. Extension 1.7.5.
+  Accepted effect: Studio sees an idle computer as online for up to 11 minutes after its last check-in, and Studio commands or
+  setting changes reach an idle computer within 5 minutes instead of 1. Same gate: Henry says DEPLOY.
+
 ## 14 Nov 2026 (about 21:00 AEDT, v1.7.21)
 - **More stores, step 2, now (Henry: "Làm luôn đi đừng chờ").** Do not wait for the 27 Nov 2026 device check in
   docs/plans/stores-step2.md. ALDI, Harris Farm, IGA, Costco, Spudshed and FoodWorks are offered in saved products and So Giá
@@ -103,5 +113,6 @@ Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; thi
 ## Henry's to-dos (things only he can do)
 - ~~Update the henry-master skill on claude.ai~~ done by Henry, 13 Nov 2026.
 - SCOUT_EXTENSION_IDS setting; the duplicate device; the Web Store link.
+- After DEPLOY of the 20 Nov compute fix: update the So Giá extension to 1.7.5 on the Windows computer (Studio shows "Cần cập nhật" until then). That computer sends two check-ins at the same second each minute, so it probably has two copies paired (two Chrome profiles): remove the one not used.
 - Re-enter the Mỳ Quảng amounts; the iPhone voice self-check.
 - Pinch / WhichGrocer terms e-mails. The integration plan is not yet approved.

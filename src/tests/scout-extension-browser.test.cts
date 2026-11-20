@@ -39,10 +39,12 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
  const visits:any[]=[];let robotsTxt='User-agent: *\nDisallow: /shop/search\n';
  const fixture=(name:string)=>readFileSync('src/tests/fixtures/scout/'+name,'utf8');
  const pages:any={'/shop/browse/specials/half-price':'woolworths-specials.html','/shop/productdetails/123456/squid-brand-fish-sauce':'woolworths-product.html','/shop/browse/challenge':'challenge.html','/shop/search/products':'empty.html'};
+ const apiCalls:any[]=[];// every request the extension sends to the app server (20 Nov 2026 hosting-cost checks)
  const server=createServer(async(req,res)=>{
   const host=String(req.headers.host||'').split(':')[0],path=String(req.url||'/');
   if(host==='api.scout.test'){const chunks:any[]=[];for await(const c of req)chunks.push(c);const body=Buffer.concat(chunks);
    const r=await scout(new Request('http://api.scout.test:'+PORT+path,{method:req.method,headers:req.headers as any,body:['GET','HEAD'].includes(req.method!)?undefined:body}));
+   apiCalls.push({method:req.method,path,status:r.status});
    res.writeHead(r.status,Object.fromEntries(r.headers));res.end(Buffer.from(await r.arrayBuffer()));return}
   if(host==='kitchen.localhost'||host==='127.0.0.1'){await appServe(req,res,path);return}
   if(host==='other.scout.test'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end('<!doctype html><title>Other site</title><p>Not the family app</p>');return}
@@ -65,6 +67,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    const headers:any={...req.headers};if(!String(headers.origin||'').startsWith('chrome-extension://'))headers.cookie=appCookie;
    if(req.method==='POST'&&!String(req.headers.origin||'').startsWith('chrome-extension://'))appPosts.push({op,body:body.toString()});
    const r=await scout(new Request('http://'+req.headers.host+path,{method:req.method,headers,body:['GET','HEAD'].includes(req.method)?undefined:body}));
+   apiCalls.push({method:req.method,path,status:r.status});
    const out=Buffer.from(await r.arrayBuffer());if(!String(req.headers.origin||'').startsWith('chrome-extension://'))appBodies.push(out.toString());
    res.writeHead(r.status,Object.fromEntries(r.headers));res.end(out);return}
   if(url.pathname.startsWith('/.netlify/')){const household={id:'qa',name:'QA kitchen',role:'owner'};let data:any={announcements:[],devices:[]};
@@ -130,6 +133,8 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
   await scoutLib.editDevice(getStoreFn,deviceId,(d:any)=>({...d,autoAllowed:true,schedule:[{days:[0,1,2,3,4,5,6],start:'00:00',end:'24:00'}]}));
   await setStorage({testPacing:{minMs:1500,maxMs:1800}});
   const before=visits.length;
+  // 1.7.5: an idle computer learns Studio changes at its next check-in (within 5 minutes); here that check-in is forced.
+  await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());
   const why=await sw.evaluate(()=>(globalThis as any).scoutDebug.startRun());assert.equal(why,null,'run started: '+why);
   const lastRun=await until(async()=>(await storage(['lastRun'])).lastRun,90000,'auto run to finish').catch(async(e:any)=>{const rp=ctx.pages().find((p:any)=>p.url().includes('runner.html'));throw new Error(e.message+' · runner: '+(rp?await rp.evaluate(()=>document.body.innerText.slice(0,400)).catch((x:any)=>x.message):'none')+' · '+JSON.stringify(await storage(['run','runnerWindowMode','lastWhy'])))});
   assert.equal(lastRun.stop,'no-tasks',JSON.stringify(lastRun));assert.equal(lastRun.pages,2,'two pages visited');assert.equal(lastRun.skipped,1,'robots-disallowed search skipped');
@@ -242,6 +247,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    cfg.version='e2e-3';cfg.retailers.woolworths.specials=[3,4,5,6,7,8,9,10].map(n=>base('woolworths')+'/shop/browse/specials/half-price?page='+n);await store.setJSON('config/override',{config:cfg});
    // Retire the earlier challenge fixture task (released when the first device was blocked).
    {const day=scoutLib.dayKey(Date.now());await scoutLib.ensurePlan(getStoreFn,{settings:await scoutLib.networkSettings(getStoreFn,env),now:Date.now(),adapter});for(const t of await scoutLib.listTasks(getStoreFn,day))if(t.url.includes('/challenge'))await store.setJSON(`tasks/${day}/${t.taskId}`,{...t,status:'done'})}
+   await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());// 1.7.5: Studio changes arrive with the next check-in (forced here)
    assert.equal(await sw.evaluate(()=>(globalThis as any).scoutDebug.canStart()),'outside-window','no grant → waits for its window');
    // Studio: Run now (grant + queued command), delivered with the next heartbeat.
    await scoutLib.grantRunNow(getStoreFn,devId,'henrynguyen',Date.now());const cmd=await scoutLib.queueCommand(getStoreFn,devId,'run-now',{},'henrynguyen',Date.now());
@@ -276,6 +282,17 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
    // The live status reached the server (heartbeat each minute; here forced).
    await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());const live=scoutLib.liveStatus(await scoutLib.getDevice(getStoreFn,devId),await scoutLib.networkSettings(getStoreFn,env),Date.now());
    assert.equal(live.online,true);assert.equal(live.lastRun.stop,'stopped');assert.equal(live.pace.minMs,3000);assert.equal(live.pace.source,'device');assert.equal(live.chromeOpen,true);
+   // 1.7.5 hosting cost: a routine check-in (the minute alarm) is skipped until the server's interval has passed;
+   // forced ones (start-up, wake, the popup/Settings, a run) still go out. Config checks are never refused.
+   {const beats=()=>apiCalls.filter(c=>c.method==='POST'&&/op=heartbeat/.test(c.path)).length;
+    await sw.evaluate(()=>(globalThis as any).chrome.storage.local.set({beatAt:Date.now(),beatEveryMin:5}));let n=beats();
+    await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat(false));assert.equal(beats(),n,'routine check-in skipped inside the 5-minute interval');
+    // (a check-in already in flight from the minute alarm may answer instead, so this checks the stored time, not the count)
+    const old=Date.now()-6*60000;await sw.evaluate((t:number)=>(globalThis as any).chrome.storage.local.set({beatAt:t}),old);await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat(false));
+    assert.ok((await sw.evaluate(()=>(globalThis as any).chrome.storage.local.get(['beatAt']))).beatAt>old,'routine check-in sent once the interval has passed');assert.ok(beats()>n,'a check-in reached the server');
+    n=beats();await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());assert.equal(beats(),n+1,'forced check-in always sent');
+    const every=(await sw.evaluate(()=>(globalThis as any).chrome.storage.local.get(['beatEveryMin']))).beatEveryMin;assert.ok(every===1||every===5,'interval from the server: '+every);
+    const cfg=apiCalls.filter(c=>/op=config/.test(c.path));assert.ok(cfg.length>0,'config was checked');assert.ok(cfg.every(c=>c.status!==401&&!/op=config%26/.test(c.path)),'config checks: '+JSON.stringify(cfg.slice(0,3)))}
    await pop3.close();
    console.log('PASS v1.7 remote control in the extension: Run now command → run outside the window, Very fast pace still sequential (≥ 3 s), Stop obeyed within one heartbeat, popup status, live status')}
 

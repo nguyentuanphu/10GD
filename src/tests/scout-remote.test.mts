@@ -131,7 +131,9 @@ await S('studio-network',{patch:{autoScout:'on'}});await S('studio-device',{devi
 // ---------- live status ----------
 {const s=await lib.networkSettings(getStoreFn,env);const base:any={id:'dev-000000000000',name:'X',lastHeartbeat:new Date(clock-30000).toISOString(),client:{chromeOpen:true,idle:'idle'}};
  assert.equal(lib.liveStatus(base,s,clock).state,'idle');assert.equal(lib.liveStatus(base,s,clock).online,true);
- assert.equal(lib.liveStatus({...base,lastHeartbeat:new Date(clock-10*60000).toISOString()},s,clock).state,'offline');
+ // 20 Nov 2026: idle computers check in every 5 minutes, so online = a check-in within 11 minutes (two missed check-ins = offline).
+ assert.equal(lib.liveStatus({...base,lastHeartbeat:new Date(clock-10*60000).toISOString()},s,clock).online,true,'one late idle check-in is still online');
+ assert.equal(lib.liveStatus({...base,lastHeartbeat:new Date(clock-12*60000).toISOString()},s,clock).state,'offline');
  const run=lib.liveStatus({...base,client:{...base.client,running:true,run:{pages:12,prices:40}}},s,clock);assert.equal(run.state,'running');assert.deepEqual([run.run.pages,run.run.cap],[12,150]);
  assert.equal(lib.liveStatus({...base,pausedUntil:clock+3600000,pauseReason:'blocked:challenge'},s,clock).state,'blocked');
  assert.equal(lib.liveStatus({...base,pausedUntil:clock+3600000,pauseReason:'studio'},s,clock).state,'paused');
@@ -172,4 +174,28 @@ await S('studio-network',{patch:{autoScout:'on'}});await S('studio-device',{devi
  const res=await dev('results',B.token,{mode:'semi',items:[{retailer:'woolworths',url:'https://www.woolworths.com.au/shop/productdetails/123456/fish-sauce',pageType:'product',capturedAt:at,status:'ok',facts:[{name:'Squid fish sauce 725mL',price:4.5,productId:'123456',productUrl:'https://www.woolworths.com.au/shop/productdetails/123456/fish-sauce'}]}]});
  assert.equal(res.status,200,JSON.stringify(res.data));assert.equal(published[0]?.observedAt,at,'observation carries the capture time from the device');assert.equal(published[0]?.receivedAt,new Date(now).toISOString());
  console.log('PASS capture time: device time kept, future / > 14 days replaced, stored on the observation');}
+// ---------- hosting cost (20 Nov 2026): config check, check-in interval, storage round trips per check-in ----------
+{const cfg=(await J(await call('config',{from:EXT}))).data;assert.ok(cfg.version&&cfg.config,'config answered');
+ // Extensions up to 1.7.4 sent the version glued into the op (encoded &): answered as config, not refused with 401.
+ const legacy=await J(await call('config%26v%3D'+encodeURIComponent(cfg.version),{from:EXT}));assert.equal(legacy.status,200,'legacy config op is not a 401');assert.deepEqual(legacy.data,{version:cfg.version,unchanged:true});
+ const fresh=await J(await call('config&v='+encodeURIComponent(cfg.version),{from:EXT}));assert.deepEqual(fresh.data,{version:cfg.version,unchanged:true});
+ assert.equal((await J(await call('config%26v%3Dold-version',{from:EXT}))).data.config?.version,cfg.version,'a different version gets the full config');
+ const pre=await call('heartbeat',{method:'OPTIONS',from:EXT});assert.equal(pre.status,204);assert.equal(pre.headers.get('access-control-max-age'),'7200','preflight cached as long as Chrome allows');
+ // Check-in interval: every 5 minutes when idle outside the window, every minute while running or with commands waiting.
+ await lib.editDevice(getStoreFn,B.id,(d:any)=>({...d,pausedUntil:null,runNow:null}));
+ let hb=(await dev('heartbeat',B.token,{version:'1.7.5'})).data;assert.equal(hb.heartbeatEveryMin,5,'idle outside the window → 5 min');
+ hb=(await dev('heartbeat',B.token,{version:'1.7.5',running:true,run:{pages:1,prices:1,startedAt:clock-1000}})).data;assert.equal(hb.heartbeatEveryMin,1,'running → every minute');
+ const q=(await S('studio-command',{deviceId:B.id,type:'recheck-stores'})).data.command.id;
+ hb=(await dev('heartbeat',B.token,{version:'1.7.5'})).data;assert.equal(hb.commands[0]?.id,q);assert.equal(hb.heartbeatEveryMin,1,'commands waiting → every minute');
+ const d=await lib.getDevice(getStoreFn,B.id),s=await lib.networkSettings(getStoreFn,env);
+ const wed=Date.parse('2026-11-04T07:00:00+11:00');
+ assert.equal(lib.heartbeatEveryMin({...d,autoAllowed:true,client:{autoEnabled:true}},{...s,autoScout:'on',paused:false},wed),1,'Auto on inside the schedule window → every minute');
+ assert.equal(lib.heartbeatEveryMin({...d,autoAllowed:true,client:{autoEnabled:false}},{...s,autoScout:'on',paused:false},wed),5,'local Auto off → 5 min');
+ // Storage round trips for one routine check-in (was ~20 one after another).
+ let ops=0;const counted=(name:string,o?:any)=>{const st:any=getStoreFn(name,o);return new Proxy(st,{get(t,k){const v=t[k];return typeof v==='function'?(...a:any[])=>{ops++;return v.apply(t,a)}:v}})};
+ const scoutCounted=createScoutHandler({getStoreFn:counted,env,nowFn:()=>clock,adapter,notify:async()=>{}});
+ const r=await scoutCounted(new Request(origin+'/.netlify/functions/scout?op=heartbeat',{method:'POST',headers:{Origin:EXT,'x-nf-client-connection-ip':'ip-x','Content-Type':'application/json',Authorization:'Bearer '+B.token},body:JSON.stringify({version:'1.7.5'})}));
+ assert.equal(r.status,200);console.log('  storage calls per check-in:',ops);assert.ok(ops<=20,'storage calls per check-in: '+ops);
+ ops=0;await scoutCounted(new Request(origin+'/.netlify/functions/scout?op=config%26v%3D'+encodeURIComponent(cfg.version),{headers:{Origin:EXT}}));assert.ok(ops<=1,'config check reads only the config: '+ops);
+ console.log('PASS hosting cost: legacy config op answered (no 401), long preflight cache, 5-minute idle check-ins, fewer storage calls');}
 console.log('Scout v1.7 remote control, pacing, Run now, install info, notifications and capture time — all passed.');

@@ -106,7 +106,7 @@ export async function grantRunNow(getStoreFn:any,deviceId:string,by:string,now:n
 export async function stopRun(getStoreFn:any,deviceId:string,now:number){return editDevice(getStoreFn,deviceId,(d:any)=>({...d,stopRequestedAt:now,runNow:d.runNow?{...d.runNow,stoppedAt:now}:null}))}
 // ---------- remote control (v1.7): command queue + live status ----------
 /** Commands Studio can queue for one device. Delivered with the device's next heartbeat
- *  (every minute while Chrome runs), acknowledged as received, then reported done/failed.
+ *  (every minute while it runs or may run, otherwise every HEARTBEAT_IDLE_MIN minutes, while Chrome runs), acknowledged as received, then reported done/failed.
  *  Not picked up within 30 minutes → expired. A computer that is asleep/off or has Chrome
  *  closed cannot be woken: the command waits (until it expires). */
 export const COMMAND_TYPES=['run-now','stop','pause','resume','pace','refresh-config','recheck-stores'];
@@ -123,8 +123,16 @@ export async function takeCommands(getStoreFn:any,deviceId:string,now:number){le
 export async function commandResult(getStoreFn:any,deviceId:string,body:any,now:number){const id=String(body?.id||'');let found:any=null;
  await editDevice(getStoreFn,deviceId,(x:any)=>{const list=(x.commands||[]);const c=list.find((y:any)=>y.id===id);if(!c||!['received','pending'].includes(c.status))return undefined;found={...c,status:body?.ok===false?'failed':'done',doneAt:now,result:clean(body?.result,200)||null};return{...x,commands:list.map((y:any)=>y.id===id?found:y)}});
  if(!found)fail('Không tìm thấy lệnh.','Command not found.',404,'no-command');await logEvent(getStoreFn,'command_'+found.status,{deviceId,command:found.type,commandId:id,result:found.result},now);return{id,status:found.status}}
-/** Live status for Studio (no page contents). online = heartbeat within 3 minutes. */
-export function liveStatus(d:any,s:any,now:number){const hb=d.lastHeartbeat?Date.parse(d.lastHeartbeat):0,online=!!hb&&now-hb<3*MIN,c=d.client||{},caps=effectiveCaps(d,s);
+/** How often the extension checks in. Every minute only while it runs, may start a run (Auto on, allowed, inside its
+ *  schedule window) or has Studio commands; otherwise every HEARTBEAT_IDLE_MIN minutes. Before 20 Nov 2026 every computer
+ *  checked in every minute all day (two requests a minute, each ~10 s of server time), which was most of the hosting compute. */
+export const HEARTBEAT_IDLE_MIN=5;
+export function heartbeatEveryMin(d:any,s:any,now:number,hadCommands=false){const c=d?.client||{};
+ const mayRun=d?.autoAllowed===true&&c.autoEnabled===true&&s?.autoScout==='on'&&!s?.paused&&inWindow(now,d.schedule||s.schedule,d.timeZone);
+ return c.running===true||runNowActive(d,now)||hadCommands||mayRun?1:HEARTBEAT_IDLE_MIN}
+/** Live status for Studio (no page contents). online = a check-in within two idle intervals (+1 min). */
+export const ONLINE_WITHIN_MIN=2*HEARTBEAT_IDLE_MIN+1;
+export function liveStatus(d:any,s:any,now:number){const hb=d.lastHeartbeat?Date.parse(d.lastHeartbeat):0,online=!!hb&&now-hb<ONLINE_WITHIN_MIN*MIN,c=d.client||{},caps=effectiveCaps(d,s);
  const paused=d.pausedUntil&&d.pausedUntil>now,blocked=paused&&String(d.pauseReason||'').startsWith('blocked');
  const state=d.revokedAt?'revoked':blocked?'blocked':paused||c.paused?'paused':!online?'offline':c.running?'running':runNowActive(d,now)?'run-now-waiting':c.why==='outside-window'?'waiting-window':c.why==='user-active'?'waiting-user':'idle';
  return{online,lastHeartbeat:d.lastHeartbeat||null,heartbeatAgeMin:hb?Math.floor((now-hb)/MIN):null,chromeOpen:online?c.chromeOpen!==false:null,battery:c.battery||null,idle:c.idle||null,state,why:c.why||null,
@@ -217,6 +225,8 @@ export async function extensionAllowlist(getStoreFn:any,now:number=Date.now()){c
  for(const d of await listDevices(getStoreFn)){const u=String(d.owner||'').toLowerCase();if(!d.revokedAt&&u&&!seed[u]){seed[u]={by:'migration',at,source:'paired-device'};added.push(u)}}
  let won=false;const next=await editRecord(store,'roles/extension',(c:any)=>{if(c?.migratedAt)return undefined;won=true;return{users:{...seed,...(c?.users||{})},migratedAt:at}});
  return{users:next?.users||{},migrated:won?added:null}}
+/** Same answer as isExtensionAllowed, from an allowlist already read in this request (no extra storage read). */
+export function extensionAllowedFrom(users:any,username:string,env:any=process.env){const u=String(username||'').toLowerCase();if(!u)return false;return adminNames(env).includes(u)||!!users?.[u]}
 export async function isExtensionAllowed(getStoreFn:any,username:string,env:any=process.env,now:number=Date.now()){const u=String(username||'').toLowerCase();if(!u)return false;if(adminNames(env).includes(u))return true;return !!(await extensionAllowlist(getStoreFn,now)).users[u]}
 export async function assertExtensionAllowed(getStoreFn:any,username:string,env:any=process.env,now:number=Date.now()){if(!(await isExtensionAllowed(getStoreFn,username,env,now)))fail(NOT_ASSIGNED[0],NOT_ASSIGNED[1],403,'not_assigned')}
 export async function setExtensionAllowed(getStoreFn:any,username:string,grant:boolean,actor:string,now:number){const u=String(username||'').toLowerCase();if(!/^[a-z0-9][a-z0-9_.-]{2,39}$/.test(u))fail('Tên tài khoản không hợp lệ.','Invalid username.');await extensionAllowlist(getStoreFn,now);
@@ -284,9 +294,8 @@ export async function editDevice(getStoreFn:any,id:string,fn:(d:any)=>any){retur
 export async function revokeDevice(getStoreFn:any,id:string,actor:string,now:number){const d=await getDevice(getStoreFn,id),store=scoutStore(getStoreFn);await store.delete('tokens/'+d.tokenHash);await editDevice(getStoreFn,id,x=>({...x,revokedAt:new Date(now).toISOString(),revokedBy:actor}));await releaseDeviceLeases(getStoreFn,id,now);await logEvent(getStoreFn,'device_revoked',{deviceId:id,by:actor},now);return true}
 export function effectiveCaps(device:any,s:any){const c=device?.caps||{};return{pagesPerRun:Math.min(s.caps.devicePagesPerRun,c.pagesPerRun||Infinity),pagesPerDay:Math.min(s.caps.devicePagesPerDay,c.pagesPerDay||Infinity)}}
 export async function deviceView(getStoreFn:any,d:any,s:any,now:number,env:any=process.env){
- const health=await retailerHealth(getStoreFn),paused:any={};for(const r of RETAILERS){const h=health[r];if(retailerPaused(h,now))paused[r]=h.reason||'paused'}
- const cfg=await scoutConfig(getStoreFn);
- return{id:d.id,name:d.name,owner:d.owner,postcode:d.postcode,suburb:d.suburb,timeZone:d.timeZone,stores:d.stores||{},storesEffective:effectiveStores(d),online:ONLINE_RETAILERS,schedule:d.schedule||s.schedule,scheduleSource:d.schedule?'device':'network',caps:effectiveCaps(d,s),autoAllowed:d.autoAllowed===true,paused:d.pausedUntil&&d.pausedUntil>now?{until:new Date(d.pausedUntil).toISOString(),reason:d.pauseReason||'paused'}:null,trusted:await isTrusted(getStoreFn,d.owner,env),
+ const [health,cfg,trusted]=await Promise.all([retailerHealth(getStoreFn),scoutConfig(getStoreFn),isTrusted(getStoreFn,d.owner,env)]),paused:any={};for(const r of RETAILERS){const h=health[r];if(retailerPaused(h,now))paused[r]=h.reason||'paused'}
+ return{id:d.id,name:d.name,owner:d.owner,postcode:d.postcode,suburb:d.suburb,timeZone:d.timeZone,stores:d.stores||{},storesEffective:effectiveStores(d),online:ONLINE_RETAILERS,schedule:d.schedule||s.schedule,scheduleSource:d.schedule?'device':'network',caps:effectiveCaps(d,s),autoAllowed:d.autoAllowed===true,paused:d.pausedUntil&&d.pausedUntil>now?{until:new Date(d.pausedUntil).toISOString(),reason:d.pauseReason||'paused'}:null,trusted,
   network:{autoScout:s.autoScout,semiAuto:s.semiAuto,paused:s.paused,robots:'respect',pacing:effectivePacing(d,s,now)},runNow:runNowActive(d,now)?{until:new Date(d.runNow.until).toISOString(),runId:d.runNow.runId||null}:null,stopRequestedAt:d.stopRequestedAt||null,retailerPaused:paused,configVersion:cfg?.version||null,inWindow:inWindow(now,d.schedule||s.schedule,d.timeZone),
   // v1.7.2: is the account a Studio admin (readiness checklist says “chỉ quản trị viên” otherwise), and the update check.
   ownerStudio:roleFor(d.owner,env)==='owner',update:updateInfo(d,s,env),planInfo:planView(d,now)}}
@@ -307,7 +316,7 @@ export async function saveDiagnostic(getStoreFn:any,device:any,payload:any,now:n
 export async function listDiagnostics(getStoreFn:any,{now,limit=100}:any){const store=scoutStore(getStoreFn),cutoff=dayKey(now-DIAG_KEEP_DAYS*DAY),out:any[]=[];for await(const k of keys(store,'diag/')){if(k.split('/')[1]<cutoff)continue;const v=await readJSON(store,k);if(v)out.push(v)}return out.sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,limit)}
 
 // ---------- health ----------
-export async function retailerHealth(getStoreFn:any){const store=scoutStore(getStoreFn),out:any={};for(const r of RETAILERS)out[r]=await readJSON(store,'health/'+r)||{recent:[],paused:false};return out}
+export async function retailerHealth(getStoreFn:any){const store=scoutStore(getStoreFn),out:any={},rows=await Promise.all(RETAILERS.map(r=>readJSON(store,'health/'+r)));RETAILERS.forEach((r,i)=>{out[r]=rows[i]||{recent:[],paused:false}});return out}
 export const retailerPaused=(h:any,now:number)=>!!h?.paused&&(!h.until||h.until>now);
 async function recordParse(getStoreFn:any,retailer:string,ok:boolean,s:any,now:number){let tripped=false;
  await editRecord(scoutStore(getStoreFn),'health/'+retailer,(h:any)=>{const recent=[...(h?.recent||[]),ok?1:0].slice(-Math.max(40,s.parser.minSamples));const next:any={...(h||{}),recent,lastAt:new Date(now).toISOString()};

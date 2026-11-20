@@ -2,6 +2,15 @@
 
 Each lesson records what went wrong, what it cost, and the habit and rule that prevent it. Newest first. All dates are Sydney time.
 
+## 20 Nov 2026: hosting compute
+1. **A background timer that calls the server costs money every minute of every day (20 Nov 2026).**
+   - What happened: the So Giá extension checked in every minute, twice, all day, and each check-in made ~18 storage calls one after
+     another (~10 s of server time). A query string built as `op='config&v=…'` was encoded into one unknown op, so the config check
+     failed with 401 every minute and nobody noticed. Together this was most of the daily hosting compute.
+   - Habit: any timer that calls the server gets an interval from the server (slow when idle), its server path is measured with a
+     storage-call count test, and its failures are visible (a test asserts no 401s). Query parameters go through `URLSearchParams`,
+     never glued into another value that is then encoded.
+
 ## 14 Nov 2026: v1.7.21 CI
 1. **Passed on my machine, failed on CI because CI fonts are wider (v1.7.21, 14 Nov 2026).**
    - What happened: the largest-text sweep passed locally but CI showed buttons and the put-away sheet running past their box.
