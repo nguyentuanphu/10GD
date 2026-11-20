@@ -2,6 +2,12 @@
 
 Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; this file records product decisions and what they mean for the code.
 
+## 21 Nov 2026 (about 05:45 AEDT): DEPLOY of the compute fix
+- Henry, 20 Nov evening: "Once turning off done you can deploy". Price Scout check-ins had stopped (only the old config ping
+  was left, which this release answers cheaply), and CI was green on 658dcd8 (166 checks). PR #47 squash-merged as d29086b.
+- The same PR fixed two test time-bombs that started failing on 20 Nov 2026 (rsvp, receipt-list): tests with fixed
+  November dates now run on a fixed clock. Lesson added.
+
 ## 20 Nov 2026 (about 20:30 AEDT): hosting compute too high every day
 - Henry asked why the hosting compute is high every day and whether Sparkle Valley causes it. Findings (13–20 Nov, hosting logs):
   almost all of it is this app's `scout` function, called by the So Giá extension on ONE Windows computer: about 13,700 calls a

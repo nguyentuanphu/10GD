@@ -3,6 +3,12 @@
 Each lesson records what went wrong, what it cost, and the habit and rule that prevent it. Newest first. All dates are Sydney time.
 
 ## 20 Nov 2026: hosting compute
+2. **Tests with fixed dates must also fix "today" (20 Nov 2026).**
+   - What happened: rsvp and receipt-list used fixture dates in mid-November but compared them with the real clock, so both
+     started failing on 20 Nov 2026 on every branch, blocking a release.
+   - Habit: a test that uses fixed calendar dates passes a clock (`nowFn`, a fixed `Date` in a vm sandbox) to the code it
+     tests; grep new tests for `'2026-` dates next to code that calls `Date.now()` or `sydneyDate()`.
+
 1. **A background timer that calls the server costs money every minute of every day (20 Nov 2026).**
    - What happened: the So Giá extension checked in every minute, twice, all day, and each check-in made ~18 storage calls one after
      another (~10 s of server time). A query string built as `op='config&v=…'` was encoded into one unknown op, so the config check
