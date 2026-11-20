@@ -133,7 +133,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
   await scoutLib.editDevice(getStoreFn,deviceId,(d:any)=>({...d,autoAllowed:true,schedule:[{days:[0,1,2,3,4,5,6],start:'00:00',end:'24:00'}]}));
   await setStorage({testPacing:{minMs:1500,maxMs:1800}});
   const before=visits.length;
-  // 1.7.5: an idle computer learns Studio changes at its next check-in (within 5 minutes); here that check-in is forced.
+  // 1.7.5: an idle computer learns Studio changes at its next check-in (within 15 or 60 minutes); here that check-in is forced.
   await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());
   const why=await sw.evaluate(()=>(globalThis as any).scoutDebug.startRun());assert.equal(why,null,'run started: '+why);
   const lastRun=await until(async()=>(await storage(['lastRun'])).lastRun,90000,'auto run to finish').catch(async(e:any)=>{const rp=ctx.pages().find((p:any)=>p.url().includes('runner.html'));throw new Error(e.message+' · runner: '+(rp?await rp.evaluate(()=>document.body.innerText.slice(0,400)).catch((x:any)=>x.message):'none')+' · '+JSON.stringify(await storage(['run','runnerWindowMode','lastWhy'])))});
@@ -291,7 +291,7 @@ async function until(fn:()=>Promise<any>,ms=30000,label='condition'){const end=D
     const old=Date.now()-6*60000;await sw.evaluate((t:number)=>(globalThis as any).chrome.storage.local.set({beatAt:t}),old);await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat(false));
     assert.ok((await sw.evaluate(()=>(globalThis as any).chrome.storage.local.get(['beatAt']))).beatAt>old,'routine check-in sent once the interval has passed');assert.ok(beats()>n,'a check-in reached the server');
     n=beats();await sw.evaluate(()=>(globalThis as any).scoutDebug.heartbeat());assert.equal(beats(),n+1,'forced check-in always sent');
-    const every=(await sw.evaluate(()=>(globalThis as any).chrome.storage.local.get(['beatEveryMin']))).beatEveryMin;assert.ok(every===1||every===5,'interval from the server: '+every);
+    const every=(await sw.evaluate(()=>(globalThis as any).chrome.storage.local.get(['beatEveryMin']))).beatEveryMin;assert.ok([1,15,60].includes(every),'interval from the server: '+every);
     const cfg=apiCalls.filter(c=>/op=config/.test(c.path));assert.ok(cfg.length>0,'config was checked');assert.ok(cfg.every(c=>c.status!==401&&!/op=config%26/.test(c.path)),'config checks: '+JSON.stringify(cfg.slice(0,3)))}
    await pop3.close();
    console.log('PASS v1.7 remote control in the extension: Run now command → run outside the window, Very fast pace still sequential (≥ 3 s), Stop obeyed within one heartbeat, popup status, live status')}

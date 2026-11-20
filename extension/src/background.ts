@@ -20,14 +20,15 @@ chrome.runtime.onInstalled.addListener(async(d:any)=>{const st=await chrome.stor
 chrome.runtime.onStartup.addListener(setup);
 // v1.7 remote control: the alarm fires every minute while Chrome runs (the chrome.alarms minimum), and the
 // extension checks in right away on startup/wake. 1.7.5: a routine check-in is sent only as often as the server
-// asks (`heartbeatEveryMin`: 1 while running, during the schedule window or with Studio commands waiting, else 5);
+// asks (`heartbeatEveryMin`: 1 while running, during the schedule window or with Studio commands waiting; 15 when Auto is
+// on but outside the window; 60 when Auto is off);
 // in between, the last answer is reused. Before, every computer checked in twice a minute all day.
 function setup(){chrome.alarms.create('scout-tick',{periodInMinutes:1});chrome.alarms.create('scout-heartbeat',{periodInMinutes:1});chrome.alarms.create('scout-flush',{periodInMinutes:1});SC.refreshConfig();heartbeat(true)}
 setup();
 try{chrome.idle.onStateChanged.addListener((s:string)=>{if(s==='active')heartbeat(true)})}catch{}
 
 var beating:Promise<any>|null=null;// var: setup() above calls heartbeat() before this line runs
-async function heartbeat(force=false){if(!force&&!beating){const st=await SC.get(['run','beatAt','beatEveryMin','device']);const every=Math.min(Math.max(Number(st.beatEveryMin)||5,1),15);
+async function heartbeat(force=false){if(!force&&!beating){const st=await SC.get(['run','beatAt','beatEveryMin','device']);const every=Math.min(Math.max(Number(st.beatEveryMin)||15,1),60);
   if(!st.run&&st.device&&st.beatAt&&Date.now()-st.beatAt<every*60000-5000)return st.device}
  beating=beating||beat().finally(()=>{beating=null});return beating}
 async function beat(){const st=await SC.get(['token','autoEnabled','semiEnabled','warnings','run','lastRun','blockedEvents','paused','battery','lastWhy','semiSites']);if(!st.token)return null;const online=await onlineOn(st.semiSites);
@@ -36,7 +37,7 @@ async function beat(){const st=await SC.get(['token','autoEnabled','semiEnabled'
  try{const view=await SC.api('heartbeat',{version:SC.version(),configVersion:(await SC.get(['config'])).config?.version||SC.BUILD.configVersion||null,autoEnabled:st.autoEnabled===true,semiEnabled:st.semiEnabled!==false,running:!!st.run,signedIn:st.warnings.signedIn,storesSeen:st.warnings.storesSeen,storeMismatch:st.warnings.storeMismatch,online,
    chromeOpen,idle,paused:st.paused===true,why:st.run?null:st.lastWhy||null,battery:st.battery||null,run:st.run?{pages:st.run.pages||0,prices:st.run.prices||0,startedAt:st.run.startedAt}:null,
    lastRun:lr?{at:lr.at,pages:lr.pages,prices:lr.prices,skipped:lr.skipped,errors:lr.errors||0,stop:lr.stop}:null,lastError:b?{at:b.at,retailer:b.retailer,kind:b.kind}:null});
-  const {commands,heartbeatEveryMin,...dev}=view,had=(await SC.get(['config'])).config?.version||null;await SC.set({device:dev,deviceAt:Date.now(),beatAt:Date.now(),beatEveryMin:Number(heartbeatEveryMin)||5});
+  const {commands,heartbeatEveryMin,...dev}=view,had=(await SC.get(['config'])).config?.version||null;await SC.set({device:dev,deviceAt:Date.now(),beatAt:Date.now(),beatEveryMin:Number(heartbeatEveryMin)||15});
   // Ask for the parser config only when the server has a different version than the one stored here.
   if(dev.configVersion&&dev.configVersion!==had)SC.refreshConfig();
   if(Array.isArray(commands)&&commands.length)await runCommands(commands);

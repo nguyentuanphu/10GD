@@ -106,11 +106,11 @@ export async function grantRunNow(getStoreFn:any,deviceId:string,by:string,now:n
 export async function stopRun(getStoreFn:any,deviceId:string,now:number){return editDevice(getStoreFn,deviceId,(d:any)=>({...d,stopRequestedAt:now,runNow:d.runNow?{...d.runNow,stoppedAt:now}:null}))}
 // ---------- remote control (v1.7): command queue + live status ----------
 /** Commands Studio can queue for one device. Delivered with the device's next heartbeat
- *  (every minute while it runs or may run, otherwise every HEARTBEAT_IDLE_MIN minutes, while Chrome runs), acknowledged as received, then reported done/failed.
- *  Not picked up within 30 minutes → expired. A computer that is asleep/off or has Chrome
+ *  (every minute while it runs or may run, otherwise every HEARTBEAT_IDLE_MIN or HEARTBEAT_OFF_MIN minutes, while Chrome runs),
+ *  acknowledged as received, then reported done/failed. Not picked up within 90 minutes → expired (longer than the slowest check-in). A computer that is asleep/off or has Chrome
  *  closed cannot be woken: the command waits (until it expires). */
 export const COMMAND_TYPES=['run-now','stop','pause','resume','pace','refresh-config','recheck-stores'];
-export const COMMAND_TTL_MS=30*MIN;
+export const COMMAND_TTL_MS=90*MIN;
 const expireCommands=(list:any[],now:number)=>(list||[]).map(c=>c.status==='pending'&&c.expiresAt<=now?{...c,status:'expired'}:c);
 export async function queueCommand(getStoreFn:any,deviceId:string,type:string,args:any,by:string,now:number){if(!COMMAND_TYPES.includes(type))fail('Lệnh không hỗ trợ.','Unsupported command.',400,'bad-command');
  const cmd={id:'cmd-'+randomBytes(6).toString('hex'),type,args:args&&typeof args==='object'?args:{},by:String(by).slice(0,60),createdAt:now,expiresAt:now+COMMAND_TTL_MS,status:'pending',receivedAt:null,doneAt:null,result:null};
@@ -123,16 +123,22 @@ export async function takeCommands(getStoreFn:any,deviceId:string,now:number){le
 export async function commandResult(getStoreFn:any,deviceId:string,body:any,now:number){const id=String(body?.id||'');let found:any=null;
  await editDevice(getStoreFn,deviceId,(x:any)=>{const list=(x.commands||[]);const c=list.find((y:any)=>y.id===id);if(!c||!['received','pending'].includes(c.status))return undefined;found={...c,status:body?.ok===false?'failed':'done',doneAt:now,result:clean(body?.result,200)||null};return{...x,commands:list.map((y:any)=>y.id===id?found:y)}});
  if(!found)fail('Không tìm thấy lệnh.','Command not found.',404,'no-command');await logEvent(getStoreFn,'command_'+found.status,{deviceId,command:found.type,commandId:id,result:found.result},now);return{id,status:found.status}}
-/** How often the extension checks in. Every minute only while it runs, may start a run (Auto on, allowed, inside its
- *  schedule window) or has Studio commands; otherwise every HEARTBEAT_IDLE_MIN minutes. Before 20 Nov 2026 every computer
- *  checked in every minute all day (two requests a minute, each ~10 s of server time), which was most of the hosting compute. */
-export const HEARTBEAT_IDLE_MIN=5;
+/** How often the extension checks in (Henry, 20 Nov 2026: as rarely as possible). Before 20 Nov 2026 every computer checked
+ *  in every minute all day (two requests a minute, each ~10 s of server time), which was most of the hosting compute.
+ *  - every minute: it is running, has a Run now grant or Studio commands waiting, or may start a run now (Auto on in Studio
+ *    and on the computer, allowed, not paused, inside its schedule window);
+ *  - every HEARTBEAT_IDLE_MIN: Auto is on for this computer but it is outside its schedule window;
+ *  - every HEARTBEAT_OFF_MIN: Auto is off (Studio, the computer or the network pause): only saving prices while browsing. */
+export const HEARTBEAT_IDLE_MIN=15,HEARTBEAT_OFF_MIN=60;
 export function heartbeatEveryMin(d:any,s:any,now:number,hadCommands=false){const c=d?.client||{};
- const mayRun=d?.autoAllowed===true&&c.autoEnabled===true&&s?.autoScout==='on'&&!s?.paused&&inWindow(now,d.schedule||s.schedule,d.timeZone);
- return c.running===true||runNowActive(d,now)||hadCommands||mayRun?1:HEARTBEAT_IDLE_MIN}
-/** Live status for Studio (no page contents). online = a check-in within two idle intervals (+1 min). */
-export const ONLINE_WITHIN_MIN=2*HEARTBEAT_IDLE_MIN+1;
-export function liveStatus(d:any,s:any,now:number){const hb=d.lastHeartbeat?Date.parse(d.lastHeartbeat):0,online=!!hb&&now-hb<ONLINE_WITHIN_MIN*MIN,c=d.client||{},caps=effectiveCaps(d,s);
+ if(c.running===true||runNowActive(d,now)||hadCommands)return 1;
+ const autoOn=d?.autoAllowed===true&&c.autoEnabled===true&&s?.autoScout==='on'&&!s?.paused&&!(d?.pausedUntil>now);
+ if(!autoOn)return HEARTBEAT_OFF_MIN;
+ return inWindow(now,d.schedule||s.schedule,d.timeZone)?1:HEARTBEAT_IDLE_MIN}
+/** Live status for Studio (no page contents). online = a check-in within two of the intervals this computer was given
+ *  (+1 min); computers that never got one (extension 1.7.4 and older check in every minute) use 1 minute. */
+export const onlineWithinMin=(d:any)=>2*(Number(d?.beatEveryMin)||1)+1;
+export function liveStatus(d:any,s:any,now:number){const hb=d.lastHeartbeat?Date.parse(d.lastHeartbeat):0,online=!!hb&&now-hb<onlineWithinMin(d)*MIN,c=d.client||{},caps=effectiveCaps(d,s);
  const paused=d.pausedUntil&&d.pausedUntil>now,blocked=paused&&String(d.pauseReason||'').startsWith('blocked');
  const state=d.revokedAt?'revoked':blocked?'blocked':paused||c.paused?'paused':!online?'offline':c.running?'running':runNowActive(d,now)?'run-now-waiting':c.why==='outside-window'?'waiting-window':c.why==='user-active'?'waiting-user':'idle';
  return{online,lastHeartbeat:d.lastHeartbeat||null,heartbeatAgeMin:hb?Math.floor((now-hb)/MIN):null,chromeOpen:online?c.chromeOpen!==false:null,battery:c.battery||null,idle:c.idle||null,state,why:c.why||null,

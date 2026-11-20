@@ -76,14 +76,17 @@ export function createScoutHandler({getStoreFn=getStore,env=process.env,nowFn=()
       const lastRun=b.lastRun&&typeof b.lastRun==='object'&&ts(b.lastRun.at)?{at:ts(b.lastRun.at),pages:int(b.lastRun.pages),prices:int(b.lastRun.prices),skipped:int(b.lastRun.skipped),errors:int(b.lastRun.errors),stop:String(b.lastRun.stop||'').replace(/[^\w-]/g,'').slice(0,30)||null}:null;
       const lastError=b.lastError&&typeof b.lastError==='object'&&ts(b.lastError.at)?{at:ts(b.lastError.at),retailer:RETAILERS.includes(b.lastError.retailer)?b.lastError.retailer:null,kind:String(b.lastError.kind||'').replace(/[^\w-]/g,'').slice(0,30)||null}:null;
       const battery=b.battery&&typeof b.battery==='object'?{charging:b.battery.charging===true,level:typeof b.battery.level==='number'&&b.battery.level>=0&&b.battery.level<=1?Math.round(b.battery.level*100)/100:null,at:ts(b.battery.at)}:null;
-      let prevRunAt:any=null;
-      const saved:any=await editDevice(getStoreFn,device.id,d=>{prevRunAt=d.client?.lastRun?.at||null;return{...d,lastHeartbeat:new Date(now).toISOString(),client:{version:String(b.version||'').slice(0,20)||null,configVersion:/^[\w.-]{1,40}$/.test(String(b.configVersion||''))?String(b.configVersion):null,autoEnabled:b.autoEnabled===true,semiEnabled:b.semiEnabled!==false,running:b.running===true,signedIn,storesSeen:storeSeen,storeMismatch:mismatch,...(onlineOn?{online:onlineOn}:{}),onBattery:battery?!battery.charging:b.onBattery===true,
+      let prevRunAt:any=null,every=1;
+      const saved:any=await editDevice(getStoreFn,device.id,d=>{prevRunAt=d.client?.lastRun?.at||null;
+       // The interval given to this computer is decided from what it reports now and kept on the record (Studio's online rule).
+       every=heartbeatEveryMin({...d,client:{running:b.running===true,autoEnabled:b.autoEnabled===true}},settings,now,(d.commands||[]).some((c:any)=>c.status==='pending'&&c.expiresAt>now));
+       return{...d,beatEveryMin:every,lastHeartbeat:new Date(now).toISOString(),client:{version:String(b.version||'').slice(0,20)||null,configVersion:/^[\w.-]{1,40}$/.test(String(b.configVersion||''))?String(b.configVersion):null,autoEnabled:b.autoEnabled===true,semiEnabled:b.semiEnabled!==false,running:b.running===true,signedIn,storesSeen:storeSeen,storeMismatch:mismatch,...(onlineOn?{online:onlineOn}:{}),onBattery:battery?!battery.charging:b.onBattery===true,
        chromeOpen:b.chromeOpen!==false,idle:['active','idle','locked'].includes(b.idle)?b.idle:null,battery,paused:b.paused===true,why:typeof b.why==='string'?b.why.replace(/[^\w-]/g,'').slice(0,30)||null:null,run:b.running===true?{pages:int(b.run?.pages),prices:int(b.run?.prices),startedAt:ts(b.run?.startedAt)}:null,lastRun:lastRun||d.client?.lastRun||null,lastError:lastError||d.client?.lastError||null}}});
       if(lastRun&&lastRun.at!==prevRunAt)await logEvent(getStoreFn,'run_finished',{deviceId:device.id,account:device.owner,name:device.name,pages:lastRun.pages,prices:lastRun.prices,skipped:lastRun.skipped,stop:lastRun.stop},now);
       // The record just written is the device (no second read); commands are only taken when some are waiting.
       const cur=saved||await getDevice(getStoreFn,device.id),waiting=(cur.commands||[]).some((c:any)=>c.status==='pending');
       const [view,commands]=await Promise.all([deviceView(getStoreFn,cur,settings,now,env),waiting?takeCommands(getStoreFn,device.id,now):Promise.resolve([])]);
-      return json({...view,commands,heartbeatEveryMin:heartbeatEveryMin(cur,settings,now,commands.length>0)})}
+      return json({...view,commands,heartbeatEveryMin:every})}
      return json(await deviceView(getStoreFn,{...device},settings,now,env))}
     // v1.7.2: what this computer will look at today (runner page, Settings preview).
     // v1.7.2: a sanitised page-structure sample the person chose to send (selector fixes go out as data-only config).

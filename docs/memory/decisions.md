@@ -11,6 +11,11 @@ Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; thi
   inside the schedule window or with Studio commands waiting), and make each check-in cheaper on the server. Extension 1.7.5.
   Accepted effect: Studio sees an idle computer as online for up to 11 minutes after its last check-in, and Studio commands or
   setting changes reach an idle computer within 5 minutes instead of 1. Same gate: Henry says DEPLOY.
+- Later the same evening (about 20:40 AEDT), Henry: "Turn off price scout luôn đi nhưng sửa heartbeat lâu hơn để giảm tối thiểu".
+  Check-ins are now as rare as possible: 60 minutes while Auto is off (Studio, the computer or the network pause), 15 minutes when
+  Auto is on but outside the schedule window, every minute only while running, inside the window or with commands waiting.
+  Studio commands now wait up to 90 minutes; "online" = a check-in within two of the computer's own intervals.
+  Turning Scout off right now cannot be done from the agent's session (no Studio sign-in, no access to that computer); see Henry's to-dos.
 
 ## 14 Nov 2026 (about 21:00 AEDT, v1.7.21)
 - **More stores, step 2, now (Henry: "Làm luôn đi đừng chờ").** Do not wait for the 27 Nov 2026 device check in
@@ -113,6 +118,7 @@ Newest first. All times are Sydney time. Standing rules live in `AGENTS.md`; thi
 ## Henry's to-dos (things only he can do)
 - ~~Update the henry-master skill on claude.ai~~ done by Henry, 13 Nov 2026.
 - SCOUT_EXTENSION_IDS setting; the duplicate device; the Web Store link.
+- **Now (20 Nov 2026):** turn Price Scout off on the Windows computer: chrome://extensions → switch off "FamTray So Giá" (or Studio → So Giá → the device → Thu hồi, which makes the extension forget its pairing and stop calling; it needs pairing again later). Also Studio → Settings → Auto off.
 - After DEPLOY of the 20 Nov compute fix: update the So Giá extension to 1.7.5 on the Windows computer (Studio shows "Cần cập nhật" until then). That computer sends two check-ins at the same second each minute, so it probably has two copies paired (two Chrome profiles): remove the one not used.
 - Re-enter the Mỳ Quảng amounts; the iPhone voice self-check.
 - Pinch / WhichGrocer terms e-mails. The integration plan is not yet approved.
